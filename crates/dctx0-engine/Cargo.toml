@@ -1,0 +1,31 @@
+[package]
+name = "dctx0-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+[dependencies]
+dctx0-target-sdk.workspace = true
+tokio.workspace = true
+rustix.workspace = true
+dctx0-tasks.workspace = true
+dctx0-verification.workspace = true
+dctx0-interpreter.workspace = true
+dctx0-core.workspace = true
+dctx0-language.workspace = true
+dctx0-graph.workspace = true
+dctx0-changes.workspace = true
+dctx0-store.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+fs2.workspace = true
+[lints]
+workspace = true
+
+[dev-dependencies]
+rusqlite.workspace = true
+
+dctx0-target-rust = { path = "../../targets/rust" }
+
+dctx0-target-typescript = { path = "../../targets/typescript" }

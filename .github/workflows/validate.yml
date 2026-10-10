@@ -1,0 +1,40 @@
+name: Validate
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+      - run: cargo install cargo-llvm-cov --locked
+      - run: python3 scripts/validate.py --coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-history
+          path: benchmarks/history/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: target/coverage/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-harness-conformance
+          path: target/native-harness-conformance/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-executor-conformance
+          path: target/native-executor-conformance/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinema-native-coverage
+          path: target/cinema-native-coverage/

@@ -1,0 +1,11 @@
+workspace Adaptive {
+  value Count = Int {
+    range 0..3
+  }
+  surface Counter {
+    operation next(value: Count) -> Int {
+      pure
+      ensures result == value + 1
+    }
+  }
+}

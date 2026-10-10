@@ -1,0 +1,1655 @@
+domain AgentExecution {
+  value AgentRunId = UUID
+  value RunAttemptId = UUID
+  value RunCheckpointId = UUID
+  value RunLeaseId = UUID
+  value ProviderPermitId = UUID
+  value ProviderCallId = UUID
+  value RunControlId = UUID
+  value RunEventId = UUID
+  value RunTurnId = UUID
+  value RunSummaryId = UUID
+  value AssistantActivityId = UUID
+  value ToolExecutionId = UUID
+  value RunSequence = Int { range 1..2147483647 }
+  value RunActivityBatch = List<RunActivityInput> { length 1..100 }
+  value RunActivityPageSize = Int { range 1..100 }
+  value RunActivityCursor = Int { range 0..2147483647 }
+  value ToolReconciliationId = UUID
+  value RunnerSignalId = UUID
+  value RunnerSignalSequence = Int { range 1..2147483647 }
+  value RunnerSignalLimit = Int { range 1..200 }
+  value ExecutionAgentId = UUID
+  value ExecutionRunnerId = UUID
+  value ExecutionRunnerKeyId = UUID
+  value ExecutionActorId = UUID
+  value ExecutionParticipationId = UUID
+  value ExecutionWorkstreamId = UUID
+  value ExecutionConversationId = UUID
+  value ExecutionMessageId = UUID
+  value ExecutionSnapshotId = UUID
+  value ExecutionLocalAgentId = String { length 1..160 }
+  value ExecutionAgentVersion = String { length 1..160 }
+  value ExecutionAgentFingerprint = String { length 16..256 }
+  value ExecutionMessageVersion = String { length 1..160 }
+  value ExecutionMessageHash = String { length 16..256 }
+  value ExecutionProviderName = String { length 1..120 }
+  value ExecutionBoundaryScopeReference = String { length 1..240 }
+  value RuntimeSessionReference = String { length 1..240 }
+  value RuntimeSandboxReference = String { length 1..240 }
+  value RuntimeCheckpointReference = String { length 1..240 }
+  value RuntimeSnapshotReference = String { length 1..240 }
+  value RunTokenBudget = Int { range 1..2000000 }
+
+  type AgentRunKind = ChatReply | WorkTask
+  type RunOriginKind = ChatMessage | ManualRequest | WorkflowRequest | ChannelSession
+  type AgentRunStatus = Queued | Leased | Running | Waiting | Completed | Failed | Cancelled
+  type ExecutionMode = Autonomous | Interactive
+  type RunTurnStatus = TurnRunning | TurnSucceeded | TurnFailed | TurnAborted
+  type RunActivityKind = TurnStarted | TurnEnded | AssistantStarted | AssistantTextAppended | AssistantEnded | ToolStarted | ToolSucceeded | ToolFailed | Waiting | Resumed | Warning | CheckpointReferenced
+  type RunAttemptStatus = Queued | Running | Paused | Completed | Failed | Rewound | Abandoned
+  type CheckpointAnchor = TurnStart | TurnEnd | BeforeTool | Manual
+  type RunOutcome = ResponsePublished | ResponseSuppressed | NoResponse | ArtifactsProduced | NoResult | Failure
+  type RunnerResultKind = FinalDraft | NoAnswer | Failed
+  type ChatPublicationDisposition = Published | SuppressedSourceChanged | SuppressedMembershipLost | NoAnswer | NotApplicable
+  type RunControlKind = Cancel | Rewind | Fork
+  type RunControlStatus = Requested | Acknowledged | Rejected
+  type RunnerSignalKind = RunAvailable | ControlRequested
+  type ToolWriteResolution = ConfirmedCompleted | ConfirmedNotRun | Compensated
+
+  failure AgentRunNotFound { runId: AgentRunId }
+  failure RunAttemptNotFound { attemptId: RunAttemptId }
+  failure RunCheckpointNotFound { checkpointId: RunCheckpointId }
+  failure RunInspectionDenied { actorId: ExecutionActorId }
+  failure RunActivityAuthenticationRequired { reason: String }
+  failure RunnerAuthenticationRejected { runnerId: ExecutionRunnerId }
+  failure RunnerLeaseRejected { reason: String }
+  failure RunSnapshotUnavailable { snapshotId: ExecutionSnapshotId }
+  failure RunQueueDenied { reason: String }
+  failure UnconfirmedToolWrite { eventId: RunEventId }
+  failure RunEventNotFound { eventId: RunEventId }
+  failure InvalidRunTransition { reason: String }
+  failure RunControlRejected { reason: String }
+  failure ProviderPermitRejected { reason: String }
+  failure ChatContextDenied { reason: String }
+  failure RunActivityConflict { reason: String }
+  failure RunBatchLimitExceeded { reason: String }
+  failure RunSummaryRequired { reason: String }
+  failure RunHistoryRequired { reason: String }
+  failure RunDelegationRejected { reason: String }
+  failure RunLedgerUnavailable { reason: String }
+  failure ChatPublicationUnavailable { reason: String }
+
+  message ChatMessageOrigin {
+    sourceMessageId: ExecutionMessageId
+    sourceVersion: ExecutionMessageVersion
+    sourceHash: ExecutionMessageHash
+    sourceChannelId: ExecutionConversationId
+    triggeringPrincipalId: ExecutionActorId
+    participationId: ExecutionParticipationId
+    trigger: String
+  }
+  message ManualRunOrigin {
+    requestingPrincipalId: ExecutionActorId
+    instruction: String
+  }
+  message WorkflowRunOrigin {
+    workflowId: UUID
+    workflowStepId: UUID
+    requestingPrincipalId: ExecutionActorId
+  }
+  message ChannelSessionOrigin {
+    sessionId: UUID
+    humanPrincipalId: PersonId
+    channelId: ExecutionConversationId
+    instruction: String
+    runtimeSessionReference: RuntimeSessionReference
+  }
+  message RunContinuationReference {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    historySnapshotId: HistorySnapshotId
+    summaryId: Option<RunSummaryId>
+    workspaceArtifactIds: List<UUID>
+  }
+  message RunOrigin {
+    kind: RunOriginKind
+    chat: Option<ChatMessageOrigin>
+    manual: Option<ManualRunOrigin>
+    workflow: Option<WorkflowRunOrigin>
+    channelSession: Option<ChannelSessionOrigin>
+  }
+  message DeliveredMessageReference {
+    messageId: ExecutionMessageId
+    version: ExecutionMessageVersion
+    hash: ExecutionMessageHash
+  }
+  message ChatContextEntry {
+    reference: DeliveredMessageReference
+    authorId: ExecutionActorId
+    content: String
+  }
+  message ConsumedTicketRevision {
+    ticketId: UUID
+    revisionId: UUID
+    artifactId: UUID
+    hash: String
+  }
+  message ConsumedArtifactVersion {
+    artifactId: UUID
+    version: String
+    hash: String
+  }
+  message ChatContextDelivery {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    messages: List<ChatContextEntry>
+    omittedMessageIds: List<ExecutionMessageId>
+  }
+  message ChatPublicationReceipt {
+    disposition: ChatPublicationDisposition
+    messageId: Option<ExecutionMessageId>
+    reason: Option<String>
+  }
+
+  entity AgentRun {
+    id: AgentRunId
+    kind: AgentRunKind
+    origin: RunOrigin
+    executionMode: ExecutionMode
+    continuation: Option<RunContinuationReference>
+    agentId: ExecutionAgentId
+    runnerId: ExecutionRunnerId
+    localAgentId: ExecutionLocalAgentId
+    snapshotId: ExecutionSnapshotId
+    snapshotVersion: ExecutionAgentVersion
+    snapshotFingerprint: ExecutionAgentFingerprint
+    conversationId: ExecutionConversationId
+    workstreamId: Option<ExecutionWorkstreamId>
+    boundaryScopeReference: ExecutionBoundaryScopeReference
+    tokenBudget: RunTokenBudget
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+    status: AgentRunStatus
+    currentAttemptId: RunAttemptId
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+  entity RunAttempt {
+    id: RunAttemptId
+    runId: AgentRunId
+    agentId: ExecutionAgentId
+    agentPrincipalId: ExecutionActorId
+    runnerId: ExecutionRunnerId
+    localAgentId: ExecutionLocalAgentId
+    snapshotId: ExecutionSnapshotId
+    snapshotVersion: ExecutionAgentVersion
+    snapshotFingerprint: ExecutionAgentFingerprint
+    executionMode: ExecutionMode
+    humanPrincipalId: Option<PersonId>
+    channelWorkSessionId: Option<UUID>
+    continuation: Option<RunContinuationReference>
+    parentAttemptId: Option<RunAttemptId>
+    forkedFromCheckpointId: Option<RunCheckpointId>
+    runtimeSessionReference: Option<RuntimeSessionReference>
+    runtimeSandboxReference: Option<RuntimeSandboxReference>
+    runtimeTraceReference: Option<String>
+    status: RunAttemptStatus
+    outcome: Option<RunOutcome>
+    publication: Option<ChatPublicationReceipt>
+    artifactIds: List<UUID>
+    startedAt: Option<Timestamp>
+    completedAt: Option<Timestamp>
+    key id
+  }
+  entity RunLease {
+    id: RunLeaseId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    runnerId: ExecutionRunnerId
+    expiresAt: Timestamp
+    releasedAt: Option<Timestamp>
+    key id
+  }
+  entity LocalRunReclaim {
+    attemptId: RunAttemptId
+    runId: AgentRunId
+    sourceAttemptId: RunAttemptId
+    leaseId: RunLeaseId
+    requestHash: String
+    historyCanonicalHash: String
+    nativeCheckpointReference: Option<RuntimeCheckpointReference>
+    key attemptId
+  }
+  message RunLocalReclaimResult {
+    assignment: RunExecutionAssignment
+    reclaim: LocalRunReclaim
+  }
+  entity ProviderPermit {
+    id: ProviderPermitId
+    callId: ProviderCallId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    provider: ExecutionProviderName
+    expiresAt: Timestamp
+    releasedAt: Option<Timestamp>
+    key id
+  }
+  entity RunContextRecord {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    deliveredMessages: List<DeliveredMessageReference>
+    omittedMessageIds: List<ExecutionMessageId>
+    includedArtifactIds: List<UUID>
+    includedMemoryIds: List<UUID>
+    includedTicketRevisions: List<ConsumedTicketRevision>
+    includedArtifactVersions: List<ConsumedArtifactVersion>
+    recordedAt: Timestamp
+    key runId attemptId
+  }
+  entity RunResultPreparation {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    authorAgentId: ExecutionAgentId
+    targetChannelId: ExecutionConversationId
+    sourceMessageId: Option<ExecutionMessageId>
+    sourceMessageVersion: Option<ExecutionMessageVersion>
+    sourceMessageHash: Option<ExecutionMessageHash>
+    participationId: Option<ExecutionParticipationId>
+    preparedAt: Timestamp
+    key runId attemptId
+  }
+  entity RunCheckpoint {
+    id: RunCheckpointId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    runtimeCheckpointReference: RuntimeCheckpointReference
+    historySnapshotReference: RuntimeSnapshotReference
+    sandboxSnapshotReference: RuntimeSnapshotReference
+    sandboxEpochReference: String
+    anchor: CheckpointAnchor
+    label: Option<String>
+    createdAt: Timestamp
+    key id
+  }
+  entity RunControlDecision {
+    id: RunControlId
+    runId: AgentRunId
+    sourceAttemptId: RunAttemptId
+    kind: RunControlKind
+    status: RunControlStatus
+    checkpointId: Option<RunCheckpointId>
+    continuationAttemptId: Option<RunAttemptId>
+    requestedBy: ExecutionActorId
+    reason: String
+    acknowledgedAt: Option<Timestamp>
+    key id
+  }
+  entity RunEvent {
+    id: RunEventId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    turnId: RunTurnId
+    sequence: RunSequence
+    kind: RunActivityKind
+    assistantMessageId: Option<AssistantActivityId>
+    toolExecutionId: Option<ToolExecutionId>
+    parentToolExecutionId: Option<ToolExecutionId>
+    toolName: Option<String>
+    acceptedAt: Timestamp
+    summary: String
+    writingToolUnconfirmed: Boolean
+    occurredAt: Timestamp
+    key id
+  }
+  entity ToolWriteReconciliation {
+    id: ToolReconciliationId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    writingEventId: RunEventId
+    resolution: ToolWriteResolution
+    actorId: ExecutionActorId
+    reason: String
+    occurredAt: Timestamp
+    key id
+  }
+  entity RunnerSignal {
+    id: RunnerSignalId
+    sequence: RunnerSignalSequence
+    runnerId: ExecutionRunnerId
+    kind: RunnerSignalKind
+    runId: AgentRunId
+    controlId: Option<RunControlId>
+    occurredAt: Timestamp
+    key id
+  }
+
+  message QueueAgentRun {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    kind: AgentRunKind
+    origin: RunOrigin
+    executionMode: ExecutionMode
+    continuation: Option<RunContinuationReference>
+    agentId: ExecutionAgentId
+    runnerId: ExecutionRunnerId
+    localAgentId: ExecutionLocalAgentId
+    snapshotId: ExecutionSnapshotId
+    snapshotVersion: ExecutionAgentVersion
+    snapshotFingerprint: ExecutionAgentFingerprint
+    conversationId: ExecutionConversationId
+    workstreamId: Option<ExecutionWorkstreamId>
+    boundaryScopeReference: ExecutionBoundaryScopeReference
+    tokenBudget: RunTokenBudget
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+    occurredAt: Timestamp
+  }
+  message ClaimAgentRun {
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    leaseId: RunLeaseId
+    occurredAt: Timestamp
+  }
+  message RunLeaseView {
+    leaseId: RunLeaseId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    runnerId: ExecutionRunnerId
+    snapshotId: ExecutionSnapshotId
+    expiresAt: Timestamp
+  }
+  message RenewRunLease {
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    leaseId: RunLeaseId
+    occurredAt: Timestamp
+  }
+  message RecoverExpiredRun {
+    runId: AgentRunId
+    expiredLeaseId: RunLeaseId
+    continuationAttemptId: RunAttemptId
+    occurredAt: Timestamp
+  }
+  message ReconcileWritingTool {
+    reconciliationId: ToolReconciliationId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    writingEventId: RunEventId
+    resolution: ToolWriteResolution
+    actorId: ExecutionActorId
+    reason: String
+    occurredAt: Timestamp
+  }
+  message ReadRunnerSignals {
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    afterSequence: Option<RunnerSignalSequence>
+    limit: RunnerSignalLimit
+  }
+  message RunnerSignals {
+    runnerId: ExecutionRunnerId
+    signals: List<RunnerSignal>
+    lastSequence: Option<RunnerSignalSequence>
+  }
+  message RunActivityInput {
+    eventId: RunEventId
+    turnId: RunTurnId
+    sequence: RunSequence
+    kind: RunActivityKind
+    summary: String
+    assistantMessageId: Option<AssistantActivityId>
+    toolExecutionId: Option<ToolExecutionId>
+    parentToolExecutionId: Option<ToolExecutionId>
+    toolName: Option<String>
+    turnInstruction: Option<String>
+    inputOrigin: Option<String>
+    historyCursor: Option<Int>
+    writingToolUnconfirmed: Boolean
+  }
+  message RecordRunProgress {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    activities: RunActivityBatch
+    occurredAt: Timestamp
+  }
+  message RunProgressReceipt {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    messageId: ExecutionMessageId
+    acceptedThrough: RunSequence
+    revision: Int
+  }
+  entity RunProgressProjection {
+    attemptId: RunAttemptId
+    runId: AgentRunId
+    conversationId: ExecutionConversationId
+    messageId: ExecutionMessageId
+    acceptedThrough: RunSequence
+    projectedThrough: Int
+    revision: Int
+    tombstonedAt: Option<Timestamp>
+    createdAt: Timestamp
+    key attemptId
+  }
+  entity RunTurn {
+    id: RunTurnId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    instruction: String
+    inputOrigin: String
+    status: RunTurnStatus
+    historyStartCursor: Int
+    historyEndCursor: Option<Int>
+    historySnapshotId: Option<HistorySnapshotId>
+    summaryId: Option<RunSummaryId>
+    startedAt: Timestamp
+    completedAt: Option<Timestamp>
+    key id
+  }
+  message RunSummaryContent {
+    completedWork: String
+    results: String
+    verification: String
+    openPoints: String
+    artifactIds: List<UUID>
+  }
+  entity SavedRunSummary {
+    id: RunSummaryId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    turnId: RunTurnId
+    historySnapshotId: HistorySnapshotId
+    agentId: ExecutionAgentId
+    agentPrincipalId: ExecutionActorId
+    humanPrincipalId: Option<PersonId>
+    content: RunSummaryContent
+    createdAt: Timestamp
+    key id
+  }
+  entity RunSummaryPublication {
+    summaryId: RunSummaryId
+    messageId: ExecutionMessageId
+    publishedAt: Timestamp
+    key summaryId
+  }
+  message RunExecutionAssignment {
+    lease: RunLeaseView
+    run: AgentRun
+    attempt: RunAttempt
+    instruction: String
+    executionMode: ExecutionMode
+    effectiveToolNames: List<String>
+    effectiveSkillNames: List<String>
+    contextManifest: Option<RunContextRecord>
+    continuation: Option<RunContinuationReference>
+    nativeCheckpointReference: Option<RuntimeCheckpointReference>
+    summaryRequired: Boolean
+  }
+  message CompleteRunTurn {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    turnId: RunTurnId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    status: RunTurnStatus
+    summaryId: RunSummaryId
+    summary: RunSummaryContent
+    historySnapshotId: HistorySnapshotId
+    historyEndCursor: Int
+    occurredAt: Timestamp
+  }
+  message PublishSavedSummary {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    summaryId: RunSummaryId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    occurredAt: Timestamp
+  }
+  message PauseRun {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    historySnapshotId: HistorySnapshotId
+    occurredAt: Timestamp
+  }
+  message ResumeRun {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    occurredAt: Timestamp
+  }
+  message ReclaimLocalRunAttempt {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    sourceAttemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    runtimeSessionReference: RuntimeSessionReference
+    historySnapshotId: HistorySnapshotId
+    nativeCheckpointId: Option<RunCheckpointId>
+    runtimeKind: String
+    runtimeVersion: String
+    occurredAt: Timestamp
+  }
+  message RunLocalReclaimHistoryProof {
+    history: RunTurnHistoryProof
+    continuation: RunContinuationReference
+    nativeCheckpointReference: Option<RuntimeCheckpointReference>
+  }
+  message RenewProviderPermit {
+    permitId: ProviderPermitId
+    callId: ProviderCallId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    occurredAt: Timestamp
+  }
+
+  message RequestChatContext {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    occurredAt: Timestamp
+  }
+  message AcquireProviderPermit {
+    permitId: ProviderPermitId
+    callId: ProviderCallId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    provider: ExecutionProviderName
+    occurredAt: Timestamp
+  }
+  message ProviderPermitView {
+    permitId: ProviderPermitId
+    callId: ProviderCallId
+    provider: ExecutionProviderName
+    expiresAt: Timestamp
+  }
+  message ReleaseProviderPermit {
+    permitId: ProviderPermitId
+    callId: ProviderCallId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    occurredAt: Timestamp
+  }
+  message ReportRunResult {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    resultKind: RunnerResultKind
+    finalAnswerDraft: Option<String>
+    failureSummary: Option<String>
+    summaryId: Option<RunSummaryId>
+    artifactIds: List<UUID>
+    occurredAt: Timestamp
+  }
+  message RunResultReceipt {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    outcome: RunOutcome
+    publication: ChatPublicationReceipt
+  }
+  message RecordCheckpoint {
+    checkpointId: RunCheckpointId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    leaseId: RunLeaseId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    runtimeCheckpointReference: RuntimeCheckpointReference
+    historySnapshotReference: RuntimeSnapshotReference
+    sandboxSnapshotReference: RuntimeSnapshotReference
+    sandboxEpochReference: String
+    anchor: CheckpointAnchor
+    label: Option<String>
+    occurredAt: Timestamp
+  }
+  message RequestRunControl {
+    controlId: RunControlId
+    runId: AgentRunId
+    sourceAttemptId: RunAttemptId
+    kind: RunControlKind
+    checkpointId: Option<RunCheckpointId>
+    continuationAttemptId: Option<RunAttemptId>
+    actorId: ExecutionActorId
+    reason: String
+    occurredAt: Timestamp
+  }
+  message AcknowledgeRunControl {
+    controlId: RunControlId
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    delegationCredential: Option<String>
+    accepted: Boolean
+    runtimeSessionReference: Option<RuntimeSessionReference>
+    runtimeSandboxReference: Option<RuntimeSandboxReference>
+    occurredAt: Timestamp
+  }
+  message AgentRunView {
+    id: AgentRunId
+    kind: AgentRunKind
+    origin: RunOrigin
+    agentId: ExecutionAgentId
+    runnerId: ExecutionRunnerId
+    snapshotId: ExecutionSnapshotId
+    conversationId: ExecutionConversationId
+    workstreamId: Option<ExecutionWorkstreamId>
+    status: AgentRunStatus
+    currentAttemptId: RunAttemptId
+  }
+  message AgentRunInspection {
+    run: AgentRun
+    attempts: List<RunAttempt>
+    leases: List<RunLease>
+    checkpoints: List<RunCheckpoint>
+    contextRecords: List<RunContextRecord>
+    controlDecisions: List<RunControlDecision>
+    turns: List<RunTurn>
+    summaries: List<SavedRunSummary>
+    summaryPublications: List<RunSummaryPublication>
+    toolReconciliations: List<ToolWriteReconciliation>
+  }
+  message RunTurnHistoryProof {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    turnId: RunTurnId
+    snapshotId: HistorySnapshotId
+    channelId: ExecutionConversationId
+    throughCursor: HistoryCursor
+    confirmedThroughCursor: HistoryCursor
+    canonicalHash: HistoryHash
+    complete: Boolean
+    verifiedAt: Timestamp
+  }
+  message RunActivitiesQuery {
+    attemptId: RunAttemptId
+    beforeSequence: RunActivityCursor
+    afterSequence: RunActivityCursor
+    limit: RunActivityPageSize
+  }
+  message ReadRunActivities {
+    sessionCredential: String
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    beforeSequence: RunActivityCursor
+    afterSequence: RunActivityCursor
+    limit: RunActivityPageSize
+  }
+  message RunActivitiesPage {
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    events: List<RunEvent>
+    nextBeforeSequence: Option<RunSequence>
+    nextAfterSequence: Option<RunSequence>
+  }
+  message AgentRunHistory { workstreamId: ExecutionWorkstreamId; runs: List<AgentRunView> }
+  message RunnerConnectivity {
+    runnerId: ExecutionRunnerId
+    connectedAt: Option<Timestamp>
+    lastSeenAt: Option<Timestamp>
+  }
+
+  event AgentRunQueued { runId: AgentRunId; attemptId: RunAttemptId; agentId: ExecutionAgentId }
+  event AgentRunClaimed { runId: AgentRunId; attemptId: RunAttemptId; leaseId: RunLeaseId }
+  event AgentRunRecovered { runId: AgentRunId; attemptId: RunAttemptId }
+  event RunProgressRecorded { runId: AgentRunId; attemptId: RunAttemptId; spaceId: ExecutionConversationId; acceptedThrough: RunSequence; revision: Int }
+  event ToolWriteReconciled { runId: AgentRunId; attemptId: RunAttemptId; writingEventId: RunEventId }
+  event ProviderPermitGranted { permitId: ProviderPermitId; callId: ProviderCallId; provider: ExecutionProviderName }
+  event AgentRunCompleted { runId: AgentRunId; attemptId: RunAttemptId; outcome: RunOutcome }
+  event RunCheckpointRecorded { runId: AgentRunId; attemptId: RunAttemptId; checkpointId: RunCheckpointId }
+  event RunControlRequested { runId: AgentRunId; controlId: RunControlId; kind: RunControlKind }
+  event RunControlAcknowledged { runId: AgentRunId; controlId: RunControlId }
+
+  module InspectableRuns {
+    intent """
+      Own one durable queue and run history for chat replies and work tasks.
+      Grant short runner and provider leases, record bounded context and
+      results, and retain coding attempts, checkpoints, rewind, and fork.
+      """
+    decision ARunIsTheQueueJob {
+      choose "Represent the queued job and its execution as one durable run with one status lifecycle."
+      because "A second job state would disagree with run history during failure or retry."
+      avoid "Do not start a runtime directly when a run is enqueued."
+    }
+    decision ProviderPermitsCountCalls {
+      choose "Grant a separate expiring permit for every model call, including calls by delegated agents."
+      because "A global provider limit measures simultaneous calls across all runners, not running jobs."
+      avoid "Do not treat a run lease as a provider permit."
+    }
+    decision ProductOwnsChatPublication {
+      choose "Let the product choose author, channel, source relation, and at most one final message per attempt."
+      because "A runner may provide a draft but cannot publish as a human or redirect its reply."
+      avoid "Do not publish partial output as ordinary conversation messages or overwrite permanent summaries."
+    }
+
+    owns {
+      value AgentRunId value RunAttemptId value RunCheckpointId value RunLeaseId value ProviderPermitId
+      value RunTurnId value RunSummaryId value AssistantActivityId value ToolExecutionId value RunSequence value RunActivityBatch value RunActivityPageSize value RunActivityCursor
+      value ProviderCallId value RunControlId value RunEventId value ToolReconciliationId value RunnerSignalId
+      value RunnerSignalSequence value RunnerSignalLimit value ExecutionAgentId value ExecutionRunnerId
+      value ExecutionRunnerKeyId value ExecutionActorId value ExecutionParticipationId value ExecutionWorkstreamId
+      value ExecutionConversationId value ExecutionMessageId value ExecutionSnapshotId value ExecutionLocalAgentId
+      value ExecutionAgentVersion value ExecutionAgentFingerprint value ExecutionMessageVersion value ExecutionMessageHash
+      value ExecutionProviderName value ExecutionBoundaryScopeReference value RuntimeSessionReference
+      value RuntimeSandboxReference value RuntimeCheckpointReference value RuntimeSnapshotReference value RunTokenBudget
+      entity AgentRun entity RunAttempt entity RunLease entity ProviderPermit entity RunContextRecord
+      entity RunResultPreparation entity RunTurn entity SavedRunSummary entity RunSummaryPublication entity RunProgressProjection
+      entity RunCheckpoint entity RunControlDecision entity RunEvent entity ToolWriteReconciliation entity RunnerSignal entity LocalRunReclaim
+      event AgentRunQueued event AgentRunClaimed event AgentRunRecovered event RunProgressRecorded event ToolWriteReconciled event ProviderPermitGranted
+      event AgentRunCompleted event RunCheckpointRecorded event RunControlRequested event RunControlAcknowledged
+    }
+
+    requires { AgentRunRepository RunQueueAuthorization RunnerAuthorization ChatContextGateway ChatPublicationGateway RunTurnHistoryVerifier }
+
+    port RunTurnHistoryVerifier {
+      operation verifyReclaim(request: ReclaimLocalRunAttempt)
+        -> RunLocalReclaimHistoryProof
+        ! RunHistoryRequired ! RunLedgerUnavailable {
+        state observes HistorySnapshot by request.historySnapshotId
+        state observes HistoryConfirmedCursor by (request.runId, request.sourceAttemptId)
+        state lists HistorySection where self.runId == request.runId and self.attemptId == request.sourceAttemptId
+        state lists HistoryContentBatch where self.runId == request.runId and self.attemptId == request.sourceAttemptId
+        ensures success implies result.history.complete
+        ensures success implies result.history.runId == request.runId and result.history.attemptId == request.sourceAttemptId
+        ensures success implies result.history.snapshotId == request.historySnapshotId
+        ensures success implies result.continuation.runId == request.runId and result.continuation.attemptId == request.sourceAttemptId
+        ensures success implies result.continuation.historySnapshotId == request.historySnapshotId
+        ensures success implies preserves HistorySnapshot(request.historySnapshotId)
+        effects { read HistorySnapshot read HistoryConfirmedCursor read HistorySection read HistoryContentBatch read AgentRun read RunAttempt read RunCheckpoint }
+      }
+      operation verifyTurn(request: CompleteRunTurn)
+        -> RunTurnHistoryProof
+        ! RunHistoryRequired ! RunLedgerUnavailable {
+        state observes HistorySnapshot by request.historySnapshotId
+        state observes HistoryConfirmedCursor by (request.runId, request.attemptId)
+        state lists HistorySection where self.runId == request.runId and self.attemptId == request.attemptId
+        state lists HistoryContentBatch where self.runId == request.runId and self.attemptId == request.attemptId
+        ensures success implies exists HistorySnapshot(request.historySnapshotId)
+        ensures success implies exists HistoryConfirmedCursor(request.runId, request.attemptId)
+        ensures success implies result.runId == before.HistorySnapshot(request.historySnapshotId).runId
+        ensures success implies result.attemptId == before.HistorySnapshot(request.historySnapshotId).attemptId
+        ensures success implies result.turnId == before.HistorySnapshot(request.historySnapshotId).turnId
+        ensures success implies result.snapshotId == before.HistorySnapshot(request.historySnapshotId).id
+        ensures success implies result.channelId == before.HistorySnapshot(request.historySnapshotId).channelId
+        ensures success implies result.throughCursor == before.HistorySnapshot(request.historySnapshotId).throughCursor
+        ensures success implies result.confirmedThroughCursor == before.HistoryConfirmedCursor(request.runId, request.attemptId).cursor
+        ensures success implies result.canonicalHash == before.HistorySnapshot(request.historySnapshotId).canonicalHash
+        ensures success implies result.complete and before.HistorySnapshot(request.historySnapshotId).completeness == HistoryCompleteness.Complete
+        ensures success implies result.runId == request.runId and result.attemptId == request.attemptId
+        ensures success implies result.turnId == request.turnId and result.throughCursor == request.historyEndCursor
+        ensures success implies result.confirmedThroughCursor >= result.throughCursor
+        ensures success implies result.verifiedAt >= before.HistorySnapshot(request.historySnapshotId).sealedAt
+        ensures success implies count(before.HistorySnapshot(request.historySnapshotId).sectionIds) == result.throughCursor
+        ensures success implies count(distinct(before.HistorySnapshot(request.historySnapshotId).sectionIds)) == count(before.HistorySnapshot(request.historySnapshotId).sectionIds)
+        ensures success implies count(section in before.HistorySection where section.runId == request.runId and section.attemptId == request.attemptId and contains(before.HistorySnapshot(request.historySnapshotId).sectionIds, section.id)) == result.throughCursor
+        ensures success implies all(section in before.HistorySection where section.runId != request.runId or section.attemptId != request.attemptId or not contains(before.HistorySnapshot(request.historySnapshotId).sectionIds, section.id) or count(other in before.HistorySection where other.runId == request.runId and other.attemptId == request.attemptId and other.sequence == section.sequence and contains(before.HistorySnapshot(request.historySnapshotId).sectionIds, other.id)) == 1)
+        ensures success implies all(sectionId in before.HistorySnapshot(request.historySnapshotId).sectionIds where exists HistorySection(sectionId) and before.HistorySection(sectionId).runId == request.runId and before.HistorySection(sectionId).attemptId == request.attemptId and before.HistorySection(sectionId).sequence <= result.throughCursor)
+        ensures success implies all(reference in before.HistorySnapshot(request.historySnapshotId).contentReferences where any(batch in before.HistoryContentBatch where batch.runId == request.runId and batch.attemptId == request.attemptId and any(content in batch.contents where content.id == reference.id and content.hash == reference.hash)))
+      }
+      effects { read HistorySnapshot read HistoryConfirmedCursor read HistorySection read HistoryContentBatch }
+      operation verifyPause(request: PauseRun)
+        -> RunTurnHistoryProof
+        ! RunHistoryRequired ! RunLedgerUnavailable {
+        state observes HistorySnapshot by request.historySnapshotId
+        state observes HistoryConfirmedCursor by (request.runId, request.attemptId)
+        state lists HistorySection where self.runId == request.runId and self.attemptId == request.attemptId
+        state lists HistoryContentBatch where self.runId == request.runId and self.attemptId == request.attemptId
+        ensures success implies exists HistorySnapshot(request.historySnapshotId)
+        ensures success implies exists HistoryConfirmedCursor(request.runId, request.attemptId)
+        ensures success implies result.runId == before.HistorySnapshot(request.historySnapshotId).runId
+        ensures success implies result.attemptId == before.HistorySnapshot(request.historySnapshotId).attemptId
+        ensures success implies result.turnId == before.HistorySnapshot(request.historySnapshotId).turnId
+        ensures success implies result.snapshotId == before.HistorySnapshot(request.historySnapshotId).id
+        ensures success implies result.channelId == before.HistorySnapshot(request.historySnapshotId).channelId
+        ensures success implies result.throughCursor == before.HistorySnapshot(request.historySnapshotId).throughCursor
+        ensures success implies result.confirmedThroughCursor == before.HistoryConfirmedCursor(request.runId, request.attemptId).cursor
+        ensures success implies result.canonicalHash == before.HistorySnapshot(request.historySnapshotId).canonicalHash
+        ensures success implies result.complete and before.HistorySnapshot(request.historySnapshotId).completeness == HistoryCompleteness.Complete
+        ensures success implies result.runId == request.runId and result.attemptId == request.attemptId
+        ensures success implies result.confirmedThroughCursor >= result.throughCursor
+        ensures success implies result.verifiedAt >= before.HistorySnapshot(request.historySnapshotId).sealedAt
+        ensures success implies count(before.HistorySnapshot(request.historySnapshotId).sectionIds) == result.throughCursor
+        ensures success implies count(distinct(before.HistorySnapshot(request.historySnapshotId).sectionIds)) == count(before.HistorySnapshot(request.historySnapshotId).sectionIds)
+        ensures success implies count(section in before.HistorySection where section.runId == request.runId and section.attemptId == request.attemptId and contains(before.HistorySnapshot(request.historySnapshotId).sectionIds, section.id)) == result.throughCursor
+        ensures success implies all(section in before.HistorySection where section.runId != request.runId or section.attemptId != request.attemptId or not contains(before.HistorySnapshot(request.historySnapshotId).sectionIds, section.id) or count(other in before.HistorySection where other.runId == request.runId and other.attemptId == request.attemptId and other.sequence == section.sequence and contains(before.HistorySnapshot(request.historySnapshotId).sectionIds, other.id)) == 1)
+        ensures success implies all(sectionId in before.HistorySnapshot(request.historySnapshotId).sectionIds where exists HistorySection(sectionId) and before.HistorySection(sectionId).runId == request.runId and before.HistorySection(sectionId).attemptId == request.attemptId and before.HistorySection(sectionId).sequence <= result.throughCursor)
+        ensures success implies all(reference in before.HistorySnapshot(request.historySnapshotId).contentReferences where any(batch in before.HistoryContentBatch where batch.runId == request.runId and batch.attemptId == request.attemptId and any(content in batch.contents where content.id == reference.id and content.hash == reference.hash)))
+      }
+      effects { read HistorySnapshot read HistoryConfirmedCursor read HistorySection read HistoryContentBatch }
+    }
+
+    port RunQueueAuthorization {
+      operation assertQueue(request: QueueAgentRun)
+        -> Unit
+        ! RunQueueDenied ! RunSnapshotUnavailable
+    }
+
+    port RunnerAuthorization {
+      operation assertRunner(runnerId: ExecutionRunnerId, keyId: ExecutionRunnerKeyId)
+        -> Unit
+        ! RunnerAuthenticationRejected
+    }
+    example "real runner authorization accepts a current credential" {
+      when result = RunnerAuthorization.assertRunner("00000000-0000-4000-8000-0000000000b1", "00000000-0000-4000-8000-0000000000b2")
+      expect Success
+    }
+    example "real runner authorization rejects a mismatched key" {
+      when result = RunnerAuthorization.assertRunner("00000000-0000-4000-8000-0000000000b1", "00000000-0000-4000-8000-0000000000b3")
+      expect result fails RunnerAuthenticationRejected
+    }
+    example "real runner authorization rejects an unknown runner" {
+      when result = RunnerAuthorization.assertRunner("00000000-0000-4000-8000-0000000000b4", "00000000-0000-4000-8000-0000000000b2")
+      expect result fails RunnerAuthenticationRejected
+    }
+
+    port ChatContextGateway {
+      operation deliver(request: RequestChatContext)
+        -> ChatContextDelivery
+        ! ChatContextDenied ! RunLedgerUnavailable {
+        ensures success implies result.runId == request.runId and result.attemptId == request.attemptId
+      }
+    }
+    example "native chat context delivers the exact bounded source" {
+      when result = ChatContextGateway.deliver(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000007" runnerId = "00000000-0000-4000-8000-000000000008" keyId = "00000000-0000-4000-8000-000000000009" delegationCredential = None occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result == ChatContextDelivery { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" messages = [ChatContextEntry { reference = DeliveredMessageReference { messageId = "00000000-0000-4000-8000-00000000000c" version = "native-message-v12" hash = "native-message-hash-12" } authorId = "00000000-0000-4000-8000-000000000006" content = "Source" }] omittedMessageIds = ["00000000-0000-4000-8000-00000000000a", "00000000-0000-4000-8000-00000000000b"] }
+    }
+    example "native chat context rejects revoked membership" {
+      when result = ChatContextGateway.deliver(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000007" runnerId = "00000000-0000-4000-8000-000000000008" keyId = "00000000-0000-4000-8000-000000000009" delegationCredential = None occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChatContextDenied
+    }
+    example "native chat context rejects a deleted source" {
+      when result = ChatContextGateway.deliver(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000007" runnerId = "00000000-0000-4000-8000-000000000008" keyId = "00000000-0000-4000-8000-000000000009" delegationCredential = None occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChatContextDenied
+    }
+    example "native chat context rejects an oversized Unicode source" {
+      when result = ChatContextGateway.deliver(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000007" runnerId = "00000000-0000-4000-8000-000000000008" keyId = "00000000-0000-4000-8000-000000000009" delegationCredential = None occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChatContextDenied
+    }
+    example "native chat context rejects a missing immutable run origin" {
+      when result = ChatContextGateway.deliver(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000007" runnerId = "00000000-0000-4000-8000-000000000008" keyId = "00000000-0000-4000-8000-000000000009" delegationCredential = None occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChatContextDenied
+    }
+
+    port ChatPublicationGateway {
+      operation finalize(request: ReportRunResult, preparation: RunResultPreparation)
+        -> ChatPublicationReceipt
+        ! ChatPublicationUnavailable
+    }
+    port AgentRunRepository {
+      operation completeTurn(request: CompleteRunTurn, history: RunTurnHistoryProof)
+        -> SavedRunSummary
+        ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunSummaryRequired ! RunHistoryRequired ! InvalidRunTransition ! RunLedgerUnavailable {
+        state observes AgentRun by request.runId
+        state upserts SavedRunSummary from result
+        state replaces RunTurn by request.turnId from RunTurn {
+          id = self.id
+          runId = self.runId
+          attemptId = self.attemptId
+          instruction = self.instruction
+          inputOrigin = self.inputOrigin
+          status = request.status
+          historyStartCursor = self.historyStartCursor
+          historyEndCursor = Some(request.historyEndCursor)
+          historySnapshotId = Some(request.historySnapshotId)
+          summaryId = Some(request.summaryId)
+          startedAt = self.startedAt
+          completedAt = Some(result.createdAt)
+        }
+        ensures success implies result.id == request.summaryId
+        ensures success implies result.runId == request.runId
+        ensures success implies result.attemptId == request.attemptId
+        ensures success implies result.turnId == request.turnId
+        ensures success implies result.historySnapshotId == request.historySnapshotId
+        ensures success implies result.content == request.summary
+        ensures success implies history.complete
+        ensures success implies history.runId == request.runId and history.attemptId == request.attemptId
+        ensures success implies history.snapshotId == request.historySnapshotId and history.channelId == before.AgentRun(request.runId).conversationId
+        ensures success implies history.turnId == request.turnId and history.throughCursor == request.historyEndCursor
+        ensures success implies history.confirmedThroughCursor >= history.throughCursor
+        ensures success implies request.status != TurnRunning
+        ensures success implies preserves AgentRun(request.runId)
+        ensures not success implies before.RunTurn == after.RunTurn and before.SavedRunSummary == after.SavedRunSummary
+        effects { read AgentRun read RunLease read RunEvent write RunTurn write SavedRunSummary }
+      }
+      operation publishSummary(request: PublishSavedSummary)
+        -> RunSummaryPublication
+        ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunSummaryRequired ! InvalidRunTransition ! ChatPublicationUnavailable ! RunLedgerUnavailable {
+        state observes AgentRun by request.runId
+        state observes SavedRunSummary by request.summaryId
+        state upserts RunSummaryPublication from result
+        ensures success implies result.summaryId == request.summaryId
+        ensures success implies preserves SavedRunSummary(request.summaryId)
+        ensures success implies preserves AgentRun(request.runId)
+        ensures not success implies before.RunSummaryPublication == after.RunSummaryPublication
+        effects { read AgentRun read SavedRunSummary write RunSummaryPublication }
+      }
+      operation pause(request: PauseRun, history: RunTurnHistoryProof)
+        -> AgentRunView
+        ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! UnconfirmedToolWrite ! RunHistoryRequired ! InvalidRunTransition ! RunLedgerUnavailable {
+        state replaces AgentRun by request.runId from AgentRun { id = self.id kind = self.kind origin = self.origin executionMode = self.executionMode continuation = self.continuation agentId = self.agentId runnerId = self.runnerId localAgentId = self.localAgentId snapshotId = self.snapshotId snapshotVersion = self.snapshotVersion snapshotFingerprint = self.snapshotFingerprint conversationId = self.conversationId workstreamId = self.workstreamId boundaryScopeReference = self.boundaryScopeReference tokenBudget = self.tokenBudget permittedSkillNames = self.permittedSkillNames permittedToolNames = self.permittedToolNames status = AgentRunStatus.Waiting currentAttemptId = self.currentAttemptId createdAt = self.createdAt updatedAt = after.AgentRun(request.runId).updatedAt }
+        state replaces RunAttempt by request.attemptId from RunAttempt { id = self.id runId = self.runId agentId = self.agentId agentPrincipalId = self.agentPrincipalId runnerId = self.runnerId localAgentId = self.localAgentId snapshotId = self.snapshotId snapshotVersion = self.snapshotVersion snapshotFingerprint = self.snapshotFingerprint executionMode = self.executionMode humanPrincipalId = self.humanPrincipalId channelWorkSessionId = self.channelWorkSessionId continuation = self.continuation parentAttemptId = self.parentAttemptId forkedFromCheckpointId = self.forkedFromCheckpointId runtimeSessionReference = self.runtimeSessionReference runtimeSandboxReference = self.runtimeSandboxReference runtimeTraceReference = self.runtimeTraceReference status = RunAttemptStatus.Paused outcome = self.outcome publication = self.publication artifactIds = self.artifactIds startedAt = self.startedAt completedAt = self.completedAt }
+        state replaces RunLease where self.runId == request.runId and self.attemptId == request.attemptId and self.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused)
+        ensures success implies all(lease in before.RunLease where lease.runId == request.runId and lease.attemptId == request.attemptId and lease.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) implies after.RunLease(lease.id) == RunLease { id = lease.id runId = lease.runId attemptId = lease.attemptId runnerId = lease.runnerId expiresAt = lease.expiresAt releasedAt = after.RunLease(lease.id).releasedAt })
+        ensures success implies all(lease in before.RunLease where lease.runId == request.runId and lease.attemptId == request.attemptId and lease.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) implies after.RunLease(lease.id).releasedAt != None())
+        ensures success implies all(lease in before.RunLease where lease.runId == request.runId and lease.attemptId == request.attemptId and lease.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) implies after.RunLease(lease.id).releasedAt == Some(after.AgentRun(request.runId).updatedAt))
+        state replaces ProviderPermit where self.runId == request.runId and self.attemptId == request.attemptId and self.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused)
+        ensures success implies all(permit in before.ProviderPermit where permit.runId == request.runId and permit.attemptId == request.attemptId and permit.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) implies after.ProviderPermit(permit.id) == ProviderPermit { id = permit.id callId = permit.callId runId = permit.runId attemptId = permit.attemptId leaseId = permit.leaseId runnerId = permit.runnerId provider = permit.provider expiresAt = permit.expiresAt releasedAt = after.ProviderPermit(permit.id).releasedAt })
+        ensures success implies all(permit in before.ProviderPermit where permit.runId == request.runId and permit.attemptId == request.attemptId and permit.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) implies after.ProviderPermit(permit.id).releasedAt != None())
+        ensures success implies all(permit in before.ProviderPermit where permit.runId == request.runId and permit.attemptId == request.attemptId and permit.releasedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) implies after.ProviderPermit(permit.id).releasedAt == Some(after.AgentRun(request.runId).updatedAt))
+        ensures success implies after.AgentRun(request.runId).updatedAt >= before.AgentRun(request.runId).updatedAt
+        ensures success and before.AgentRun(request.runId).status == AgentRunStatus.Waiting and before.RunAttempt(request.attemptId).status == RunAttemptStatus.Paused implies before.AgentRun(request.runId) == after.AgentRun(request.runId)
+        ensures success implies result == AgentRunView { id = after.AgentRun(request.runId).id kind = after.AgentRun(request.runId).kind origin = after.AgentRun(request.runId).origin agentId = after.AgentRun(request.runId).agentId runnerId = after.AgentRun(request.runId).runnerId snapshotId = after.AgentRun(request.runId).snapshotId conversationId = after.AgentRun(request.runId).conversationId workstreamId = after.AgentRun(request.runId).workstreamId status = after.AgentRun(request.runId).status currentAttemptId = after.AgentRun(request.runId).currentAttemptId }
+        ensures not success implies before.AgentRun == after.AgentRun and before.RunAttempt == after.RunAttempt and before.RunLease == after.RunLease and before.ProviderPermit == after.ProviderPermit and before.RunProgressProjection == after.RunProgressProjection
+        state replaces RunProgressProjection where self.runId == request.runId and self.attemptId == request.attemptId and self.tombstonedAt == None() and (before.AgentRun(request.runId).status != AgentRunStatus.Waiting or before.RunAttempt(request.attemptId).status != RunAttemptStatus.Paused) from RunProgressProjection { attemptId = self.attemptId runId = self.runId conversationId = self.conversationId messageId = self.messageId acceptedThrough = self.acceptedThrough projectedThrough = self.projectedThrough revision = self.revision + 1 tombstonedAt = self.tombstonedAt createdAt = self.createdAt }
+        state observes RunTurn by history.turnId
+        ensures success implies result.id == request.runId and result.currentAttemptId == request.attemptId
+        ensures success implies history.complete
+        ensures success implies history.runId == request.runId and history.attemptId == request.attemptId
+        ensures success implies history.snapshotId == request.historySnapshotId and history.channelId == result.conversationId
+        ensures success implies history.confirmedThroughCursor == history.throughCursor
+        ensures success implies before.RunTurn(history.turnId).runId == request.runId and before.RunTurn(history.turnId).attemptId == request.attemptId
+        ensures success implies before.RunTurn(history.turnId).status != TurnRunning
+        ensures success implies before.RunTurn(history.turnId).historySnapshotId == Some(history.snapshotId)
+        ensures success implies all(turn in before.RunTurn where turn.runId != request.runId or turn.attemptId != request.attemptId or turn.startedAt <= before.RunTurn(history.turnId).startedAt)
+      }
+      effects { read AgentRun read RunTurn read RunEvent read ToolWriteReconciliation write AgentRun write RunAttempt write RunLease write ProviderPermit write RunProgressProjection }
+      operation resume(request: ResumeRun)
+        -> RunExecutionAssignment
+        ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunSnapshotUnavailable ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read AgentRun write AgentRun write RunAttempt write RunLease }
+      operation reclaimLocal(request: ReclaimLocalRunAttempt, history: RunLocalReclaimHistoryProof)
+        -> RunLocalReclaimResult
+        ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunHistoryRequired ! UnconfirmedToolWrite ! InvalidRunTransition ! RunLedgerUnavailable {
+        state upserts AgentRun from result.assignment.run
+        state upserts RunAttempt from result.assignment.attempt
+        state upserts RunLease from RunLease { id = result.assignment.lease.leaseId runId = result.assignment.lease.runId attemptId = result.assignment.lease.attemptId runnerId = result.assignment.lease.runnerId expiresAt = result.assignment.lease.expiresAt releasedAt = None() }
+        state upserts LocalRunReclaim from result.reclaim
+        state replaces RunProgressProjection where self.attemptId == request.attemptId and self.tombstonedAt == None() and not exists LocalRunReclaim(request.attemptId) from RunProgressProjection { attemptId = self.attemptId runId = self.runId conversationId = self.conversationId messageId = self.messageId acceptedThrough = self.acceptedThrough projectedThrough = self.projectedThrough revision = self.revision + 1 tombstonedAt = self.tombstonedAt createdAt = self.createdAt }
+        ensures success implies result.assignment.run.id == request.runId and result.assignment.attempt.id == request.attemptId
+        ensures success implies result.assignment.attempt.parentAttemptId == Some(request.sourceAttemptId)
+        ensures success implies result.assignment.attempt.runtimeSessionReference == Some(request.runtimeSessionReference)
+        ensures success implies result.assignment.continuation == Some(history.continuation)
+        ensures success implies result.reclaim.attemptId == request.attemptId and result.reclaim.runId == request.runId and result.reclaim.sourceAttemptId == request.sourceAttemptId
+        ensures success implies result.reclaim.leaseId == request.leaseId and result.reclaim.historyCanonicalHash == history.history.canonicalHash
+        ensures success implies exists LocalRunReclaim(request.attemptId)
+        ensures success implies after.LocalRunReclaim(request.attemptId).leaseId == request.leaseId
+        ensures success implies after.LocalRunReclaim(request.attemptId).historyCanonicalHash == history.history.canonicalHash
+        ensures success implies result.assignment.nativeCheckpointReference == history.nativeCheckpointReference
+        ensures not success implies before.AgentRun == after.AgentRun and before.RunAttempt == after.RunAttempt and before.RunLease == after.RunLease
+        ensures not success implies before.LocalRunReclaim == after.LocalRunReclaim
+        effects { read AgentRun read RunAttempt read RunLease read RunEvent read ToolWriteReconciliation read RunCheckpoint read RunControlDecision read LocalRunReclaim write AgentRun write RunAttempt write RunLease write LocalRunReclaim write RunProgressProjection call RunTurnHistoryVerifier.verifyReclaim }
+      }
+      operation renewPermit(request: RenewProviderPermit)
+        -> ProviderPermitView
+        ! RunnerLeaseRejected ! RunDelegationRejected ! ProviderPermitRejected ! RunLedgerUnavailable
+      effects { read RunLease write ProviderPermit }
+
+      operation queue(request: QueueAgentRun)
+        -> AgentRunView
+        ! RunSnapshotUnavailable ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { write AgentRun write RunAttempt write RunnerSignal }
+      operation signals(request: ReadRunnerSignals)
+        -> RunnerSignals
+        ! RunnerAuthenticationRejected ! RunLedgerUnavailable
+      effects { read RunnerSignal }
+      operation claim(request: ClaimAgentRun)
+        -> RunExecutionAssignment
+        ! RunnerLeaseRejected ! RunLedgerUnavailable
+      effects { read AgentRun write AgentRun write RunLease write RunAttempt }
+      operation renewLease(request: RenewRunLease)
+        -> RunLeaseView
+        ! RunnerLeaseRejected ! RunLedgerUnavailable
+      effects { write RunLease }
+      operation recover(request: RecoverExpiredRun)
+        -> AgentRunView
+        ! AgentRunNotFound ! RunnerLeaseRejected ! UnconfirmedToolWrite ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read RunLease read RunEvent read ToolWriteReconciliation write AgentRun write RunAttempt write RunnerSignal }
+      operation reconcileWritingTool(request: ReconcileWritingTool)
+        -> ToolWriteReconciliation
+        ! AgentRunNotFound ! RunEventNotFound ! RunInspectionDenied ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read AgentRun read RunEvent write ToolWriteReconciliation }
+      operation progress(request: RecordRunProgress)
+        -> RunProgressReceipt
+        ! AgentRunNotFound ! RunnerLeaseRejected ! RunActivityConflict ! RunBatchLimitExceeded ! InvalidRunTransition ! RunDelegationRejected ! RunLedgerUnavailable
+      effects { read RunLease write AgentRun write RunAttempt write RunTurn write RunEvent write RunProgressProjection }
+      operation recordContext(request: RequestChatContext, delivery: ChatContextDelivery)
+        -> RunContextRecord
+        ! RunnerLeaseRejected ! ChatContextDenied ! RunLedgerUnavailable {
+        requires delivery.runId == request.runId
+        requires delivery.attemptId == request.attemptId
+        effects { read AgentRun read RunLease write RunContextRecord }
+        state upserts RunContextRecord from result
+        ensures success implies result.runId == request.runId
+        ensures success implies result.attemptId == request.attemptId
+        ensures success implies result.runId == delivery.runId
+        ensures success implies result.attemptId == delivery.attemptId
+        ensures success implies result.omittedMessageIds == delivery.omittedMessageIds
+        ensures success implies count(result.deliveredMessages) == count(delivery.messages)
+        ensures success implies all(reference in result.deliveredMessages where any(entry in delivery.messages where reference == entry.reference))
+        ensures success implies count(result.includedArtifactIds) == 0
+        ensures success implies count(result.includedMemoryIds) == 0
+        ensures success implies result == after.RunContextRecord(request.runId, request.attemptId)
+        ensures failure is RunnerLeaseRejected implies preserves RunContextRecord(request.runId, request.attemptId)
+        ensures failure is ChatContextDenied implies preserves RunContextRecord(request.runId, request.attemptId)
+      }
+      operation acquirePermit(request: AcquireProviderPermit)
+        -> ProviderPermitView
+        ! RunnerLeaseRejected ! ProviderPermitRejected ! RunLedgerUnavailable
+      effects { read RunLease write ProviderPermit }
+      operation releasePermit(request: ReleaseProviderPermit)
+        -> Unit
+        ! RunnerLeaseRejected ! ProviderPermitRejected ! RunLedgerUnavailable
+      effects { write ProviderPermit }
+      operation prepareResult(request: ReportRunResult)
+        -> RunResultPreparation
+        ! AgentRunNotFound ! RunnerLeaseRejected ! InvalidRunTransition ! RunLedgerUnavailable {
+        effects { read AgentRun read RunLease write RunResultPreparation }
+        state observes AgentRun by request.runId
+        state upserts RunResultPreparation from result
+        ensures success implies result.runId == request.runId
+        ensures success implies result.attemptId == request.attemptId
+        ensures success implies result.leaseId == request.leaseId
+        ensures success implies result.authorAgentId == before.AgentRun(request.runId).agentId
+        ensures success implies result.targetChannelId == before.AgentRun(request.runId).conversationId
+        ensures success implies result == after.RunResultPreparation(request.runId, request.attemptId)
+        ensures failure is AgentRunNotFound implies preserves RunResultPreparation(request.runId, request.attemptId)
+        ensures failure is RunnerLeaseRejected implies preserves RunResultPreparation(request.runId, request.attemptId)
+        ensures failure is InvalidRunTransition implies preserves RunResultPreparation(request.runId, request.attemptId)
+      }
+      operation complete(request: ReportRunResult, publication: ChatPublicationReceipt)
+        -> RunResultReceipt
+        ! AgentRunNotFound ! RunnerLeaseRejected ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { write AgentRun write RunAttempt write RunLease write ProviderPermit }
+      operation recordCheckpoint(request: RecordCheckpoint)
+        -> RunCheckpoint
+        ! AgentRunNotFound ! RunAttemptNotFound ! RunnerLeaseRejected ! InvalidRunTransition ! RunLedgerUnavailable {
+        state observes AgentRun by request.runId
+        state observes RunAttempt by request.attemptId
+        state observes RunLease by request.leaseId
+        state upserts RunCheckpoint from RunCheckpoint { id = request.checkpointId runId = request.runId attemptId = request.attemptId runtimeCheckpointReference = request.runtimeCheckpointReference historySnapshotReference = request.historySnapshotReference sandboxSnapshotReference = request.sandboxSnapshotReference sandboxEpochReference = request.sandboxEpochReference anchor = request.anchor label = request.label createdAt = after.RunCheckpoint(request.checkpointId).createdAt }
+        ensures success implies result == after.RunCheckpoint(request.checkpointId)
+        ensures success implies after.RunCheckpoint(request.checkpointId).createdAt >= before.AgentRun(request.runId).createdAt
+        ensures success implies after.RunCheckpoint(request.checkpointId).createdAt < before.RunLease(request.leaseId).expiresAt
+        ensures success implies before.RunAttempt(request.attemptId).runId == request.runId
+        ensures not success implies before.RunCheckpoint == after.RunCheckpoint
+      }
+      effects { read AgentRun read RunAttempt read RunLease read RunCheckpoint write RunCheckpoint }
+      operation requestControl(request: RequestRunControl)
+        -> RunControlDecision
+        ! AgentRunNotFound ! RunAttemptNotFound ! RunCheckpointNotFound ! RunInspectionDenied ! RunControlRejected ! RunLedgerUnavailable
+      effects { read AgentRun read RunCheckpoint write RunControlDecision write RunnerSignal }
+      operation acknowledgeControl(request: AcknowledgeRunControl)
+        -> RunControlDecision
+        ! RunnerLeaseRejected ! RunControlRejected ! RunLedgerUnavailable
+      effects { write AgentRun write RunAttempt write RunControlDecision }
+      operation inspect(runId: AgentRunId, actorId: ExecutionActorId)
+        -> AgentRunInspection
+        ! AgentRunNotFound ! RunInspectionDenied ! RunLedgerUnavailable
+      effects { read AgentRun read RunAttempt read RunLease read RunCheckpoint read RunContextRecord read RunControlDecision read ToolWriteReconciliation }
+      operation activities(request: ReadRunActivities)
+        -> RunActivitiesPage
+        ! RunActivityAuthenticationRequired ! AgentRunNotFound ! RunAttemptNotFound ! RunInspectionDenied ! InvalidRunTransition ! RunLedgerUnavailable {
+        state observes AgentRun by request.runId
+        state observes RunAttempt by request.attemptId
+        state lists RunEvent where self.runId == request.runId and self.attemptId == request.attemptId
+        ensures success implies result.runId == request.runId and result.attemptId == request.attemptId
+        ensures success implies count(result.events) <= request.limit
+        ensures success implies request.beforeSequence == 0 or request.afterSequence == 0
+        ensures success implies all(event in result.events where event.runId == request.runId and event.attemptId == request.attemptId and (request.beforeSequence == 0 or event.sequence < request.beforeSequence) and event.sequence > request.afterSequence)
+        ensures success implies all(event in result.events where exists RunEvent(event.id) and event == before.RunEvent(event.id))
+        ensures success implies before.AgentRun == after.AgentRun and before.RunEvent == after.RunEvent
+      }
+      effects { read Person read Session read Space read Membership read AgentRun read RunAttempt read RunEvent }
+      operation history(workstreamId: ExecutionWorkstreamId, actorId: ExecutionActorId)
+        -> AgentRunHistory
+        ! RunInspectionDenied ! RunLedgerUnavailable
+      effects { read AgentRun }
+      operation connectivity(runnerId: ExecutionRunnerId, actorId: ExecutionActorId)
+        -> RunnerConnectivity
+        ! AgentRunNotFound ! RunInspectionDenied ! RunLedgerUnavailable
+      effects { read AgentRun read RunLease }
+    }
+    surface AgentRunApi exposes requestReply {
+      operation completeTurn(request: CompleteRunTurn)
+        -> SavedRunSummary
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunSummaryRequired ! RunHistoryRequired ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read HistorySnapshot read HistoryConfirmedCursor read HistorySection read HistoryContentBatch read AgentRun read RunLease read RunEvent write RunTurn write SavedRunSummary call RunnerAuthorization.assertRunner call RunTurnHistoryVerifier.verifyTurn as history call AgentRunRepository.completeTurn }
+      operation publishSummary(request: PublishSavedSummary)
+        -> RunSummaryPublication
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunSummaryRequired ! InvalidRunTransition ! ChatPublicationUnavailable ! RunLedgerUnavailable
+      effects { read AgentRun read SavedRunSummary write RunSummaryPublication call RunnerAuthorization.assertRunner call AgentRunRepository.publishSummary }
+      operation pause(request: PauseRun)
+        -> AgentRunView
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! UnconfirmedToolWrite ! RunHistoryRequired ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read HistorySnapshot read HistoryConfirmedCursor read HistorySection read HistoryContentBatch read AgentRun read RunTurn read RunEvent read ToolWriteReconciliation write AgentRun write RunAttempt write RunLease write ProviderPermit write RunProgressProjection call RunnerAuthorization.assertRunner call RunTurnHistoryVerifier.verifyPause as history call AgentRunRepository.pause }
+      operation resume(request: ResumeRun)
+        -> RunExecutionAssignment
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunSnapshotUnavailable ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read AgentRun write AgentRun write RunAttempt write RunLease call RunnerAuthorization.assertRunner call AgentRunRepository.resume }
+      operation reclaimLocal(request: ReclaimLocalRunAttempt)
+        -> RunExecutionAssignment
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! RunDelegationRejected ! RunHistoryRequired ! UnconfirmedToolWrite ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read HistorySnapshot read HistoryConfirmedCursor read HistorySection read HistoryContentBatch read AgentRun read RunAttempt read RunLease read RunEvent read ToolWriteReconciliation read RunCheckpoint read RunControlDecision read LocalRunReclaim write AgentRun write RunAttempt write RunLease write LocalRunReclaim write RunProgressProjection call RunnerAuthorization.assertRunner call RunTurnHistoryVerifier.verifyReclaim as history call AgentRunRepository.reclaimLocal }
+      operation renewProviderPermit(request: RenewProviderPermit)
+        -> ProviderPermitView
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! RunDelegationRejected ! ProviderPermitRejected ! RunLedgerUnavailable
+      effects { read RunLease write ProviderPermit call RunnerAuthorization.assertRunner call AgentRunRepository.renewPermit }
+
+      operation queue(request: QueueAgentRun)
+        -> AgentRunView
+        ! RunQueueDenied ! RunSnapshotUnavailable ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { write AgentRun write RunAttempt write RunnerSignal call RunQueueAuthorization.assertQueue call AgentRunRepository.queue emit AgentRunQueued(runId: request.runId, attemptId: request.attemptId, agentId: request.agentId) }
+      operation signals(request: ReadRunnerSignals)
+        -> RunnerSignals
+        ! RunnerAuthenticationRejected ! RunLedgerUnavailable
+      effects { read RunnerSignal call RunnerAuthorization.assertRunner call AgentRunRepository.signals }
+      operation claim(request: ClaimAgentRun)
+        -> RunExecutionAssignment
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! RunLedgerUnavailable
+      effects { read AgentRun write AgentRun write RunLease write RunAttempt call RunnerAuthorization.assertRunner call AgentRunRepository.claim as assignment emit AgentRunClaimed(runId: assignment.lease.runId, attemptId: assignment.lease.attemptId, leaseId: assignment.lease.leaseId) }
+      operation renewLease(request: RenewRunLease)
+        -> RunLeaseView
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! RunLedgerUnavailable
+      effects { write RunLease call RunnerAuthorization.assertRunner call AgentRunRepository.renewLease }
+      operation recover(request: RecoverExpiredRun)
+        -> AgentRunView
+        ! AgentRunNotFound ! RunnerLeaseRejected ! UnconfirmedToolWrite ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read RunLease read RunEvent read ToolWriteReconciliation write AgentRun write RunAttempt write RunnerSignal call AgentRunRepository.recover emit AgentRunRecovered(runId: request.runId, attemptId: request.continuationAttemptId) }
+      operation reconcileWritingTool(request: ReconcileWritingTool)
+        -> ToolWriteReconciliation
+        ! AgentRunNotFound ! RunEventNotFound ! RunInspectionDenied ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read AgentRun read RunEvent write ToolWriteReconciliation call AgentRunRepository.reconcileWritingTool emit ToolWriteReconciled(runId: request.runId, attemptId: request.attemptId, writingEventId: request.writingEventId) }
+      operation progress(request: RecordRunProgress)
+        -> RunProgressReceipt
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! RunActivityConflict ! RunBatchLimitExceeded ! InvalidRunTransition ! RunDelegationRejected ! RunLedgerUnavailable
+      effects { read RunLease write AgentRun write RunAttempt write RunTurn write RunEvent write RunProgressProjection call RunnerAuthorization.assertRunner call AgentRunRepository.progress }
+      operation chatContext(request: RequestChatContext)
+        -> ChatContextDelivery
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! ChatContextDenied ! RunLedgerUnavailable
+      effects { read AgentRun read RunLease write RunContextRecord call RunnerAuthorization.assertRunner call ChatContextGateway.deliver as delivery call AgentRunRepository.recordContext }
+      operation acquireProviderPermit(request: AcquireProviderPermit)
+        -> ProviderPermitView
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! ProviderPermitRejected ! RunLedgerUnavailable
+      effects { read RunLease write ProviderPermit call RunnerAuthorization.assertRunner call AgentRunRepository.acquirePermit emit ProviderPermitGranted(permitId: request.permitId, callId: request.callId, provider: request.provider) }
+      operation releaseProviderPermit(request: ReleaseProviderPermit)
+        -> Unit
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! ProviderPermitRejected ! RunLedgerUnavailable
+      effects { write ProviderPermit call RunnerAuthorization.assertRunner call AgentRunRepository.releasePermit }
+      operation complete(request: ReportRunResult)
+        -> RunResultReceipt
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunnerLeaseRejected ! InvalidRunTransition ! RunLedgerUnavailable ! ChatPublicationUnavailable
+      effects { read AgentRun read RunLease write RunResultPreparation write AgentRun write RunAttempt write RunLease write ProviderPermit call RunnerAuthorization.assertRunner call AgentRunRepository.prepareResult as preparation call ChatPublicationGateway.finalize as publication call AgentRunRepository.complete as result emit AgentRunCompleted(runId: result.runId, attemptId: result.attemptId, outcome: result.outcome) }
+      operation recordCheckpoint(request: RecordCheckpoint)
+        -> RunCheckpoint
+        ! RunnerAuthenticationRejected ! AgentRunNotFound ! RunAttemptNotFound ! RunnerLeaseRejected ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read AgentRun read RunAttempt read RunLease read RunCheckpoint write RunCheckpoint call RunnerAuthorization.assertRunner call AgentRunRepository.recordCheckpoint emit RunCheckpointRecorded(runId: request.runId, attemptId: request.attemptId, checkpointId: request.checkpointId) }
+      operation requestControl(request: RequestRunControl)
+        -> RunControlDecision
+        ! AgentRunNotFound ! RunAttemptNotFound ! RunCheckpointNotFound ! RunInspectionDenied ! RunControlRejected ! RunLedgerUnavailable
+      effects { read AgentRun read RunCheckpoint write RunControlDecision write RunnerSignal call AgentRunRepository.requestControl emit RunControlRequested(runId: request.runId, controlId: request.controlId, kind: request.kind) }
+      operation acknowledgeControl(request: AcknowledgeRunControl)
+        -> RunControlDecision
+        ! RunnerAuthenticationRejected ! RunnerLeaseRejected ! RunControlRejected ! RunLedgerUnavailable
+      effects { write AgentRun write RunAttempt write RunControlDecision call RunnerAuthorization.assertRunner call AgentRunRepository.acknowledgeControl as decision emit RunControlAcknowledged(runId: decision.runId, controlId: decision.id) }
+      operation inspect(runId: AgentRunId, actorId: ExecutionActorId)
+        -> AgentRunInspection
+        ! AgentRunNotFound ! RunInspectionDenied ! RunLedgerUnavailable
+      effects { read AgentRun read RunAttempt read RunLease read RunCheckpoint read RunContextRecord read RunControlDecision read ToolWriteReconciliation call AgentRunRepository.inspect }
+      operation activities(sessionCredential: String, runId: AgentRunId, query: RunActivitiesQuery)
+        -> RunActivitiesPage
+        ! RunActivityAuthenticationRequired ! AgentRunNotFound ! RunAttemptNotFound ! RunInspectionDenied ! InvalidRunTransition ! RunLedgerUnavailable
+      effects { read Person read Session read Space read Membership read AgentRun read RunAttempt read RunEvent call AgentRunRepository.activities }
+      operation history(workstreamId: ExecutionWorkstreamId, actorId: ExecutionActorId)
+        -> AgentRunHistory
+        ! RunInspectionDenied ! RunLedgerUnavailable
+      effects { read AgentRun call AgentRunRepository.history }
+      operation connectivity(runnerId: ExecutionRunnerId, actorId: ExecutionActorId)
+        -> RunnerConnectivity
+        ! AgentRunNotFound ! RunInspectionDenied ! RunLedgerUnavailable
+      effects { read AgentRun read RunLease call AgentRunRepository.connectivity }
+    }
+
+    example "enqueue while the runner is offline and retain the selected snapshot and origin" {
+      given RunQueueAuthorization.assertQueue(queueRequest) returns Unit
+      given AgentRunRepository.queue(queueRequest) returns queuedRun
+      when result = AgentRunApi.queue(queueRequest)
+      expect Success
+      expect emits AgentRunQueued { runId = runId attemptId = attemptId agentId = agentId }
+    }
+    example "atomically claim one queued attempt for its owning runner" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.claim(claimRequest) returns RunExecutionAssignment { lease = RunLeaseView { leaseId = leaseId runId = runId attemptId = attemptId runnerId = runnerId snapshotId = snapshotId expiresAt = expiresAt } run = assignedRun attempt = assignedAttempt instruction = "Implement the selected work" executionMode = Autonomous effectiveToolNames = [] effectiveSkillNames = [] contextManifest = None continuation = None nativeCheckpointReference = None summaryRequired = true }
+      when result = AgentRunApi.claim(claimRequest)
+      expect Success
+      expect emits AgentRunClaimed { runId = runId attemptId = attemptId leaseId = leaseId }
+    }
+    example "reject a second live lease for the same attempt" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.claim(duplicateLeaseClaim) fails RunnerLeaseRejected { reason = "attempt already leased" }
+      when result = AgentRunApi.claim(duplicateLeaseClaim)
+      expect result fails RunnerLeaseRejected
+    }
+    example "renew only the current runner lease" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.renewLease(renewalRequest) returns renewedLease
+      when result = AgentRunApi.renewLease(renewalRequest)
+      expect Success
+    }
+    example "read only the owning runner's durable availability and control signals" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.signals(signalRequest) returns signalBatch
+      when result = AgentRunApi.signals(signalRequest)
+      expect Success
+    }
+    example "deliver bounded chat context and record only message references" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given ChatContextGateway.deliver(contextRequest) returns delivery
+      given AgentRunRepository.recordContext(contextRequest, delivery) returns contextRecord
+      when result = AgentRunApi.chatContext(contextRequest)
+      expect Success
+    }
+    example "grant one model call across two runners under a global provider limit" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.acquirePermit(permitRequest) returns permit
+      when result = AgentRunApi.acquireProviderPermit(permitRequest)
+      expect Success
+      expect emits ProviderPermitGranted { permitId = permitId callId = callId provider = provider }
+    }
+    example "grant another runner a distinct call permit only within remaining global capacity" {
+      given RunnerAuthorization.assertRunner(otherRunnerId, otherKeyId) returns Unit
+      given AgentRunRepository.acquirePermit(AcquireProviderPermit { permitId = otherPermitId callId = otherCallId runId = runId attemptId = attemptId leaseId = leaseId runnerId = otherRunnerId keyId = otherKeyId delegationCredential = None provider = provider occurredAt = occurredAt }) returns otherPermit
+      when result = AgentRunApi.acquireProviderPermit(AcquireProviderPermit { permitId = otherPermitId callId = otherCallId runId = runId attemptId = attemptId leaseId = leaseId runnerId = otherRunnerId keyId = otherKeyId delegationCredential = None provider = provider occurredAt = occurredAt })
+      expect Success
+      expect emits ProviderPermitGranted { permitId = otherPermitId callId = otherCallId provider = provider }
+    }
+    example "reject a provider call when global capacity is exhausted" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.acquirePermit(overLimitPermitRequest) fails ProviderPermitRejected { reason = "provider capacity exhausted" }
+      when result = AgentRunApi.acquireProviderPermit(overLimitPermitRequest)
+      expect result fails ProviderPermitRejected
+    }
+    example "release one completed provider call permit" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.releasePermit(releaseRequest) returns Unit
+      when result = AgentRunApi.releaseProviderPermit(releaseRequest)
+      expect Success
+    }
+    example "return the same published message ID for a duplicate final result" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.prepareResult(resultReport) returns preparation
+      given ChatPublicationGateway.finalize(resultReport, preparation) returns publication
+      given AgentRunRepository.complete(resultReport, publication) returns RunResultReceipt { runId = runId attemptId = attemptId outcome = ResponsePublished publication = publication }
+      when result = AgentRunApi.complete(resultReport)
+      expect Success
+      expect emits AgentRunCompleted { runId = result.runId attemptId = result.attemptId outcome = result.outcome }
+    }
+    example "suppress a public answer after its source message changes" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.prepareResult(resultReport) returns preparation
+      given ChatPublicationGateway.finalize(resultReport, preparation) returns suppressedPublication
+      given AgentRunRepository.complete(resultReport, suppressedPublication) returns RunResultReceipt { runId = runId attemptId = attemptId outcome = ResponseSuppressed publication = suppressedPublication }
+      when result = AgentRunApi.complete(resultReport)
+      expect Success
+      expect emits AgentRunCompleted { runId = result.runId attemptId = result.attemptId outcome = result.outcome }
+    }
+    example "reject a final result from a superseded lease before publication" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.prepareResult(staleLeaseResult) fails RunnerLeaseRejected { reason = "lease superseded" }
+      when result = AgentRunApi.complete(staleLeaseResult)
+      expect result fails RunnerLeaseRejected
+    }
+    example "request rewind while preserving the old attempt and checkpoint" {
+      given AgentRunRepository.requestControl(controlRequest) returns controlDecision
+      when result = AgentRunApi.requestControl(controlRequest)
+      expect Success
+      expect emits RunControlRequested { runId = runId controlId = controlId kind = Rewind }
+    }
+    example "acknowledge a runner control decision before resuming" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.acknowledgeControl(controlAcknowledgement) returns RunControlDecision { id = controlId runId = runId sourceAttemptId = attemptId kind = Rewind status = Acknowledged checkpointId = None continuationAttemptId = None requestedBy = actorId reason = "resume" acknowledgedAt = Some(acknowledgedAt) }
+      when result = AgentRunApi.acknowledgeControl(controlAcknowledgement)
+      expect Success
+      expect emits RunControlAcknowledged { runId = runId controlId = controlId }
+    }
+    example "record an unconfirmed writing tool before a safe recovery decision" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.progress(writeStartedReport) returns writeStartedEvent
+      when result = AgentRunApi.progress(writeStartedReport)
+      expect Success
+      expect result == writeStartedEvent
+    }
+    example "recover an expired lease only after writing tools are reconciled" {
+      given AgentRunRepository.recover(recoveryRequest) returns recoveredRun
+      when result = AgentRunApi.recover(recoveryRequest)
+      expect Success
+      expect emits AgentRunRecovered { runId = runId attemptId = continuationAttemptId }
+    }
+    example "block automatic recovery while a writing tool is unconfirmed" {
+      given AgentRunRepository.recover(unconfirmedWriteRecovery) fails UnconfirmedToolWrite { eventId = eventId }
+      when result = AgentRunApi.recover(unconfirmedWriteRecovery)
+      expect result fails UnconfirmedToolWrite
+    }
+    example "record a human reconciliation of an uncertain writing tool" {
+      given AgentRunRepository.reconcileWritingTool(reconciliationRequest) returns reconciliation
+      when result = AgentRunApi.reconcileWritingTool(reconciliationRequest)
+      expect Success
+      expect emits ToolWriteReconciled { runId = runId attemptId = attemptId writingEventId = writingEventId }
+    }
+    example "native signals read empty" {
+      when result = AgentRunRepository.signals(ReadRunnerSignals { runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" afterSequence = None limit = 2 })
+      expect result == RunnerSignals { runnerId = "00000000-0000-4000-8000-000000000004" signals = [] lastSequence = None }
+    }
+    example "native signals read stored notice" {
+      when result = AgentRunRepository.signals(ReadRunnerSignals { runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" afterSequence = None limit = 2 })
+      expect result == RunnerSignals { runnerId = "00000000-0000-4000-8000-000000000004" signals = [RunnerSignal { id = "00000000-0000-4000-8000-000000000048" sequence = 1 runnerId = "00000000-0000-4000-8000-000000000004" kind = RunAvailable runId = "00000000-0000-4000-8000-000000000001" controlId = None occurredAt = "2026-10-04T11:00:00.000Z" }] lastSequence = Some(1) }
+    }
+    example "native signals reject absent runner proof" {
+      when result = AgentRunRepository.signals(ReadRunnerSignals { runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" afterSequence = None limit = 2 })
+      expect result fails RunnerAuthenticationRejected
+    }
+    example "native workstream history reads empty" {
+      when result = AgentRunRepository.history("00000000-0000-4000-8000-000000000049", "00000000-0000-4000-8000-00000000000b")
+      expect result == AgentRunHistory { workstreamId = "00000000-0000-4000-8000-000000000049" runs = [] }
+    }
+    example "native workstream history rejects absent access" {
+      when result = AgentRunRepository.history("00000000-0000-4000-8000-000000000049", "00000000-0000-4000-8000-00000000000b")
+      expect result fails RunInspectionDenied
+    }
+    example "native connectivity reports never connected" {
+      when result = AgentRunRepository.connectivity("00000000-0000-4000-8000-000000000004", "00000000-0000-4000-8000-00000000000b")
+      expect result == RunnerConnectivity { runnerId = "00000000-0000-4000-8000-000000000004" connectedAt = None lastSeenAt = None }
+    }
+    example "native connectivity rejects absent access" {
+      when result = AgentRunRepository.connectivity("00000000-0000-4000-8000-000000000004", "00000000-0000-4000-8000-00000000000b")
+      expect result fails RunInspectionDenied
+    }
+
+    example "native context records exact delivered references" {
+      when result = AgentRunRepository.recordContext(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None occurredAt = "2026-10-04T11:59:00.000Z" }, ChatContextDelivery { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" messages = [ChatContextEntry { reference = DeliveredMessageReference { messageId = "00000000-0000-4000-8000-000000000046" version = "message-v1" hash = "native-message-hash-v1" } authorId = "00000000-0000-4000-8000-00000000000b" content = "Exact delivered context" }] omittedMessageIds = ["00000000-0000-4000-8000-000000000047"] })
+      expect result == RunContextRecord { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" deliveredMessages = [DeliveredMessageReference { messageId = "00000000-0000-4000-8000-000000000046" version = "message-v1" hash = "native-message-hash-v1" }] omittedMessageIds = ["00000000-0000-4000-8000-000000000047"] includedArtifactIds = [] includedMemoryIds = [] includedTicketRevisions = [] includedArtifactVersions = [] recordedAt = "2026-10-04T12:00:00.000Z" }
+    }
+    example "native context rejects absent execution authority" {
+      when result = AgentRunRepository.recordContext(RequestChatContext { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None occurredAt = "2026-10-04T11:59:00.000Z" }, ChatContextDelivery { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" messages = [ChatContextEntry { reference = DeliveredMessageReference { messageId = "00000000-0000-4000-8000-000000000046" version = "message-v1" hash = "native-message-hash-v1" } authorId = "00000000-0000-4000-8000-00000000000b" content = "Exact delivered context" }] omittedMessageIds = ["00000000-0000-4000-8000-000000000047"] })
+      expect result fails RunnerLeaseRejected
+    }
+    example "native result preparation binds the saved work summary" {
+      when result = AgentRunRepository.prepareResult(ReportRunResult { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None resultKind = FinalDraft finalAnswerDraft = None failureSummary = None summaryId = Some("00000000-0000-4000-8000-000000000033") artifactIds = [] occurredAt = "2026-10-04T11:59:00.000Z" })
+      expect result == RunResultPreparation { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" authorAgentId = "00000000-0000-4000-8000-000000000003" targetChannelId = "00000000-0000-4000-8000-000000000006" sourceMessageId = None sourceMessageVersion = None sourceMessageHash = None participationId = None preparedAt = "2026-10-04T12:00:00.000Z" }
+    }
+    example "native result preparation rejects absent execution authority" {
+      when result = AgentRunRepository.prepareResult(ReportRunResult { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None resultKind = FinalDraft finalAnswerDraft = None failureSummary = None summaryId = Some("00000000-0000-4000-8000-000000000033") artifactIds = [] occurredAt = "2026-10-04T11:59:00.000Z" })
+      expect result fails RunnerLeaseRejected
+    }
+    example "native safe pause releases only its owned resources" {
+      when result = AgentRunRepository.pause(PauseRun { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000032" occurredAt = "2026-10-04T12:00:00.000Z" }, RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000029" snapshotId = "00000000-0000-4000-8000-000000000032" channelId = "00000000-0000-4000-8000-000000000006" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "980020966b710cb3ff47cd83a2259666cd716cd98c7da8d0c854cf474c685418" complete = true verifiedAt = "2026-10-04T12:00:00.000Z" })
+      expect Success
+    }
+    example "native pause rejects a missing current execution" {
+      when result = AgentRunRepository.pause(PauseRun { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000032" occurredAt = "2026-10-04T12:00:00.000Z" }, RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000029" snapshotId = "00000000-0000-4000-8000-000000000032" channelId = "00000000-0000-4000-8000-000000000006" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "980020966b710cb3ff47cd83a2259666cd716cd98c7da8d0c854cf474c685418" complete = true verifiedAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails AgentRunNotFound
+    }
+    example "native saved summary publishes a durable message" {
+      when result = AgentRunRepository.publishSummary(PublishSavedSummary { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None summaryId = "00000000-0000-4000-8000-000000000033" occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect Success
+    }
+    example "native summary publication rejects a missing current execution" {
+      when result = AgentRunRepository.publishSummary(PublishSavedSummary { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None summaryId = "00000000-0000-4000-8000-000000000033" occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails RunnerLeaseRejected
+    }
+
+    example "native turn completion saves the verified full summary" {
+      when result = AgentRunRepository.completeTurn(CompleteRunTurn { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None turnId = "00000000-0000-4000-8000-000000000029" status = TurnSucceeded summaryId = "00000000-0000-4000-8000-000000000033" summary = RunSummaryContent { completedWork = "Requirements clarified" results = "Decision recorded" verification = "Context reviewed" openPoints = "" artifactIds = [] } historySnapshotId = "00000000-0000-4000-8000-000000000032" historyEndCursor = 1 occurredAt = "2026-10-04T11:59:00.000Z" }, RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000029" snapshotId = "00000000-0000-4000-8000-000000000032" channelId = "00000000-0000-4000-8000-000000000006" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "980020966b710cb3ff47cd83a2259666cd716cd98c7da8d0c854cf474c685418" complete = true verifiedAt = "2026-10-04T11:59:00.000Z" })
+      expect result == SavedRunSummary { id = "00000000-0000-4000-8000-000000000033" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000029" historySnapshotId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000003" agentPrincipalId = "00000000-0000-4000-8000-000000000021" humanPrincipalId = Some("00000000-0000-4000-8000-00000000000b") content = RunSummaryContent { completedWork = "Requirements clarified" results = "Decision recorded" verification = "Context reviewed" openPoints = "" artifactIds = [] } createdAt = "2026-10-04T12:00:00.000Z" }
+    }
+
+    example "native checkpoint records a full immutable execution boundary" {
+      when result = AgentRunRepository.recordCheckpoint(RecordCheckpoint { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None checkpointId = "00000000-0000-4000-8000-000000000041" runtimeCheckpointReference = "native-checkpoint" historySnapshotReference = "sealed-history" sandboxSnapshotReference = "sandbox" sandboxEpochReference = "epoch" anchor = Manual label = Some("Native checkpoint") occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result == RunCheckpoint { id = "00000000-0000-4000-8000-000000000041" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" runtimeCheckpointReference = "native-checkpoint" historySnapshotReference = "sealed-history" sandboxSnapshotReference = "sandbox" sandboxEpochReference = "epoch" anchor = Manual label = Some("Native checkpoint") createdAt = "2026-10-04T12:00:00.000Z" }
+    }
+    example "native checkpoint rejects a missing execution" {
+      when result = AgentRunRepository.recordCheckpoint(RecordCheckpoint { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None checkpointId = "00000000-0000-4000-8000-000000000041" runtimeCheckpointReference = "native-checkpoint" historySnapshotReference = "sealed-history" sandboxSnapshotReference = "sandbox" sandboxEpochReference = "epoch" anchor = Manual label = Some("Native checkpoint") occurredAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails AgentRunNotFound
+    }
+
+    example "record a checkpoint for the current leased attempt" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.recordCheckpoint(checkpointRequest) returns checkpoint
+      when result = AgentRunApi.recordCheckpoint(checkpointRequest)
+      expect Success
+      expect emits RunCheckpointRecorded { runId = runId attemptId = attemptId checkpointId = checkpointId }
+    }
+    example "inspect one authorized run and its immutable lineage" {
+      given AgentRunRepository.inspect(runId, actorId) returns inspection
+      when result = AgentRunApi.inspect(runId, actorId)
+      expect Success
+    }
+    example "read run history for one workstream" {
+      given AgentRunRepository.history(workstreamId, actorId) returns historyView
+      when result = AgentRunApi.history(workstreamId, actorId)
+      expect Success
+    }
+    example "report connectivity for a runner to an authorized inspector" {
+      given AgentRunRepository.connectivity(runnerId, actorId) returns connectivity
+      when result = AgentRunApi.connectivity(runnerId, actorId)
+      expect Success
+    }
+
+
+    example "save an interactive turn without completing its channel run" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given RunTurnHistoryVerifier.verifyTurn(turnRequest) returns turnHistoryProof
+      given AgentRunRepository.completeTurn(turnRequest, turnHistoryProof) returns savedSummary
+      when result = AgentRunApi.completeTurn(turnRequest)
+      expect result == savedSummary
+    }
+    example "reject work turn without a sealed confirmed history" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given RunTurnHistoryVerifier.verifyTurn(unsealedTurn) fails RunHistoryRequired { reason = "sealed confirmed history required" }
+      when result = AgentRunApi.completeTurn(unsealedTurn)
+      expect result fails RunHistoryRequired
+    }
+    example "verify a real complete turn snapshot and confirmed stored coverage" {
+      when result = RunTurnHistoryVerifier.verifyTurn(CompleteRunTurn { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000008" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000005" occurredAt = "2026-10-04T17:29:00.000Z" turnId = "00000000-0000-4000-8000-000000000003" status = TurnSucceeded summaryId = "00000000-0000-4000-8000-000000000007" summary = RunSummaryContent { completedWork = "Requirements clarified" results = "Decision recorded" verification = "Context reviewed" openPoints = "" artifactIds = [] } historyEndCursor = 1 })
+      expect result == RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000003" snapshotId = "00000000-0000-4000-8000-000000000005" channelId = "00000000-0000-4000-8000-000000000004" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "2f9d78cb0325232d74179c6555da4a06fd4c7e6cbe783740611bc674b889ccae" complete = true verifiedAt = "2026-10-04T17:30:00.000Z" }
+    }
+    example "verify a complete paused-turn snapshot without active mutation" {
+      when result = RunTurnHistoryVerifier.verifyPause(PauseRun { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000008" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000005" occurredAt = "2026-10-04T17:29:00.000Z" })
+      expect result == RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000003" snapshotId = "00000000-0000-4000-8000-000000000005" channelId = "00000000-0000-4000-8000-000000000004" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "2f9d78cb0325232d74179c6555da4a06fd4c7e6cbe783740611bc674b889ccae" complete = true verifiedAt = "2026-10-04T17:30:00.000Z" }
+    }
+    example "a missing snapshot produces no turn proof" {
+      when result = RunTurnHistoryVerifier.verifyTurn(CompleteRunTurn { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000008" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000013" occurredAt = "2026-10-04T17:29:00.000Z" turnId = "00000000-0000-4000-8000-000000000003" status = TurnSucceeded summaryId = "00000000-0000-4000-8000-000000000007" summary = RunSummaryContent { completedWork = "Requirements clarified" results = "Decision recorded" verification = "Context reviewed" openPoints = "" artifactIds = [] } historyEndCursor = 1 })
+      expect result fails RunHistoryRequired
+    }
+    example "a mismatched turn snapshot produces no proof" {
+      when result = RunTurnHistoryVerifier.verifyTurn(CompleteRunTurn { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000008" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000005" occurredAt = "2026-10-04T17:29:00.000Z" turnId = "00000000-0000-4000-8000-000000000014" status = TurnSucceeded summaryId = "00000000-0000-4000-8000-000000000007" summary = RunSummaryContent { completedWork = "Requirements clarified" results = "Decision recorded" verification = "Context reviewed" openPoints = "" artifactIds = [] } historyEndCursor = 1 })
+      expect result fails RunHistoryRequired
+    }
+    example "incomplete history produces no pause proof" {
+      when result = RunTurnHistoryVerifier.verifyPause(PauseRun { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000008" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = None historySnapshotId = "00000000-0000-4000-8000-000000000005" occurredAt = "2026-10-04T17:29:00.000Z" })
+      expect result fails RunHistoryRequired
+    }
+    example "a forged history proof cannot save a turn" {
+      when result = AgentRunRepository.completeTurn(CompleteRunTurn { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" runnerId = "00000000-0000-4000-8000-000000000004" keyId = "00000000-0000-4000-8000-000000000014" delegationCredential = None turnId = "00000000-0000-4000-8000-000000000029" status = TurnSucceeded summaryId = "00000000-0000-4000-8000-000000000033" summary = RunSummaryContent { completedWork = "Requirements clarified" results = "Decision recorded" verification = "Context reviewed" openPoints = "" artifactIds = [] } historySnapshotId = "00000000-0000-4000-8000-000000000032" historyEndCursor = 1 occurredAt = "2026-10-04T11:59:00.000Z" }, RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000029" snapshotId = "00000000-0000-4000-8000-000000000032" channelId = "00000000-0000-4000-8000-000000000028" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "forged-hash" complete = true verifiedAt = "2026-10-04T11:59:00.000Z" })
+      expect result fails RunHistoryRequired
+    }
+    example "a foreign sealed snapshot cannot complete this turn" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given RunTurnHistoryVerifier.verifyTurn(foreignSnapshotTurn) fails RunHistoryRequired { reason = "snapshot belongs to another run or attempt" }
+      when result = AgentRunApi.completeTurn(foreignSnapshotTurn)
+      expect result fails RunHistoryRequired
+    }
+    example "an unconfirmed snapshot cannot permit safe pause" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given RunTurnHistoryVerifier.verifyPause(unconfirmedPause) fails RunHistoryRequired { reason = "snapshot is incomplete or not confirmed" }
+      when result = AgentRunApi.pause(unconfirmedPause)
+      expect result fails RunHistoryRequired
+    }
+    example "read the nearest older stored activities with a bounded page" {
+      when result = AgentRunRepository.activities(ReadRunActivities { sessionCredential = "native-human-session" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" beforeSequence = 5 afterSequence = 0 limit = 2 })
+      expect result == RunActivitiesPage { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" events = [RunEvent { id = "00000000-0000-4000-8000-00000000003f" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" turnId = "00000000-0000-4000-8000-000000000029" sequence = 3 kind = Warning assistantMessageId = None toolExecutionId = None parentToolExecutionId = None toolName = None summary = "activity 3" writingToolUnconfirmed = false occurredAt = "2026-10-04T11:00:00.000Z" acceptedAt = "2026-10-04T11:00:00.000Z" }, RunEvent { id = "00000000-0000-4000-8000-000000000040" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-000000000011" turnId = "00000000-0000-4000-8000-000000000029" sequence = 4 kind = Warning assistantMessageId = None toolExecutionId = None parentToolExecutionId = None toolName = None summary = "activity 4" writingToolUnconfirmed = false occurredAt = "2026-10-04T11:00:00.000Z" acceptedAt = "2026-10-04T11:00:00.000Z" }] nextBeforeSequence = Some(3) nextAfterSequence = Some(4) }
+    }
+    example "opaque expired credentials cannot read run activities" {
+      when result = AgentRunRepository.activities(ReadRunActivities { sessionCredential = "expired-human-session" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" beforeSequence = 0 afterSequence = 0 limit = 2 })
+      expect result fails RunActivityAuthenticationRequired
+    }
+    example "activity paging rejects two simultaneous directions" {
+      when result = AgentRunRepository.activities(ReadRunActivities { sessionCredential = "native-human-session" runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" beforeSequence = 5 afterSequence = 2 limit = 2 })
+      expect result fails InvalidRunTransition
+    }
+    example "read a bounded channel-authorized activity page" {
+      given AgentRunRepository.activities(ReadRunActivities { sessionCredential = sessionCredential runId = runId attemptId = attemptId beforeSequence = 0 afterSequence = 0 limit = 50 }) returns activityPage
+      when result = AgentRunApi.activities(sessionCredential, runId, RunActivitiesQuery { attemptId = attemptId beforeSequence = 0 afterSequence = 0 limit = 50 })
+      expect result == activityPage
+    }
+    example "reject activity reads after channel access is lost" {
+      given AgentRunRepository.activities(ReadRunActivities { sessionCredential = sessionCredential runId = runId attemptId = attemptId beforeSequence = 0 afterSequence = 0 limit = 50 }) fails RunInspectionDenied { actorId = actorId }
+      when result = AgentRunApi.activities(sessionCredential, runId, RunActivitiesQuery { attemptId = attemptId beforeSequence = 0 afterSequence = 0 limit = 50 })
+      expect result fails RunInspectionDenied
+    }
+    example "publish a saved summary independently of completion" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.publishSummary(summaryPublication) returns publishedSummary
+      when result = AgentRunApi.publishSummary(summaryPublication)
+      expect result == publishedSummary
+    }
+    example "writing tools block safe pause" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given RunTurnHistoryVerifier.verifyPause(unsafePause) returns pauseHistoryProof
+      given AgentRunRepository.pause(unsafePause, pauseHistoryProof) fails UnconfirmedToolWrite { eventId = eventId }
+      when result = AgentRunApi.pause(unsafePause)
+      expect result fails UnconfirmedToolWrite
+    }
+    example "resume revalidates delegated authority" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.resume(expiredDelegationResume) fails RunDelegationRejected { reason = "delegation expired" }
+      when result = AgentRunApi.resume(expiredDelegationResume)
+      expect result fails RunDelegationRejected
+    }
+    example "a released provider permit cannot be renewed" {
+      given RunnerAuthorization.assertRunner(runnerId, keyId) returns Unit
+      given AgentRunRepository.renewPermit(releasedPermitRenewal) fails ProviderPermitRejected { reason = "permit is no longer active" }
+      when result = AgentRunApi.renewProviderPermit(releasedPermitRenewal)
+      expect result fails ProviderPermitRejected
+    }
+    lifecycle InteractiveRunPause for AgentRun using status {
+      state Queued initial
+      state Leased
+      state Running
+      state Waiting
+      state Completed terminal
+      transition InspectableRuns.AgentRunApi.claim from Queued to Leased
+      transition InspectableRuns.AgentRunApi.progress from Leased to Running
+      transition InspectableRuns.AgentRunApi.pause from Running to Waiting
+      transition InspectableRuns.AgentRunApi.resume from Waiting to Running
+      transition InspectableRuns.AgentRunApi.complete from Running to Completed
+    }
+
+    constraint "Every run has exactly one immutable origin matching its kind: a source message with version and hash, a human manual request, a workflow request, or a ChannelSession with its human principal, session, channel and explicit instruction."
+    constraint "I02: ChatReply and channel-session WorkTask may omit a workstream. Operations on tickets or workstreams still require their actual identities. Both use the same queue, lease, attempt and result lifecycle."
+    constraint "Queueing never requires runner connectivity. Claiming atomically selects one queued run for its owning active runner and retains the queued snapshot version and fingerprint."
+    constraint "Claiming also respects the owning runner's reported maximum concurrent runs; an inventory update cannot move a queued run to another runner."
+    constraint "Queueing creates a durable availability signal for the owning runner; control requests create durable control signals. Reading signals requires that runner's current credential and returns only its own signals in strictly increasing sequence order after the supplied cursor."
+    constraint "Recovering a run creates a new availability signal. A live signal connection is closed when its runner key rotates or the runner is revoked; reconnecting requires fresh authentication."
+    constraint "Live signal delivery is only a wake-up hint; reconnecting runners read durable signals by cursor and still claim runs or acknowledge controls through their separate operations."
+    constraint "Queue authorization verifies current inventory, participation, product policy, immutable origin, and effective capabilities before the run is stored."
+    constraint "At most one unexpired lease exists per attempt. Claim, renewal, progress, and completion are idempotent; reports from expired or superseded leases cannot change state."
+    constraint "The first TurnStarted activity starts the leased attempt and records input provenance and history boundary. Waiting marks the run Waiting; Resumed resumes it as Running, preserving its start time."
+    example "local reclaim rejects an unauthenticated runner" {
+      given RunnerAuthorization.assertRunner("00000000-0000-4000-8000-000000000009", "00000000-0000-4000-8000-00000000000a") fails RunnerAuthenticationRejected { runnerId = "00000000-0000-4000-8000-000000000009" }
+      when result = AgentRunApi.reclaimLocal(ReclaimLocalRunAttempt { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-00000000000b" sourceAttemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-00000000000c" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = Some("native-delegation") runtimeSessionReference = "reclaimed-runtime" historySnapshotId = "00000000-0000-4000-8000-000000000005" nativeCheckpointId = None runtimeKind = "" runtimeVersion = "" occurredAt = "2026-10-04T17:30:00.000Z" })
+      expect result fails RunnerAuthenticationRejected
+    }
+    example "local replacement verifies confirmed parent history" {
+      when result = RunTurnHistoryVerifier.verifyReclaim(ReclaimLocalRunAttempt { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-00000000000b" sourceAttemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-00000000000c" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = Some("native-delegation") runtimeSessionReference = "reclaimed-runtime" historySnapshotId = "00000000-0000-4000-8000-000000000005" nativeCheckpointId = None runtimeKind = "" runtimeVersion = "" occurredAt = "2026-10-04T17:30:00.000Z" })
+      expect Success
+    }
+    example "local replacement rejects missing parent history" {
+      when result = RunTurnHistoryVerifier.verifyReclaim(ReclaimLocalRunAttempt { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-00000000000b" sourceAttemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-00000000000c" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = Some("native-delegation") runtimeSessionReference = "reclaimed-runtime" historySnapshotId = "00000000-0000-4000-8000-000000000005" nativeCheckpointId = None runtimeKind = "" runtimeVersion = "" occurredAt = "2026-10-04T17:30:00.000Z" })
+      expect result fails RunHistoryRequired
+    }
+    constraint "Only the current queued Interactive ChannelSession replacement attempt may be reclaimed. Its direct parent is a stopped recovery or acknowledged control attempt; human, channel, runner, agent and pinned snapshot stay bound to the original delegation. Reclaim assigns its own new runtime, preserves immutable run origin and purpose, atomically acquires capacity and rechecks current authority."
+    example "local reclaim binds one queued replacement to confirmed parent history" {
+      when result = AgentRunRepository.reclaimLocal(ReclaimLocalRunAttempt { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-00000000000b" sourceAttemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-00000000000c" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = Some("native-delegation") runtimeSessionReference = "reclaimed-runtime" historySnapshotId = "00000000-0000-4000-8000-000000000005" nativeCheckpointId = None runtimeKind = "" runtimeVersion = "" occurredAt = "2026-10-04T17:30:00.000Z" }, RunLocalReclaimHistoryProof { history = RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000003" channelId = "00000000-0000-4000-8000-000000000004" snapshotId = "00000000-0000-4000-8000-000000000005" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "2f9d78cb0325232d74179c6555da4a06fd4c7e6cbe783740611bc674b889ccae" complete = true verifiedAt = "2026-10-04T17:30:00.000Z" } continuation = RunContinuationReference { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" historySnapshotId = "00000000-0000-4000-8000-000000000005" summaryId = Some("00000000-0000-4000-8000-000000000007") workspaceArtifactIds = [] } nativeCheckpointReference = None })
+      expect Success
+    }
+    example "local reclaim rejects reusing the parent runtime" {
+      when result = AgentRunRepository.reclaimLocal(ReclaimLocalRunAttempt { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-00000000000b" sourceAttemptId = "00000000-0000-4000-8000-000000000002" leaseId = "00000000-0000-4000-8000-00000000000c" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" delegationCredential = Some("native-delegation") runtimeSessionReference = "native-parent-runtime" historySnapshotId = "00000000-0000-4000-8000-000000000005" nativeCheckpointId = None runtimeKind = "" runtimeVersion = "" occurredAt = "2026-10-04T17:30:00.000Z" }, RunLocalReclaimHistoryProof { history = RunTurnHistoryProof { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" turnId = "00000000-0000-4000-8000-000000000003" channelId = "00000000-0000-4000-8000-000000000004" snapshotId = "00000000-0000-4000-8000-000000000005" throughCursor = 1 confirmedThroughCursor = 1 canonicalHash = "2f9d78cb0325232d74179c6555da4a06fd4c7e6cbe783740611bc674b889ccae" complete = true verifiedAt = "2026-10-04T17:30:00.000Z" } continuation = RunContinuationReference { runId = "00000000-0000-4000-8000-000000000001" attemptId = "00000000-0000-4000-8000-000000000002" historySnapshotId = "00000000-0000-4000-8000-000000000005" summaryId = Some("00000000-0000-4000-8000-000000000007") workspaceArtifactIds = [] } nativeCheckpointReference = None })
+      expect result fails InvalidRunTransition
+    }
+    constraint "Local reclaim requires a complete canonical confirmed history snapshot of the direct parent, available referenced workspace data and sufficient current capabilities. Rewind or fork requires the selected checkpoint's history snapshot. A requested native checkpoint must be documented compatible. Unconfirmed parent writing tools block reclaim."
+    constraint "Identical local reclaim lease, runtime and continuation retries preserve assignment identity. Changed or superseded retries fail; previous attempts, progress, summaries and sealed history remain intact. Autonomous claim cannot replace delegated reclaim."
+    constraint "A runner key is checked for every claim, lease renewal, context request, permit, progress, checkpoint, result, and control acknowledgement."
+    constraint "Runner authorization validates the presented secret in trusted request context against the current verifier; caller-supplied runner ID and key ID are never sufficient."
+    constraint "No provider call, including delegated calls, starts without an unexpired permit for that call ID and a configured global provider limit; permits count calls, not runs."
+    constraint "Permit acquisition is atomic across runners, never exceeds the global provider limit, and also respects the runner's reported local capacity. Release or expiry frees capacity."
+    constraint "Connection loss cannot authorize a model call. A runner without a valid permit must wait even while its run lease remains valid."
+    constraint "Chat context is authorized for the pinned participation, ends at the source message, obeys the token boundary, and records ordered IDs, versions, hashes, and omissions without storing message content again."
+    constraint "The recorded context manifest exactly matches the content delivered for that attempt in order; a retry returns the same bounded selection or records a new versioned selection before use."
+    constraint "Only the product chooses the agent author, target channel, and source relation from immutable run data. A runner submits drafts, typed activity and work summaries but cannot select a different public author or target."
+    constraint "For ChatReply at most one final public reply exists per attempt. Every attempt has one mutating progress identity; multiple interactive turns may each publish a distinct immutable summary. Duplicate publications return the same message ID without another event."
+    constraint "Result preparation atomically verifies the current lease and derives author, channel, and source relation before publication; retries reuse the same preparation."
+    constraint "For a chat origin, result preparation copies the immutable source message ID, version, hash, and participation into the publication check. ChannelWork summaries derive their target from the channel context and require no invented chat source; WorkTasks publish their final saved summary on autonomous completion."
+    constraint "If the source message was edited or deleted, or required membership was revoked, the public reply is suppressed with a recorded reason."
+    constraint "A writing tool started without confirmed completion blocks automatic resume after lease loss until reconciled; no retry may silently repeat its side effect."
+    constraint "Recovery abandons the expired attempt and queues a new attempt pinned to the original snapshot and origin; an unconfirmed writing tool yields UnconfirmedToolWrite until an authorized human records a supported reconciliation."
+    constraint "A writing-tool reconciliation names one existing unconfirmed event and a verified outcome; it is append-only and cannot erase the original event or authorize a silent duplicate side effect."
+    constraint "Cancellation, rewind, and fork are durable product decisions requiring acknowledgement by the owning runner. Prior attempts, messages, and artifacts remain immutable."
+    constraint "Historical snapshots, origin, context manifests, attempts, checkpoints, permits, results, and control decisions remain inspectable under product access rules."
+
+    constraint "I03-I07: Channel selection, sessions, announcements, turns, summaries and run completion never reserve the channel or automatically mutate ticket readiness or workstream stage. Many runs and humans may work in parallel. The run origin and instruction remain immutable."
+    constraint "I08-I10: Every attempt pins its actual agent, agent principal, installation, local agent, immutable snapshot, execution mode, human/delegation and continuation provenance. Names and fingerprints never merge installation identities; later inventory changes never rewrite attempts."
+    constraint "I12-I22: Every mutating runner action validates the current runner key and current execution authority. Channel-session runs additionally require the matching delegation and current human session/account/channel access. Server clock alone checks deadlines. A lease binds one attempt and never reserves its channel; capacity is enforced atomically."
+    constraint "I23-I26: Accept batches of at most 100 structured activities in contiguous monotone sequence. Same event ID/sequence/content is idempotent, conflicting reuse fails RunActivityConflict; gaps are explicitly rejected without acknowledging missing data. Persist activity plus projection job atomically, repair pending projections after restart and publish realtime only after commit. One stable progress identity per attempt has monotone revisions, stable createdAt/position and persistent deletion tombstone."
+    constraint "I27-I28: Assistant and tool starts use stable IDs; completions must name an existing start in the same attempt/turn, nested tools name a known parent. Progress updates create no implicit agent triggers, mention fanouts or unread increase per update. A summary never reconciles an unconfirmed writing tool."
+    constraint "RunTurnHistoryVerifier is an InspectableRuns-owned injected contract implemented by RunHistory. It recomputes and validates sealed snapshot integrity from the persisted ordered sections and content, checks contiguous confirmed coverage and actual byte hashes, and returns a server-issued proof. Proofs are never accepted as HTTP input. Missing, incomplete, mismatched run/attempt/turn/cursor, or corrupted history fails RunHistoryRequired before turn or pause writes."
+    constraint "History verification and the matching turn or pause repository operation share one transaction context, with no nested document-store transaction. Current authorization, confirmed cursor and proof matching are rechecked at commit so a concurrent upload cannot make a pause proof stale; failure commits no partial changes."
+    constraint "AgentRunApi.completeTurn and pause authenticate the runner, invoke the history verifier once before the repository, and forward the exact verified proof. The repository validates that proof against its current run/channel/attempt and lease/delegation; pause additionally requires the completed latest turn and no newer confirmed history or unreconciled writes. Neither slice imports another owner's concrete repository."
+    constraint "Activity pages derive the current active human principal from an opaque session credential and enforce current channel access before return. A beforeSequence or afterSequence of zero means no boundary; nonzero boundaries are exclusive, only one direction is accepted, and the result contains at most limit stored events from the requested attempt in ascending sequence. Before pages choose the nearest preceding events, after pages choose the earliest following events. Next cursors exist only when more data exists in their direction. Inspection does not embed the unbounded event history."
+    constraint "I29-I34: TurnStarted creates a RunTurn with its inputs and confirmed history boundary. completeTurn requires a nonempty successful WorkTask summary, or an explicit failure/abort report, and a sealed confirmed history snapshot for that same run/attempt/turn. It saves the summary and turn atomically without completing an interactive run. publishSummary is separate and idempotent. complete explicitly ends only this run, releasing every lease and provider permit; autonomous WorkTask completion publishes its final summary. ChatReply alone may use NoAnswer."
+    constraint "I35-I42: Continuations import only confirmed portable history and available workspace artifacts, never rerun imported tools or inherit authority. They create a new run/attempt/runtime session with explicit source links. Recovery of one lost execution creates a new attempt. Safe pause between turns requires sealed confirmed history and no unreconciled writing tools; pause releases leases and permits. Resume rechecks authorization, snapshot capabilities and capacities."
+    constraint "I18-I22: Provider permits default to 60 seconds and run leases to five minutes. Renew requires the same live call, attempt, lease, runner key and execution authority and must not reactivate expired, released or terminal permits. Every model call including delegation has its own permit; absence of a global configured limit grants no capacity."
+    constraint "I11/I45: Inspection and history use current channel authorization even for the original requester or administrator. Scoped realtime events carry the channel ID and never include full portable history; access loss disconnects streams."
+    constraint "I48-I50: Business failure after any write rolls back the whole transaction, including projection/publication jobs. Retries after lost acknowledgements produce no duplicate messages, events, triggers or notifications. Used context versions, including ticket revision and artifact hashes, are retained; connectivity grants no rights."
+    constraint "Connectivity is informational only; never grants authorization: it reports the last successful runner authentication or signal poll."
+  }
+}

@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+"""Run validation plus release benchmarks; retain 20 runs and explicit baselines."""
+import argparse
+import datetime
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+STORE = ROOT / 'benchmarks'
+WORKLOADS = {'cinema': 'examples/cinema/dctx0', 'runatron-next': 'examples/runatron-next/dctx0'}
+
+
+def capture(command):
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def digest(paths):
+    h = hashlib.sha256()
+    for path in sorted(paths):
+        h.update(str(path.relative_to(ROOT)).encode())
+        h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def validation_sources():
+    paths = [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock', *ROOT.glob('crates/**/*.rs'), *ROOT.glob('crates/**/Cargo.toml'), *ROOT.glob('scripts/**/*.py'), *ROOT.glob('targets/**/*.rs'), *ROOT.glob('targets/**/Cargo.toml'), *ROOT.glob('targets/**/*.md'), *ROOT.glob('targets/**/*.ts'), *ROOT.glob('examples/cinema/src/**/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/typescript/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/**/*.json'), ROOT / 'examples/cinema/package.json', ROOT / 'examples/cinema/bun.lock']
+    adaptive = ROOT / 'fixtures/conformance/adaptive-typescript'
+    paths.extend(adaptive.glob('*/src/**/*.ts'))
+    paths.extend(adaptive.glob('*/.dctx0/testing/**/*.ts'))
+    paths.extend(adaptive.glob('*/.dctx0/testing/**/*.json'))
+    paths.extend(adaptive.glob('spec/*.dctx0'))
+    for name in ('package.json', 'bun.lock', 'tsconfig.json'):
+        paths.extend(adaptive.glob('*/' + name))
+    paths.append(adaptive / 'production-frozen.json')
+    return paths
+
+
+def atomic(path, data):
+    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, delete=False) as handle:
+        json.dump(data, handle, indent=2)
+        handle.write('\n')
+        handle.flush()
+        os.fsync(handle.fileno())
+        temporary = handle.name
+    os.replace(temporary, path)
+
+
+def locked():
+    STORE.mkdir(exist_ok=True)
+    handle = (STORE / '.lock').open('a')
+    fcntl.flock(handle, fcntl.LOCK_EX)
+    return handle
+
+
+def measure(binary, path, iterations, phase=None, database=None, target=None):
+    # wait4 reaps this process. RSS comes from its post-exec /proc/self/status;
+    # wait4's ru_maxrss can include the pre-exec Python parent's memory.
+    with tempfile.TemporaryFile() as output:
+        command = [str(binary), 'bench-parse', path, str(iterations)] if phase is None else [str(binary), 'bench', path, phase, str(iterations)]
+        if target is not None:
+            command = [str(binary), 'bench-profiles', path, target, phase, str(iterations)]
+        if database is not None:
+            command += ['--db', str(database)]
+        process = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT, close_fds=False)
+        started = time.perf_counter()
+        _, status, _ = os.wait4(process.pid, 0)
+        process.returncode = os.waitstatus_to_exitcode(status)
+        wall_ms = (time.perf_counter() - started) * 1000
+        output.seek(0)
+        content = output.read().decode()
+    if process.returncode:
+        raise RuntimeError(f'Benchmark failed ({process.returncode}): {content}')
+    data = json.loads(content)
+    if not data['valid']:
+        raise RuntimeError('Benchmark input produced parser diagnostics')
+    if not data.get('peak_rss_bytes'):
+        raise RuntimeError('Peak RSS measurement unavailable')
+    result = {'elapsed_ms': data['elapsed_ms'] / iterations, 'process_wall_ms': wall_ms,
+              'peak_rss_bytes': data['peak_rss_bytes']}
+    if 'application_source_hash' in data:
+        result['application_source_hash'] = data['application_source_hash']
+    return result
+
+
+def benchmark(args):
+    record = {'schema_version': 1, 'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'status': 'incomplete', 'measurements': {}, 'settings': {'iterations': args.iterations, 'samples': args.samples,
+              'warmup_runs': 1, 'profile': 'release', 'features': 'all', 'cache': 'warm filesystem; fresh process per sample'},
+              'toolchain': capture(['rustc', '--version']), 'platform': platform.platform(),
+              'hardware': {'machine': platform.machine(), 'cpu_count': os.cpu_count(),
+                           'cpu': next((s.split(':', 1)[1].strip() for s in Path('/proc/cpuinfo').read_text().splitlines() if s.startswith('model name')), 'unknown')},
+              'revision': capture(['git', 'rev-parse', 'HEAD']),
+              'dirty_worktree': capture(['git', 'status', '--porcelain']),
+              'source_hash': digest(validation_sources()),
+              'input_hashes': {name: digest((ROOT / path).glob('*.dctx0')) for name, path in WORKLOADS.items()},
+              'memory_scope': 'Linux post-exec VmHWM from standalone Rust parser process /proc/self/status; no child processes'}
+    try:
+        subprocess.run(['cargo', 'build', '--release', '--workspace', '--all-features', '--locked'], cwd=ROOT, check=True)
+        binary = ROOT / 'target/release/dctx0-parse-bench'
+        for name, path in WORKLOADS.items():
+            measure(binary, path, args.iterations)
+            samples = [measure(binary, path, args.iterations) for _ in range(args.samples)]
+            record['measurements'][name] = {'samples': samples,
+                'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
+                'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+        # Phase timings exclude setup; RSS includes the standalone process and
+        # its prepared inputs. SQLite runs use disposable databases only.
+        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
+        phase_iterations = min(args.iterations, 3)
+        for name, path in WORKLOADS.items():
+            for phase in phases:
+                with tempfile.TemporaryDirectory(prefix='dctx0-benchmark-') as temporary:
+                    database = Path(temporary) / 'history.sqlite3'
+                    binary = ROOT / 'target/release/dctx0'
+                    measure(binary, path, phase_iterations, phase, database)
+                    samples = [measure(binary, path, phase_iterations, phase, database) for _ in range(args.samples)]
+                    if phase == 'verification-discover' and len({s['application_source_hash'] for s in samples}) != 1:
+                        raise RuntimeError('Discovery application sources changed between samples')
+                    record['measurements'][f'{name}/{phase}'] = {
+                        'samples': samples, 'iterations': phase_iterations,
+                        **({'protocol_version': 2} if phase == 'tasks-publish' else {}),
+                        **({'application_source_hash': samples[0]['application_source_hash'], 'protocol_version': 1} if phase == 'verification-discover' else {}),
+                        'memory_scope': 'Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children',
+                        'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
+                        'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+        for target in ('typescript', 'java', 'go', 'rust'):
+            for name, path in WORKLOADS.items():
+                for phase in ('create', 'load', 'context-md', 'context-json', 'claim'):
+                    with tempfile.TemporaryDirectory(prefix='dctx0-profile-benchmark-') as temporary:
+                        database = Path(temporary) / 'history.sqlite3'
+                        measure(binary, path, phase_iterations, phase, database, target)
+                        samples = [measure(binary, path, phase_iterations, phase, database, target) for _ in range(args.samples)]
+                        record['measurements'][f'{name}/profiles/{target}/{phase}'] = {
+                            'samples': samples, 'iterations': phase_iterations, 'protocol_version': 1,
+                            'memory_scope': 'Linux post-exec VmHWM; profile files only; no compiler or SQLite' if phase in ('create', 'load') else 'Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children',
+                            'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
+                            'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+        record['source_hash_after'] = digest(validation_sources())
+        if record['source_hash_after'] != record['source_hash']:
+            raise RuntimeError('Benchmark sources changed during measurement; rerun on a stable tree')
+        record['status'] = 'complete' 
+    except (RuntimeError, subprocess.CalledProcessError, OSError, ValueError) as error:
+        record['error'] = str(error)
+    return record
+
+
+def compatible(left, right):
+    return all(left.get(key) == right.get(key) for key in
+               ('schema_version', 'settings', 'toolchain', 'platform', 'hardware', 'input_hashes', 'memory_scope'))
+
+
+def workload_compatible(accepted, current):
+    return accepted is not None and all(accepted.get(key) == current.get(key) for key in ('iterations', 'memory_scope', 'protocol_version', 'application_source_hash'))
+
+
+def compare(record, baseline, args):
+    if not baseline:
+        print('BASELINE MISSING: measurements saved; regression assessment unavailable.')
+        return True
+    if not compatible(record, baseline):
+        print('BASELINE INCOMPATIBLE: measurements saved; regression assessment unavailable.')
+        return True
+    passed = True
+    for name, metrics in record['measurements'].items():
+        accepted = baseline['measurements'].get(name)
+        if not workload_compatible(accepted, metrics):
+            print(f'{name}: BASELINE MISSING OR INCOMPATIBLE; phase assessment unavailable.')
+            continue
+        for metric, tolerance in [('elapsed_ms', args.speed_tolerance), ('peak_rss_bytes', args.ram_tolerance)]:
+            before, now = baseline['measurements'][name][metric], metrics[metric]
+            percent = (now / before - 1) * 100 if before else None
+            regression = now > before * (1 + tolerance / 100)
+            passed &= not regression
+            delta = f'{percent:+.2f}%' if percent is not None else 'percentage unavailable'
+            print(f'{name} {metric}: {now:.3f}; delta {now-before:+.3f} ({delta}); tolerance {tolerance}% ' + ('REGRESSION' if regression else 'OK'))
+    return passed
+
+
+def save(record, args):
+    with locked():
+        history = STORE / 'history'
+        history.mkdir(exist_ok=True)
+        baseline_path = STORE / 'baseline.json'
+        baseline = json.loads(baseline_path.read_text()) if baseline_path.exists() else None
+        gate = record['status'] == 'complete' and compare(record, baseline, args)
+        record['performance_gate'] = ('unassessed' if gate and (not baseline or not compatible(record, baseline)) else 'pass' if gate else 'fail')
+        record['unassessed_workloads'] = [name for name, metrics in record['measurements'].items() if not baseline or not workload_compatible(baseline.get('measurements', {}).get(name), metrics)]
+        if gate and baseline and compatible(record, baseline) and record['unassessed_workloads']:
+            record['performance_gate'] = 'partial'
+        record['tolerances_percent'] = {'speed': args.speed_tolerance, 'ram': args.ram_tolerance}
+        previous = []
+        for path in sorted(history.glob('*.json')):
+            item = json.loads(path.read_text())
+            if item['status'] == 'complete' and compatible(record, item):
+                previous.append(item)
+        for name, metrics in record['measurements'].items():
+            comparable = [r for r in previous if workload_compatible(r['measurements'].get(name), metrics)]
+            metrics['recent_comparable_runs'] = len(comparable)
+            for metric in ('elapsed_ms', 'peak_rss_bytes'):
+                print(f'{name} {metric}: {metrics[metric]:.3f}')
+                if comparable:
+                    median = statistics.median(r['measurements'][name][metric] for r in comparable)
+                    print(f'  history median {median:.3f}; delta {metrics[metric]-median:+.3f}')
+        name = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + f'-{os.getpid()}.json'
+        atomic(history / name, record)
+        for old in sorted(history.glob('*.json'))[:-20]:
+            old.unlink()
+        print(f'Measurement: benchmarks/history/{name}')
+        if record.get('error'):
+            print(record['error'], file=sys.stderr)
+        return gate
+
+
+def accept(selected):
+    with locked():
+        candidates = sorted((STORE / 'history').glob('*.json'))
+        if not candidates:
+            raise ValueError('No recorded measurements')
+        path = candidates[-1] if selected == 'latest' else STORE / 'history' / selected
+        if path.parent != STORE / 'history' or path not in candidates:
+            raise ValueError('Select a filename from benchmarks/history')
+        data = json.loads(path.read_text())
+        if data['status'] != 'complete' or data.get('validation_status') != 'pass':
+            raise ValueError('Only complete measurements with successful validation can become a baseline')
+        data['baseline_source'] = path.name
+        atomic(STORE / 'baseline.json', data)
+        print(f'Baseline explicitly set from {path.name}')
+
+
+def main():
+    os.chdir(ROOT)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--accept-baseline', metavar='RUN', help='latest or a history filename; performs no tests')
+    parser.add_argument('--coverage', action='store_true', help='enforce 100%% line/function coverage')
+    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification'), default='workspace', help='native-transport is a partial development check; release measurements still run')
+    parser.add_argument('--samples', type=int, default=5)
+    parser.add_argument('--iterations', type=int, default=20)
+    parser.add_argument('--speed-tolerance', type=float, default=20)
+    parser.add_argument('--ram-tolerance', type=float, default=10)
+    args = parser.parse_args()
+    if sys.platform != 'linux':
+        parser.error('Peak RSS measurement currently supports Linux only')
+    if args.samples < 1 or args.iterations < 1 or args.speed_tolerance < 0 or args.ram_tolerance < 0:
+        parser.error('Samples/iterations must be positive; tolerances must be non-negative')
+    if args.accept_baseline:
+        accept(args.accept_baseline)
+        return 0
+    commands = [[sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/tests'],
+                ['cargo', 'check', '--workspace', '--all-targets', '--all-features', '--locked'],
+                ['cargo', 'build', '--workspace', '--locked'],
+                ['cargo', 'fmt', '--all', '--', '--check'],
+                ['cargo', 'clippy', '--workspace', '--all-targets', '--all-features', '--locked', '--', '-D', 'warnings'],
+                ['cargo', 'test', '--workspace', '--all-features', '--locked'],
+                ['cargo', 'test', '-p', 'dctx0-cli', '--no-default-features', '--locked'],
+                ['cargo', 'test', '-p', 'dctx0-cli', '--no-default-features', '--features', 'rust', '--locked']]
+    if args.focus == 'native-transport':
+        if args.coverage:
+            parser.error('Coverage acceptance requires workspace focus')
+        commands = commands[:5] + [['cargo', 'test', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '--all-features', '--locked']]
+    if args.focus == 'native-executor':
+        if args.coverage:
+            parser.error('Coverage acceptance requires workspace focus')
+        commands = commands[:5] + [['cargo', 'test', '-p', 'dctx0-engine', '--test', 'native', '--locked']]
+    if args.focus == 'verification':
+        if args.coverage:
+            parser.error('Coverage acceptance requires workspace focus')
+        commands = commands[:5] + [['cargo', 'test', '-p', 'dctx0-interpreter', '-p', 'dctx0-verification', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '-p', 'dctx0-tasks', '-p', 'dctx0-store', '-p', 'dctx0-engine', '--all-features', '--locked']]
+    commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
+    validation_started_ns = time.time_ns()
+    if args.coverage:
+        commands.append([sys.executable, 'scripts/coverage.py'])
+    passed = True
+    for command in commands:
+        print('+ ' + ' '.join(command), flush=True)
+        if subprocess.run(command, cwd=ROOT).returncode:
+            passed = False
+            break
+    record = benchmark(args)
+    record['validation_scope'] = args.focus
+    adaptive_reports = sorted((p for p in (ROOT / 'target/adaptive-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
+    record['adaptive_conformance'] = json.loads(adaptive_reports[-1].read_text()) if passed and adaptive_reports else {'status': 'unavailable', 'reason': 'No fresh successful adaptive report from this validation'}
+    executor_reports = sorted((p for p in (ROOT / 'target/native-executor-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
+    record['native_executor_conformance'] = json.loads(executor_reports[-1].read_text()) if passed and executor_reports else {'status': 'unavailable'}
+    native_reports = sorted((p for p in (ROOT / 'target/native-harness-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
+    record['native_transport_conformance'] = json.loads(native_reports[-1].read_text()) if passed and native_reports else {'status': 'unavailable', 'reason': 'No successful native transport conformance report from this validation'}
+    record['validation_status'] = 'pass' if passed else 'fail'
+    gate = save(record, args)
+    return 0 if passed and gate else 1
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (OSError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

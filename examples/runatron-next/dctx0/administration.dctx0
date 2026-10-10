@@ -1,0 +1,677 @@
+domain Administration {
+  value WorkspaceId = UUID
+  value AdminActorId = UUID
+  value ManagedPersonId = UUID
+  value ManagedInvitationCode = String { length 20..128 }
+  value InvitationId = UUID
+  value WorkspaceName = String { length 1..120 }
+
+  value ManagedRunnerId = UUID
+  value ManagedAgentId = UUID
+  value ManagedConversationId = UUID
+
+  type SharedSpaceCreationPolicy = MembersAndAdministrators | AdministratorsOnly
+  type ManagedRole = Member | Administrator
+  type ManagedStanding = Active | Deactivated | Banned
+  type ManagedRunnerStanding = Active | Revoked
+
+  failure WorkspaceInitializationUnavailable { reason: String }
+  failure WorkspaceNotFound { workspaceId: WorkspaceId }
+  failure AdministrationDenied { actorId: AdminActorId }
+  failure MemberNotFound { personId: ManagedPersonId }
+  failure LastAdministratorProtected { personId: ManagedPersonId }
+  failure BrandingRejected { reason: String }
+  failure AdministrationPersistenceUnavailable { reason: String }
+  failure RunnerFleetUnavailable { reason: String }
+  failure AgentMembershipUnavailable { reason: String }
+
+  entity WorkspaceConfiguration {
+    id: WorkspaceId
+    name: WorkspaceName
+    creationPolicy: SharedSpaceCreationPolicy
+    logoRevision: Option<String>
+    themeRevision: Option<String>
+    key id
+  }
+
+  entity InvitationToken {
+    id: InvitationId
+    code: ManagedInvitationCode
+    issuedBy: AdminActorId
+    createdAt: Timestamp
+    expiresAt: Timestamp
+    key code
+  }
+
+  entity GovernanceMember {
+    personId: PersonId
+    name: DisplayName
+    role: ManagedRole
+    standing: ManagedStanding
+    automation: Boolean
+    key personId
+  }
+  message AcceptWorkspaceInvitation {
+    invitationCode: InvitationCode
+    personId: PersonId
+    name: DisplayName
+  }
+
+  message InitializeWorkspace {
+    workspaceId: WorkspaceId
+    workspaceName: WorkspaceName
+    administratorId: PersonId
+    administratorName: DisplayName
+  }
+
+  message UpdateWorkspace {
+    actorId: AdminActorId
+    workspaceId: WorkspaceId
+    name: WorkspaceName
+    creationPolicy: SharedSpaceCreationPolicy
+    occurredAt: Timestamp
+  }
+  message UpdateBranding {
+    actorId: AdminActorId
+    workspaceId: WorkspaceId
+    logo: Option<Bytes>
+    customStyles: Option<String>
+    occurredAt: Timestamp
+  }
+  message IssueInvitation {
+    actorId: AdminActorId
+    workspaceId: WorkspaceId
+    invitationId: InvitationId
+    occurredAt: Timestamp
+  }
+  message InvitationReceipt {
+    token: InvitationToken
+  }
+  message InvitationDirectory { tokens: List<InvitationToken> }
+  message ChangeMemberRole {
+    actorId: AdminActorId
+    personId: ManagedPersonId
+    role: ManagedRole
+    occurredAt: Timestamp
+  }
+  message MemberSummary {
+    personId: ManagedPersonId
+    name: String
+    role: ManagedRole
+    standing: ManagedStanding
+    automation: Boolean
+  }
+  message MemberDirectory { members: List<MemberSummary> }
+
+  message RemoveMember {
+    actorId: AdminActorId
+    personId: ManagedPersonId
+    occurredAt: Timestamp
+  }
+  message WorkspaceView {
+    id: WorkspaceId
+    name: WorkspaceName
+    creationPolicy: SharedSpaceCreationPolicy
+    logoRevision: Option<String>
+    themeRevision: Option<String>
+  }
+  message ManagedRunnerInstallationView {
+    runnerId: ManagedRunnerId
+    name: String
+    standing: ManagedRunnerStanding
+    connected: Boolean
+    lastSeenAt: Option<Timestamp>
+  }
+  message AgentParticipationSummary {
+    agentId: ManagedAgentId
+    conversationId: ManagedConversationId
+  }
+  message AddAgentToConversation {
+    actorId: AdminActorId
+    agentId: ManagedAgentId
+    conversationId: ManagedConversationId
+    occurredAt: Timestamp
+  }
+  message RemoveAgentFromConversations {
+    actorId: AdminActorId
+    agentId: ManagedAgentId
+    occurredAt: Timestamp
+  }
+
+  event WorkspaceConfigurationChanged { workspaceId: WorkspaceId }
+  event BrandingChanged { workspaceId: WorkspaceId }
+  event InvitationIssued { invitationId: InvitationId }
+  event MemberRemoved { personId: ManagedPersonId }
+  event MemberRoleChanged { personId: ManagedPersonId; role: ManagedRole }
+
+  module WorkspaceGovernance {
+    intent """
+      Give active administrators a narrow governance boundary for workspace
+      identity, invitation issuing, safe branding, shared-space creation
+      policy, member visibility, and role assignment.
+      """
+
+    decision AdministrationIsExplicit {
+      choose "Require an active administrator for every governance mutation and keep ordinary self-service elsewhere."
+      because "Central configuration and role changes affect every conversation boundary."
+      avoid "Do not infer administrative authority from route namespace, record ownership, a hidden control, or automation identity."
+    }
+
+    owns {
+      value WorkspaceId value AdminActorId value ManagedPersonId value InvitationId value ManagedInvitationCode value WorkspaceName value ManagedRunnerId value ManagedAgentId value ManagedConversationId
+      entity WorkspaceConfiguration entity InvitationToken entity GovernanceMember
+      event WorkspaceConfigurationChanged event BrandingChanged event InvitationIssued event MemberRoleChanged event MemberRemoved
+    }
+
+    requires { GovernanceRepository RunnerFleetRead AgentParticipationRead InvitedAccountAuthority }
+
+    port WorkspaceInvitationAcceptance {
+      operation accept(request: AcceptWorkspaceInvitation)
+        -> Unit
+        ! InvitationRejected ! AccessPersistenceUnavailable {
+        state removes InvitationToken by request.invitationCode
+        state inserts GovernanceMember from GovernanceMember { personId = request.personId name = request.name role = Member standing = ManagedStanding.Active automation = false }
+        ensures not success implies before.InvitationToken == after.InvitationToken and before.GovernanceMember == after.GovernanceMember
+        effects { read InvitationToken write InvitationToken write GovernanceMember call InvitedAccountAuthority.verify }
+      }
+    }
+
+    port WorkspaceBootstrap {
+      operation initialize(request: InitializeWorkspace)
+        -> Unit
+        ! WorkspaceAlreadyInitialized ! AccessPersistenceUnavailable {
+        state inserts WorkspaceConfiguration from WorkspaceConfiguration { id = request.workspaceId name = request.workspaceName creationPolicy = MembersAndAdministrators logoRevision = None() themeRevision = None() }
+        state inserts GovernanceMember from GovernanceMember { personId = request.administratorId name = request.administratorName role = Administrator standing = ManagedStanding.Active automation = false }
+        ensures not success implies before.WorkspaceConfiguration == after.WorkspaceConfiguration and before.GovernanceMember == after.GovernanceMember
+      }
+      effects { read WorkspaceConfiguration read GovernanceMember write WorkspaceConfiguration write GovernanceMember }
+    }
+
+    port GovernanceRepository {
+      operation currentWorkspace(actorId: AdminActorId)
+        -> WorkspaceView
+        ! WorkspaceInitializationUnavailable ! AdministrationDenied ! AdministrationPersistenceUnavailable {
+        state lists WorkspaceConfiguration
+        ensures success implies length(before.WorkspaceConfiguration) == 1
+        ensures success implies all(workspace in before.WorkspaceConfiguration where result == WorkspaceView {
+          id = workspace.id name = workspace.name creationPolicy = workspace.creationPolicy logoRevision = workspace.logoRevision themeRevision = workspace.themeRevision
+        })
+        ensures not success implies before.WorkspaceConfiguration == after.WorkspaceConfiguration
+        effects { read WorkspaceConfiguration }
+      }
+      operation view(actorId: AdminActorId, workspaceId: WorkspaceId)
+        -> WorkspaceView
+        ! WorkspaceNotFound ! AdministrationDenied ! AdministrationPersistenceUnavailable {
+        state observes WorkspaceConfiguration by workspaceId
+        ensures success implies result == WorkspaceView {
+          id = after.WorkspaceConfiguration(workspaceId).id
+          name = after.WorkspaceConfiguration(workspaceId).name
+          creationPolicy = after.WorkspaceConfiguration(workspaceId).creationPolicy
+          logoRevision = after.WorkspaceConfiguration(workspaceId).logoRevision
+          themeRevision = after.WorkspaceConfiguration(workspaceId).themeRevision
+        }
+        ensures not success implies before.WorkspaceConfiguration == after.WorkspaceConfiguration
+        effects { read WorkspaceConfiguration }
+      }
+
+      operation update(request: UpdateWorkspace)
+        -> WorkspaceView
+        ! WorkspaceNotFound ! AdministrationDenied ! AdministrationPersistenceUnavailable {
+        state replaces WorkspaceConfiguration by request.workspaceId from WorkspaceConfiguration {
+          id = self.id
+          name = request.name
+          creationPolicy = request.creationPolicy
+          logoRevision = self.logoRevision
+          themeRevision = self.themeRevision
+        }
+        ensures success implies result == WorkspaceView {
+          id = after.WorkspaceConfiguration(request.workspaceId).id
+          name = after.WorkspaceConfiguration(request.workspaceId).name
+          creationPolicy = after.WorkspaceConfiguration(request.workspaceId).creationPolicy
+          logoRevision = after.WorkspaceConfiguration(request.workspaceId).logoRevision
+          themeRevision = after.WorkspaceConfiguration(request.workspaceId).themeRevision
+        }
+        ensures failure is WorkspaceNotFound implies preserves WorkspaceConfiguration(request.workspaceId)
+        ensures failure is AdministrationDenied implies preserves WorkspaceConfiguration(request.workspaceId)
+        effects { write WorkspaceConfiguration }
+      }
+      operation updateBranding(request: UpdateBranding)
+        -> WorkspaceView
+        ! WorkspaceNotFound ! AdministrationDenied ! BrandingRejected ! AdministrationPersistenceUnavailable {
+        state replaces WorkspaceConfiguration by request.workspaceId from WorkspaceConfiguration {
+          id = self.id name = self.name creationPolicy = self.creationPolicy
+          logoRevision = result.logoRevision themeRevision = result.themeRevision
+        }
+        ensures success implies result == WorkspaceView {
+          id = after.WorkspaceConfiguration(request.workspaceId).id name = after.WorkspaceConfiguration(request.workspaceId).name
+          creationPolicy = after.WorkspaceConfiguration(request.workspaceId).creationPolicy
+          logoRevision = after.WorkspaceConfiguration(request.workspaceId).logoRevision themeRevision = after.WorkspaceConfiguration(request.workspaceId).themeRevision
+        }
+        ensures success and request.logo == None() implies result.logoRevision == None()
+        ensures success and request.logo != None() implies result.logoRevision != None()
+        ensures success and request.customStyles == None() implies result.themeRevision == None()
+        ensures success and request.customStyles != None() implies result.themeRevision != None()
+        ensures not success implies before.WorkspaceConfiguration == after.WorkspaceConfiguration
+        effects { read WorkspaceConfiguration write WorkspaceConfiguration }
+      }
+      operation issueInvitation(request: IssueInvitation)
+        -> InvitationReceipt
+        ! WorkspaceNotFound ! AdministrationDenied ! AdministrationPersistenceUnavailable {
+        state observes WorkspaceConfiguration by request.workspaceId
+        state inserts InvitationToken from result.token
+        ensures success implies result == InvitationReceipt { token = after.InvitationToken(result.token.code) }
+        ensures success implies result.token.id == request.invitationId
+        ensures success implies result.token.issuedBy == request.actorId
+        ensures success implies result.token.expiresAt > result.token.createdAt
+        ensures not success implies before.InvitationToken == after.InvitationToken and before.WorkspaceConfiguration == after.WorkspaceConfiguration
+        effects { read WorkspaceConfiguration write InvitationToken }
+      }
+      operation listInvitations(actorId: AdminActorId)
+        -> InvitationDirectory
+        ! AdministrationDenied ! AdministrationPersistenceUnavailable {
+        state lists InvitationToken
+        ensures success implies result == InvitationDirectory { tokens = after.InvitationToken }
+        effects { read InvitationToken }
+      }
+      operation removeMember(request: RemoveMember)
+        -> MemberSummary
+        ! AdministrationDenied ! MemberNotFound ! LastAdministratorProtected ! AdministrationPersistenceUnavailable {
+        state removes GovernanceMember by request.personId
+        ensures success implies result == MemberSummary {
+          personId = before.GovernanceMember(request.personId).personId
+          name = before.GovernanceMember(request.personId).name
+          role = before.GovernanceMember(request.personId).role
+          standing = before.GovernanceMember(request.personId).standing
+          automation = before.GovernanceMember(request.personId).automation
+        }
+        ensures not success implies before.GovernanceMember == after.GovernanceMember
+        effects { read GovernanceMember write GovernanceMember }
+      }
+      operation listMembers(actorId: AdminActorId)
+        -> MemberDirectory
+        ! AdministrationDenied ! AdministrationPersistenceUnavailable {
+        state lists GovernanceMember
+        ensures success implies result == MemberDirectory { members = result.members }
+        ensures success implies length(result.members) == length(before.GovernanceMember)
+        ensures success implies all(member in result.members where member == MemberSummary {
+          personId = before.GovernanceMember(member.personId).personId name = before.GovernanceMember(member.personId).name
+          role = before.GovernanceMember(member.personId).role standing = before.GovernanceMember(member.personId).standing
+          automation = before.GovernanceMember(member.personId).automation
+        } and count(other in result.members where other.personId == member.personId) == 1)
+        ensures not success implies before.GovernanceMember == after.GovernanceMember
+        effects { read GovernanceMember }
+      }
+      operation changeRole(request: ChangeMemberRole)
+        -> MemberSummary
+        ! AdministrationDenied ! MemberNotFound ! LastAdministratorProtected ! AdministrationPersistenceUnavailable {
+        state replaces GovernanceMember by request.personId from GovernanceMember {
+          personId = self.personId
+          name = self.name
+          role = request.role
+          standing = self.standing
+          automation = self.automation
+        }
+        ensures success implies result == MemberSummary {
+          personId = after.GovernanceMember(request.personId).personId
+          name = after.GovernanceMember(request.personId).name
+          role = after.GovernanceMember(request.personId).role
+          standing = after.GovernanceMember(request.personId).standing
+          automation = after.GovernanceMember(request.personId).automation
+        }
+        ensures not success implies before.GovernanceMember == after.GovernanceMember
+        effects { read GovernanceMember write GovernanceMember }
+      }
+    }
+    port RunnerFleetRead {
+      operation listInstallations(actorId: AdminActorId)
+        -> List<ManagedRunnerInstallationView>
+        ! AdministrationDenied ! RunnerFleetUnavailable
+    }
+    port AgentParticipationRead {
+      operation viewAgentParticipations(actorId: AdminActorId, agentId: ManagedAgentId)
+        -> List<AgentParticipationSummary>
+        ! AdministrationDenied ! AgentMembershipUnavailable
+      operation addAgent(request: AddAgentToConversation)
+        -> Unit
+        ! AdministrationDenied ! AgentMembershipUnavailable {
+        state observes GovernanceMember by request.actorId
+        state observes AgentProfile by request.agentId
+        state inserts ConversationParticipation
+        ensures success implies before.GovernanceMember(request.actorId).role == Administrator and before.GovernanceMember(request.actorId).standing == ManagedStanding.Active
+        ensures success implies length(after.ConversationParticipation) == length(before.ConversationParticipation) + 1
+        ensures success implies all(retained in before.ConversationParticipation where after.ConversationParticipation(retained.id) == retained)
+        ensures success implies all(added in after.ConversationParticipation where count(prior in before.ConversationParticipation where prior.id == added.id) == 0 implies added == ConversationParticipation {
+          id = added.id agentId = request.agentId conversationId = request.conversationId workstreamId = None()
+          role = Observer triggerPolicy = Mentioned autonomyMode = AgentAutonomyMode.ObserveOnly assigned = false
+          ruleIds = [] permittedSkillNames = [] permittedToolNames = [] joinedAt = request.occurredAt
+        })
+        ensures not success implies before.GovernanceMember == after.GovernanceMember and before.AgentProfile == after.AgentProfile and before.ConversationParticipation == after.ConversationParticipation
+        effects { read GovernanceMember read AgentProfile write ConversationParticipation }
+      }
+      operation removeAgent(request: RemoveAgentFromConversations)
+        -> Unit
+        ! AdministrationDenied ! AgentMembershipUnavailable {
+        state observes GovernanceMember by request.actorId
+        state observes AgentProfile by request.agentId
+        state removes ConversationParticipation where self.agentId == request.agentId
+        ensures success implies before.GovernanceMember(request.actorId).role == Administrator and before.GovernanceMember(request.actorId).standing == ManagedStanding.Active
+        ensures not success implies before.GovernanceMember == after.GovernanceMember and before.AgentProfile == after.AgentProfile and before.ConversationParticipation == after.ConversationParticipation
+        effects { read GovernanceMember read AgentProfile write ConversationParticipation }
+      }
+    }
+
+    surface GovernanceApi exposes requestReply {
+      operation currentWorkspace(actorId: AdminActorId)
+        -> WorkspaceView
+        ! WorkspaceInitializationUnavailable ! AdministrationDenied ! AdministrationPersistenceUnavailable
+      effects { read WorkspaceConfiguration call GovernanceRepository.currentWorkspace }
+
+      operation view(actorId: AdminActorId, workspaceId: WorkspaceId)
+        -> WorkspaceView
+        ! WorkspaceNotFound ! AdministrationDenied ! AdministrationPersistenceUnavailable
+      effects { read WorkspaceConfiguration call GovernanceRepository.view }
+
+      operation update(request: UpdateWorkspace)
+        -> WorkspaceView
+        ! WorkspaceNotFound ! AdministrationDenied ! AdministrationPersistenceUnavailable
+      effects { write WorkspaceConfiguration call GovernanceRepository.update emit WorkspaceConfigurationChanged(workspaceId: request.workspaceId) }
+
+      operation updateBranding(request: UpdateBranding)
+        -> WorkspaceView
+        ! WorkspaceNotFound ! AdministrationDenied ! BrandingRejected ! AdministrationPersistenceUnavailable
+      effects { read WorkspaceConfiguration write WorkspaceConfiguration call GovernanceRepository.updateBranding emit BrandingChanged(workspaceId: request.workspaceId) }
+
+      operation issueInvitation(request: IssueInvitation)
+        -> InvitationReceipt
+        ! WorkspaceNotFound ! AdministrationDenied ! AdministrationPersistenceUnavailable
+      effects { read WorkspaceConfiguration write InvitationToken call GovernanceRepository.issueInvitation emit InvitationIssued(invitationId: request.invitationId) }
+
+      operation listInvitations(actorId: AdminActorId)
+        -> InvitationDirectory
+        ! AdministrationDenied ! AdministrationPersistenceUnavailable
+      effects { read InvitationToken call GovernanceRepository.listInvitations }
+
+      operation removeMember(request: RemoveMember)
+        -> MemberSummary
+        ! AdministrationDenied ! MemberNotFound ! LastAdministratorProtected ! AdministrationPersistenceUnavailable
+      effects { read GovernanceMember write GovernanceMember call GovernanceRepository.removeMember emit MemberRemoved(personId: request.personId) }
+
+      operation listMembers(actorId: AdminActorId)
+        -> MemberDirectory
+        ! AdministrationDenied ! AdministrationPersistenceUnavailable
+      effects { read GovernanceMember call GovernanceRepository.listMembers }
+
+      operation changeRole(request: ChangeMemberRole)
+        -> MemberSummary
+        ! AdministrationDenied ! MemberNotFound ! LastAdministratorProtected ! AdministrationPersistenceUnavailable
+      effects { read GovernanceMember write GovernanceMember call GovernanceRepository.changeRole emit MemberRoleChanged(personId: request.personId, role: request.role) }
+
+      operation viewRunnerFleet(actorId: AdminActorId)
+        -> List<ManagedRunnerInstallationView>
+        ! AdministrationDenied ! RunnerFleetUnavailable
+      effects { call RunnerFleetRead.listInstallations }
+
+      operation viewAgentParticipations(actorId: AdminActorId, agentId: ManagedAgentId)
+        -> List<AgentParticipationSummary>
+        ! AdministrationDenied ! AgentMembershipUnavailable
+      effects { call AgentParticipationRead.viewAgentParticipations }
+
+      operation addAgent(request: AddAgentToConversation)
+        -> Unit
+        ! AdministrationDenied ! AgentMembershipUnavailable
+      effects { read GovernanceMember read AgentProfile write ConversationParticipation call AgentParticipationRead.addAgent }
+
+      operation removeAgent(request: RemoveAgentFromConversations)
+        -> Unit
+        ! AdministrationDenied ! AgentMembershipUnavailable
+      effects { read GovernanceMember read AgentProfile write ConversationParticipation call AgentParticipationRead.removeAgent }
+    }
+
+    constraint "Current workspace discovery requires current authenticated human authority and an active human member. Missing or multiple configurations are explicit failures. No submitted actor identifier establishes authority."
+    constraint "There is one workspace configuration; its identifier is never user-editable."
+    constraint "Only active human administrators may execute governance mutations; agent and automation identities never administer the workspace."
+    constraint "Invitations expire seven days after issuance using server time; a submitted occurredAt never controls their lifetime. Invitation acceptance requires the actual new active human Member account with the matching name, consumes the live token and creates the governance member atomically; failure preserves all tokens and members."
+    constraint "Each issued invitation code identifies one live token. A successful join deletes exactly that token; a used code cannot be redeemed again because its token no longer exists."
+    constraint "Invitation tokens are disclosed only through invitation views to active administrators or inside an administrator-authorized join link; they never appear in profile, snapshot, member or audit read models."
+    constraint "Changing shared-space creation policy affects only future create attempts and neither revokes nor grants existing memberships."
+    constraint "The workspace must retain at least one active human administrator; role change, removal, ban, or deactivation cannot violate that invariant."
+    constraint "Member directory views shown to ordinary members exclude banned and deactivated identities unless needed to attribute retained history; administrators may inspect moderation standing."
+    constraint "A logo is a validated bounded image transformed by an adapter; deleting it restores a stock presentation without changing workspace identity."
+    constraint "Custom styling is size-bounded, sanitized, cannot load remote resources or execute script, and cannot hide security-critical controls from assistive or visual users."
+    constraint "Public branding assets are immutable by revision and safely cacheable; a branding change produces a new revision."
+    constraint "Governance changes are auditable with actor, target, time, and change kind while secrets and credential material are excluded from audit data."
+    constraint "Removing an agent removes every conversation participation for that agent."
+
+    constraint "Member removal deletes the directory entry, publishes MemberRemoved, and never leaves the workspace without an active human administrator."
+    constraint "A person admitted through a live invitation appears in the administration member directory with their profile name, Member role, Active standing, and non-automation flag; the directory entry commits together with the joining person and the redeemed token."
+    constraint "Issuing an invitation token leaves every other token and all existing members and sessions unchanged. Issuance and join use one transactional token store; deletion is committed with creation of the joining person."
+
+    example "real governance adds an observer participation" {
+      when result = AgentParticipationRead.addAgent(AddAgentToConversation { actorId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000081" conversationId = "00000000-0000-4000-8000-000000000082" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect Success
+    }
+    example "real governance rejects adding a missing agent" {
+      when result = AgentParticipationRead.addAgent(AddAgentToConversation { actorId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000089" conversationId = "00000000-0000-4000-8000-000000000082" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails AgentMembershipUnavailable
+    }
+    example "real governance rejects an unauthorized agent addition" {
+      when result = AgentParticipationRead.addAgent(AddAgentToConversation { actorId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000081" conversationId = "00000000-0000-4000-8000-000000000082" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails AdministrationDenied
+    }
+    example "real governance removes every participation of an agent" {
+      when result = AgentParticipationRead.removeAgent(RemoveAgentFromConversations { actorId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000081" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect Success
+    }
+    example "real governance rejects removing a missing agent" {
+      when result = AgentParticipationRead.removeAgent(RemoveAgentFromConversations { actorId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000089" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails AgentMembershipUnavailable
+    }
+    example "real governance rejects an unauthorized agent removal" {
+      when result = AgentParticipationRead.removeAgent(RemoveAgentFromConversations { actorId = "00000000-0000-4000-8000-000000000032" agentId = "00000000-0000-4000-8000-000000000081" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails AdministrationDenied
+    }
+    example "real governance reads an agent's participations" {
+      when result = AgentParticipationRead.viewAgentParticipations("00000000-0000-4000-8000-000000000032", "00000000-0000-4000-8000-000000000081")
+      expect result == [AgentParticipationSummary { agentId = "00000000-0000-4000-8000-000000000081" conversationId = "00000000-0000-4000-8000-000000000082" }, AgentParticipationSummary { agentId = "00000000-0000-4000-8000-000000000081" conversationId = "00000000-0000-4000-8000-000000000083" }]
+    }
+    example "real governance reads no participations for an unknown agent" {
+      when result = AgentParticipationRead.viewAgentParticipations("00000000-0000-4000-8000-000000000032", "00000000-0000-4000-8000-000000000089")
+      expect result == []
+    }
+    example "real governance rejects unauthorized participation reads" {
+      when result = AgentParticipationRead.viewAgentParticipations("00000000-0000-4000-8000-000000000032", "00000000-0000-4000-8000-000000000081")
+      expect result fails AdministrationDenied
+    }
+    example "real governance reads the persisted runner fleet" {
+      when result = RunnerFleetRead.listInstallations("00000000-0000-4000-8000-000000000032")
+      expect result == [ManagedRunnerInstallationView { runnerId = "00000000-0000-4000-8000-000000000091" name = "Native runner" standing = Active connected = false lastSeenAt = None }, ManagedRunnerInstallationView { runnerId = "00000000-0000-4000-8000-000000000092" name = "Revoked runner" standing = Revoked connected = false lastSeenAt = None }]
+    }
+    example "real governance reads an empty runner fleet" {
+      when result = RunnerFleetRead.listInstallations("00000000-0000-4000-8000-000000000032")
+      expect result == []
+    }
+    example "real governance rejects an unauthorized runner fleet read" {
+      when result = RunnerFleetRead.listInstallations("00000000-0000-4000-8000-000000000032")
+      expect result fails AdministrationDenied
+    }
+
+    example "real governance changes a member role" {
+      when result = GovernanceRepository.changeRole(ChangeMemberRole { actorId = "00000000-0000-4000-8000-000000000032" personId = "00000000-0000-4000-8000-000000000034" role = Administrator occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == MemberSummary { personId = "00000000-0000-4000-8000-000000000034" name = "Existing member" role = Administrator standing = Active automation = false }
+    }
+    example "real governance rejects a member role change by an inactive actor" {
+      when result = GovernanceRepository.changeRole(ChangeMemberRole { actorId = "00000000-0000-4000-8000-000000000032" personId = "00000000-0000-4000-8000-000000000034" role = Administrator occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AdministrationDenied
+    }
+    example "real governance protects the last administrator during member role change" {
+      when result = GovernanceRepository.changeRole(ChangeMemberRole { actorId = "00000000-0000-4000-8000-000000000032" personId = "00000000-0000-4000-8000-000000000032" role = Member occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails LastAdministratorProtected
+    }
+    example "real governance performs an ordinary member removal" {
+      when result = GovernanceRepository.removeMember(RemoveMember { actorId = "00000000-0000-4000-8000-000000000032" personId = "00000000-0000-4000-8000-000000000034" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == MemberSummary { personId = "00000000-0000-4000-8000-000000000034" name = "Existing member" role = Member standing = Active automation = false }
+    }
+    example "real governance rejects a member removal by an inactive actor" {
+      when result = GovernanceRepository.removeMember(RemoveMember { actorId = "00000000-0000-4000-8000-000000000032" personId = "00000000-0000-4000-8000-000000000034" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AdministrationDenied
+    }
+    example "real governance protects the last administrator during member removal" {
+      when result = GovernanceRepository.removeMember(RemoveMember { actorId = "00000000-0000-4000-8000-000000000032" personId = "00000000-0000-4000-8000-000000000032" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails LastAdministratorProtected
+    }
+    example "real governance reads the complete member directory" {
+      when result = GovernanceRepository.listMembers("00000000-0000-4000-8000-000000000032")
+      expect result == MemberDirectory { members = [MemberSummary { personId = "00000000-0000-4000-8000-000000000032" name = "Existing administrator" role = Administrator standing = Active automation = false }, MemberSummary { personId = "00000000-0000-4000-8000-000000000034" name = "Existing member" role = Member standing = Active automation = false }] }
+    }
+    example "real governance rejects an inactive member directory reader" {
+      when result = GovernanceRepository.listMembers("00000000-0000-4000-8000-000000000032")
+      expect result fails AdministrationDenied
+    }
+    example "real governance reads the initialized workspace" {
+      when result = GovernanceRepository.currentWorkspace("00000000-0000-4000-8000-000000000032")
+      expect result == WorkspaceView { id = "00000000-0000-4000-8000-000000000031" name = "Existing workspace" creationPolicy = AdministratorsOnly logoRevision = Some("old-logo") themeRevision = Some("old-theme") }
+    }
+    example "real governance rejects an uninitialized workspace" {
+      when result = GovernanceRepository.currentWorkspace("00000000-0000-4000-8000-000000000032")
+      expect result fails WorkspaceInitializationUnavailable
+    }
+    example "real governance rejects an inactive current workspace reader" {
+      when result = GovernanceRepository.currentWorkspace("00000000-0000-4000-8000-000000000032")
+      expect result fails AdministrationDenied
+    }
+    example "real governance updates configuration and keeps branding" {
+      when result = GovernanceRepository.update(UpdateWorkspace { workspaceId = "00000000-0000-4000-8000-000000000031" actorId = "00000000-0000-4000-8000-000000000032" name = "Updated workspace" creationPolicy = MembersAndAdministrators occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result == WorkspaceView { id = "00000000-0000-4000-8000-000000000031" name = "Updated workspace" creationPolicy = MembersAndAdministrators logoRevision = Some("old-logo") themeRevision = Some("old-theme") }
+    }
+    example "real governance rejects a missing update workspace" {
+      when result = GovernanceRepository.update(UpdateWorkspace { workspaceId = "00000000-0000-4000-8000-000000000033" actorId = "00000000-0000-4000-8000-000000000032" name = "Updated workspace" creationPolicy = MembersAndAdministrators occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails WorkspaceNotFound
+    }
+    example "real governance rejects a configuration update by an inactive actor" {
+      when result = GovernanceRepository.update(UpdateWorkspace { workspaceId = "00000000-0000-4000-8000-000000000031" actorId = "00000000-0000-4000-8000-000000000032" name = "Updated workspace" creationPolicy = MembersAndAdministrators occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails AdministrationDenied
+    }
+
+    example "first workspace bootstrap creates its initial administrator atomically" {
+      when result = WorkspaceBootstrap.initialize(InitializeWorkspace { workspaceId = "00000000-0000-4000-8000-000000000081" workspaceName = "Native workspace" administratorId = "00000000-0000-4000-8000-000000000082" administratorName = "Mira" })
+      expect Success
+    }
+    example "existing governance rejects a second workspace bootstrap" {
+      when result = WorkspaceBootstrap.initialize(InitializeWorkspace { workspaceId = "00000000-0000-4000-8000-000000000081" workspaceName = "Native workspace" administratorId = "00000000-0000-4000-8000-000000000082" administratorName = "Mira" })
+      expect result fails WorkspaceAlreadyInitialized
+    }
+    example "failed initial member creation rolls back the workspace" {
+      when result = WorkspaceBootstrap.initialize(InitializeWorkspace { workspaceId = "00000000-0000-4000-8000-000000000081" workspaceName = "Native workspace" administratorId = "00000000-0000-4000-8000-000000000082" administratorName = "Mira" })
+      expect result fails AccessPersistenceUnavailable
+    }
+    example "bootstrap rejects another first administrator" {
+      when result = WorkspaceBootstrap.initialize(InitializeWorkspace { workspaceId = "00000000-0000-4000-8000-000000000081" workspaceName = "Native workspace" administratorId = "00000000-0000-4000-8000-000000000082" administratorName = "Mira" })
+      expect result fails AccessPersistenceUnavailable
+    }
+
+    example "accept a live invitation for an actual pending account" {
+      when result = WorkspaceInvitationAcceptance.accept(AcceptWorkspaceInvitation { invitationCode = "native-invitation-code" personId = "00000000-0000-4000-8000-000000000048" name = "Mira" })
+      expect Success
+    }
+    example "expired invitation preserves governance state" {
+      when result = WorkspaceInvitationAcceptance.accept(AcceptWorkspaceInvitation { invitationCode = "native-invitation-code" personId = "00000000-0000-4000-8000-000000000048" name = "Mira" })
+      expect result fails InvitationRejected
+    }
+    example "a failed admission write preserves invitation and members" {
+      when result = WorkspaceInvitationAcceptance.accept(AcceptWorkspaceInvitation { invitationCode = "native-invitation-code" personId = "00000000-0000-4000-8000-000000000048" name = "Mira" })
+      expect result fails AccessPersistenceUnavailable
+    }
+
+    example "discover the initialized workspace for the current human" {
+      given GovernanceRepository.currentWorkspace(adminId) returns WorkspaceView { id = workspaceId name = "Acme" creationPolicy = MembersAndAdministrators logoRevision = None themeRevision = None }
+      when result = GovernanceApi.currentWorkspace(adminId)
+      expect Success
+    }
+    example "report missing workspace initialization" {
+      given GovernanceRepository.currentWorkspace(adminId) fails WorkspaceInitializationUnavailable { reason = "exactly one initialized workspace required" }
+      when result = GovernanceApi.currentWorkspace(adminId)
+      expect result fails WorkspaceInitializationUnavailable
+    }
+
+    example "view workspace configuration" {
+      given GovernanceRepository.view(adminId, workspaceId) returns WorkspaceView { id = workspaceId name = "Acme" creationPolicy = MembersAndAdministrators logoRevision = None themeRevision = None }
+      when result = GovernanceApi.view(adminId, workspaceId)
+      expect Success
+    }
+    example "update workspace configuration" {
+      given GovernanceRepository.update(updateWorkspace) returns WorkspaceView { id = workspaceId name = "Acme chat" creationPolicy = AdministratorsOnly logoRevision = None themeRevision = None }
+      when result = GovernanceApi.update(updateWorkspace)
+      expect Success
+      expect emits WorkspaceConfigurationChanged { workspaceId = workspaceId }
+    }
+    example "list runner installations for workspace administrators" {
+      given RunnerFleetRead.listInstallations(adminId) returns installations
+      when result = GovernanceApi.viewRunnerFleet(adminId)
+      expect Success
+    }
+    example "add one agent to a conversation as an administrator" {
+      given AgentParticipationRead.addAgent(addRequest) returns Unit
+      when result = GovernanceApi.addAgent(addRequest)
+      expect Success
+    }
+    example "remove one agent from every conversation participation" {
+      given AgentParticipationRead.removeAgent(removalRequest) returns Unit
+      when result = GovernanceApi.removeAgent(removalRequest)
+      expect Success
+    }
+    example "list the registered conversation participations of an agent" {
+      given AgentParticipationRead.viewAgentParticipations(actorId, agentId) returns participations
+      when result = GovernanceApi.viewAgentParticipations(actorId, agentId)
+      expect result == participations
+    }
+    example "reject workspace update by a member" {
+      given GovernanceRepository.update(memberUpdate) fails AdministrationDenied { actorId = actorId }
+      when result = GovernanceApi.update(memberUpdate)
+      expect result fails AdministrationDenied
+    }
+    example "update bounded branding" {
+      given GovernanceRepository.updateBranding(updateBranding) returns WorkspaceView { id = workspaceId name = "Acme" creationPolicy = MembersAndAdministrators logoRevision = Some("logo-v2") themeRevision = Some("theme-v2") }
+      when result = GovernanceApi.updateBranding(updateBranding)
+      expect Success
+      expect emits BrandingChanged { workspaceId = workspaceId }
+    }
+    example "issue an invitation token" {
+      given GovernanceRepository.issueInvitation(issueInvitation) returns InvitationReceipt { token = InvitationToken { id = issueInvitation.invitationId code = issuedCode issuedBy = adminId createdAt = now expiresAt = invitationExpiresAt } }
+      when result = GovernanceApi.issueInvitation(issueInvitation)
+      expect Success
+      expect emits InvitationIssued { invitationId = issueInvitation.invitationId }
+    }
+    example "list active invitation tokens for an administrator" {
+      given GovernanceRepository.listInvitations(adminId) returns InvitationDirectory { tokens = tokens }
+      when result = GovernanceApi.listInvitations(adminId)
+      expect Success
+    }
+    example "remove a member from the workspace directory" {
+      given GovernanceRepository.removeMember(removeMember) returns MemberSummary { personId = memberId name = "Mira" role = Member standing = Active automation = false }
+      when result = GovernanceApi.removeMember(removeMember)
+      expect Success
+      expect emits MemberRemoved { personId = memberId }
+    }
+    example "protect the last active administrator from removal" {
+      given GovernanceRepository.removeMember(removeLastAdministratorFromDirectory) fails LastAdministratorProtected { personId = personId }
+      when result = GovernanceApi.removeMember(removeLastAdministratorFromDirectory)
+      expect result fails LastAdministratorProtected
+    }
+    example "list members for an administrator" {
+      given GovernanceRepository.listMembers(adminId) returns MemberDirectory { members = members }
+      when result = GovernanceApi.listMembers(adminId)
+      expect Success
+    }
+    example "change a member role while retaining an administrator" {
+      given GovernanceRepository.changeRole(changeRole) returns MemberSummary { personId = memberId name = "Mira" role = Administrator standing = Active automation = false }
+      when result = GovernanceApi.changeRole(changeRole)
+      expect Success
+      expect emits MemberRoleChanged { personId = memberId role = Administrator }
+    }
+    example "protect the last active administrator" {
+      given GovernanceRepository.changeRole(removeLastAdministrator) fails LastAdministratorProtected { personId = personId }
+      when result = GovernanceApi.changeRole(removeLastAdministrator)
+      expect result fails LastAdministratorProtected
+    }
+  }
+}

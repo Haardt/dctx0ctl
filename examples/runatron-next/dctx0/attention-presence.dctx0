@@ -1,0 +1,306 @@
+domain Attention {
+  value AttentionPersonId = UUID
+  value AttentionSpaceId = UUID
+  value AttentionMessageId = UUID
+  value ConnectionId = UUID
+  value PushSubscriptionId = UUID
+  value ConnectionLeaseSeconds = Int { range 15..300 }
+
+  type DeliveryPreference = Hidden | Quiet | Mentions | AllMessages
+  type TypingSignal = Started | Stopped
+
+  failure AttentionAccessDenied { spaceId: AttentionSpaceId; personId: AttentionPersonId }
+  failure ConnectionNotFound { connectionId: ConnectionId }
+  failure PushEndpointRejected { reason: String }
+  failure PushSubscriptionNotFound { subscriptionId: PushSubscriptionId }
+  failure AttentionPersistenceUnavailable { reason: String }
+  failure NotificationDeliveryUnavailable { reason: String }
+
+  entity PresenceLease {
+    id: ConnectionId
+    personId: AttentionPersonId
+    spaceId: AttentionSpaceId
+    expiresAt: Timestamp
+    key id
+  }
+
+  entity ReadPosition {
+    personId: AttentionPersonId
+    spaceId: AttentionSpaceId
+    unreadSince: Option<Timestamp>
+    readAt: Timestamp
+    key personId spaceId
+  }
+
+  entity PushSubscription {
+    id: PushSubscriptionId
+    personId: AttentionPersonId
+    endpoint: String
+    publicKey: String
+    authenticationSecret: String
+    touchedAt: Timestamp
+    key id
+  }
+
+  message EnterSpace {
+    connectionId: ConnectionId
+    personId: AttentionPersonId
+    spaceId: AttentionSpaceId
+    leaseSeconds: ConnectionLeaseSeconds
+    occurredAt: Timestamp
+  }
+  message RefreshPresence { connectionId: ConnectionId; occurredAt: Timestamp }
+  message LeaveSpace { connectionId: ConnectionId; occurredAt: Timestamp }
+  message MarkRead { personId: AttentionPersonId; spaceId: AttentionSpaceId; occurredAt: Timestamp }
+  message MessageActivity {
+    messageId: AttentionMessageId
+    spaceId: AttentionSpaceId
+    authorId: AttentionPersonId
+    mentionedPersonIds: List<AttentionPersonId>
+    occurredAt: Timestamp
+  }
+  message SignalTyping {
+    personId: AttentionPersonId
+    spaceId: AttentionSpaceId
+    signal: TypingSignal
+    occurredAt: Timestamp
+  }
+  message RegisterPushSubscription {
+    id: PushSubscriptionId
+    personId: AttentionPersonId
+    endpoint: String
+    publicKey: String
+    authenticationSecret: String
+    userAgent: Option<String>
+    occurredAt: Timestamp
+  }
+  message RemovePushSubscription {
+    personId: AttentionPersonId
+    subscriptionId: PushSubscriptionId
+  }
+  message UnreadSpace { spaceId: AttentionSpaceId; unreadSince: Timestamp }
+  message UnreadOverview { personId: AttentionPersonId; spaces: List<UnreadSpace> }
+  message DeliveryPlan {
+    messageId: AttentionMessageId
+    recipientIds: List<AttentionPersonId>
+  }
+
+  event PresenceEntered { connectionId: ConnectionId; personId: AttentionPersonId; spaceId: AttentionSpaceId }
+  event PresenceLeft { connectionId: ConnectionId; personId: AttentionPersonId; spaceId: AttentionSpaceId }
+  event SpaceRead { personId: AttentionPersonId; spaceId: AttentionSpaceId }
+  event SpaceBecameUnread { personIds: List<AttentionPersonId>; spaceId: AttentionSpaceId }
+  event TypingChanged { personId: AttentionPersonId; spaceId: AttentionSpaceId; signal: TypingSignal }
+  event PushSubscriptionRegistered { subscriptionId: PushSubscriptionId; personId: AttentionPersonId }
+
+  module PresenceAndNotifications {
+    intent """
+      Track short-lived room presence, private unread state, ephemeral typing,
+      and safe push delivery so people notice relevant activity without
+      exposing hidden conversations or notifying active readers.
+      """
+
+    decision LeasedPresence {
+      choose "Represent each live client as a renewable short lease rather than a durable online flag."
+      because "Dropped connections become absent automatically and multiple devices can coexist."
+      avoid "Do not let stale connection counters suppress unread state or push delivery indefinitely."
+    }
+    decision PerRecipientAttention {
+      choose "Compute unread and notification outcomes independently for each current member."
+      because "A global activity broadcast reveals private-space activity to outsiders."
+      avoid "Never broadcast room identifiers, presence, unread state, or notification counts on an account-wide public stream."
+    }
+
+    owns {
+      value AttentionPersonId value AttentionSpaceId value AttentionMessageId value ConnectionId value PushSubscriptionId value ConnectionLeaseSeconds
+      entity PresenceLease entity ReadPosition entity PushSubscription
+      event PresenceEntered event PresenceLeft event SpaceRead event SpaceBecameUnread event TypingChanged event PushSubscriptionRegistered
+    }
+
+    requires { AttentionRepository Conversations.Spaces.ConversationMembershipRead }
+
+    port AttentionRepository {
+      operation enter(request: EnterSpace)
+        -> Unit
+        ! AttentionAccessDenied ! AttentionPersistenceUnavailable
+      effects { write PresenceLease write ReadPosition }
+      operation refresh(request: RefreshPresence)
+        -> Unit
+        ! ConnectionNotFound ! AttentionPersistenceUnavailable
+      effects { write PresenceLease }
+      operation leave(request: LeaveSpace)
+        -> PresenceLease
+        ! ConnectionNotFound ! AttentionPersistenceUnavailable {
+        state removes PresenceLease by request.connectionId
+        ensures result == before.PresenceLease(request.connectionId)
+        effects { write PresenceLease }
+      }
+      operation markRead(request: MarkRead)
+        -> Unit
+        ! AttentionAccessDenied ! AttentionPersistenceUnavailable {
+        state upserts ReadPosition from ReadPosition { personId = request.personId spaceId = request.spaceId unreadSince = None() readAt = request.occurredAt }
+        ensures not success implies before.ReadPosition == after.ReadPosition
+        effects { write ReadPosition }
+      }
+      operation observeMessage(request: MessageActivity)
+        -> DeliveryPlan
+        ! AttentionPersistenceUnavailable
+      effects { read PresenceLease write ReadPosition read PushSubscription }
+      operation unread(personId: AttentionPersonId)
+        -> UnreadOverview
+        ! AttentionPersistenceUnavailable
+      effects { read ReadPosition }
+      operation registerPush(request: RegisterPushSubscription)
+        -> PushSubscription
+        ! PushEndpointRejected ! AttentionPersistenceUnavailable {
+        state upserts PushSubscription from result
+        ensures success implies result == PushSubscription { id = result.id personId = request.personId endpoint = request.endpoint publicKey = request.publicKey authenticationSecret = request.authenticationSecret touchedAt = request.occurredAt }
+        ensures success and count(subscription in before.PushSubscription where subscription.personId == request.personId and subscription.endpoint == request.endpoint) == 0 implies result.id == request.id
+        ensures success and count(subscription in before.PushSubscription where subscription.personId == request.personId and subscription.endpoint == request.endpoint) > 0 implies before.PushSubscription(result.id).personId == request.personId and before.PushSubscription(result.id).endpoint == request.endpoint
+        ensures not success implies before.PushSubscription == after.PushSubscription
+        effects { write PushSubscription }
+      }
+      operation removePush(request: RemovePushSubscription)
+        -> Unit
+        ! PushSubscriptionNotFound ! AttentionPersistenceUnavailable {
+        state removes PushSubscription by request.subscriptionId
+        effects { write PushSubscription }
+      }
+    }
+
+    surface AttentionApi exposes requestReply {
+      operation enter(request: EnterSpace)
+        -> Unit
+        ! AttentionAccessDenied ! AttentionPersistenceUnavailable
+      effects { write PresenceLease write ReadPosition call AttentionRepository.enter emit PresenceEntered(connectionId: request.connectionId, personId: request.personId, spaceId: request.spaceId) emit SpaceRead(personId: request.personId, spaceId: request.spaceId) }
+
+      operation refresh(request: RefreshPresence)
+        -> Unit
+        ! ConnectionNotFound ! AttentionPersistenceUnavailable
+      effects { write PresenceLease call AttentionRepository.refresh }
+
+      operation leave(request: LeaveSpace)
+        -> Unit
+        ! ConnectionNotFound ! AttentionPersistenceUnavailable
+      effects { write PresenceLease call AttentionRepository.leave as presence emit PresenceLeft(connectionId: presence.id, personId: presence.personId, spaceId: presence.spaceId) }
+
+      operation markRead(request: MarkRead)
+        -> Unit
+        ! AttentionAccessDenied ! AttentionPersistenceUnavailable
+      effects { write ReadPosition call AttentionRepository.markRead emit SpaceRead(personId: request.personId, spaceId: request.spaceId) }
+
+      operation observeMessage(request: MessageActivity)
+        -> DeliveryPlan
+        ! AttentionPersistenceUnavailable
+      effects { read PresenceLease write ReadPosition read PushSubscription call AttentionRepository.observeMessage as delivery emit SpaceBecameUnread(personIds: delivery.recipientIds, spaceId: request.spaceId) }
+
+      operation typing(request: SignalTyping)
+        -> Unit
+        ! AttentionAccessDenied
+      effects { emit TypingChanged(personId: request.personId, spaceId: request.spaceId, signal: request.signal) }
+
+      operation unread(personId: AttentionPersonId)
+        -> UnreadOverview
+        ! AttentionPersistenceUnavailable
+      effects { read ReadPosition call AttentionRepository.unread }
+
+      operation registerPush(request: RegisterPushSubscription)
+        -> PushSubscription
+        ! PushEndpointRejected ! AttentionPersistenceUnavailable
+      effects { write PushSubscription call AttentionRepository.registerPush as subscription emit PushSubscriptionRegistered(subscriptionId: subscription.id, personId: subscription.personId) }
+
+      operation removePush(request: RemovePushSubscription)
+        -> Unit
+        ! PushSubscriptionNotFound ! AttentionPersistenceUnavailable
+      effects { write PushSubscription call AttentionRepository.removePush }
+    }
+
+    constraint "Every live operation rechecks current membership; connection establishment never grants or prolongs space access."
+    constraint "One person may hold several concurrent leases in a space; the person is present while at least one unexpired lease remains."
+    constraint "Entering a space and explicitly marking it read clear unreadSince; leaving it does not create unread activity."
+    constraint "A new message marks a recipient unread only when the recipient is a current visible member, is not the author, and has no live lease in that space."
+    constraint "Unread events and unread overviews are delivered only on the affected person's private stream."
+    constraint "Typing signals are ephemeral, persisted nowhere, carry only minimal public identity, and are sent only to current members of that same space."
+    constraint "Typing state expires or stops when its connection disappears; it never changes unread state."
+    constraint "Hidden and Quiet recipients receive no push; Mentions recipients receive push only when validly mentioned; AllMessages recipients receive every eligible message."
+    constraint "A present recipient and the message author receive no push for that message."
+    constraint "Direct-space notification titles identify the sender; shared-space titles identify the space and attribute the sender in the body."
+    constraint "Push badges count only currently accessible unread spaces and disclose no inaccessible room identifier or message content."
+    constraint "A push endpoint must use HTTPS on its default port, have an explicitly allowed provider host or subdomain, and resolve only to public addresses."
+    constraint "Endpoint allow-listing and public-address resolution are repeated immediately before delivery and after redirects; DNS results used for validation are pinned for the request."
+    constraint "Re-registering the same valid endpoint refreshes it for that person; an invalid legacy endpoint is rejected rather than silently retained."
+    constraint "Expired or permanently rejected subscriptions are removed; transient delivery failure does not delete them."
+
+    example "real attention marks only the current member read" {
+      when result = AttentionRepository.markRead(MarkRead { personId = "00000000-0000-4000-8000-000000000011" spaceId = "00000000-0000-4000-8000-000000000012" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "real attention rejects marking an outsider read" {
+      when result = AttentionRepository.markRead(MarkRead { personId = "00000000-0000-4000-8000-000000000099" spaceId = "00000000-0000-4000-8000-000000000012" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AttentionAccessDenied
+    }
+    example "real attention registers an actual push subscription" {
+      when result = AttentionRepository.registerPush(RegisterPushSubscription { id = "00000000-0000-4000-8000-000000000014" personId = "00000000-0000-4000-8000-000000000011" endpoint = "https://fcm.googleapis.com/native" publicKey = "new-public" authenticationSecret = "new-secret" userAgent = None occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == PushSubscription { id = "00000000-0000-4000-8000-000000000014" personId = "00000000-0000-4000-8000-000000000011" endpoint = "https://fcm.googleapis.com/native" publicKey = "new-public" authenticationSecret = "new-secret" touchedAt = "2026-10-07T12:00:00.000Z" }
+    }
+    example "real attention preserves an existing push identity" {
+      when result = AttentionRepository.registerPush(RegisterPushSubscription { id = "00000000-0000-4000-8000-000000000014" personId = "00000000-0000-4000-8000-000000000011" endpoint = "https://fcm.googleapis.com/native" publicKey = "new-public" authenticationSecret = "new-secret" userAgent = None occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == PushSubscription { id = "00000000-0000-4000-8000-000000000015" personId = "00000000-0000-4000-8000-000000000011" endpoint = "https://fcm.googleapis.com/native" publicKey = "new-public" authenticationSecret = "new-secret" touchedAt = "2026-10-07T12:00:00.000Z" }
+    }
+    example "real attention rejects a foreign push identity" {
+      when result = AttentionRepository.registerPush(RegisterPushSubscription { id = "00000000-0000-4000-8000-000000000014" personId = "00000000-0000-4000-8000-000000000011" endpoint = "https://fcm.googleapis.com/native" publicKey = "new-public" authenticationSecret = "new-secret" userAgent = None occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails PushEndpointRejected
+    }
+
+    example "enter a space with a renewable presence lease" {
+      given AttentionRepository.enter(enterSpace) returns Unit
+      when result = AttentionApi.enter(enterSpace)
+      expect Success
+      expect emits PresenceEntered { connectionId = connectionId personId = personId spaceId = spaceId }
+      expect emits SpaceRead { personId = personId spaceId = spaceId }
+    }
+    example "refresh an existing presence lease" {
+      given AttentionRepository.refresh(refreshPresence) returns Unit
+      when result = AttentionApi.refresh(refreshPresence)
+      expect Success
+    }
+    example "leave a space" {
+      given AttentionRepository.leave(leaveSpace) returns PresenceLease { id = connectionId personId = personId spaceId = spaceId expiresAt = occurredAt }
+      when result = AttentionApi.leave(leaveSpace)
+      expect Success
+      expect emits PresenceLeft { connectionId = connectionId personId = personId spaceId = spaceId }
+    }
+    example "mark an accessible space read" {
+      given AttentionRepository.markRead(markRead) returns Unit
+      when result = AttentionApi.markRead(markRead)
+      expect Success
+      expect emits SpaceRead { personId = personId spaceId = spaceId }
+    }
+    example "observe a message for absent recipients" {
+      given AttentionRepository.observeMessage(messageActivity) returns DeliveryPlan { messageId = messageId recipientIds = recipientIds }
+      when result = AttentionApi.observeMessage(messageActivity)
+      expect Success
+      expect emits SpaceBecameUnread { personIds = recipientIds spaceId = spaceId }
+    }
+    example "signal ephemeral typing" {
+      when result = AttentionApi.typing(signalTyping)
+      expect Success
+      expect emits TypingChanged { personId = personId spaceId = spaceId signal = Started }
+    }
+    example "read private unread overview" {
+      given AttentionRepository.unread(personId) returns UnreadOverview { personId = personId spaces = unreadSpaces }
+      when result = AttentionApi.unread(personId)
+      expect Success
+    }
+    example "register a valid push subscription" {
+      given AttentionRepository.registerPush(registerPush) returns PushSubscription { id = subscriptionId personId = personId endpoint = "https://push.example.com/sub" publicKey = "public" authenticationSecret = "secret" touchedAt = occurredAt }
+      when result = AttentionApi.registerPush(registerPush)
+      expect Success
+      expect emits PushSubscriptionRegistered { subscriptionId = subscriptionId personId = personId }
+    }
+    example "remove a push subscription" {
+      given AttentionRepository.removePush(removePush) returns Unit
+      when result = AttentionApi.removePush(removePush)
+      expect Success
+    }
+  }
+}

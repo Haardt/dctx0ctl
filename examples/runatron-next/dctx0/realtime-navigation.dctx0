@@ -1,0 +1,214 @@
+domain RealtimeNavigation {
+  value RealtimePersonId = UUID
+  value RealtimeSpaceId = UUID
+  value RealtimeMessageId = UUID
+  value RealtimeConnectionId = UUID
+  value RefreshLimit = Int { range 1..200 }
+
+  type ConversationChangeKind = Published | Edited | Deleted | ReactionChanged
+
+  failure RealtimeAuthenticationRequired { reason: String }
+  failure RealtimeAccessDenied { spaceId: RealtimeSpaceId; personId: RealtimePersonId }
+  failure RealtimeConnectionNotFound { connectionId: RealtimeConnectionId }
+  failure NavigationUnavailable { reason: String }
+
+  entity LastVisit {
+    personId: RealtimePersonId
+    spaceId: RealtimeSpaceId
+    visitedAt: Timestamp
+    key personId
+  }
+
+  message SubscribeToConversation {
+    connectionId: RealtimeConnectionId
+    personId: RealtimePersonId
+    spaceId: RealtimeSpaceId
+    signedStreamReference: String
+    occurredAt: Timestamp
+  }
+  message RefreshConversation {
+    personId: RealtimePersonId
+    spaceId: RealtimeSpaceId
+    changedSince: Timestamp
+    limit: RefreshLimit
+  }
+  message ConversationChange {
+    messageId: RealtimeMessageId
+    kind: ConversationChangeKind
+    changedAt: Timestamp
+  }
+  message ConversationChanges {
+    spaceId: RealtimeSpaceId
+    changes: List<ConversationChange>
+    synchronizedAt: Timestamp
+  }
+  message VisitSpace {
+    personId: RealtimePersonId
+    spaceId: RealtimeSpaceId
+    occurredAt: Timestamp
+  }
+  message NavigationTarget {
+    spaceId: RealtimeSpaceId
+  }
+
+  event ConversationSubscribed { connectionId: RealtimeConnectionId; personId: RealtimePersonId; spaceId: RealtimeSpaceId }
+  event ConversationUnsubscribed { connectionId: RealtimeConnectionId; personId: RealtimePersonId; spaceId: RealtimeSpaceId }
+  event SpaceVisited { personId: RealtimePersonId; spaceId: RealtimeSpaceId }
+
+  module LiveConversationDelivery {
+    intent """
+      Reconcile durable conversation changes over authenticated realtime
+      connections and remember private navigation without treating stream names,
+      browser state, or old memberships as authorization.
+      """
+
+    decision ReauthorizeSubscriptions {
+      choose "Authenticate the connection and reauthorize conversation membership on every subscription and resubscription."
+      because "Long-lived signed stream references can outlive membership and are replayed after reconnect."
+      avoid "Do not use signature validity alone as authorization or allow a generic stream endpoint to bypass the guarded conversation endpoint."
+    }
+    decision PullRepairForRealtime {
+      choose "Provide changed-since refresh from durable history as repair for missed live events."
+      because "Realtime delivery is opportunistic and a reconnect must converge without reloading all history."
+      avoid "Do not promise exactly-once websocket delivery or rely on client receipt as durable state."
+    }
+
+    owns {
+      value RealtimePersonId value RealtimeSpaceId value RealtimeMessageId value RealtimeConnectionId value RefreshLimit
+      entity LastVisit
+      event ConversationSubscribed event ConversationUnsubscribed event SpaceVisited
+    }
+
+    requires { NavigationRepository }
+
+    port NavigationRepository {
+      operation authorizeSubscription(request: SubscribeToConversation)
+        -> Unit
+        ! RealtimeAuthenticationRequired ! RealtimeAccessDenied ! NavigationUnavailable {
+        state lists LastVisit
+        effects { read LastVisit }
+      }
+      operation refresh(request: RefreshConversation)
+        -> ConversationChanges
+        ! RealtimeAuthenticationRequired ! RealtimeAccessDenied ! NavigationUnavailable
+      effects { read LastVisit }
+      operation visit(request: VisitSpace)
+        -> Unit
+        ! RealtimeAccessDenied ! NavigationUnavailable {
+        state upserts LastVisit from LastVisit {
+          personId = request.personId
+          spaceId = request.spaceId
+          visitedAt = request.occurredAt
+        }
+        effects { write LastVisit }
+      }
+      operation startDestination(personId: RealtimePersonId)
+        -> Option<NavigationTarget>
+        ! NavigationUnavailable
+      effects { read LastVisit }
+    }
+
+    surface RealtimeApi exposes requestReply {
+      operation subscribe(request: SubscribeToConversation)
+        -> Unit
+        ! RealtimeAuthenticationRequired ! RealtimeAccessDenied ! NavigationUnavailable
+      effects { read LastVisit call NavigationRepository.authorizeSubscription emit ConversationSubscribed(connectionId: request.connectionId, personId: request.personId, spaceId: request.spaceId) }
+
+      operation unsubscribe(request: SubscribeToConversation)
+        -> Unit
+        ! RealtimeConnectionNotFound
+      effects { emit ConversationUnsubscribed(connectionId: request.connectionId, personId: request.personId, spaceId: request.spaceId) }
+
+      operation refresh(request: RefreshConversation)
+        -> ConversationChanges
+        ! RealtimeAuthenticationRequired ! RealtimeAccessDenied ! NavigationUnavailable
+      effects { read LastVisit call NavigationRepository.refresh }
+
+      operation visit(request: VisitSpace)
+        -> Unit
+        ! RealtimeAccessDenied ! NavigationUnavailable
+      effects { write LastVisit call NavigationRepository.visit emit SpaceVisited(personId: request.personId, spaceId: request.spaceId) }
+
+      operation startDestination(personId: RealtimePersonId)
+        -> Option<NavigationTarget>
+        ! NavigationUnavailable
+      effects { read LastVisit call NavigationRepository.startDestination }
+    }
+
+    constraint "Realtime connection authentication accepts only a current unrevoked human session and never accepts an automation key."
+    constraint "A signed stream reference proves integrity only; subscribe derives the referenced space and separately verifies current membership for the authenticated person."
+    constraint "Generic realtime channels reject guarded conversation stream references so every message subscription passes through subscribe."
+    constraint "Membership revocation disconnects affected subscriptions and a reconnect remains denied until membership is restored."
+    constraint "I45: Conversation realtime delivers only explicitly channel-scoped events whose spaceId matches the authorized subscription. Events without channel identity are never broadcast to channel clients. Session and membership are revalidated before delivery and heartbeats; access loss closes the stream. Full run history is not an event payload."
+    constraint "Live message, reaction, unread, read, presence, and typing events are scoped to current authorized recipients and contain no inaccessible space identifier."
+    constraint "Refresh returns published, edited, deleted, and reaction changes after changedSince up to the bounded limit in deterministic change order."
+    constraint "Refresh rechecks membership and does not return a change whose message moved outside the requested space or is otherwise inaccessible."
+    constraint "Duplicate or out-of-order live events are safe because clients reconcile by stable message identifier, change kind, and changedAt."
+    constraint "A successful visit records only a currently accessible space for that person; LastVisit is private navigation preference, not conversation authority."
+    constraint "The start destination is the most recently visited still-visible space, otherwise the earliest visible space, otherwise no target."
+    constraint "Heartbeat traffic renews connection liveness but neither grants membership nor marks a space read without an authorized presence action."
+
+    example "real navigation skips a revoked fallback destination" {
+      when result = NavigationRepository.startDestination("00000000-0000-4000-8000-000000000070")
+      expect result == Some(NavigationTarget { spaceId = "00000000-0000-4000-8000-000000000072" })
+    }
+    example "real navigation has no still-authorized fallback" {
+      when result = NavigationRepository.startDestination("00000000-0000-4000-8000-000000000070")
+      expect result == None
+    }
+
+    example "real navigation persists an authorized visit" {
+      when result = NavigationRepository.visit(VisitSpace { personId = "00000000-0000-4000-8000-000000000070" spaceId = "00000000-0000-4000-8000-000000000072" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "real navigation rejects a visit after revoked membership" {
+      when result = NavigationRepository.visit(VisitSpace { personId = "00000000-0000-4000-8000-000000000070" spaceId = "00000000-0000-4000-8000-000000000072" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails RealtimeAccessDenied
+    }
+    example "real navigation authorizes an actual current subscription" {
+      when result = NavigationRepository.authorizeSubscription(SubscribeToConversation { connectionId = "00000000-0000-4000-8000-000000000073" personId = "00000000-0000-4000-8000-000000000070" spaceId = "00000000-0000-4000-8000-000000000072" signedStreamReference = "signed-reference" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "real navigation rejects a subscription after revoked membership" {
+      when result = NavigationRepository.authorizeSubscription(SubscribeToConversation { connectionId = "00000000-0000-4000-8000-000000000073" personId = "00000000-0000-4000-8000-000000000070" spaceId = "00000000-0000-4000-8000-000000000072" signedStreamReference = "signed-reference" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails RealtimeAccessDenied
+    }
+    example "real navigation rejects an expired human session" {
+      when result = NavigationRepository.authorizeSubscription(SubscribeToConversation { connectionId = "00000000-0000-4000-8000-000000000073" personId = "00000000-0000-4000-8000-000000000070" spaceId = "00000000-0000-4000-8000-000000000072" signedStreamReference = "signed-reference" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails RealtimeAuthenticationRequired
+    }
+
+    example "subscribe after membership authorization" {
+      given NavigationRepository.authorizeSubscription(subscribeToConversation) returns Unit
+      when result = RealtimeApi.subscribe(subscribeToConversation)
+      expect Success
+      expect emits ConversationSubscribed { connectionId = connectionId personId = personId spaceId = spaceId }
+    }
+    example "reject a subscription after membership revocation" {
+      given NavigationRepository.authorizeSubscription(revokedSubscription) fails RealtimeAccessDenied { spaceId = spaceId personId = personId }
+      when result = RealtimeApi.subscribe(revokedSubscription)
+      expect result fails RealtimeAccessDenied
+    }
+    example "unsubscribe a connection" {
+      when result = RealtimeApi.unsubscribe(subscribeToConversation)
+      expect Success
+      expect emits ConversationUnsubscribed { connectionId = connectionId personId = personId spaceId = spaceId }
+    }
+    example "refresh durable changes" {
+      given NavigationRepository.refresh(refreshConversation) returns ConversationChanges { spaceId = spaceId changes = conversationChanges synchronizedAt = occurredAt }
+      when result = RealtimeApi.refresh(refreshConversation)
+      expect Success
+    }
+    example "record an accessible visit" {
+      given NavigationRepository.visit(visitSpace) returns Unit
+      when result = RealtimeApi.visit(visitSpace)
+      expect Success
+      expect emits SpaceVisited { personId = personId spaceId = spaceId }
+    }
+    example "choose a start destination" {
+      given NavigationRepository.startDestination(personId) returns Some(NavigationTarget { spaceId = spaceId })
+      when result = RealtimeApi.startDestination(personId)
+      expect Success
+    }
+  }
+}

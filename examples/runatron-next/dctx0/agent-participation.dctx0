@@ -1,0 +1,739 @@
+domain AgentParticipation {
+  value AgentId = UUID
+  value AgentPrincipalId = UUID
+  value AgentParticipationId = UUID
+  value AgentConversationId = UUID
+  value AgentWorkstreamId = UUID
+  value AgentMessageId = UUID
+  value TriggerDeliveryId = UUID
+  value AgentMemoryId = UUID
+  value ParticipantRunnerId = UUID
+  value ParticipantLocalAgentId = String { length 1..160 }
+  value ParticipantSnapshotId = UUID
+  value ParticipantAgentVersion = String { length 1..160 }
+  value ParticipantAgentFingerprint = String { length 16..256 }
+  value SourceMessageVersion = String { length 1..160 }
+  value SourceMessageHash = String { length 16..256 }
+  value ContextTokenLimit = Int { range 1..2000000 }
+  value AgentName = String { length 1..120 }
+
+  type AgentStanding = Active | Paused | Deactivated
+  type AgentRole = Facilitator | ProductAnalyst | Coder | Reviewer | Operator | Observer
+  type AgentTriggerPolicy = Mentioned | EveryHumanMessage | Assigned | RuleBased | Manual
+  type AgentAutonomyMode = ObserveOnly | Triage | PrepareImplementation | ImplementWithApproval | ImplementAutomatically
+  type MessageAuthorKind = Human | Agent | Automation
+  type MemoryScopeKind = Project | Team | Workstream
+  type MemoryVisibility = AgentOnly | Participants | Administrators
+  type AgentRunKind = ChatReply | WorkTask
+  type AgentOriginKind = ChatMessage | ManualRequest
+
+  failure AgentNotFound { agentId: AgentId }
+  failure AgentParticipationNotFound { participationId: AgentParticipationId }
+  failure AgentAccessDenied { actorId: AgentPrincipalId }
+  failure AgentConfigurationRejected { reason: String }
+  failure AgentTriggerRejected { reason: String }
+  failure AgentMemoryNotFound { memoryId: AgentMemoryId }
+  failure RunnerAgentUnavailable { reason: String }
+  failure AgentParticipationPersistenceUnavailable { reason: String }
+  failure AgentRunQueueUnavailable { reason: String }
+
+  entity AgentProfile {
+    id: AgentId
+    principalId: AgentPrincipalId
+    name: AgentName
+    standing: AgentStanding
+    runnerId: ParticipantRunnerId
+    localAgentId: ParticipantLocalAgentId
+    currentSnapshotId: ParticipantSnapshotId
+    currentVersion: ParticipantAgentVersion
+    currentFingerprint: ParticipantAgentFingerprint
+    contextTokenLimit: ContextTokenLimit
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity ConversationParticipation {
+    id: AgentParticipationId
+    agentId: AgentId
+    conversationId: AgentConversationId
+    workstreamId: Option<AgentWorkstreamId>
+    role: AgentRole
+    triggerPolicy: AgentTriggerPolicy
+    autonomyMode: AgentAutonomyMode
+    assigned: Boolean
+    ruleIds: List<String>
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+    joinedAt: Timestamp
+    key id
+  }
+
+  entity TriggerDelivery {
+    id: TriggerDeliveryId
+    dispatch: AgentRunDispatch
+    requestedAt: Timestamp
+    key id
+  }
+
+  entity AgentMemory {
+    id: AgentMemoryId
+    agentId: AgentId
+    scopeKind: MemoryScopeKind
+    scopeId: UUID
+    content: String
+    sourceArtifactIds: List<UUID>
+    visibility: MemoryVisibility
+    recordedAt: Timestamp
+    invalidatedAt: Option<Timestamp>
+    key id
+  }
+
+  message RegisterAgent {
+    agentId: AgentId
+    principalId: AgentPrincipalId
+    administratorId: AgentPrincipalId
+    name: AgentName
+    runnerId: ParticipantRunnerId
+    localAgentId: ParticipantLocalAgentId
+    snapshotId: ParticipantSnapshotId
+    contextTokenLimit: ContextTokenLimit
+    occurredAt: Timestamp
+  }
+  message ChangeAgent {
+    agentId: AgentId
+    administratorId: AgentPrincipalId
+    name: AgentName
+    standing: AgentStanding
+    contextTokenLimit: ContextTokenLimit
+    occurredAt: Timestamp
+  }
+  message RefreshAgentSnapshot {
+    agentId: AgentId
+    runnerId: ParticipantRunnerId
+    localAgentId: ParticipantLocalAgentId
+    snapshotId: ParticipantSnapshotId
+    occurredAt: Timestamp
+  }
+  message ParticipantSnapshotReference {
+    runnerId: ParticipantRunnerId
+    localAgentId: ParticipantLocalAgentId
+    snapshotId: ParticipantSnapshotId
+    version: ParticipantAgentVersion
+    fingerprint: ParticipantAgentFingerprint
+  }
+  message JoinAgentToConversation {
+    participationId: AgentParticipationId
+    agentId: AgentId
+    actorId: AgentPrincipalId
+    conversationId: AgentConversationId
+    workstreamId: Option<AgentWorkstreamId>
+    role: AgentRole
+    triggerPolicy: AgentTriggerPolicy
+    autonomyMode: AgentAutonomyMode
+    assigned: Boolean
+    ruleIds: List<String>
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+    occurredAt: Timestamp
+  }
+  message ChangeAgentParticipation {
+    participationId: AgentParticipationId
+    actorId: AgentPrincipalId
+    role: AgentRole
+    triggerPolicy: AgentTriggerPolicy
+    autonomyMode: AgentAutonomyMode
+    assigned: Boolean
+    ruleIds: List<String>
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+    occurredAt: Timestamp
+  }
+  message TriggerAgentFromMessage {
+    deliveryId: TriggerDeliveryId
+    runId: AgentRunId
+    participationId: AgentParticipationId
+    sourceMessageId: AgentMessageId
+    sourceMessageVersion: SourceMessageVersion
+    sourceMessageHash: SourceMessageHash
+    sourceChannelId: AgentConversationId
+    triggeringPrincipalId: AgentPrincipalId
+    authorKind: MessageAuthorKind
+    mentionedAgentIds: List<AgentId>
+    assignedAgentIds: List<AgentId>
+    matchedRuleIds: List<String>
+    occurredAt: Timestamp
+  }
+  message RequestAgentManually {
+    deliveryId: TriggerDeliveryId
+    runId: AgentRunId
+    participationId: AgentParticipationId
+    actorId: AgentPrincipalId
+    instruction: String
+    kind: AgentRunKind
+    occurredAt: Timestamp
+  }
+  message AgentRunDispatch {
+    runId: AgentRunId
+    kind: AgentRunKind
+    originKind: AgentOriginKind
+    agentId: AgentId
+    runnerId: ParticipantRunnerId
+    localAgentId: ParticipantLocalAgentId
+    snapshotId: ParticipantSnapshotId
+    snapshotVersion: ParticipantAgentVersion
+    snapshotFingerprint: ParticipantAgentFingerprint
+    participationId: AgentParticipationId
+    conversationId: AgentConversationId
+    workstreamId: Option<AgentWorkstreamId>
+    sourceMessageId: Option<AgentMessageId>
+    sourceMessageVersion: Option<SourceMessageVersion>
+    sourceMessageHash: Option<SourceMessageHash>
+    sourceChannelId: Option<AgentConversationId>
+    trigger: Option<String>
+    triggeringPrincipalId: AgentPrincipalId
+    instruction: Option<String>
+    contextTokenLimit: ContextTokenLimit
+    autonomyMode: AgentAutonomyMode
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+  }
+  message RecordAgentMemory {
+    memoryId: AgentMemoryId
+    agentId: AgentId
+    actorId: AgentPrincipalId
+    scopeKind: MemoryScopeKind
+    scopeId: UUID
+    content: String
+    sourceArtifactIds: List<UUID>
+    visibility: MemoryVisibility
+    occurredAt: Timestamp
+  }
+  message InvalidateAgentMemory {
+    agentId: AgentId
+    memoryId: AgentMemoryId
+    actorId: AgentPrincipalId
+    reason: String
+    occurredAt: Timestamp
+  }
+  message AgentProfileView {
+    id: AgentId
+    principalId: AgentPrincipalId
+    name: AgentName
+    standing: AgentStanding
+    runnerId: ParticipantRunnerId
+    localAgentId: ParticipantLocalAgentId
+    currentSnapshotId: ParticipantSnapshotId
+    currentVersion: ParticipantAgentVersion
+    currentFingerprint: ParticipantAgentFingerprint
+    contextTokenLimit: ContextTokenLimit
+  }
+  message AgentParticipationView {
+    id: AgentParticipationId
+    agentId: AgentId
+    conversationId: AgentConversationId
+    workstreamId: Option<AgentWorkstreamId>
+    role: AgentRole
+    triggerPolicy: AgentTriggerPolicy
+    autonomyMode: AgentAutonomyMode
+    assigned: Boolean
+    permittedSkillNames: List<String>
+    permittedToolNames: List<String>
+  }
+  message AgentMemoryView { agentId: AgentId; items: List<AgentMemory> }
+  message AgentWorkHistory { agentId: AgentId; runIds: List<AgentRunId> }
+  message RemoveAgentFromConversations {
+    actorId: AgentPrincipalId
+    agentId: AgentId
+    occurredAt: Timestamp
+  }
+
+  event AgentRegistered { agentId: AgentId; principalId: AgentPrincipalId }
+  event AgentChanged { agentId: AgentId; standing: AgentStanding }
+  event AgentSnapshotRefreshed { agentId: AgentId; snapshotId: ParticipantSnapshotId }
+  event AgentJoinedConversation { agentId: AgentId; participationId: AgentParticipationId; conversationId: AgentConversationId }
+  event AgentParticipationChanged { agentId: AgentId; participationId: AgentParticipationId }
+  event AgentParticipationRunQueued { agentId: AgentId; runId: AgentRunId; participationId: AgentParticipationId }
+  event AgentMemoryRecorded { agentId: AgentId; memoryId: AgentMemoryId }
+  event AgentMemoryInvalidated { agentId: AgentId; memoryId: AgentMemoryId }
+
+  module CollaborativeAgents {
+    intent """
+      Make runner-reported agents explicit conversation participants with
+      bounded roles, trigger policies, memory, and work history.
+      """
+    decision ParticipationBoundsAuthority {
+      choose "An agent principal starts without access; each conversation participation grants an explicit, narrower capability set."
+      because "An inventory report must never turn into product authorization."
+      avoid "Do not infer conversation membership or tool permission from a runner snapshot."
+    }
+
+    owns {
+      value AgentId value AgentPrincipalId value AgentParticipationId value AgentConversationId value AgentWorkstreamId
+      value AgentMessageId  value TriggerDeliveryId value AgentMemoryId value ContextTokenLimit value AgentName
+      value ParticipantRunnerId value ParticipantLocalAgentId value ParticipantSnapshotId value ParticipantAgentVersion
+      value ParticipantAgentFingerprint value SourceMessageVersion value SourceMessageHash
+      entity AgentProfile entity ConversationParticipation entity TriggerDelivery entity AgentMemory
+      event AgentRegistered event AgentChanged event AgentSnapshotRefreshed event AgentJoinedConversation event AgentParticipationChanged
+      event AgentParticipationRunQueued event AgentMemoryRecorded event AgentMemoryInvalidated
+    }
+
+    requires { AgentParticipationRepository RunnerAgentLookup AgentRunQueue AgentRunHistory }
+
+    port AgentParticipationRepository {
+      operation register(request: RegisterAgent, snapshot: ParticipantSnapshotReference)
+        -> AgentProfileView
+        ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable {
+        state upserts AgentProfile from AgentProfile { id = request.agentId principalId = request.principalId name = request.name standing = Active runnerId = snapshot.runnerId localAgentId = snapshot.localAgentId currentSnapshotId = snapshot.snapshotId currentVersion = snapshot.version currentFingerprint = snapshot.fingerprint contextTokenLimit = request.contextTokenLimit createdAt = request.occurredAt updatedAt = request.occurredAt }
+        ensures success implies result == AgentProfileView { id = request.agentId principalId = request.principalId name = request.name standing = Active runnerId = snapshot.runnerId localAgentId = snapshot.localAgentId currentSnapshotId = snapshot.snapshotId currentVersion = snapshot.version currentFingerprint = snapshot.fingerprint contextTokenLimit = request.contextTokenLimit }
+        ensures success implies request.runnerId == snapshot.runnerId and request.localAgentId == snapshot.localAgentId and request.snapshotId == snapshot.snapshotId
+        ensures not success implies before.AgentProfile == after.AgentProfile
+      }
+      effects { write AgentProfile }
+      operation change(request: ChangeAgent)
+        -> AgentProfileView
+        ! AgentNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable {
+        state replaces AgentProfile by request.agentId from AgentProfile { id = self.id principalId = self.principalId name = request.name standing = request.standing runnerId = self.runnerId localAgentId = self.localAgentId currentSnapshotId = self.currentSnapshotId currentVersion = self.currentVersion currentFingerprint = self.currentFingerprint contextTokenLimit = request.contextTokenLimit createdAt = self.createdAt updatedAt = request.occurredAt }
+        ensures success implies result == AgentProfileView { id = before.AgentProfile(request.agentId).id principalId = before.AgentProfile(request.agentId).principalId name = request.name standing = request.standing runnerId = before.AgentProfile(request.agentId).runnerId localAgentId = before.AgentProfile(request.agentId).localAgentId currentSnapshotId = before.AgentProfile(request.agentId).currentSnapshotId currentVersion = before.AgentProfile(request.agentId).currentVersion currentFingerprint = before.AgentProfile(request.agentId).currentFingerprint contextTokenLimit = request.contextTokenLimit }
+        ensures not success implies before.AgentProfile == after.AgentProfile
+      }
+      effects { read AgentProfile write AgentProfile }
+      operation refreshSnapshot(request: RefreshAgentSnapshot, snapshot: ParticipantSnapshotReference)
+        -> AgentProfileView
+        ! AgentNotFound ! RunnerAgentUnavailable ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable {
+        state replaces AgentProfile by request.agentId from AgentProfile { id = self.id principalId = self.principalId name = self.name standing = self.standing runnerId = snapshot.runnerId localAgentId = snapshot.localAgentId currentSnapshotId = snapshot.snapshotId currentVersion = snapshot.version currentFingerprint = snapshot.fingerprint contextTokenLimit = self.contextTokenLimit createdAt = self.createdAt updatedAt = request.occurredAt }
+        ensures success implies result == AgentProfileView { id = before.AgentProfile(request.agentId).id principalId = before.AgentProfile(request.agentId).principalId name = before.AgentProfile(request.agentId).name standing = before.AgentProfile(request.agentId).standing runnerId = snapshot.runnerId localAgentId = snapshot.localAgentId currentSnapshotId = snapshot.snapshotId currentVersion = snapshot.version currentFingerprint = snapshot.fingerprint contextTokenLimit = before.AgentProfile(request.agentId).contextTokenLimit }
+        ensures success implies request.runnerId == snapshot.runnerId and request.localAgentId == snapshot.localAgentId and request.snapshotId == snapshot.snapshotId
+        ensures not success implies before.AgentProfile == after.AgentProfile
+      }
+      effects { read AgentProfile write AgentProfile }
+      operation join(request: JoinAgentToConversation)
+        -> AgentParticipationView
+        ! AgentNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable {
+        state upserts ConversationParticipation from ConversationParticipation {
+          id = request.participationId
+          agentId = request.agentId
+          conversationId = request.conversationId
+          workstreamId = request.workstreamId
+          role = request.role
+          triggerPolicy = request.triggerPolicy
+          autonomyMode = request.autonomyMode
+          assigned = request.assigned
+          ruleIds = request.ruleIds
+          permittedSkillNames = request.permittedSkillNames
+          permittedToolNames = request.permittedToolNames
+          joinedAt = request.occurredAt
+        }
+        ensures success implies result == AgentParticipationView { id = request.participationId agentId = request.agentId conversationId = request.conversationId workstreamId = request.workstreamId role = request.role triggerPolicy = request.triggerPolicy autonomyMode = request.autonomyMode assigned = request.assigned permittedSkillNames = request.permittedSkillNames permittedToolNames = request.permittedToolNames }
+        ensures not success implies before.ConversationParticipation == after.ConversationParticipation
+        effects { read AgentProfile write ConversationParticipation }
+      }
+      operation changeParticipation(request: ChangeAgentParticipation)
+        -> AgentParticipationView
+        ! AgentParticipationNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable {
+        state replaces ConversationParticipation by request.participationId from ConversationParticipation { id = self.id agentId = self.agentId conversationId = self.conversationId workstreamId = self.workstreamId role = request.role triggerPolicy = request.triggerPolicy autonomyMode = request.autonomyMode assigned = request.assigned ruleIds = request.ruleIds permittedSkillNames = request.permittedSkillNames permittedToolNames = request.permittedToolNames joinedAt = self.joinedAt }
+        ensures success implies result == AgentParticipationView { id = request.participationId agentId = before.ConversationParticipation(request.participationId).agentId conversationId = before.ConversationParticipation(request.participationId).conversationId workstreamId = before.ConversationParticipation(request.participationId).workstreamId role = request.role triggerPolicy = request.triggerPolicy autonomyMode = request.autonomyMode assigned = request.assigned permittedSkillNames = request.permittedSkillNames permittedToolNames = request.permittedToolNames }
+        ensures not success implies before.ConversationParticipation == after.ConversationParticipation
+      }
+      effects { write ConversationParticipation }
+      operation triggerFromMessage(request: TriggerAgentFromMessage)
+        -> AgentRunDispatch
+        ! AgentParticipationNotFound ! AgentTriggerRejected ! AgentParticipationPersistenceUnavailable {
+        state observes ConversationParticipation by request.participationId
+        state observes AgentProfile by before.ConversationParticipation(request.participationId).agentId
+        state inserts TriggerDelivery
+        ensures success and count(delivery in before.TriggerDelivery where delivery.dispatch.participationId == request.participationId and delivery.dispatch.sourceMessageId == Some(request.sourceMessageId)) == 0 and before.ConversationParticipation(request.participationId).triggerPolicy == Mentioned implies after.TriggerDelivery(request.deliveryId) == TriggerDelivery { id = request.deliveryId dispatch = AgentRunDispatch { runId = request.runId kind = ChatReply originKind = ChatMessage agentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).id runnerId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).runnerId localAgentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).localAgentId snapshotId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentSnapshotId snapshotVersion = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentVersion snapshotFingerprint = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentFingerprint participationId = before.ConversationParticipation(request.participationId).id conversationId = before.ConversationParticipation(request.participationId).conversationId workstreamId = before.ConversationParticipation(request.participationId).workstreamId sourceMessageId = Some(request.sourceMessageId) sourceMessageVersion = Some(request.sourceMessageVersion) sourceMessageHash = Some(request.sourceMessageHash) sourceChannelId = Some(request.sourceChannelId) trigger = Some("Mentioned") triggeringPrincipalId = request.triggeringPrincipalId instruction = None() contextTokenLimit = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).contextTokenLimit autonomyMode = before.ConversationParticipation(request.participationId).autonomyMode permittedSkillNames = before.ConversationParticipation(request.participationId).permittedSkillNames permittedToolNames = before.ConversationParticipation(request.participationId).permittedToolNames } requestedAt = request.occurredAt }
+        ensures success and count(delivery in before.TriggerDelivery where delivery.dispatch.participationId == request.participationId and delivery.dispatch.sourceMessageId == Some(request.sourceMessageId)) == 0 and before.ConversationParticipation(request.participationId).triggerPolicy == EveryHumanMessage implies after.TriggerDelivery(request.deliveryId) == TriggerDelivery { id = request.deliveryId dispatch = AgentRunDispatch { runId = request.runId kind = ChatReply originKind = ChatMessage agentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).id runnerId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).runnerId localAgentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).localAgentId snapshotId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentSnapshotId snapshotVersion = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentVersion snapshotFingerprint = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentFingerprint participationId = before.ConversationParticipation(request.participationId).id conversationId = before.ConversationParticipation(request.participationId).conversationId workstreamId = before.ConversationParticipation(request.participationId).workstreamId sourceMessageId = Some(request.sourceMessageId) sourceMessageVersion = Some(request.sourceMessageVersion) sourceMessageHash = Some(request.sourceMessageHash) sourceChannelId = Some(request.sourceChannelId) trigger = Some("EveryHumanMessage") triggeringPrincipalId = request.triggeringPrincipalId instruction = None() contextTokenLimit = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).contextTokenLimit autonomyMode = before.ConversationParticipation(request.participationId).autonomyMode permittedSkillNames = before.ConversationParticipation(request.participationId).permittedSkillNames permittedToolNames = before.ConversationParticipation(request.participationId).permittedToolNames } requestedAt = request.occurredAt }
+        ensures success and count(delivery in before.TriggerDelivery where delivery.dispatch.participationId == request.participationId and delivery.dispatch.sourceMessageId == Some(request.sourceMessageId)) == 0 and before.ConversationParticipation(request.participationId).triggerPolicy == Assigned implies after.TriggerDelivery(request.deliveryId) == TriggerDelivery { id = request.deliveryId dispatch = AgentRunDispatch { runId = request.runId kind = ChatReply originKind = ChatMessage agentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).id runnerId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).runnerId localAgentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).localAgentId snapshotId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentSnapshotId snapshotVersion = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentVersion snapshotFingerprint = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentFingerprint participationId = before.ConversationParticipation(request.participationId).id conversationId = before.ConversationParticipation(request.participationId).conversationId workstreamId = before.ConversationParticipation(request.participationId).workstreamId sourceMessageId = Some(request.sourceMessageId) sourceMessageVersion = Some(request.sourceMessageVersion) sourceMessageHash = Some(request.sourceMessageHash) sourceChannelId = Some(request.sourceChannelId) trigger = Some("Assigned") triggeringPrincipalId = request.triggeringPrincipalId instruction = None() contextTokenLimit = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).contextTokenLimit autonomyMode = before.ConversationParticipation(request.participationId).autonomyMode permittedSkillNames = before.ConversationParticipation(request.participationId).permittedSkillNames permittedToolNames = before.ConversationParticipation(request.participationId).permittedToolNames } requestedAt = request.occurredAt }
+        ensures success and count(delivery in before.TriggerDelivery where delivery.dispatch.participationId == request.participationId and delivery.dispatch.sourceMessageId == Some(request.sourceMessageId)) == 0 and before.ConversationParticipation(request.participationId).triggerPolicy == RuleBased implies after.TriggerDelivery(request.deliveryId) == TriggerDelivery { id = request.deliveryId dispatch = AgentRunDispatch { runId = request.runId kind = ChatReply originKind = ChatMessage agentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).id runnerId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).runnerId localAgentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).localAgentId snapshotId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentSnapshotId snapshotVersion = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentVersion snapshotFingerprint = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentFingerprint participationId = before.ConversationParticipation(request.participationId).id conversationId = before.ConversationParticipation(request.participationId).conversationId workstreamId = before.ConversationParticipation(request.participationId).workstreamId sourceMessageId = Some(request.sourceMessageId) sourceMessageVersion = Some(request.sourceMessageVersion) sourceMessageHash = Some(request.sourceMessageHash) sourceChannelId = Some(request.sourceChannelId) trigger = Some("RuleBased") triggeringPrincipalId = request.triggeringPrincipalId instruction = None() contextTokenLimit = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).contextTokenLimit autonomyMode = before.ConversationParticipation(request.participationId).autonomyMode permittedSkillNames = before.ConversationParticipation(request.participationId).permittedSkillNames permittedToolNames = before.ConversationParticipation(request.participationId).permittedToolNames } requestedAt = request.occurredAt }
+        ensures success and count(delivery in before.TriggerDelivery where delivery.dispatch.participationId == request.participationId and delivery.dispatch.sourceMessageId == Some(request.sourceMessageId)) > 0 implies before.TriggerDelivery == after.TriggerDelivery
+        ensures not success implies before.TriggerDelivery == after.TriggerDelivery
+        ensures success implies all(delivery in after.TriggerDelivery where delivery.dispatch.participationId == request.participationId and delivery.dispatch.sourceMessageId == Some(request.sourceMessageId) implies result == delivery.dispatch)
+      }
+      effects { read AgentProfile read ConversationParticipation write TriggerDelivery }
+      operation triggerManually(request: RequestAgentManually)
+        -> AgentRunDispatch
+        ! AgentParticipationNotFound ! AgentAccessDenied ! AgentTriggerRejected ! AgentParticipationPersistenceUnavailable {
+        state observes ConversationParticipation by request.participationId
+        state observes AgentProfile by before.ConversationParticipation(request.participationId).agentId
+        state inserts TriggerDelivery
+        ensures success and count(delivery in before.TriggerDelivery where delivery.id == request.deliveryId) == 0 implies after.TriggerDelivery(request.deliveryId) == TriggerDelivery { id = request.deliveryId dispatch = AgentRunDispatch { runId = request.runId kind = request.kind originKind = ManualRequest agentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).id runnerId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).runnerId localAgentId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).localAgentId snapshotId = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentSnapshotId snapshotVersion = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentVersion snapshotFingerprint = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).currentFingerprint participationId = before.ConversationParticipation(request.participationId).id conversationId = before.ConversationParticipation(request.participationId).conversationId workstreamId = before.ConversationParticipation(request.participationId).workstreamId sourceMessageId = None() sourceMessageVersion = None() sourceMessageHash = None() sourceChannelId = None() trigger = None() triggeringPrincipalId = request.actorId instruction = Some(request.instruction) contextTokenLimit = before.AgentProfile(before.ConversationParticipation(request.participationId).agentId).contextTokenLimit autonomyMode = before.ConversationParticipation(request.participationId).autonomyMode permittedSkillNames = before.ConversationParticipation(request.participationId).permittedSkillNames permittedToolNames = before.ConversationParticipation(request.participationId).permittedToolNames } requestedAt = request.occurredAt }
+        ensures success and count(delivery in before.TriggerDelivery where delivery.id == request.deliveryId) > 0 implies before.TriggerDelivery == after.TriggerDelivery
+        ensures not success implies before.TriggerDelivery == after.TriggerDelivery
+        ensures success implies result == after.TriggerDelivery(request.deliveryId).dispatch
+      }
+      effects { read AgentProfile read ConversationParticipation read TriggerDelivery write TriggerDelivery }
+      operation recordMemory(request: RecordAgentMemory)
+        -> AgentMemory
+        ! AgentNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable {
+        state upserts AgentMemory from AgentMemory { id = request.memoryId agentId = request.agentId scopeKind = request.scopeKind scopeId = request.scopeId content = request.content sourceArtifactIds = request.sourceArtifactIds visibility = request.visibility recordedAt = request.occurredAt invalidatedAt = None() }
+        ensures success implies result == after.AgentMemory(request.memoryId)
+        ensures not success implies before.AgentMemory == after.AgentMemory
+      }
+      effects { read AgentProfile write AgentMemory }
+      operation invalidateMemory(request: InvalidateAgentMemory)
+        -> Unit
+        ! AgentMemoryNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable {
+        effects { write AgentMemory }
+        state replaces AgentMemory by request.memoryId from AgentMemory {
+          id = self.id
+          agentId = self.agentId
+          scopeKind = self.scopeKind
+          scopeId = self.scopeId
+          content = self.content
+          sourceArtifactIds = self.sourceArtifactIds
+          visibility = self.visibility
+          recordedAt = self.recordedAt
+          invalidatedAt = Some(request.occurredAt)
+        }
+        ensures success implies before.AgentMemory(request.memoryId).agentId == request.agentId
+        ensures success implies after.AgentMemory(request.memoryId).invalidatedAt == Some(request.occurredAt)
+        ensures not success implies before.AgentMemory == after.AgentMemory
+      }
+      operation profile(agentId: AgentId, actorId: AgentPrincipalId)
+        -> AgentProfileView
+        ! AgentNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable {
+        state observes AgentProfile by agentId
+        ensures success implies result == AgentProfileView { id = before.AgentProfile(agentId).id principalId = before.AgentProfile(agentId).principalId name = before.AgentProfile(agentId).name standing = before.AgentProfile(agentId).standing runnerId = before.AgentProfile(agentId).runnerId localAgentId = before.AgentProfile(agentId).localAgentId currentSnapshotId = before.AgentProfile(agentId).currentSnapshotId currentVersion = before.AgentProfile(agentId).currentVersion currentFingerprint = before.AgentProfile(agentId).currentFingerprint contextTokenLimit = before.AgentProfile(agentId).contextTokenLimit }
+      }
+      effects { read AgentProfile }
+      operation memory(agentId: AgentId, actorId: AgentPrincipalId, scopeId: UUID)
+        -> AgentMemoryView
+        ! AgentNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable {
+        state observes AgentProfile by agentId
+        state lists AgentMemory where self.agentId == agentId and self.scopeId == scopeId
+        ensures success implies result.agentId == agentId
+        ensures success implies count(result.items) == count(memory in before.AgentMemory where memory.agentId == agentId and memory.scopeId == scopeId)
+        ensures success implies all(memory in result.items where memory.agentId == agentId and memory.scopeId == scopeId and memory == before.AgentMemory(memory.id))
+        ensures success implies all(memory in before.AgentMemory where memory.agentId != agentId or memory.scopeId != scopeId or count(item in result.items where item.id == memory.id) == 1)
+        ensures before.AgentProfile == after.AgentProfile and before.AgentMemory == after.AgentMemory
+      }
+      effects { read AgentProfile read AgentMemory }
+      operation removeAllParticipations(request: RemoveAgentFromConversations)
+        -> Unit
+        ! AgentNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable {
+        effects { write ConversationParticipation }
+        state removes ConversationParticipation where self.agentId == request.agentId
+      }
+    }
+    port RunnerAgentLookup {
+      operation current(runnerId: ParticipantRunnerId, localAgentId: ParticipantLocalAgentId, snapshotId: ParticipantSnapshotId)
+        -> ParticipantSnapshotReference
+        ! RunnerAgentUnavailable
+    }
+    port AgentRunQueue {
+      operation enqueue(request: AgentRunDispatch)
+        -> Unit
+        ! AgentRunQueueUnavailable
+    }
+    port AgentRunHistory {
+      operation history(agentId: AgentId, actorId: AgentPrincipalId)
+        -> AgentWorkHistory
+        ! AgentNotFound ! AgentAccessDenied ! AgentRunQueueUnavailable
+    }
+
+    surface AgentApi exposes requestReply {
+      operation register(request: RegisterAgent)
+        -> AgentProfileView
+        ! AgentAccessDenied ! AgentConfigurationRejected ! RunnerAgentUnavailable ! AgentParticipationPersistenceUnavailable
+      effects { write AgentProfile call RunnerAgentLookup.current as snapshot call AgentParticipationRepository.register emit AgentRegistered(agentId: request.agentId, principalId: request.principalId) }
+      operation change(request: ChangeAgent)
+        -> AgentProfileView
+        ! AgentNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable
+      effects { read AgentProfile write AgentProfile call AgentParticipationRepository.change emit AgentChanged(agentId: request.agentId, standing: request.standing) }
+      operation refreshSnapshot(request: RefreshAgentSnapshot)
+        -> AgentProfileView
+        ! AgentNotFound ! RunnerAgentUnavailable ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable
+      effects { read AgentProfile write AgentProfile call RunnerAgentLookup.current as snapshot call AgentParticipationRepository.refreshSnapshot emit AgentSnapshotRefreshed(agentId: request.agentId, snapshotId: request.snapshotId) }
+      operation join(request: JoinAgentToConversation)
+        -> AgentParticipationView
+        ! AgentNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable
+      effects { read AgentProfile write ConversationParticipation call AgentParticipationRepository.join emit AgentJoinedConversation(agentId: request.agentId, participationId: request.participationId, conversationId: request.conversationId) }
+      operation changeParticipation(request: ChangeAgentParticipation)
+        -> AgentParticipationView
+        ! AgentParticipationNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable
+      effects { write ConversationParticipation call AgentParticipationRepository.changeParticipation as participation emit AgentParticipationChanged(agentId: participation.agentId, participationId: participation.id) }
+      operation triggerFromMessage(request: TriggerAgentFromMessage)
+        -> AgentRunDispatch
+        ! AgentParticipationNotFound ! AgentTriggerRejected ! AgentParticipationPersistenceUnavailable ! AgentRunQueueUnavailable
+      effects { read AgentProfile read ConversationParticipation write TriggerDelivery call AgentParticipationRepository.triggerFromMessage as dispatch call AgentRunQueue.enqueue emit AgentParticipationRunQueued(agentId: dispatch.agentId, runId: dispatch.runId, participationId: dispatch.participationId) }
+      operation triggerManually(request: RequestAgentManually)
+        -> AgentRunDispatch
+        ! AgentParticipationNotFound ! AgentAccessDenied ! AgentTriggerRejected ! AgentParticipationPersistenceUnavailable ! AgentRunQueueUnavailable
+      effects { read AgentProfile read ConversationParticipation read TriggerDelivery write TriggerDelivery call AgentParticipationRepository.triggerManually as dispatch call AgentRunQueue.enqueue emit AgentParticipationRunQueued(agentId: dispatch.agentId, runId: dispatch.runId, participationId: dispatch.participationId) }
+      operation recordMemory(request: RecordAgentMemory)
+        -> AgentMemory
+        ! AgentNotFound ! AgentAccessDenied ! AgentConfigurationRejected ! AgentParticipationPersistenceUnavailable
+      effects { read AgentProfile write AgentMemory call AgentParticipationRepository.recordMemory emit AgentMemoryRecorded(agentId: request.agentId, memoryId: request.memoryId) }
+      operation invalidateMemory(request: InvalidateAgentMemory)
+        -> Unit
+        ! AgentMemoryNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable
+      effects { write AgentMemory call AgentParticipationRepository.invalidateMemory emit AgentMemoryInvalidated(agentId: request.agentId, memoryId: request.memoryId) }
+      operation profile(agentId: AgentId, actorId: AgentPrincipalId)
+        -> AgentProfileView
+        ! AgentNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable
+      effects { read AgentProfile call AgentParticipationRepository.profile }
+      operation memory(agentId: AgentId, actorId: AgentPrincipalId, scopeId: UUID)
+        -> AgentMemoryView
+        ! AgentNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable
+      effects { read AgentProfile read AgentMemory call AgentParticipationRepository.memory }
+      operation history(agentId: AgentId, actorId: AgentPrincipalId)
+        -> AgentWorkHistory
+        ! AgentNotFound ! AgentAccessDenied ! AgentRunQueueUnavailable
+      effects { call AgentRunHistory.history }
+      operation removeAllParticipations(request: RemoveAgentFromConversations)
+        -> Unit
+        ! AgentNotFound ! AgentAccessDenied ! AgentParticipationPersistenceUnavailable
+      effects { write ConversationParticipation call AgentParticipationRepository.removeAllParticipations }
+    }
+
+    example "register a principal for a reported runner agent with no conversation access" {
+      given RunnerAgentLookup.current(runnerId, localAgentId, snapshotId) returns snapshot
+      given AgentParticipationRepository.register(registerRequest, snapshot) returns profile
+      when result = AgentApi.register(registerRequest)
+      expect Success
+      expect emits AgentRegistered { agentId = agentId principalId = principalId }
+    }
+    example "reject registration for an agent missing from the current runner inventory" {
+      given RunnerAgentLookup.current(runnerId, localAgentId, snapshotId) fails RunnerAgentUnavailable { reason = "agent absent from current inventory" }
+      when result = AgentApi.register(removedAgentRequest)
+      expect result fails RunnerAgentUnavailable
+    }
+    example "join an agent to one conversation with scoped skills and tools" {
+      given AgentParticipationRepository.join(joinRequest) returns participation
+      when result = AgentApi.join(joinRequest)
+      expect Success
+      expect emits AgentJoinedConversation { agentId = agentId participationId = participationId conversationId = conversationId }
+    }
+    example "refresh only the profile pointer after an inventory change" {
+      given RunnerAgentLookup.current(runnerId, localAgentId, snapshotId) returns snapshot
+      given AgentParticipationRepository.refreshSnapshot(refreshRequest, snapshot) returns profile
+      when result = AgentApi.refreshSnapshot(refreshRequest)
+      expect Success
+      expect emits AgentSnapshotRefreshed { agentId = agentId snapshotId = snapshotId }
+    }
+    example "pause an agent without changing its runner identity" {
+      given AgentParticipationRepository.change(changeRequest) returns changedProfile
+      when result = AgentApi.change(changeRequest)
+      expect Success
+      expect emits AgentChanged { agentId = agentId standing = Paused }
+    }
+    example "change only one conversation participation" {
+      given AgentParticipationRepository.changeParticipation(changeRequest) returns AgentParticipationView { id = participationId agentId = agentId conversationId = conversationId workstreamId = None role = Facilitator triggerPolicy = Mentioned autonomyMode = ObserveOnly assigned = false permittedSkillNames = [] permittedToolNames = [] }
+      when result = AgentApi.changeParticipation(changeRequest)
+      expect Success
+      expect emits AgentParticipationChanged { agentId = agentId participationId = participationId }
+    }
+    example "queue one chat reply from a versioned human message" {
+      given AgentParticipationRepository.triggerFromMessage(messageTrigger) returns AgentRunDispatch { runId = runId kind = ChatReply originKind = ChatMessage agentId = agentId runnerId = runnerId localAgentId = localAgentId snapshotId = snapshotId snapshotVersion = snapshotVersion snapshotFingerprint = snapshotFingerprint participationId = participationId conversationId = conversationId workstreamId = None sourceMessageId = Some(messageId) sourceMessageVersion = Some(messageVersion) sourceMessageHash = Some(messageHash) sourceChannelId = Some(conversationId) trigger = Some("mention") triggeringPrincipalId = principalId instruction = None contextTokenLimit = contextTokenLimit autonomyMode = ObserveOnly permittedSkillNames = [] permittedToolNames = [] }
+      given AgentRunQueue.enqueue(AgentRunDispatch { runId = runId kind = ChatReply originKind = ChatMessage agentId = agentId runnerId = runnerId localAgentId = localAgentId snapshotId = snapshotId snapshotVersion = snapshotVersion snapshotFingerprint = snapshotFingerprint participationId = participationId conversationId = conversationId workstreamId = None sourceMessageId = Some(messageId) sourceMessageVersion = Some(messageVersion) sourceMessageHash = Some(messageHash) sourceChannelId = Some(conversationId) trigger = Some("mention") triggeringPrincipalId = principalId instruction = None contextTokenLimit = contextTokenLimit autonomyMode = ObserveOnly permittedSkillNames = [] permittedToolNames = [] }) returns Unit
+      when result = AgentApi.triggerFromMessage(messageTrigger)
+      expect Success
+      expect emits AgentParticipationRunQueued { agentId = agentId runId = runId participationId = participationId }
+    }
+    example "ignore an agent-authored message for a human-message trigger" {
+      given AgentParticipationRepository.triggerFromMessage(agentAuthoredTrigger) fails AgentTriggerRejected { reason = "triggering principal is not human" }
+      when result = AgentApi.triggerFromMessage(agentAuthoredTrigger)
+      expect result fails AgentTriggerRejected
+    }
+    example "queue a manual work task" {
+      given AgentParticipationRepository.triggerManually(manualRequest) returns AgentRunDispatch { runId = runId kind = WorkTask originKind = ManualRequest agentId = agentId runnerId = runnerId localAgentId = localAgentId snapshotId = snapshotId snapshotVersion = snapshotVersion snapshotFingerprint = snapshotFingerprint participationId = participationId conversationId = conversationId workstreamId = None sourceMessageId = None sourceMessageVersion = None sourceMessageHash = None sourceChannelId = None trigger = None triggeringPrincipalId = principalId instruction = Some("investigate") contextTokenLimit = contextTokenLimit autonomyMode = ObserveOnly permittedSkillNames = [] permittedToolNames = [] }
+      given AgentRunQueue.enqueue(AgentRunDispatch { runId = runId kind = WorkTask originKind = ManualRequest agentId = agentId runnerId = runnerId localAgentId = localAgentId snapshotId = snapshotId snapshotVersion = snapshotVersion snapshotFingerprint = snapshotFingerprint participationId = participationId conversationId = conversationId workstreamId = None sourceMessageId = None sourceMessageVersion = None sourceMessageHash = None sourceChannelId = None trigger = None triggeringPrincipalId = principalId instruction = Some("investigate") contextTokenLimit = contextTokenLimit autonomyMode = ObserveOnly permittedSkillNames = [] permittedToolNames = [] }) returns Unit
+      when result = AgentApi.triggerManually(manualRequest)
+      expect Success
+      expect emits AgentParticipationRunQueued { agentId = agentId runId = runId participationId = participationId }
+    }
+    example "native participation register success" {
+      when result = AgentParticipationRepository.register(RegisterAgent { agentId = "00000000-0000-4000-8000-000000000001" principalId = "00000000-0000-4000-8000-000000000002" administratorId = "00000000-0000-4000-8000-000000000002" name = "Native agent" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" contextTokenLimit = 1000 occurredAt = "2026-10-07T12:00:00.000Z" }, ParticipantSnapshotReference { runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" version = "1" fingerprint = "native-fingerprint-00001" })
+      expect result == AgentProfileView { id = "00000000-0000-4000-8000-000000000001" principalId = "00000000-0000-4000-8000-000000000002" name = "Native agent" standing = Active runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" currentSnapshotId = "00000000-0000-4000-8000-000000000004" currentVersion = "1" currentFingerprint = "native-fingerprint-00001" contextTokenLimit = 1000 }
+    }
+    example "native participation register denied" {
+      when result = AgentParticipationRepository.register(RegisterAgent { agentId = "00000000-0000-4000-8000-000000000001" principalId = "00000000-0000-4000-8000-000000000002" administratorId = "00000000-0000-4000-8000-000000000002" name = "Native agent" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" contextTokenLimit = 1000 occurredAt = "2026-10-07T12:00:00.000Z" }, ParticipantSnapshotReference { runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" version = "1" fingerprint = "native-fingerprint-00001" })
+      expect result fails AgentAccessDenied
+    }
+    example "native participation change success" {
+      when result = AgentParticipationRepository.change(ChangeAgent { agentId = "00000000-0000-4000-8000-000000000001" administratorId = "00000000-0000-4000-8000-000000000002" name = "Updated native agent" standing = Paused contextTokenLimit = 2000 occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentProfileView { id = "00000000-0000-4000-8000-000000000001" principalId = "00000000-0000-4000-8000-000000000002" name = "Updated native agent" standing = Paused runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" currentSnapshotId = "00000000-0000-4000-8000-000000000004" currentVersion = "1" currentFingerprint = "native-fingerprint-00001" contextTokenLimit = 2000 }
+    }
+    example "native participation change missing" {
+      when result = AgentParticipationRepository.change(ChangeAgent { agentId = "00000000-0000-4000-8000-000000000001" administratorId = "00000000-0000-4000-8000-000000000002" name = "Updated native agent" standing = Paused contextTokenLimit = 2000 occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentNotFound
+    }
+    example "native participation refresh success" {
+      when result = AgentParticipationRepository.refreshSnapshot(RefreshAgentSnapshot { agentId = "00000000-0000-4000-8000-000000000001" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" occurredAt = "2026-10-07T12:00:00.000Z" }, ParticipantSnapshotReference { runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" version = "1" fingerprint = "native-fingerprint-00001" })
+      expect result == AgentProfileView { id = "00000000-0000-4000-8000-000000000001" principalId = "00000000-0000-4000-8000-000000000002" name = "Native agent" standing = Active runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" currentSnapshotId = "00000000-0000-4000-8000-000000000004" currentVersion = "1" currentFingerprint = "native-fingerprint-00001" contextTokenLimit = 1000 }
+    }
+    example "native participation refresh missing" {
+      when result = AgentParticipationRepository.refreshSnapshot(RefreshAgentSnapshot { agentId = "00000000-0000-4000-8000-000000000001" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" occurredAt = "2026-10-07T12:00:00.000Z" }, ParticipantSnapshotReference { runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" version = "1" fingerprint = "native-fingerprint-00001" })
+      expect result fails AgentNotFound
+    }
+    example "native participation participation change success" {
+      when result = AgentParticipationRepository.changeParticipation(ChangeAgentParticipation { participationId = "00000000-0000-4000-8000-000000000008" actorId = "00000000-0000-4000-8000-000000000002" role = Coder triggerPolicy = Manual autonomyMode = Triage assigned = true ruleIds = [] permittedSkillNames = ["coding"] permittedToolNames = ["read"] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentParticipationView { id = "00000000-0000-4000-8000-000000000008" agentId = "00000000-0000-4000-8000-000000000001" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None role = Coder triggerPolicy = Manual autonomyMode = Triage assigned = true permittedSkillNames = ["coding"] permittedToolNames = ["read"] }
+    }
+    example "native participation manual trigger success" {
+      when result = AgentParticipationRepository.triggerManually(RequestAgentManually { deliveryId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000000b" participationId = "00000000-0000-4000-8000-000000000008" actorId = "00000000-0000-4000-8000-000000000002" instruction = "Review native work" kind = WorkTask occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentRunDispatch { runId = "00000000-0000-4000-8000-00000000000b" kind = WorkTask originKind = ManualRequest agentId = "00000000-0000-4000-8000-000000000001" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint-00001" participationId = "00000000-0000-4000-8000-000000000008" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None sourceMessageId = None sourceMessageVersion = None sourceMessageHash = None sourceChannelId = None trigger = None triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" instruction = Some("Review native work") contextTokenLimit = 1000 autonomyMode = Triage permittedSkillNames = ["review"] permittedToolNames = ["read"] }
+    }
+    example "native participation manual trigger retry" {
+      when result = AgentParticipationRepository.triggerManually(RequestAgentManually { deliveryId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000000b" participationId = "00000000-0000-4000-8000-000000000008" actorId = "00000000-0000-4000-8000-000000000002" instruction = "Review native work" kind = WorkTask occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentRunDispatch { runId = "00000000-0000-4000-8000-00000000000b" kind = WorkTask originKind = ManualRequest agentId = "00000000-0000-4000-8000-000000000001" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint-00001" participationId = "00000000-0000-4000-8000-000000000008" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None sourceMessageId = None sourceMessageVersion = None sourceMessageHash = None sourceChannelId = None trigger = None triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" instruction = Some("Review native work") contextTokenLimit = 1000 autonomyMode = Triage permittedSkillNames = ["review"] permittedToolNames = ["read"] }
+    }
+    example "native participation manual trigger missing" {
+      when result = AgentParticipationRepository.triggerManually(RequestAgentManually { deliveryId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000000b" participationId = "00000000-0000-4000-8000-000000000008" actorId = "00000000-0000-4000-8000-000000000002" instruction = "Review native work" kind = WorkTask occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentParticipationNotFound
+    }
+    example "native participation message trigger success" {
+      when result = AgentParticipationRepository.triggerFromMessage(TriggerAgentFromMessage { deliveryId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000000b" participationId = "00000000-0000-4000-8000-000000000008" sourceMessageId = "00000000-0000-4000-8000-00000000000c" sourceMessageVersion = "1" sourceMessageHash = "native-message-hash-00001" sourceChannelId = "00000000-0000-4000-8000-000000000009" triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" authorKind = Human mentionedAgentIds = ["00000000-0000-4000-8000-000000000001"] assignedAgentIds = [] matchedRuleIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentRunDispatch { runId = "00000000-0000-4000-8000-00000000000b" kind = ChatReply originKind = ChatMessage agentId = "00000000-0000-4000-8000-000000000001" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint-00001" participationId = "00000000-0000-4000-8000-000000000008" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None sourceMessageId = Some("00000000-0000-4000-8000-00000000000c") sourceMessageVersion = Some("1") sourceMessageHash = Some("native-message-hash-00001") sourceChannelId = Some("00000000-0000-4000-8000-000000000009") trigger = Some("Mentioned") triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" instruction = None contextTokenLimit = 1000 autonomyMode = Triage permittedSkillNames = ["review"] permittedToolNames = ["read"] }
+    }
+    example "native participation message trigger retry" {
+      when result = AgentParticipationRepository.triggerFromMessage(TriggerAgentFromMessage { deliveryId = "00000000-0000-4000-8000-00000000000d" runId = "00000000-0000-4000-8000-00000000000e" participationId = "00000000-0000-4000-8000-000000000008" sourceMessageId = "00000000-0000-4000-8000-00000000000c" sourceMessageVersion = "2" sourceMessageHash = "native-message-hash-00002" sourceChannelId = "00000000-0000-4000-8000-000000000009" triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" authorKind = Human mentionedAgentIds = ["00000000-0000-4000-8000-000000000001"] assignedAgentIds = [] matchedRuleIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentRunDispatch { runId = "00000000-0000-4000-8000-00000000000b" kind = ChatReply originKind = ChatMessage agentId = "00000000-0000-4000-8000-000000000001" runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000004" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint-00001" participationId = "00000000-0000-4000-8000-000000000008" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None sourceMessageId = Some("00000000-0000-4000-8000-00000000000c") sourceMessageVersion = Some("1") sourceMessageHash = Some("native-message-hash-00001") sourceChannelId = Some("00000000-0000-4000-8000-000000000009") trigger = Some("Mentioned") triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" instruction = None contextTokenLimit = 1000 autonomyMode = Triage permittedSkillNames = ["review"] permittedToolNames = ["read"] }
+    }
+    example "native participation message trigger nonhuman" {
+      when result = AgentParticipationRepository.triggerFromMessage(TriggerAgentFromMessage { deliveryId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000000b" participationId = "00000000-0000-4000-8000-000000000008" sourceMessageId = "00000000-0000-4000-8000-00000000000c" sourceMessageVersion = "1" sourceMessageHash = "native-message-hash-00001" sourceChannelId = "00000000-0000-4000-8000-000000000009" triggeringPrincipalId = "00000000-0000-4000-8000-000000000002" authorKind = Agent mentionedAgentIds = ["00000000-0000-4000-8000-000000000001"] assignedAgentIds = [] matchedRuleIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentTriggerRejected
+    }
+    example "native participation run history success" {
+      when result = AgentRunHistory.history("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result == AgentWorkHistory { agentId = "00000000-0000-4000-8000-000000000001" runIds = ["00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000004"] }
+    }
+    example "native participation run history empty" {
+      when result = AgentRunHistory.history("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result == AgentWorkHistory { agentId = "00000000-0000-4000-8000-000000000001" runIds = [] }
+    }
+    example "native participation run history missing" {
+      when result = AgentRunHistory.history("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result fails AgentNotFound
+    }
+    example "native participation run history denied" {
+      when result = AgentRunHistory.history("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result fails AgentAccessDenied
+    }
+    example "native participation run history unavailable" {
+      when result = AgentRunHistory.history("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result fails AgentRunQueueUnavailable
+    }
+    example "native participation profile success" {
+      when result = AgentParticipationRepository.profile("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result == AgentProfileView { id = "00000000-0000-4000-8000-000000000001" principalId = "00000000-0000-4000-8000-000000000002" name = "Native agent" standing = Active runnerId = "00000000-0000-4000-8000-000000000003" localAgentId = "native-agent" currentSnapshotId = "00000000-0000-4000-8000-000000000004" currentVersion = "1" currentFingerprint = "native-fingerprint-00001" contextTokenLimit = 1000 }
+    }
+    example "native participation profile missing" {
+      when result = AgentParticipationRepository.profile("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002")
+      expect result fails AgentNotFound
+    }
+    example "native participation memory read success" {
+      when result = AgentParticipationRepository.memory("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000006")
+      expect result == AgentMemoryView { agentId = "00000000-0000-4000-8000-000000000001" items = [AgentMemory { id = "00000000-0000-4000-8000-000000000005" agentId = "00000000-0000-4000-8000-000000000001" scopeKind = Workstream scopeId = "00000000-0000-4000-8000-000000000006" content = "Native retained memory" sourceArtifactIds = [] visibility = Participants recordedAt = "2026-10-07T09:00:00.000Z" invalidatedAt = None }] }
+    }
+    example "native participation memory read empty" {
+      when result = AgentParticipationRepository.memory("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000006")
+      expect result == AgentMemoryView { agentId = "00000000-0000-4000-8000-000000000001" items = [] }
+    }
+    example "native participation memory read invalidated" {
+      when result = AgentParticipationRepository.memory("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000006")
+      expect result == AgentMemoryView { agentId = "00000000-0000-4000-8000-000000000001" items = [AgentMemory { id = "00000000-0000-4000-8000-000000000005" agentId = "00000000-0000-4000-8000-000000000001" scopeKind = Workstream scopeId = "00000000-0000-4000-8000-000000000006" content = "Native retained memory" sourceArtifactIds = ["00000000-0000-4000-8000-000000000007"] visibility = AgentOnly recordedAt = "2026-10-07T09:00:00.000Z" invalidatedAt = Some("2026-10-07T10:00:00.000Z") }] }
+    }
+    example "native participation memory read denied" {
+      when result = AgentParticipationRepository.memory("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000006")
+      expect result fails AgentAccessDenied
+    }
+    example "native participation memory read missing" {
+      when result = AgentParticipationRepository.memory("00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002", "00000000-0000-4000-8000-000000000006")
+      expect result fails AgentNotFound
+    }
+    example "native participation memory invalidate success" {
+      when result = AgentParticipationRepository.invalidateMemory(InvalidateAgentMemory { memoryId = "00000000-0000-4000-8000-000000000005" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" reason = "Outdated" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "native participation memory invalidate missing" {
+      when result = AgentParticipationRepository.invalidateMemory(InvalidateAgentMemory { memoryId = "00000000-0000-4000-8000-000000000005" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" reason = "Outdated" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentMemoryNotFound
+    }
+    example "native participation remove participations success" {
+      when result = AgentParticipationRepository.removeAllParticipations(RemoveAgentFromConversations { agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "native participation remove participations missing" {
+      when result = AgentParticipationRepository.removeAllParticipations(RemoveAgentFromConversations { agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentNotFound
+    }
+
+    example "real memory recording persists its complete declared value" {
+      when result = AgentParticipationRepository.recordMemory(RecordAgentMemory { memoryId = "00000000-0000-4000-8000-000000000015" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" scopeKind = Workstream scopeId = "00000000-0000-4000-8000-000000000019" content = "Deploy requires approval" sourceArtifactIds = [] visibility = Participants occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == AgentMemory { id = "00000000-0000-4000-8000-000000000015" agentId = "00000000-0000-4000-8000-000000000001" scopeKind = Workstream scopeId = "00000000-0000-4000-8000-000000000019" content = "Deploy requires approval" sourceArtifactIds = [] visibility = Participants recordedAt = "2026-10-07T12:00:00.000Z" invalidatedAt = None }
+    }
+    example "real memory recording rejects empty content without state loss" {
+      when result = AgentParticipationRepository.recordMemory(RecordAgentMemory { memoryId = "00000000-0000-4000-8000-000000000015" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" scopeKind = Workstream scopeId = "00000000-0000-4000-8000-000000000019" content = "" sourceArtifactIds = [] visibility = Participants occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentConfigurationRejected
+    }
+    example "real memory recording rejects a missing agent" {
+      when result = AgentParticipationRepository.recordMemory(RecordAgentMemory { memoryId = "00000000-0000-4000-8000-000000000015" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" scopeKind = Workstream scopeId = "00000000-0000-4000-8000-000000000019" content = "Deploy requires approval" sourceArtifactIds = [] visibility = Participants occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentNotFound
+    }
+    example "real participation change rejects an unknown participation" {
+      when result = AgentParticipationRepository.changeParticipation(ChangeAgentParticipation { participationId = "00000000-0000-4000-8000-000000000018" actorId = "00000000-0000-4000-8000-000000000002" role = Coder triggerPolicy = Manual autonomyMode = Triage assigned = true ruleIds = [] permittedSkillNames = ["coding"] permittedToolNames = ["read"] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails AgentParticipationNotFound
+    }
+    example "real participation repository persists the join time" {
+      when result = AgentParticipationRepository.join(JoinAgentToConversation { participationId = "00000000-0000-4000-8000-000000000008" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None role = Reviewer triggerPolicy = Manual autonomyMode = Triage assigned = true ruleIds = [] permittedSkillNames = ["review"] permittedToolNames = ["read"] occurredAt = "2026-10-05T10:00:00.000Z" })
+      expect result == AgentParticipationView { id = "00000000-0000-4000-8000-000000000008" agentId = "00000000-0000-4000-8000-000000000001" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None role = Reviewer triggerPolicy = Manual autonomyMode = Triage assigned = true permittedSkillNames = ["review"] permittedToolNames = ["read"] }
+    }
+    example "real participation repository rejects empty rules" {
+      when result = AgentParticipationRepository.join(JoinAgentToConversation { participationId = "00000000-0000-4000-8000-000000000008" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None role = Reviewer triggerPolicy = RuleBased autonomyMode = Triage assigned = true ruleIds = [] permittedSkillNames = ["review"] permittedToolNames = ["read"] occurredAt = "2026-10-05T10:00:00.000Z" })
+      expect result fails AgentConfigurationRejected
+    }
+    example "real participation repository rejects a missing agent" {
+      when result = AgentParticipationRepository.join(JoinAgentToConversation { participationId = "00000000-0000-4000-8000-000000000008" agentId = "00000000-0000-4000-8000-000000000001" actorId = "00000000-0000-4000-8000-000000000002" conversationId = "00000000-0000-4000-8000-000000000009" workstreamId = None role = Reviewer triggerPolicy = Manual autonomyMode = Triage assigned = true ruleIds = [] permittedSkillNames = ["review"] permittedToolNames = ["read"] occurredAt = "2026-10-05T10:00:00.000Z" })
+      expect result fails AgentNotFound
+    }
+
+    example "record memory with artifact provenance" {
+      given AgentParticipationRepository.recordMemory(memoryRequest) returns memory
+      when result = AgentApi.recordMemory(memoryRequest)
+      expect Success
+      expect emits AgentMemoryRecorded { agentId = agentId memoryId = memoryId }
+    }
+    example "invalidate one memory without rewriting history" {
+      given AgentParticipationRepository.invalidateMemory(invalidationRequest) returns Unit
+      when result = AgentApi.invalidateMemory(invalidationRequest)
+      expect Success
+      expect emits AgentMemoryInvalidated { agentId = agentId memoryId = memoryId }
+    }
+    example "read an authorized agent profile" {
+      given AgentParticipationRepository.profile(agentId, actorId) returns profile
+      when result = AgentApi.profile(agentId, actorId)
+      expect Success
+    }
+    example "read memory in an authorized scope" {
+      given AgentParticipationRepository.memory(agentId, actorId, scopeId) returns memoryView
+      when result = AgentApi.memory(agentId, actorId, scopeId)
+      expect Success
+    }
+    example "read durable work history for an agent" {
+      given AgentRunHistory.history(agentId, actorId) returns historyView
+      when result = AgentApi.history(agentId, actorId)
+      expect Success
+    }
+    example "remove an agent from every conversation participation" {
+      given AgentParticipationRepository.removeAllParticipations(removalRequest) returns Unit
+      when result = AgentApi.removeAllParticipations(removalRequest)
+      expect Success
+    }
+
+    constraint "A reported agent creates a distinct non-human principal on first registration; it has no conversation rights until explicitly joined."
+    constraint "The product allocates and owns the agent principal identity; a runner cannot supply an existing human principal or gain a human session."
+    constraint "An agent profile is identified by runner and runner-local agent ID and tracks the current reported snapshot. An inventory update changes only future dispatches."
+    constraint "Snapshot refresh is an internal reaction to an accepted inventory version and uses the validated RunnerAgentLookup reference; caller-provided version or fingerprint cannot replace the trusted values."
+    constraint "Only a current inventory agent on an active runner can receive a new run; removed agents retain profile, memory, and history."
+    constraint "A participation grants role, trigger, autonomy, skills, and tools for one conversation only and cannot broaden after an inventory update."
+    constraint "Effective skills and tools are the intersection of the pinned snapshot, participation, and product policy; runner input cannot expand them."
+    constraint "A chat trigger is idempotent by source message ID, source version, and participation and carries immutable source hash, channel, actor, and trigger."
+    constraint "A manual delivery has no source message and is idempotent by delivery ID; a chat delivery has a source message ID, version, and hash."
+    constraint "EveryHumanMessage applies only to human-authored messages; agent and automation replies never recursively trigger it."
+    constraint "Manual participation requires an authorized human request. WorkTask requires a workstream; ChatReply may omit one."
+    constraint "Paused and deactivated agents receive no new runs. Existing runs retain their pinned snapshot and origin."
+    constraint "Memory remains scoped and attributable; invalidation never rewrites prior runs or messages."
+  }
+}

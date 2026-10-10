@@ -1,0 +1,39 @@
+[package]
+name = "dctx0-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+[[bin]]
+name = "dctx0"
+path = "src/main.rs"
+[[bin]]
+name = "dctx0-parse-bench"
+path = "src/parse_bench.rs"
+[dependencies]
+tokio.workspace = true
+dctx0-target-sdk.workspace = true
+dctx0-interpreter.workspace = true
+dctx0-verification.workspace = true
+dctx0-tasks.workspace = true
+dctx0-core.workspace = true
+dctx0-language.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+clap.workspace = true
+dctx0-engine.workspace = true
+dctx0-graph.workspace = true
+dctx0-changes.workspace = true
+dctx0-store.workspace = true
+dctx0-target-typescript = { path = "../../targets/typescript", optional = true }
+dctx0-target-java = { path = "../../targets/java", optional = true }
+dctx0-target-go = { path = "../../targets/go", optional = true }
+dctx0-target-rust = { path = "../../targets/rust", optional = true }
+[features]
+default = ["typescript", "java", "go", "rust"]
+typescript = ["dep:dctx0-target-typescript"]
+java = ["dep:dctx0-target-java"]
+go = ["dep:dctx0-target-go"]
+rust = ["dep:dctx0-target-rust"]
+[lints]
+workspace = true

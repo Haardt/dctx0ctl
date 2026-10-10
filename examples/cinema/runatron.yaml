@@ -1,0 +1,32 @@
+watchPlugins: false
+logLevel: warn
+plugins:
+  plugin-sandbox-docker:
+    memoryDiagnostics:
+      enabled: true
+      intervalMs: 5000
+  plugin-workflow:
+    sandbox:
+      kind: docker-fuse
+  plugin-dctx0:
+    target: typescript
+    contractMode: app-owned
+    implementationProfiles:
+      hono:
+        bindingsFile: dctx0.hono.bindings.ts
+    sources:
+      - dctx0/**/*.dctx0
+    bindingsFile: dctx0.bindings.ts
+    outDir: .runatron/dctx0
+    implementationAgent: Coder
+    reviewAgent: Coder
+    reviewRepairMaxAttempts: 3
+    implementationMaxParallel: 1
+    integrationRepairMaxAttempts: 3
+    maxReviewContextBytes: 524288
+    propertyTesting:
+      seed: 42
+      maxCases: 100
+      maxCollectionSize: 4
+      maxTraceLength: 4
+      enabledExternalProfiles: []

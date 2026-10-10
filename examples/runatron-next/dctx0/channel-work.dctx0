@@ -1,0 +1,839 @@
+domain ChannelCollaboration {
+  value ChannelWorkSessionId = UUID
+  value ChannelWorkClientKey = String { length 1..160 }
+  value ChannelWorkCredential = String { length 16..512 }
+  value ChannelWorkVerifier = String { length 16..512 }
+  value ChannelWorkCursor = String { length 1..512 }
+  value ChannelWorkPageSize = Int { range 1..100 }
+  value ChannelWorkInstruction = String { length 1..16000 }
+  value AgentReplyRequestId = UUID
+  value AgentReplyRootId = UUID
+  value AgentReplyQuestion = String { length 1..16000 }
+  value AgentReplyBudgetCount = Int { range 0..8 }
+  value AgentReplyOpenCount = Int { range 0..2 }
+
+  type ChannelWorkKind = Project | Team | Workstream | Conversation
+  type ChannelWorkSessionStatus = Active | Closed
+  type ChannelWorkPermission = ReadContext | StartExecution | PublishConversation | PublishSummary | SynchronizeHistory | ContinueExecution | RequestAgentReply
+  type AgentReplyRequestStatus = Open | Answered | Cancelled
+
+  failure ChannelWorkAuthenticationRequired { reason: String }
+  failure ChannelWorkAccessDenied { reason: String }
+  failure ChannelWorkChannelNotFound { channelId: SpaceId }
+  failure ChannelWorkSessionNotFound { sessionId: ChannelWorkSessionId }
+  failure ChannelWorkDelegationRejected { reason: String }
+  failure ChannelWorkConflict { reason: String }
+  failure ChannelWorkPreconditionFailed { reason: String }
+  failure ChannelWorkCapacityExceeded { reason: String }
+  failure ChannelWorkUnavailable { reason: String }
+  failure AgentReplyRequestNotFound { requestId: AgentReplyRequestId }
+  failure AgentReplyBudgetExceeded { rootId: AgentReplyRootId }
+
+  entity ChannelWorkSession {
+    id: ChannelWorkSessionId
+    humanSessionId: SessionId
+    humanPrincipalId: PersonId
+    channelId: SpaceId
+    runnerId: ExecutionRunnerId
+    agentId: ExecutionAgentId
+    agentPrincipalId: ExecutionActorId
+    localAgentId: ExecutionLocalAgentId
+    snapshotId: ExecutionSnapshotId
+    snapshotVersion: ExecutionAgentVersion
+    snapshotFingerprint: ExecutionAgentFingerprint
+    runtimeSessionReference: RuntimeSessionReference
+    allowedOperations: List<ChannelWorkPermission>
+    permittedToolNames: List<String>
+    permittedSkillNames: List<String>
+    status: ChannelWorkSessionStatus
+    createdAt: Timestamp
+    expiresAt: Timestamp
+    closedAt: Option<Timestamp>
+    clientKey: ChannelWorkClientKey
+    key id
+  }
+  entity ChannelWorkDelegationVerifier {
+    sessionId: ChannelWorkSessionId
+    verifier: ChannelWorkVerifier
+    issuedAt: Timestamp
+    revokedAt: Option<Timestamp>
+    key sessionId
+  }
+  entity AgentReplyBudget {
+    rootId: AgentReplyRootId
+    channelId: SpaceId
+    consumedRequests: AgentReplyBudgetCount
+    openRequests: AgentReplyOpenCount
+    key rootId
+  }
+  entity AgentReplyRequest {
+    id: AgentReplyRequestId
+    rootId: AgentReplyRootId
+    channelId: SpaceId
+    requestingRunId: AgentRunId
+    requestingAttemptId: RunAttemptId
+    requestingAgentId: ExecutionAgentId
+    requestingPrincipalId: ExecutionActorId
+    targetAgentId: ExecutionAgentId
+    targetRunId: AgentRunId
+    targetAttemptId: RunAttemptId
+    question: AgentReplyQuestion
+    questionMessageId: MessageId
+    targetRunnerId: ExecutionRunnerId
+    targetHistorySnapshotId: HistorySnapshotId
+    replyRunId: Option<AgentRunId>
+    answerMessageId: Option<MessageId>
+    status: AgentReplyRequestStatus
+    clientKey: ChannelWorkClientKey
+    createdAt: Timestamp
+    resolvedAt: Option<Timestamp>
+    key id
+  }
+
+  message ChannelWorkMetadata {
+    channelId: SpaceId
+    name: String
+    kind: ChannelWorkKind
+    projectId: Option<ProjectId>
+    teamId: Option<TeamId>
+    workstreamId: Option<WorkstreamId>
+    workstreamStatus: Option<WorkstreamStage>
+    artifactIds: List<WorkArtifactId>
+    activeRuns: List<AgentRunView>
+    latestSummaryId: Option<RunSummaryId>
+    version: String
+  }
+  message ListChannelWork {
+    search: Option<String>
+    projectId: Option<ProjectId>
+    teamId: Option<TeamId>
+    workstreamStatus: Option<WorkstreamStage>
+    cursor: Option<ChannelWorkCursor>
+    limit: ChannelWorkPageSize
+  }
+  message ChannelWorkDirectory {
+    items: List<ChannelWorkMetadata>
+    nextCursor: Option<ChannelWorkCursor>
+    version: String
+  }
+  message ChannelArtifactReference {
+    artifactId: WorkArtifactId
+    version: ArtifactVersion
+    contentHash: ArtifactContentHash
+  }
+  message ChannelWorkContextManifest {
+    channelId: SpaceId
+    version: String
+    messages: List<DeliveredMessageReference>
+    artifacts: List<ChannelArtifactReference>
+    readAt: Timestamp
+  }
+  message ChannelWorkContext {
+    channel: ChannelWorkMetadata
+    chat: MessagePage
+    workstream: Option<WorkstreamView>
+    artifacts: List<ArtifactEntry>
+    runs: List<AgentRunView>
+    progressMessageIds: List<MessageId>
+    summaryMessageIds: List<MessageId>
+    historySnapshotIds: List<HistorySnapshotId>
+    manifest: ChannelWorkContextManifest
+    nextActivityCursor: Option<ChannelWorkCursor>
+  }
+  message OpenChannelWorkSession {
+    humanCredential: String
+    channelId: SpaceId
+    runnerId: ExecutionRunnerId
+    agentId: ExecutionAgentId
+    localAgentId: ExecutionLocalAgentId
+    snapshotId: ExecutionSnapshotId
+    runtimeSessionReference: RuntimeSessionReference
+    allowedOperations: List<ChannelWorkPermission>
+    permittedToolNames: List<String>
+    permittedSkillNames: List<String>
+    requestedExpiresAt: Timestamp
+    clientKey: ChannelWorkClientKey
+  }
+  message ChannelWorkAgentIdentity {
+    runnerId: ExecutionRunnerId
+    agentId: ExecutionAgentId
+    agentPrincipalId: ExecutionActorId
+    localAgentId: ExecutionLocalAgentId
+    snapshotId: ExecutionSnapshotId
+    snapshotVersion: ExecutionAgentVersion
+    snapshotFingerprint: ExecutionAgentFingerprint
+    permittedToolNames: List<String>
+    permittedSkillNames: List<String>
+  }
+  message ChannelWorkSessionReceipt {
+    session: ChannelWorkSession
+    credential: Option<ChannelWorkCredential>
+  }
+  message ChannelWorkOpeningPersistence {
+    receipt: ChannelWorkSessionReceipt
+    verifierRecord: ChannelWorkDelegationVerifier
+  }
+  message AgentReplyPersistence {
+    request: AgentReplyRequest
+    budget: AgentReplyBudget
+  }
+  message RenewChannelWorkSession {
+    humanCredential: String
+    requestedExpiresAt: Timestamp
+    clientKey: ChannelWorkClientKey
+  }
+  message CloseChannelWorkSession {
+    humanCredential: String
+    reason: String
+  }
+  message ChannelWorkRunnerProof {
+    sessionId: ChannelWorkSessionId
+    credential: ChannelWorkCredential
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+  }
+  message ChannelWorkDelegatedAuthority {
+    session: ChannelWorkSession
+    acceptedAt: Timestamp
+  }
+  message StartChannelWorkRun {
+    proof: ChannelWorkRunnerProof
+    instruction: ChannelWorkInstruction
+    executionMode: ExecutionMode
+    context: ChannelWorkContextManifest
+    runtimeSessionReference: RuntimeSessionReference
+    runtimeSandboxReference: Option<RuntimeSandboxReference>
+    clientKey: ChannelWorkClientKey
+  }
+  message PublishChannelWorkMessage {
+    proof: ChannelWorkRunnerProof
+    body: ChannelWorkInstruction
+    clientKey: ClientMessageKey
+  }
+  message ReadDelegatedChannelWork {
+    proof: ChannelWorkRunnerProof
+    chatCursor: MessageCursor
+    activityCursor: Option<ChannelWorkCursor>
+    limit: ChannelWorkPageSize
+  }
+  message ContinueChannelWorkRun {
+    proof: ChannelWorkRunnerProof
+    instruction: ChannelWorkInstruction
+    executionMode: ExecutionMode
+    sourceRunId: AgentRunId
+    sourceAttemptId: RunAttemptId
+    historySnapshotId: HistorySnapshotId
+    sourceSummaryId: RunSummaryId
+    workspaceArtifactIds: List<WorkArtifactId>
+    nativeCheckpointId: Option<RunCheckpointId>
+    runtimeSessionReference: RuntimeSessionReference
+    runtimeSandboxReference: Option<RuntimeSandboxReference>
+    clientKey: ChannelWorkClientKey
+  }
+  message AgentReplyAcceptancePersistence {
+    request: AgentReplyRequest
+    budget: AgentReplyBudget
+    assignment: RunExecutionAssignment
+  }
+  message ReadPendingAgentReplies {
+    proof: ChannelWorkRunnerProof
+  }
+  message AcceptChannelAgentReply {
+    proof: ChannelWorkRunnerProof
+    requestId: AgentReplyRequestId
+    rootId: AgentReplyRootId
+    runtimeSessionReference: RuntimeSessionReference
+    runtimeSandboxReference: Option<RuntimeSandboxReference>
+    clientKey: ChannelWorkClientKey
+  }
+  message AgentReplyAuthorityProof {
+    runnerId: ExecutionRunnerId
+    keyId: ExecutionRunnerKeyId
+    leaseId: RunLeaseId
+    runId: AgentRunId
+    attemptId: RunAttemptId
+    delegation: Option<ChannelWorkRunnerProof>
+  }
+  message RequestChannelAgentReply {
+    proof: AgentReplyAuthorityProof
+    rootId: AgentReplyRootId
+    targetAgentId: ExecutionAgentId
+    targetRunId: AgentRunId
+    targetAttemptId: RunAttemptId
+    question: AgentReplyQuestion
+    clientKey: ChannelWorkClientKey
+  }
+  message AuthorizedAgentReply {
+    channelId: SpaceId
+    requestingRunId: AgentRunId
+    requestingAttemptId: RunAttemptId
+    requestingAgentId: ExecutionAgentId
+    requestingPrincipalId: ExecutionActorId
+    targetAgentId: ExecutionAgentId
+    targetRunId: AgentRunId
+    targetAttemptId: RunAttemptId
+    targetHistorySnapshotId: HistorySnapshotId
+  }
+  message ResolveChannelAgentReply {
+    proof: AgentReplyAuthorityProof
+    requestId: AgentReplyRequestId
+    rootId: AgentReplyRootId
+    answerMessageId: MessageId
+  }
+  message CancelChannelAgentReply {
+    proof: AgentReplyAuthorityProof
+    requestId: AgentReplyRequestId
+    rootId: AgentReplyRootId
+    reason: String
+  }
+
+  event ChannelWorkSessionOpened { sessionId: ChannelWorkSessionId; channelId: SpaceId; humanPrincipalId: PersonId }
+  event ChannelWorkSessionRenewed { sessionId: ChannelWorkSessionId; channelId: SpaceId }
+  event ChannelWorkSessionClosed { sessionId: ChannelWorkSessionId; channelId: SpaceId }
+  event AgentReplyRequested { requestId: AgentReplyRequestId; channelId: SpaceId; replyRunId: Option<AgentRunId> }
+  event AgentReplyResolved { requestId: AgentReplyRequestId; channelId: SpaceId; status: AgentReplyRequestStatus }
+
+  module ChannelWork {
+    intent """
+      Make the existing channel the shared working context. Authorize limited
+      local runner sessions on behalf of a current human, preserve parallel
+      participation, and coordinate execution through owner-defined ports.
+      Own explicit agent questions and their atomically limited conversation
+      budget without interpreting ordinary conversation text as commands.
+      """
+
+    decision ChannelIdentityIsWorkContext {
+      choose "Use SpaceId as channel identity; execution and delegation identifiers identify technical activity only."
+      because "Project, team, workstream and ordinary channels can support concurrent work, including channels without tickets."
+      avoid "Never introduce a second job identity, reservation or exclusive assignee for the same channel."
+    }
+    decision DelegationDoesNotCreateMembership {
+      choose "Recheck an opaque human session and issue a separate limited delegation bound to its runner and pinned agent."
+      because "A personal agent can act for its human in one channel without administrative permanent channel admission."
+      avoid "Never authenticate from submitted principal identifiers, fabricate agent membership, or widen human rights or snapshot capabilities."
+    }
+    decision ExecutionOwnersRetainTheirState {
+      choose "Coordinate starts, linked continuations and publication through small execution, history and messaging owner ports."
+      because "ChannelWork owns collaboration authority while AgentExecution, RunHistory and Messaging retain their persistence and lifecycle."
+      avoid "Never write another owner's entities or inject concrete repositories and service locators into collaboration behavior."
+    }
+
+    owns {
+      value ChannelWorkSessionId value ChannelWorkClientKey value ChannelWorkCredential value ChannelWorkVerifier
+      value ChannelWorkCursor value ChannelWorkPageSize value ChannelWorkInstruction
+      value AgentReplyRequestId value AgentReplyRootId value AgentReplyQuestion value AgentReplyBudgetCount value AgentReplyOpenCount
+      entity ChannelWorkSession entity ChannelWorkDelegationVerifier entity AgentReplyBudget entity AgentReplyRequest
+      event ChannelWorkSessionOpened event ChannelWorkSessionRenewed event ChannelWorkSessionClosed
+      event AgentReplyRequested event AgentReplyResolved
+    }
+    requires { ChannelWorkAuthority ChannelWorkReader ChannelWorkRunnerLookup ChannelWorkSessionRepository ChannelWorkExecutionGateway ChannelWorkPublicationGateway AgentReplyAuthority AgentReplyCoordinator }
+
+    port ChannelWorkAuthority {
+      operation authenticateHuman(credential: String)
+        -> HumanSessionAuthority
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkUnavailable
+      effects { read Person read Session }
+      operation authorizeHuman(human: HumanSessionAuthority, channelId: SpaceId)
+        -> SpaceView
+        ! ChannelWorkAccessDenied ! ChannelWorkChannelNotFound ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership }
+      operation authorizeDelegation(proof: ChannelWorkRunnerProof, permission: ChannelWorkPermission)
+        -> ChannelWorkDelegatedAuthority
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkAccessDenied ! ChannelWorkSessionNotFound ! ChannelWorkUnavailable {
+        ensures success implies result.session.id == proof.sessionId
+        ensures success implies result.session.runnerId == proof.runnerId
+        ensures success implies result.session.status == Active
+        ensures success implies result.acceptedAt < result.session.expiresAt
+      }
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier }
+    }
+    port ChannelWorkReader {
+      operation list(request: ListChannelWork, human: HumanSessionAuthority)
+        -> ChannelWorkDirectory
+        ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read Project read Team read Workstream read Ticket read WorkArtifact read AgentRun read SavedRunSummary read RunSummaryPublication }
+      operation context(channelId: SpaceId, cursor: MessageCursor, human: HumanSessionAuthority)
+        -> ChannelWorkContext
+        ! ChannelWorkAccessDenied ! ChannelWorkChannelNotFound ! ChannelWorkConflict ! ChannelWorkUnavailable {
+        ensures success implies result.channel.channelId == channelId
+        ensures success implies result.manifest.channelId == channelId
+      }
+      effects { read Person read Session read Space read Membership read Project read Team read Workstream read ChatMessage read Ticket read TicketRevision read WorkArtifact read AgentRun read RunEvent read RunProgressProjection read SavedRunSummary read RunSummaryPublication read HistorySnapshot }
+      operation delegatedContext(request: ReadDelegatedChannelWork, authority: ChannelWorkDelegatedAuthority)
+        -> ChannelWorkContext
+        ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable {
+        ensures success implies result.channel.channelId == authority.session.channelId
+        ensures success implies result.manifest.channelId == authority.session.channelId
+      }
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier read Project read Team read Workstream read ChatMessage read Ticket read TicketRevision read WorkArtifact read AgentRun read RunEvent read RunProgressProjection read SavedRunSummary read RunSummaryPublication read HistorySnapshot }
+    }
+    port ChannelWorkRunnerLookup {
+      operation resolve(request: OpenChannelWorkSession, human: HumanSessionAuthority)
+        -> ChannelWorkAgentIdentity
+        ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! ChannelWorkUnavailable {
+        ensures success implies result.runnerId == request.runnerId
+        ensures success implies result.agentId == request.agentId
+        ensures success implies result.localAgentId == request.localAgentId
+        ensures success implies result.snapshotId == request.snapshotId
+      }
+      effects { read RunnerInstallation read RunnerAgentSnapshot read AgentProfile }
+    }
+    port ChannelWorkSessionRepository {
+      operation open(request: OpenChannelWorkSession, human: HumanSessionAuthority, agent: ChannelWorkAgentIdentity)
+        -> ChannelWorkOpeningPersistence
+        ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkPreconditionFailed ! ChannelWorkUnavailable {
+        state upserts ChannelWorkSession from result.receipt.session
+        state upserts ChannelWorkDelegationVerifier from result.verifierRecord
+        ensures success implies result.receipt.session.humanSessionId == human.sessionId
+        ensures success implies result.receipt.session.humanPrincipalId == human.personId
+        ensures success implies result.receipt.session.channelId == request.channelId
+        ensures success implies result.receipt.session.runnerId == agent.runnerId
+        ensures success implies result.receipt.session.agentId == agent.agentId
+        ensures success implies result.receipt.session.agentPrincipalId == agent.agentPrincipalId
+        ensures success implies result.receipt.session.snapshotId == agent.snapshotId
+        ensures success implies result.receipt.session.runtimeSessionReference == request.runtimeSessionReference
+        ensures success implies result.receipt.session.expiresAt <= human.expiresAt
+        ensures success implies result.receipt.session.expiresAt <= request.requestedExpiresAt
+        ensures success implies result.receipt.session.createdAt < result.receipt.session.expiresAt
+        ensures success implies result.verifierRecord.sessionId == result.receipt.session.id
+        ensures success implies result.receipt.session.snapshotVersion == agent.snapshotVersion
+        ensures success implies result.receipt.session.snapshotFingerprint == agent.snapshotFingerprint
+        ensures success implies all(name in result.receipt.session.permittedToolNames where contains(agent.permittedToolNames, name))
+        ensures success implies all(name in result.receipt.session.permittedSkillNames where contains(agent.permittedSkillNames, name))
+        ensures not success implies before.ChannelWorkSession == after.ChannelWorkSession and before.ChannelWorkDelegationVerifier == after.ChannelWorkDelegationVerifier
+      }
+      effects { read ChannelWorkSession read ChannelWorkDelegationVerifier write ChannelWorkSession write ChannelWorkDelegationVerifier }
+      operation renew(sessionId: ChannelWorkSessionId, request: RenewChannelWorkSession, human: HumanSessionAuthority)
+        -> ChannelWorkSession
+        ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkDelegationRejected ! ChannelWorkUnavailable {
+        state replaces ChannelWorkSession by sessionId from ChannelWorkSession {
+          id = self.id
+          humanSessionId = human.sessionId
+          humanPrincipalId = self.humanPrincipalId
+          channelId = self.channelId
+          runnerId = self.runnerId
+          agentId = self.agentId
+          agentPrincipalId = self.agentPrincipalId
+          localAgentId = self.localAgentId
+          snapshotId = self.snapshotId
+          snapshotVersion = self.snapshotVersion
+          snapshotFingerprint = self.snapshotFingerprint
+          runtimeSessionReference = self.runtimeSessionReference
+          allowedOperations = self.allowedOperations
+          permittedToolNames = self.permittedToolNames
+          permittedSkillNames = self.permittedSkillNames
+          status = self.status
+          createdAt = self.createdAt
+          expiresAt = result.expiresAt
+          closedAt = self.closedAt
+          clientKey = self.clientKey
+        }
+        ensures success implies result.id == sessionId
+        ensures success implies result.humanPrincipalId == human.personId
+        ensures success implies result.humanSessionId == human.sessionId
+        ensures success implies result.expiresAt <= human.expiresAt
+        ensures success implies result.expiresAt <= request.requestedExpiresAt
+        ensures not success implies before.ChannelWorkSession == after.ChannelWorkSession
+      }
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read RunnerAgentSnapshot read AgentProfile read ChannelWorkSession read ChannelWorkDelegationVerifier write ChannelWorkSession }
+      operation close(sessionId: ChannelWorkSessionId, request: CloseChannelWorkSession, human: HumanSessionAuthority)
+        -> ChannelWorkSession
+        ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkUnavailable {
+        state replaces ChannelWorkSession by sessionId from result
+        state replaces ChannelWorkDelegationVerifier by sessionId from ChannelWorkDelegationVerifier {
+          sessionId = self.sessionId
+          verifier = self.verifier
+          issuedAt = self.issuedAt
+          revokedAt = result.closedAt
+        }
+        ensures success implies result.id == sessionId
+        ensures success implies result.humanPrincipalId == human.personId
+        ensures success implies result.status == Closed
+        ensures not success implies before.ChannelWorkSession == after.ChannelWorkSession and before.ChannelWorkDelegationVerifier == after.ChannelWorkDelegationVerifier
+      }
+      effects { read ChannelWorkSession read ChannelWorkDelegationVerifier write ChannelWorkSession write ChannelWorkDelegationVerifier }
+    }
+    port ChannelWorkExecutionGateway {
+      operation start(request: StartChannelWorkRun, authority: ChannelWorkDelegatedAuthority)
+        -> RunExecutionAssignment
+        ! ChannelWorkPreconditionFailed ! ChannelWorkConflict ! ChannelWorkCapacityExceeded ! ChannelWorkAccessDenied ! ChannelWorkUnavailable {
+        ensures success implies result.instruction == request.instruction
+        ensures success implies result.executionMode == request.executionMode
+        ensures success implies result.run.runnerId == authority.session.runnerId
+        ensures success implies result.run.agentId == authority.session.agentId
+        ensures success implies result.run.conversationId == authority.session.channelId
+        ensures success implies result.attempt.agentPrincipalId == authority.session.agentPrincipalId
+        ensures success implies result.attempt.humanPrincipalId == Some(authority.session.humanPrincipalId)
+        ensures success implies result.attempt.channelWorkSessionId == Some(authority.session.id)
+        ensures success implies result.attempt.snapshotId == authority.session.snapshotId
+        ensures success implies result.attempt.runtimeSessionReference == Some(request.runtimeSessionReference)
+        ensures success implies result.attempt.executionMode == request.executionMode
+      }
+      effects { read ChannelWorkSession }
+      operation continue(request: ContinueChannelWorkRun, authority: ChannelWorkDelegatedAuthority)
+        -> RunExecutionAssignment
+        ! ChannelWorkPreconditionFailed ! ChannelWorkConflict ! ChannelWorkCapacityExceeded ! ChannelWorkAccessDenied ! ChannelWorkUnavailable {
+        ensures success implies result.run.id != request.sourceRunId
+        ensures success implies result.attempt.id != request.sourceAttemptId
+        ensures success implies result.run.runnerId == authority.session.runnerId
+        ensures success implies result.run.agentId == authority.session.agentId
+        ensures success implies result.run.conversationId == authority.session.channelId
+        ensures success implies result.attempt.agentPrincipalId == authority.session.agentPrincipalId
+        ensures success implies result.attempt.humanPrincipalId == Some(authority.session.humanPrincipalId)
+        ensures success implies result.attempt.channelWorkSessionId == Some(authority.session.id)
+        ensures success implies result.attempt.snapshotId == authority.session.snapshotId
+        ensures success implies result.attempt.runtimeSessionReference == Some(request.runtimeSessionReference)
+        ensures success implies result.attempt.executionMode == request.executionMode
+        ensures success implies result.instruction == request.instruction
+      }
+      effects { read ChannelWorkSession }
+    }
+    port ChannelWorkPublicationGateway {
+      operation publish(request: PublishChannelWorkMessage, authority: ChannelWorkDelegatedAuthority)
+        -> MessageView
+        ! ChannelWorkConflict ! ChannelWorkAccessDenied ! ChannelWorkUnavailable {
+        ensures success implies result.authorId == authority.session.agentPrincipalId
+        ensures success implies result.spaceId == authority.session.channelId
+        ensures success implies result.body == request.body
+        ensures success implies result.clientMessageKey == request.clientKey
+      }
+      effects { read ChannelWorkSession }
+    }
+    port AgentReplyAuthority {
+      operation authorize(request: RequestChannelAgentReply)
+        -> AuthorizedAgentReply
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! ChannelWorkUnavailable {
+        ensures success implies result.requestingRunId == request.proof.runId
+        ensures success implies result.requestingAttemptId == request.proof.attemptId
+        ensures success implies result.targetAgentId == request.targetAgentId
+        ensures success implies result.targetRunId == request.targetRunId
+        ensures success implies result.targetAttemptId == request.targetAttemptId
+      }
+      effects { read ChannelWorkSession read RunLease read AgentRun read RunAttempt read Membership read ConversationParticipation }
+    }
+    port AgentReplyCoordinator {
+      operation request(request: RequestChannelAgentReply, authority: AuthorizedAgentReply)
+        -> AgentReplyPersistence
+        ! AgentReplyBudgetExceeded ! ChannelWorkConflict ! ChannelWorkPreconditionFailed ! ChannelWorkUnavailable {
+        state upserts AgentReplyRequest from result.request
+        state upserts AgentReplyBudget from result.budget
+        ensures success implies result.request.rootId == request.rootId
+        ensures success implies result.request.channelId == authority.channelId
+        ensures success implies result.request.requestingPrincipalId == authority.requestingPrincipalId
+        ensures success implies result.request.targetAgentId == request.targetAgentId
+        ensures success implies result.request.question == request.question
+        ensures success implies result.request.clientKey == request.clientKey
+        ensures success implies result.budget.rootId == request.rootId
+        ensures success implies result.budget.channelId == authority.channelId
+        ensures success implies result.budget.consumedRequests >= 1
+        ensures success implies result.budget.consumedRequests <= 8
+        ensures success implies result.budget.openRequests <= 2
+        ensures success implies result.budget.openRequests <= result.budget.consumedRequests
+        ensures not success implies before.AgentReplyBudget == after.AgentReplyBudget and before.AgentReplyRequest == after.AgentReplyRequest
+      }
+      effects { write AgentReplyBudget write AgentReplyRequest }
+      operation pending(request: ReadPendingAgentReplies, authority: ChannelWorkDelegatedAuthority)
+        -> List<AgentReplyRequest>
+        ! ChannelWorkAccessDenied ! ChannelWorkUnavailable
+      effects { read AgentReplyRequest read ChannelWorkSession }
+      operation accept(request: AcceptChannelAgentReply, authority: ChannelWorkDelegatedAuthority)
+        -> AgentReplyAcceptancePersistence
+        ! AgentReplyRequestNotFound ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! ChannelWorkConflict ! ChannelWorkCapacityExceeded ! ChannelWorkUnavailable {
+        state replaces AgentReplyRequest by request.requestId from result.request
+        state observes AgentReplyBudget by request.rootId
+        ensures success implies result.request.id == request.requestId
+        ensures success implies result.request.rootId == request.rootId
+        ensures success implies result.request.channelId == authority.session.channelId
+        ensures success implies result.request.targetAgentId == authority.session.agentId
+        ensures success implies result.request.targetRunnerId == authority.session.runnerId
+        ensures success implies result.request.replyRunId == Some(result.assignment.run.id)
+        ensures success implies before.AgentReplyBudget == after.AgentReplyBudget
+        ensures not success implies before.AgentReplyBudget == after.AgentReplyBudget and before.AgentReplyRequest == after.AgentReplyRequest
+      }
+      effects { read AgentReplyBudget read ChannelWorkSession write AgentReplyRequest call ChannelWorkExecutionGateway.continue }
+      operation resolve(request: ResolveChannelAgentReply)
+        -> AgentReplyPersistence
+        ! AgentReplyRequestNotFound ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable {
+        state replaces AgentReplyRequest by request.requestId from result.request
+        state replaces AgentReplyBudget by request.rootId from result.budget
+        ensures success implies result.request.id == request.requestId
+        ensures success implies result.request.rootId == request.rootId
+        ensures success implies result.budget.rootId == request.rootId
+        ensures success implies result.budget.consumedRequests == before.AgentReplyBudget(request.rootId).consumedRequests
+        ensures success and before.AgentReplyRequest(request.requestId).status == Open implies result.budget.openRequests == before.AgentReplyBudget(request.rootId).openRequests - 1
+        ensures success implies result.request.status == Answered
+        ensures success implies result.request.answerMessageId == Some(request.answerMessageId)
+        ensures not success implies before.AgentReplyBudget == after.AgentReplyBudget and before.AgentReplyRequest == after.AgentReplyRequest
+      }
+      effects { read RunLease read ChannelWorkSession write AgentReplyBudget write AgentReplyRequest }
+      operation cancel(request: CancelChannelAgentReply)
+        -> AgentReplyPersistence
+        ! AgentReplyRequestNotFound ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable {
+        state replaces AgentReplyRequest by request.requestId from result.request
+        state replaces AgentReplyBudget by request.rootId from result.budget
+        ensures success implies result.request.id == request.requestId
+        ensures success implies result.request.rootId == request.rootId
+        ensures success implies result.budget.rootId == request.rootId
+        ensures success implies result.budget.consumedRequests == before.AgentReplyBudget(request.rootId).consumedRequests
+        ensures success and before.AgentReplyRequest(request.requestId).status == Open implies result.budget.openRequests == before.AgentReplyBudget(request.rootId).openRequests - 1
+        ensures success implies result.request.status == Cancelled
+        ensures not success implies before.AgentReplyBudget == after.AgentReplyBudget and before.AgentReplyRequest == after.AgentReplyRequest
+      }
+      effects { read RunLease read ChannelWorkSession write AgentReplyBudget write AgentReplyRequest }
+    }
+
+    surface ChannelWorkApi exposes requestReply {
+      operation listChannels(humanCredential: String, request: ListChannelWork)
+        -> ChannelWorkDirectory
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read Project read Team read Workstream read Ticket read WorkArtifact read AgentRun read SavedRunSummary read RunSummaryPublication call ChannelWorkAuthority.authenticateHuman as human call ChannelWorkReader.list }
+      operation context(humanCredential: String, channelId: SpaceId, cursor: MessageCursor)
+        -> ChannelWorkContext
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkChannelNotFound ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read Project read Team read Workstream read ChatMessage read Ticket read TicketRevision read WorkArtifact read AgentRun read RunEvent read RunProgressProjection read SavedRunSummary read RunSummaryPublication read HistorySnapshot call ChannelWorkAuthority.authenticateHuman as human call ChannelWorkAuthority.authorizeHuman call ChannelWorkReader.context }
+      operation openSession(request: OpenChannelWorkSession)
+        -> ChannelWorkSessionReceipt
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkChannelNotFound ! ChannelWorkConflict ! ChannelWorkPreconditionFailed ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerInstallation read RunnerAgentSnapshot read AgentProfile read ChannelWorkSession read ChannelWorkDelegationVerifier write ChannelWorkSession write ChannelWorkDelegationVerifier call ChannelWorkAuthority.authenticateHuman as human call ChannelWorkAuthority.authorizeHuman call ChannelWorkRunnerLookup.resolve as agent call ChannelWorkSessionRepository.open }
+      operation renewSession(sessionId: ChannelWorkSessionId, request: RenewChannelWorkSession)
+        -> ChannelWorkSession
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkDelegationRejected ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read RunnerAgentSnapshot read AgentProfile read ChannelWorkSession read ChannelWorkDelegationVerifier write ChannelWorkSession call ChannelWorkAuthority.authenticateHuman as human call ChannelWorkSessionRepository.renew }
+      operation closeSession(sessionId: ChannelWorkSessionId, request: CloseChannelWorkSession)
+        -> ChannelWorkSession
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkUnavailable
+      effects { read Person read Session read ChannelWorkSession read ChannelWorkDelegationVerifier write ChannelWorkSession write ChannelWorkDelegationVerifier call ChannelWorkAuthority.authenticateHuman as human call ChannelWorkSessionRepository.close }
+      operation startRun(request: StartChannelWorkRun)
+        -> RunExecutionAssignment
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! ChannelWorkConflict ! ChannelWorkCapacityExceeded ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier call ChannelWorkAuthority.authorizeDelegation as authority call ChannelWorkExecutionGateway.start }
+      operation publishMessage(request: PublishChannelWorkMessage)
+        -> MessageView
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier call ChannelWorkAuthority.authorizeDelegation as authority call ChannelWorkPublicationGateway.publish }
+      operation delegatedContext(request: ReadDelegatedChannelWork)
+        -> ChannelWorkContext
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier read Project read Team read Workstream read ChatMessage read Ticket read TicketRevision read WorkArtifact read AgentRun read RunEvent read RunProgressProjection read SavedRunSummary read RunSummaryPublication read HistorySnapshot call ChannelWorkAuthority.authorizeDelegation as authority call ChannelWorkReader.delegatedContext }
+      operation continueRun(request: ContinueChannelWorkRun)
+        -> RunExecutionAssignment
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! ChannelWorkConflict ! ChannelWorkCapacityExceeded ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier call ChannelWorkAuthority.authorizeDelegation as authority call ChannelWorkExecutionGateway.continue }
+      operation requestAgentReply(request: RequestChannelAgentReply)
+        -> AgentReplyRequest
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! AgentReplyBudgetExceeded ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read ChannelWorkSession read RunLease read AgentRun read RunAttempt read Membership read ConversationParticipation write AgentReplyBudget write AgentReplyRequest call AgentReplyAuthority.authorize as authority call AgentReplyCoordinator.request }
+      operation pendingAgentReplies(request: ReadPendingAgentReplies)
+        -> List<AgentReplyRequest>
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkSessionNotFound ! ChannelWorkAccessDenied ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier read AgentReplyRequest call ChannelWorkAuthority.authorizeDelegation as authority call AgentReplyCoordinator.pending }
+      operation acceptAgentReply(request: AcceptChannelAgentReply)
+        -> RunExecutionAssignment
+        ! ChannelWorkAuthenticationRequired ! ChannelWorkDelegationRejected ! ChannelWorkSessionNotFound ! AgentReplyRequestNotFound ! ChannelWorkAccessDenied ! ChannelWorkPreconditionFailed ! ChannelWorkConflict ! ChannelWorkCapacityExceeded ! ChannelWorkUnavailable
+      effects { read Person read Session read Space read Membership read RunnerCredential read RunnerInstallation read ChannelWorkSession read ChannelWorkDelegationVerifier read AgentReplyBudget write AgentReplyRequest call ChannelWorkAuthority.authorizeDelegation as authority call AgentReplyCoordinator.accept }
+      operation resolveAgentReply(request: ResolveChannelAgentReply)
+        -> AgentReplyRequest
+        ! AgentReplyRequestNotFound ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read RunLease read ChannelWorkSession write AgentReplyBudget write AgentReplyRequest call AgentReplyCoordinator.resolve }
+      operation cancelAgentReply(request: CancelChannelAgentReply)
+        -> AgentReplyRequest
+        ! AgentReplyRequestNotFound ! ChannelWorkAuthenticationRequired ! ChannelWorkAccessDenied ! ChannelWorkConflict ! ChannelWorkUnavailable
+      effects { read RunLease read ChannelWorkSession write AgentReplyBudget write AgentReplyRequest call AgentReplyCoordinator.cancel }
+    }
+
+    constraint "Personal-agent questions persist the exact confirmed target history and target runner with replyRunId None. Pending availability is durable and visible only through the recipient's own current channel delegation. Permanent participation retains autonomous dispatch."
+    constraint "acceptAgentReply rechecks the recipient runner, agent, channel, human standing, pinned snapshot, effective capabilities and confirmed workspace. It starts one linked execution using an explicit new runtimeSessionReference; retries preserve its identity and do not consume budget again. A sender credential never authorizes the recipient."
+    constraint "Agent answers must be immutable messages of the new reply execution, actually authored by the target agent and persisted after the question. Earlier target summaries cannot answer a later request."
+    constraint "I01-I02: SpaceId is channel identity. Project, team, workstream and ordinary channels, including channels without tickets or workstreams, remain selectable and executable. Ticket and workstream mutations still require their real domain identities."
+    constraint "I03-I06: Listing, reading, selecting, opening a delegation, announcing work and completing a run neither reserve a channel nor assign an exclusive worker. Parallel humans, sessions and runs are allowed. Conversation text never changes Ticket readiness, Workstream stage or ownership; only explicit owner operations do."
+    constraint "I07-I09: ExecutionGateway calls AgentExecution's owner operation with an immutable ChannelSession origin and instruction. The resulting attempt records actual agent principal, pinned snapshot, runner, runtime session, sandbox, mode and human collaborator. Inventory updates never rewrite historical execution identity."
+    constraint "I10: Resolve local agent identity from the installation and local agent binding. Equal names, content fingerprints or prompts across installations never merge agent principals. A personal agent's involvement needs no permanent channel membership or administrative participant admission."
+    constraint "I11: Reader checks current channel access before returning chat, typed artifacts, runs, summaries and shared history. Tickets/artifacts require authorization through their own workstream channel even when referenced by another channel. Unknown placement is denied. Recheck access before returning a completed context read."
+    constraint "I12-I16: Open authenticates a current Active Human opaque session and validates runner, local agent and immutable snapshot binding. Requested operations and tools/skills may only narrow human channel rights and the snapshot's effective capabilities. Submitted IDs cannot establish authority."
+    constraint "A session credential is opaque and verifier-only at rest. Opening returns credential only upon issuance, never from session reads or events. An identical opening clientKey scoped to the human and local runtime session returns the same session; differing bindings or content fail ChannelWorkConflict. Concurrent independent local sessions may share a channel."
+    constraint "Delegation expiry is bounded by the current human session expiry and the requested expiry. Renewal requires fresh current human session authority for the same principal, rechecks channel access, runner and snapshot restrictions, and cannot reopen Closed delegation or widen capabilities. Close is idempotent and atomically revokes its verifier."
+    constraint "Every delegated action requires the HTTP-proven current runner key plus delegation credential, a matching installation/session binding, allowed operation, unexpired Active human session/account, and current human channel membership. A runner ID/key ID or connectivity record alone grants no rights. Server time determines acceptance and expiry."
+    constraint "Publication derives agent author and target channel solely from validated authority, records human collaborator and delegation provenance, and routes normal text through Messaging. A human announcement uses the human Messaging route. No text parsing creates reservations, status transitions or implicit agent requests."
+    constraint "A context manifest records actual message versions/hashes, ticket revisions and artifact versions/hashes. The start gateway validates that referenced content was authorized and delivered. A manifest is evidence of consumed context, not an exclusive or immutable guarantee; later version differences remain observable. Progress is separate from ordinary conversation prompt history."
+    constraint "I39: Continue uses RunHistory's authorized sealed snapshot and AgentExecution's owner operation to create a new run, new attempt and new runtime session with source run/attempt/snapshot/summary and workspace artifact provenance. Parallel continuations never mutate the source run. Imported tool calls remain history and are never executed. Missing workspace evidence or incompatible native checkpoints fails explicitly."
+    constraint "I43: The root conversation budget identity is derived from durable originating run ancestry, including nested requests and continuations, and must match the request rootId. A caller cannot reset the budget with a fresh rootId. An explicit agent request derives requesting identity/channel from valid lease plus permanent participation or limited delegation. Target work must belong to the same currently authorized channel and retain a readable sealed history snapshot. If its runtime session is unavailable, create a linked continuation; do not take over the reviewer's session."
+    constraint "Budget is scoped to a server-validated root conversation identity, never a freely reset client counter. At most eight requests may be consumed and at most two may be open. Admission, budget increment, request persistence and durable publication/dispatch work are atomic. Identical retries do not consume budget twice; different content conflicts."
+    constraint "Answer or cancellation decrements the open count exactly once while preserving consumed count. An answer must be a persisted message authored by the request's target agent and linked authorized reply run in the same channel. Completion/cancellation retries preserve their first result and audit time. HumanMessage triggers remain restricted to humans."
+    constraint "All foreign writes occur through owner-defined execution, messaging and history contracts. Collaboration mutation and durable follow-up work commit together using one shared transaction context; nested document transactions are unsupported. Business failures roll back partial writes. Realtime follows persistence and retries never duplicate messages, events, trigger dispatch or notifications."
+
+    example "native delegation opening persists its real credential boundary" {
+      when result = ChannelWorkSessionRepository.open(OpenChannelWorkSession { humanCredential = "opaque-native-human-proof" channelId = "00000000-0000-4000-8000-000000000003" runnerId = "00000000-0000-4000-8000-000000000004" agentId = "00000000-0000-4000-8000-000000000005" localAgentId = "native-local-agent" snapshotId = "00000000-0000-4000-8000-000000000007" runtimeSessionReference = "native-session-runtime" allowedOperations = [ReadContext] permittedToolNames = ["read"] permittedSkillNames = ["coding"] requestedExpiresAt = "2026-10-04T14:00:00.000Z" clientKey = "native-opening" }, HumanSessionAuthority { personId = "00000000-0000-4000-8000-000000000001" sessionId = "00000000-0000-4000-8000-000000000002" expiresAt = "2026-10-04T15:00:00.000Z" }, ChannelWorkAgentIdentity { agentId = "00000000-0000-4000-8000-000000000005" agentPrincipalId = "00000000-0000-4000-8000-000000000006" runnerId = "00000000-0000-4000-8000-000000000004" localAgentId = "native-local-agent" snapshotId = "00000000-0000-4000-8000-000000000007" snapshotVersion = "native-v1" snapshotFingerprint = "native-snapshot-fingerprint" permittedToolNames = ["read"] permittedSkillNames = ["coding"] })
+      expect Success
+    }
+    example "native delegation renewal preserves the full retained boundary" {
+      when result = ChannelWorkSessionRepository.renew("00000000-0000-4000-8000-000000000009", RenewChannelWorkSession { humanCredential = "opaque-native-human-proof" requestedExpiresAt = "2026-10-04T14:30:00.000Z" clientKey = "native-renewal" }, HumanSessionAuthority { personId = "00000000-0000-4000-8000-000000000001" sessionId = "00000000-0000-4000-8000-000000000008" expiresAt = "2026-10-04T15:00:00.000Z" })
+      expect result == ChannelWorkSession { id = "00000000-0000-4000-8000-000000000009" humanSessionId = "00000000-0000-4000-8000-000000000008" humanPrincipalId = "00000000-0000-4000-8000-000000000001" channelId = "00000000-0000-4000-8000-000000000003" runnerId = "00000000-0000-4000-8000-000000000004" agentId = "00000000-0000-4000-8000-000000000005" agentPrincipalId = "00000000-0000-4000-8000-000000000006" localAgentId = "native-local-agent" snapshotId = "00000000-0000-4000-8000-000000000007" snapshotVersion = "native-v1" snapshotFingerprint = "native-snapshot-fingerprint" runtimeSessionReference = "native-session-runtime" allowedOperations = [ReadContext] permittedToolNames = ["read"] permittedSkillNames = ["coding"] status = Active createdAt = "2026-10-04T11:00:00.000Z" expiresAt = "2026-10-04T14:30:00.000Z" closedAt = None clientKey = "native-opening" }
+    }
+    example "native delegation closure revokes the retained verifier" {
+      when result = ChannelWorkSessionRepository.close("00000000-0000-4000-8000-000000000009", CloseChannelWorkSession { humanCredential = "opaque-native-human-proof" reason = "Work finished" }, HumanSessionAuthority { personId = "00000000-0000-4000-8000-000000000001" sessionId = "00000000-0000-4000-8000-000000000002" expiresAt = "2026-10-04T15:00:00.000Z" })
+      expect result == ChannelWorkSession { id = "00000000-0000-4000-8000-000000000009" humanSessionId = "00000000-0000-4000-8000-000000000002" humanPrincipalId = "00000000-0000-4000-8000-000000000001" channelId = "00000000-0000-4000-8000-000000000003" runnerId = "00000000-0000-4000-8000-000000000004" agentId = "00000000-0000-4000-8000-000000000005" agentPrincipalId = "00000000-0000-4000-8000-000000000006" localAgentId = "native-local-agent" snapshotId = "00000000-0000-4000-8000-000000000007" snapshotVersion = "native-v1" snapshotFingerprint = "native-snapshot-fingerprint" runtimeSessionReference = "native-session-runtime" allowedOperations = [ReadContext] permittedToolNames = ["read"] permittedSkillNames = ["coding"] status = Closed createdAt = "2026-10-04T11:00:00.000Z" expiresAt = "2026-10-04T14:00:00.000Z" closedAt = Some("2026-10-04T12:00:00.000Z") clientKey = "native-opening" }
+    }
+
+    example "authenticated human identity comes from credential authority" {
+      when result = ChannelWorkAuthority.authenticateHuman("conformance-human-credential-00000001")
+      expect result == HumanSessionAuthority { sessionId = "54d36918-8c63-4a04-b25a-245c8fb80481" personId = "d8c02bd2-a3df-44b9-943d-02780f99bd65" expiresAt = "2026-10-04T14:00:00.000Z" }
+    }
+    example "an authenticated human can have no visible channels" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) returns HumanSessionAuthority { sessionId = humanSessionId personId = humanPrincipalId expiresAt = humanExpiresAt }
+      given ChannelWorkReader.list(listRequest, HumanSessionAuthority { sessionId = humanSessionId personId = humanPrincipalId expiresAt = humanExpiresAt }) returns ChannelWorkDirectory { items = [] nextCursor = None version = "directory-v1" }
+      when result = ChannelWorkApi.listChannels(humanCredential, listRequest)
+      expect result == ChannelWorkDirectory { items = [] nextCursor = None version = "directory-v1" }
+    }
+    example "a channel without workstream or ticket remains selectable" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) returns HumanSessionAuthority { sessionId = humanSessionId personId = humanPrincipalId expiresAt = humanExpiresAt }
+      given ChannelWorkReader.list(listRequest, HumanSessionAuthority { sessionId = humanSessionId personId = humanPrincipalId expiresAt = humanExpiresAt }) returns ChannelWorkDirectory { items = [ChannelWorkMetadata { channelId = channelId name = "Project discussion" kind = Project projectId = Some(projectId) teamId = None workstreamId = None workstreamStatus = None artifactIds = [] activeRuns = [] latestSummaryId = None version = "channel-v1" }] nextCursor = None version = "directory-v1" }
+      when result = ChannelWorkApi.listChannels(humanCredential, listRequest)
+      expect result == ChannelWorkDirectory { items = [ChannelWorkMetadata { channelId = channelId name = "Project discussion" kind = Project projectId = Some(projectId) teamId = None workstreamId = None workstreamStatus = None artifactIds = [] activeRuns = [] latestSummaryId = None version = "channel-v1" }] nextCursor = None version = "directory-v1" }
+    }
+    example "listing requires an opaque current human session" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) fails ChannelWorkAuthenticationRequired { reason = "current human session required" }
+      when result = ChannelWorkApi.listChannels(humanCredential, listRequest)
+      expect result fails ChannelWorkAuthenticationRequired
+    }
+    example "forged runner binding cannot authorize personal agent work" {
+      given ChannelWorkAuthority.authorizeDelegation(runnerProof, StartExecution) fails ChannelWorkDelegationRejected { reason = "runner and delegation binding differs" }
+      when result = ChannelWorkApi.startRun(StartChannelWorkRun { proof = runnerProof instruction = instruction executionMode = executionMode context = context runtimeSessionReference = runtimeSessionReference runtimeSandboxReference = runtimeSandboxReference clientKey = clientKey })
+      expect result fails ChannelWorkDelegationRejected
+    }
+    example "revoked human session withdraws delegated context access" {
+      given ChannelWorkAuthority.authorizeDelegation(runnerProof, ReadContext) fails ChannelWorkAuthenticationRequired { reason = "opening human session revoked" }
+      when result = ChannelWorkApi.delegatedContext(ReadDelegatedChannelWork { proof = runnerProof chatCursor = cursor activityCursor = None limit = 50 })
+      expect result fails ChannelWorkAuthenticationRequired
+    }
+    example "continuation rejects unavailable worktree evidence" {
+      given ChannelWorkAuthority.authorizeDelegation(runnerProof, ContinueExecution) returns ChannelWorkDelegatedAuthority { session = activeSession acceptedAt = acceptedAt }
+      given ChannelWorkExecutionGateway.continue(ContinueChannelWorkRun { proof = runnerProof instruction = instruction executionMode = executionMode sourceRunId = sourceRunId sourceAttemptId = sourceAttemptId historySnapshotId = historySnapshotId sourceSummaryId = sourceSummaryId workspaceArtifactIds = workspaceArtifactIds nativeCheckpointId = nativeCheckpointId runtimeSessionReference = runtimeSessionReference runtimeSandboxReference = runtimeSandboxReference clientKey = clientKey }, ChannelWorkDelegatedAuthority { session = activeSession acceptedAt = acceptedAt }) fails ChannelWorkPreconditionFailed { reason = "required commit or diff is unavailable" }
+      when result = ChannelWorkApi.continueRun(ContinueChannelWorkRun { proof = runnerProof instruction = instruction executionMode = executionMode sourceRunId = sourceRunId sourceAttemptId = sourceAttemptId historySnapshotId = historySnapshotId sourceSummaryId = sourceSummaryId workspaceArtifactIds = workspaceArtifactIds nativeCheckpointId = nativeCheckpointId runtimeSessionReference = runtimeSessionReference runtimeSandboxReference = runtimeSandboxReference clientKey = clientKey })
+      expect result fails ChannelWorkPreconditionFailed
+    }
+    example "reviewer persists a question and its bounded root budget" {
+      when result = AgentReplyCoordinator.request(RequestChannelAgentReply { proof = AgentReplyAuthorityProof { runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000005d" attemptId = "00000000-0000-4000-8000-00000000005e" leaseId = "00000000-0000-4000-8000-000000000063" delegation = None } rootId = "00000000-0000-4000-8000-000000000030" targetAgentId = "00000000-0000-4000-8000-000000000015" targetRunId = "00000000-0000-4000-8000-000000000001" targetAttemptId = "00000000-0000-4000-8000-000000000002" question = "Explain the confirmed work" clientKey = "native-agent-question" }, AuthorizedAgentReply { channelId = "00000000-0000-4000-8000-000000000004" requestingRunId = "00000000-0000-4000-8000-00000000005d" requestingAttemptId = "00000000-0000-4000-8000-00000000005e" requestingAgentId = "00000000-0000-4000-8000-00000000005b" requestingPrincipalId = "00000000-0000-4000-8000-00000000005c" targetAgentId = "00000000-0000-4000-8000-000000000015" targetRunId = "00000000-0000-4000-8000-000000000001" targetAttemptId = "00000000-0000-4000-8000-000000000002" targetHistorySnapshotId = "00000000-0000-4000-8000-000000000005" })
+      expect Success
+    }
+    example "reviewer cannot exceed the persisted request budget" {
+      when result = AgentReplyCoordinator.request(RequestChannelAgentReply { proof = AgentReplyAuthorityProof { runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000005d" attemptId = "00000000-0000-4000-8000-00000000005e" leaseId = "00000000-0000-4000-8000-000000000063" delegation = None } rootId = "00000000-0000-4000-8000-000000000030" targetAgentId = "00000000-0000-4000-8000-000000000015" targetRunId = "00000000-0000-4000-8000-000000000001" targetAttemptId = "00000000-0000-4000-8000-000000000002" question = "Explain the confirmed work" clientKey = "native-agent-question" }, AuthorizedAgentReply { channelId = "00000000-0000-4000-8000-000000000004" requestingRunId = "00000000-0000-4000-8000-00000000005d" requestingAttemptId = "00000000-0000-4000-8000-00000000005e" requestingAgentId = "00000000-0000-4000-8000-00000000005b" requestingPrincipalId = "00000000-0000-4000-8000-00000000005c" targetAgentId = "00000000-0000-4000-8000-000000000015" targetRunId = "00000000-0000-4000-8000-000000000001" targetAttemptId = "00000000-0000-4000-8000-000000000002" targetHistorySnapshotId = "00000000-0000-4000-8000-000000000005" })
+      expect result fails AgentReplyBudgetExceeded
+    }
+    example "reviewer cancels its own persisted question" {
+      when result = AgentReplyCoordinator.cancel(CancelChannelAgentReply { proof = AgentReplyAuthorityProof { runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000005d" attemptId = "00000000-0000-4000-8000-00000000005e" leaseId = "00000000-0000-4000-8000-000000000063" delegation = None } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" reason = "Reviewer withdrew the question" })
+      expect Success
+    }
+    example "foreign lease cannot cancel the persisted question" {
+      when result = AgentReplyCoordinator.cancel(CancelChannelAgentReply { proof = AgentReplyAuthorityProof { runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-00000000005d" attemptId = "00000000-0000-4000-8000-00000000005e" leaseId = "00000000-0000-4000-8000-000000000065" delegation = None } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" reason = "Reviewer withdrew the question" })
+      expect result fails ChannelWorkAccessDenied
+    }
+    example "coder resolves its own persisted answer execution" {
+      when result = AgentReplyCoordinator.resolve(ResolveChannelAgentReply { proof = AgentReplyAuthorityProof { runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-000000000050" attemptId = "00000000-0000-4000-8000-000000000051" leaseId = "00000000-0000-4000-8000-000000000052" delegation = Some(ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" credential = "native-recipient-credential" }) } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" answerMessageId = "00000000-0000-4000-8000-000000000064" })
+      expect Success
+    }
+    example "foreign lease cannot resolve the persisted question" {
+      when result = AgentReplyCoordinator.resolve(ResolveChannelAgentReply { proof = AgentReplyAuthorityProof { runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" runId = "00000000-0000-4000-8000-000000000050" attemptId = "00000000-0000-4000-8000-000000000051" leaseId = "00000000-0000-4000-8000-000000000065" delegation = Some(ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" credential = "native-recipient-credential" }) } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" answerMessageId = "00000000-0000-4000-8000-000000000064" })
+      expect result fails ChannelWorkAccessDenied
+    }
+    example "personal recipient rejects a missing current snapshot" {
+      when result = AgentReplyCoordinator.pending(ReadPendingAgentReplies { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChannelWorkAccessDenied
+    }
+
+    example "personal recipient accepts confirmed work with its own authority" {
+      when result = AgentReplyCoordinator.accept(AcceptChannelAgentReply { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" runtimeSessionReference = "native-reply-runtime" runtimeSandboxReference = None clientKey = "native-recipient-acceptance" }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect Success
+    }
+    example "personal recipient refuses a foreign target" {
+      when result = AgentReplyCoordinator.accept(AcceptChannelAgentReply { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" runtimeSessionReference = "native-reply-runtime" runtimeSandboxReference = None clientKey = "native-recipient-acceptance" }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChannelWorkAccessDenied
+    }
+    example "personal recipient refuses incomplete source history" {
+      when result = AgentReplyCoordinator.accept(AcceptChannelAgentReply { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" runtimeSessionReference = "native-reply-runtime" runtimeSandboxReference = None clientKey = "native-recipient-acceptance" }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChannelWorkPreconditionFailed
+    }
+    example "failed recipient recheck preserves the question and budget" {
+      when result = AgentReplyCoordinator.accept(AcceptChannelAgentReply { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } requestId = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" runtimeSessionReference = "native-reply-runtime" runtimeSandboxReference = None clientKey = "native-recipient-acceptance" }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect result fails ChannelWorkUnavailable
+    }
+    example "personal recipient lists no foreign pending question" {
+      when result = AgentReplyCoordinator.pending(ReadPendingAgentReplies { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect Success
+      expect result == []
+    }
+    example "personal recipient lists its persisted pending question" {
+      when result = AgentReplyCoordinator.pending(ReadPendingAgentReplies { proof = ChannelWorkRunnerProof { sessionId = "00000000-0000-4000-8000-000000000040" credential = "native-recipient-credential" runnerId = "00000000-0000-4000-8000-000000000009" keyId = "00000000-0000-4000-8000-00000000000a" } }, ChannelWorkDelegatedAuthority { session = ChannelWorkSession { id = "00000000-0000-4000-8000-000000000040" humanSessionId = "00000000-0000-4000-8000-000000000041" humanPrincipalId = "00000000-0000-4000-8000-000000000014" channelId = "00000000-0000-4000-8000-000000000004" runnerId = "00000000-0000-4000-8000-000000000009" agentId = "00000000-0000-4000-8000-000000000015" agentPrincipalId = "00000000-0000-4000-8000-000000000017" localAgentId = "native-agent" snapshotId = "00000000-0000-4000-8000-000000000016" snapshotVersion = "1" snapshotFingerprint = "native-fingerprint" runtimeSessionReference = "native-recipient-connection" allowedOperations = [ReadContext, ContinueExecution] permittedToolNames = [] permittedSkillNames = [] status = Active createdAt = "2026-10-04T11:50:00.000Z" expiresAt = "2026-10-04T13:00:00.000Z" closedAt = None clientKey = "native-recipient-connection" } acceptedAt = "2026-10-04T12:00:00.000Z" })
+      expect Success
+      expect result == [AgentReplyRequest { id = "00000000-0000-4000-8000-000000000031" rootId = "00000000-0000-4000-8000-000000000030" channelId = "00000000-0000-4000-8000-000000000004" requestingRunId = "00000000-0000-4000-8000-00000000005d" requestingAttemptId = "00000000-0000-4000-8000-00000000005e" requestingAgentId = "00000000-0000-4000-8000-00000000005b" requestingPrincipalId = "00000000-0000-4000-8000-00000000005c" targetAgentId = "00000000-0000-4000-8000-000000000015" targetRunId = "00000000-0000-4000-8000-000000000001" targetAttemptId = "00000000-0000-4000-8000-000000000002" question = "Explain the confirmed work" questionMessageId = "00000000-0000-4000-8000-00000000005f" targetRunnerId = "00000000-0000-4000-8000-000000000009" targetHistorySnapshotId = "00000000-0000-4000-8000-000000000005" replyRunId = None answerMessageId = None status = Open clientKey = "native-agent-question" createdAt = "2026-10-04T11:55:00.000Z" resolvedAt = None }]
+    }
+
+    example "recipient acceptance rejects a revoked personal delegation" {
+      given ChannelWorkAuthority.authorizeDelegation(runnerProof, ContinueExecution) fails ChannelWorkDelegationRejected { reason = "recipient delegation revoked" }
+      when result = ChannelWorkApi.acceptAgentReply(AcceptChannelAgentReply { proof = runnerProof requestId = requestId rootId = rootId runtimeSessionReference = runtimeSessionReference runtimeSandboxReference = runtimeSandboxReference clientKey = clientKey })
+      expect result fails ChannelWorkDelegationRejected
+    }
+    example "availability requires the recipient's current channel delegation" {
+      given ChannelWorkAuthority.authorizeDelegation(runnerProof, ReadContext) fails ChannelWorkAccessDenied { reason = "recipient lost channel access" }
+      when result = ChannelWorkApi.pendingAgentReplies(ReadPendingAgentReplies { proof = runnerProof })
+      expect result fails ChannelWorkAccessDenied
+    }
+    example "concurrent agent requests respect the root budget" {
+      given AgentReplyAuthority.authorize(replyRequest) returns AuthorizedAgentReply { channelId = channelId requestingRunId = requestingRunId requestingAttemptId = requestingAttemptId requestingAgentId = requestingAgentId requestingPrincipalId = requestingPrincipalId targetAgentId = targetAgentId targetRunId = targetRunId targetAttemptId = targetAttemptId targetHistorySnapshotId = historySnapshotId }
+      given AgentReplyCoordinator.request(replyRequest, AuthorizedAgentReply { channelId = channelId requestingRunId = requestingRunId requestingAttemptId = requestingAttemptId requestingAgentId = requestingAgentId requestingPrincipalId = requestingPrincipalId targetAgentId = targetAgentId targetRunId = targetRunId targetAttemptId = targetAttemptId targetHistorySnapshotId = historySnapshotId }) fails AgentReplyBudgetExceeded { rootId = rootId }
+      when result = ChannelWorkApi.requestAgentReply(replyRequest)
+      expect result fails AgentReplyBudgetExceeded
+    }
+
+    example "context reading requires a current human credential" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) fails ChannelWorkAuthenticationRequired { reason = "current human session required" }
+      when result = ChannelWorkApi.context(humanCredential, channelId, cursor)
+      expect result fails ChannelWorkAuthenticationRequired
+    }
+    example "delegation opening requires a current human credential" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) fails ChannelWorkAuthenticationRequired { reason = "current human session required" }
+      when result = ChannelWorkApi.openSession(OpenChannelWorkSession { humanCredential = humanCredential channelId = channelId runnerId = runnerId agentId = agentId localAgentId = localAgentId snapshotId = snapshotId runtimeSessionReference = runtimeSessionReference allowedOperations = allowedOperations permittedToolNames = permittedToolNames permittedSkillNames = permittedSkillNames requestedExpiresAt = requestedExpiresAt clientKey = clientKey })
+      expect result fails ChannelWorkAuthenticationRequired
+    }
+    example "delegation renewal requires a current human credential" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) fails ChannelWorkAuthenticationRequired { reason = "current human session required" }
+      when result = ChannelWorkApi.renewSession(sessionId, RenewChannelWorkSession { humanCredential = humanCredential requestedExpiresAt = requestedExpiresAt clientKey = clientKey })
+      expect result fails ChannelWorkAuthenticationRequired
+    }
+    example "delegation closure requires a current human credential" {
+      given ChannelWorkAuthority.authenticateHuman(humanCredential) fails ChannelWorkAuthenticationRequired { reason = "current human session required" }
+      when result = ChannelWorkApi.closeSession(sessionId, CloseChannelWorkSession { humanCredential = humanCredential reason = reason })
+      expect result fails ChannelWorkAuthenticationRequired
+    }
+    example "personal agent announcement rejects a different delegation binding" {
+      given ChannelWorkAuthority.authorizeDelegation(runnerProof, PublishConversation) fails ChannelWorkDelegationRejected { reason = "runner and delegation binding differs" }
+      when result = ChannelWorkApi.publishMessage(PublishChannelWorkMessage { proof = runnerProof body = body clientKey = clientKey })
+      expect result fails ChannelWorkDelegationRejected
+    }
+    example "agent reply resolution checks the target agent authority" {
+      given AgentReplyCoordinator.resolve(resolveRequest) fails ChannelWorkAccessDenied { reason = "answer is not authored by the target agent" }
+      when result = ChannelWorkApi.resolveAgentReply(resolveRequest)
+      expect result fails ChannelWorkAccessDenied
+    }
+    example "agent reply cancellation checks the requesting execution" {
+      given AgentReplyCoordinator.cancel(cancelRequest) fails ChannelWorkAccessDenied { reason = "cancellation belongs to another execution" }
+      when result = ChannelWorkApi.cancelAgentReply(cancelRequest)
+      expect result fails ChannelWorkAccessDenied
+    }
+
+    lifecycle ChannelWorkDelegationLifecycle for ChannelWorkSession using status {
+      state Active initial
+      state Closed terminal
+      transition ChannelWork.ChannelWorkApi.openSession from Active to Active
+      transition ChannelWork.ChannelWorkApi.renewSession from Active to Active
+      transition ChannelWork.ChannelWorkApi.closeSession from Active to Closed
+    }
+    lifecycle AgentReplyRequestLifecycle for AgentReplyRequest using status {
+      state Open initial
+      state Answered terminal
+      state Cancelled terminal
+      transition ChannelWork.ChannelWorkApi.requestAgentReply from Open to Open
+      transition ChannelWork.ChannelWorkApi.resolveAgentReply from Open to Answered
+      transition ChannelWork.ChannelWorkApi.cancelAgentReply from Open to Cancelled
+    }
+  }
+}

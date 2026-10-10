@@ -1,0 +1,372 @@
+domain Conversations {
+  value SpaceId = UUID
+  value MembershipId = UUID
+  value ConversationPersonId = UUID
+  value SpaceName = String { length 1..120 }
+
+  type SpaceKind = Open | Private | Direct
+  type AttentionLevel = Hidden | Quiet | Mentions | AllMessages
+
+  failure SpaceNotFound { spaceId: SpaceId }
+  failure SpaceAccessDenied { spaceId: SpaceId; personId: ConversationPersonId }
+  failure SpaceChangeDenied { spaceId: SpaceId; personId: ConversationPersonId }
+  failure InvalidParticipantSet { reason: String }
+  failure DirectConversationImmutable { spaceId: SpaceId }
+  failure MembershipNotFound { spaceId: SpaceId; personId: ConversationPersonId }
+  failure ConversationPersistenceUnavailable { reason: String }
+
+  entity Space {
+    id: SpaceId
+    kind: SpaceKind
+    name: Option<SpaceName>
+    creatorId: ConversationPersonId
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity Membership {
+    id: MembershipId
+    spaceId: SpaceId
+    personId: ConversationPersonId
+    attention: AttentionLevel
+    joinedAt: Timestamp
+    key id
+  }
+
+  message CreateSharedSpace {
+    spaceId: SpaceId
+    actorId: ConversationPersonId
+    kind: SpaceKind
+    name: SpaceName
+    initialMemberIds: List<ConversationPersonId>
+    occurredAt: Timestamp
+  }
+  message FindOrStartDirectConversation {
+    actorId: ConversationPersonId
+    participantIds: List<ConversationPersonId>
+    occurredAt: Timestamp
+  }
+  message EditSharedSpace {
+    actorId: ConversationPersonId
+    spaceId: SpaceId
+    name: SpaceName
+    kind: SpaceKind
+    retainedMemberIds: List<ConversationPersonId>
+    occurredAt: Timestamp
+  }
+  message RemoveSpace {
+    actorId: ConversationPersonId
+    spaceId: SpaceId
+    occurredAt: Timestamp
+  }
+  message ChangeAttention {
+    personId: ConversationPersonId
+    spaceId: SpaceId
+    attention: AttentionLevel
+    occurredAt: Timestamp
+  }
+  message SpaceView {
+    id: SpaceId
+    kind: SpaceKind
+    name: Option<SpaceName>
+    creatorId: ConversationPersonId
+    participantIds: List<ConversationPersonId>
+  }
+  message MembershipView {
+    id: MembershipId
+    spaceId: SpaceId
+    personId: ConversationPersonId
+    attention: AttentionLevel
+  }
+  message SharedSpaceEditResult {
+    id: SpaceId
+    kind: SpaceKind
+    name: Option<SpaceName>
+    creatorId: ConversationPersonId
+    participantIds: List<ConversationPersonId>
+    grantedPersonIds: List<ConversationPersonId>
+    revokedPersonIds: List<ConversationPersonId>
+  }
+  message SpaceDirectory { items: List<SpaceView> }
+
+  event SharedSpaceCreated { spaceId: SpaceId; kind: SpaceKind }
+  event DirectConversationAvailable { spaceId: SpaceId }
+  event SharedSpaceChanged { spaceId: SpaceId; kind: SpaceKind }
+  event SpaceRemoved { spaceId: SpaceId }
+  event MembershipGranted { spaceId: SpaceId; personIds: List<ConversationPersonId> }
+  event MembershipRevoked { spaceId: SpaceId; personIds: List<ConversationPersonId> }
+  event AttentionChanged { spaceId: SpaceId; personId: ConversationPersonId; attention: AttentionLevel }
+
+  module Spaces {
+    intent """
+      Own chat-space identity, membership, privacy, and per-member attention so
+      every read, mutation, realtime subscription, search, and integration can
+      make the same access decision.
+      """
+
+    decision MembershipIsAuthority {
+      choose "Treat a current membership as the sole authority to access a conversation."
+      because "One owner-defined rule can protect history, live streams, search, automation, and notifications consistently."
+      avoid "Do not trust a previously signed stream name, cached sidebar entry, message identifier, or client-supplied participant list as ongoing access."
+    }
+    decision DirectsAreDistinct {
+      choose "Model direct conversations as immutable participant-set spaces, not private spaces with a special label."
+      because "Converting or revising a direct conversation could disclose its existing history to unintended people."
+      avoid "Never convert Direct to Open or Private, or add and remove its participants in place."
+    }
+
+    owns {
+      value SpaceId value MembershipId value ConversationPersonId value SpaceName
+      entity Space entity Membership
+      event SharedSpaceCreated event DirectConversationAvailable event SharedSpaceChanged event SpaceRemoved
+      event MembershipGranted event MembershipRevoked event AttentionChanged
+    }
+
+    requires { ConversationRepository ConversationMembershipRead }
+
+    port ConversationMembershipRead {
+      operation list() -> List<Membership> ! ConversationPersistenceUnavailable {
+        state lists Membership
+        ensures before.Membership == after.Membership
+        ensures success implies length(result) == count(before.Membership)
+        ensures success implies all(member in result where member == before.Membership(member.id) and count(other in result where other.id == member.id) == 1)
+        effects { read Membership }
+      }
+    }
+
+    port ConversationRepository {
+      operation createShared(request: CreateSharedSpace)
+        -> SpaceView
+        ! SpaceChangeDenied ! InvalidParticipantSet ! ConversationPersistenceUnavailable {
+        state inserts Space from Space { id = request.spaceId kind = request.kind name = Some(request.name) creatorId = request.actorId createdAt = request.occurredAt updatedAt = request.occurredAt }
+        state inserts Membership
+        ensures success implies result == SpaceView { id = request.spaceId kind = request.kind name = Some(request.name) creatorId = request.actorId participantIds = result.participantIds }
+        ensures success implies length(result.participantIds) > 0 and count(person in result.participantIds where person == request.actorId) == 1
+        ensures success implies all(person in result.participantIds where count(other in result.participantIds where other == person) == 1)
+        ensures success and request.kind == Private implies all(person in request.initialMemberIds where count(other in result.participantIds where other == person) == 1)
+        ensures success and request.kind == Private implies all(person in result.participantIds where person == request.actorId or count(other in request.initialMemberIds where other == person) > 0)
+        ensures success implies length(after.Membership) == length(before.Membership) + length(result.participantIds)
+        ensures success implies all(member in before.Membership where after.Membership(member.id) == member)
+        ensures success implies all(member in after.Membership where count(previous in before.Membership where previous.id == member.id) == 0 implies member == Membership { id = member.id spaceId = request.spaceId personId = member.personId attention = Mentions joinedAt = request.occurredAt })
+        ensures success implies all(member in after.Membership where count(previous in before.Membership where previous.id == member.id) == 0 implies count(person in result.participantIds where person == member.personId) == 1)
+        ensures success implies all(person in result.participantIds where count(member in after.Membership where member.spaceId == request.spaceId and member.personId == person and count(previous in before.Membership where previous.id == member.id) == 0) == 1)
+        ensures not success implies before.Space == after.Space and before.Membership == after.Membership
+        effects { read Membership write Space write Membership }
+      }
+      operation findOrStartDirect(request: FindOrStartDirectConversation)
+        -> SpaceView
+        ! InvalidParticipantSet ! ConversationPersistenceUnavailable
+      effects { read Space read Membership write Space write Membership }
+      operation editShared(request: EditSharedSpace)
+        -> SharedSpaceEditResult
+        ! SpaceNotFound ! SpaceChangeDenied ! InvalidParticipantSet ! DirectConversationImmutable ! ConversationPersistenceUnavailable
+      effects { write Space write Membership }
+      operation remove(request: RemoveSpace)
+        -> Unit
+        ! SpaceNotFound ! SpaceChangeDenied ! ConversationPersistenceUnavailable {
+        state removes Space by request.spaceId
+        state removes Membership where self.spaceId == request.spaceId
+        ensures not success implies before.Space == after.Space and before.Membership == after.Membership
+        effects { write Space write Membership }
+      }
+      operation changeAttention(request: ChangeAttention)
+        -> MembershipView
+        ! MembershipNotFound ! SpaceAccessDenied ! ConversationPersistenceUnavailable {
+        state observes Space by request.spaceId
+        state replaces Membership where self.spaceId == request.spaceId and self.personId == request.personId from Membership { id = result.id spaceId = self.spaceId personId = self.personId attention = request.attention joinedAt = self.joinedAt }
+        ensures success implies count(member in before.Membership where member.spaceId == request.spaceId and member.personId == request.personId) == 1
+        ensures success implies all(member in before.Membership where member.spaceId == request.spaceId and member.personId == request.personId implies result.id == member.id)
+        ensures success implies result == MembershipView { id = result.id spaceId = request.spaceId personId = request.personId attention = request.attention }
+        ensures success implies after.Membership(result.id).spaceId == request.spaceId and after.Membership(result.id).personId == request.personId and after.Membership(result.id).attention == request.attention
+        ensures not success implies before.Space == after.Space and before.Membership == after.Membership
+        effects { read Space write Membership }
+      }
+      operation listVisible(personId: ConversationPersonId)
+        -> SpaceDirectory
+        ! ConversationPersistenceUnavailable
+      effects { read Space read Membership }
+      operation inspect(spaceId: SpaceId, personId: ConversationPersonId)
+        -> SpaceView
+        ! SpaceNotFound ! SpaceAccessDenied ! ConversationPersistenceUnavailable {
+        state observes Space by spaceId
+        state lists Membership
+        ensures success implies result == SpaceView { id = before.Space(spaceId).id kind = before.Space(spaceId).kind name = before.Space(spaceId).name creatorId = before.Space(spaceId).creatorId participantIds = result.participantIds }
+        ensures success implies length(result.participantIds) == count(member in before.Membership where member.spaceId == spaceId)
+        ensures success implies all(member in before.Membership where member.spaceId == spaceId implies count(participant in result.participantIds where participant == member.personId) == 1)
+        ensures success implies all(personId in result.participantIds where count(member in before.Membership where member.spaceId == spaceId and member.personId == personId) == 1 and count(other in result.participantIds where other == personId) == 1)
+        effects { read Space read Membership }
+      }
+      operation authorize(spaceId: SpaceId, personId: ConversationPersonId)
+        -> MembershipView
+        ! SpaceNotFound ! SpaceAccessDenied ! ConversationPersistenceUnavailable
+      effects { read Space read Membership }
+    }
+
+    surface ConversationApi exposes requestReply {
+      operation createShared(request: CreateSharedSpace)
+        -> SpaceView
+        ! SpaceChangeDenied ! InvalidParticipantSet ! ConversationPersistenceUnavailable
+      effects { read Membership write Space write Membership call ConversationRepository.createShared as space emit SharedSpaceCreated(spaceId: space.id, kind: space.kind) emit MembershipGranted(spaceId: space.id, personIds: space.participantIds) }
+
+      operation findOrStartDirect(request: FindOrStartDirectConversation)
+        -> SpaceView
+        ! InvalidParticipantSet ! ConversationPersistenceUnavailable
+      effects { read Space read Membership write Space write Membership call ConversationRepository.findOrStartDirect as space emit DirectConversationAvailable(spaceId: space.id) }
+
+      operation editShared(request: EditSharedSpace)
+        -> SpaceView
+        ! SpaceNotFound ! SpaceChangeDenied ! InvalidParticipantSet ! DirectConversationImmutable ! ConversationPersistenceUnavailable
+      effects { write Space write Membership call ConversationRepository.editShared as change emit SharedSpaceChanged(spaceId: change.id, kind: change.kind) emit MembershipGranted(spaceId: change.id, personIds: change.grantedPersonIds) emit MembershipRevoked(spaceId: change.id, personIds: change.revokedPersonIds) }
+
+      operation remove(request: RemoveSpace)
+        -> Unit
+        ! SpaceNotFound ! SpaceChangeDenied ! ConversationPersistenceUnavailable
+      effects { write Space write Membership call ConversationRepository.remove emit SpaceRemoved(spaceId: request.spaceId) }
+
+      operation changeAttention(request: ChangeAttention)
+        -> MembershipView
+        ! MembershipNotFound ! SpaceAccessDenied ! ConversationPersistenceUnavailable
+      effects { read Space write Membership call ConversationRepository.changeAttention emit AttentionChanged(spaceId: request.spaceId, personId: request.personId, attention: request.attention) }
+
+      operation listVisible(personId: ConversationPersonId)
+        -> SpaceDirectory
+        ! ConversationPersistenceUnavailable
+      effects { read Space read Membership call ConversationRepository.listVisible }
+
+      operation inspect(spaceId: SpaceId, personId: ConversationPersonId)
+        -> SpaceView
+        ! SpaceNotFound ! SpaceAccessDenied ! ConversationPersistenceUnavailable
+      effects { read Space read Membership call ConversationRepository.inspect }
+
+      operation authorize(spaceId: SpaceId, personId: ConversationPersonId)
+        -> MembershipView
+        ! SpaceNotFound ! SpaceAccessDenied ! ConversationPersistenceUnavailable
+      effects { read Space read Membership call ConversationRepository.authorize }
+    }
+
+    constraint "A person has at most one membership in a space; a space has no duplicate participants."
+    constraint "CreateSharedSpace accepts only Open or Private; Direct is created only by findOrStartDirect."
+    constraint "An Open space grants membership to every active human, agent, and automation principal at creation and whenever it becomes Open."
+    constraint "A newly activated person receives membership in every Open space."
+    constraint "A Private space contains exactly its explicitly retained active participants plus its creator while the creator remains active."
+    constraint "A Direct conversation contains the actor and at least one other active participant and has no public name."
+    constraint "For one canonical, duplicate-free participant set there is at most one Direct conversation; retries return that conversation."
+    constraint "The participant set and kind of a Direct conversation are immutable; leaving it removes only the entire conversation for an authorized participant."
+    constraint "Open and Private spaces may convert into one another only through editShared with the complete intended participant set."
+    constraint "Only an active administrator or a shared-space creator may edit or remove that shared space; any Direct participant may remove their Direct conversation."
+    constraint "Account policy may restrict shared-space creation to administrators; the restriction never grants access to existing spaces."
+    constraint "A membership revocation takes effect for all future reads and immediately rejects reconnecting or newly subscribing realtime clients."
+    constraint "Hidden removes a shared space from that member's navigation and notifications but does not revoke access; Direct conversations cannot be Hidden."
+    constraint "New shared memberships default to Mentions and new Direct memberships default to AllMessages."
+    constraint "listVisible returns only current memberships whose attention is not Hidden, with Direct conversations ordered by recent activity."
+
+    example "real conversation creates a private space with actual memberships" {
+      when result = ConversationRepository.createShared(CreateSharedSpace { spaceId = "00000000-0000-4000-8000-000000000003" actorId = "00000000-0000-4000-8000-000000000001" kind = Private name = "Native room" initialMemberIds = ["00000000-0000-4000-8000-000000000002"] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == SpaceView { id = "00000000-0000-4000-8000-000000000003" kind = Private name = Some("Native room") creatorId = "00000000-0000-4000-8000-000000000001" participantIds = ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"] }
+    }
+    example "real conversation rejects creation without principal permission" {
+      when result = ConversationRepository.createShared(CreateSharedSpace { spaceId = "00000000-0000-4000-8000-000000000003" actorId = "00000000-0000-4000-8000-000000000001" kind = Private name = "Native room" initialMemberIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails SpaceChangeDenied
+    }
+    example "real conversation removes its complete memberships" {
+      when result = ConversationRepository.remove(RemoveSpace { spaceId = "00000000-0000-4000-8000-000000000003" actorId = "00000000-0000-4000-8000-000000000001" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "real conversation rejects removal by an ordinary other member" {
+      when result = ConversationRepository.remove(RemoveSpace { spaceId = "00000000-0000-4000-8000-000000000003" actorId = "00000000-0000-4000-8000-000000000002" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails SpaceChangeDenied
+    }
+    example "real conversation inspects a complete persisted space" {
+      when result = ConversationRepository.inspect("00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000001")
+      expect result == SpaceView { id = "00000000-0000-4000-8000-000000000003" kind = Private name = Some("Native room") creatorId = "00000000-0000-4000-8000-000000000001" participantIds = ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"] }
+    }
+    example "real conversation rejects an outsider read" {
+      when result = ConversationRepository.inspect("00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000099")
+      expect result fails SpaceAccessDenied
+    }
+    example "real conversation changes only the selected attention" {
+      when result = ConversationRepository.changeAttention(ChangeAttention { personId = "00000000-0000-4000-8000-000000000001" spaceId = "00000000-0000-4000-8000-000000000003" attention = Quiet occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == MembershipView { id = "00000000-0000-4000-8000-000000000004" spaceId = "00000000-0000-4000-8000-000000000003" personId = "00000000-0000-4000-8000-000000000001" attention = Quiet }
+    }
+
+    example "real conversation authorizes a complete actual membership" {
+      when result = ConversationRepository.authorize("00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000001")
+      expect result == MembershipView { id = "00000000-0000-4000-8000-000000000004" spaceId = "00000000-0000-4000-8000-000000000003" personId = "00000000-0000-4000-8000-000000000001" attention = Mentions }
+    }
+    example "real conversation rejects an outsider authorization" {
+      when result = ConversationRepository.authorize("00000000-0000-4000-8000-000000000003", "00000000-0000-4000-8000-000000000099")
+      expect result fails SpaceAccessDenied
+    }
+    example "real conversation rejects an outsider attention change" {
+      when result = ConversationRepository.changeAttention(ChangeAttention { personId = "00000000-0000-4000-8000-000000000099" spaceId = "00000000-0000-4000-8000-000000000003" attention = Quiet occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails SpaceAccessDenied
+    }
+
+    example "real conversation lists the complete visible membership directory" {
+      when result = ConversationRepository.listVisible("00000000-0000-4000-8000-000000000001")
+      expect result == SpaceDirectory { items = [SpaceView { id = "00000000-0000-4000-8000-000000000003" kind = Private name = Some("Native room") creatorId = "00000000-0000-4000-8000-000000000001" participantIds = ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"] }] }
+    }
+    example "real conversation returns an empty directory for an outsider" {
+      when result = ConversationRepository.listVisible("00000000-0000-4000-8000-000000000096")
+      expect result == SpaceDirectory { items = [] }
+    }
+
+    example "create a private shared space" {
+      given ConversationRepository.createShared(createSharedSpace) returns SpaceView { id = spaceId kind = Private name = Some("Design") creatorId = creatorId participantIds = participantIds }
+      when result = ConversationApi.createShared(createSharedSpace)
+      expect Success
+      expect emits SharedSpaceCreated { spaceId = spaceId kind = Private }
+      expect emits MembershipGranted { spaceId = spaceId personIds = participantIds }
+    }
+    example "reject Direct through shared creation" {
+      when result = ConversationApi.createShared(CreateSharedSpace { spaceId = spaceId actorId = creatorId kind = Direct name = "Design" initialMemberIds = [] occurredAt = "2026-09-25T00:00:00Z" })
+      expect result fails InvalidParticipantSet
+    }
+    example "find or start a direct conversation" {
+      given ConversationRepository.findOrStartDirect(startDirect) returns SpaceView { id = directSpaceId kind = Direct name = None creatorId = actorId participantIds = directParticipantIds }
+      when result = ConversationApi.findOrStartDirect(startDirect)
+      expect Success
+      expect emits DirectConversationAvailable { spaceId = directSpaceId }
+    }
+    example "edit a shared space" {
+      given ConversationRepository.editShared(editSharedSpace) returns SharedSpaceEditResult { id = spaceId kind = Open name = Some("All hands") creatorId = creatorId participantIds = participantIds grantedPersonIds = grantedPersonIds revokedPersonIds = revokedPersonIds }
+      when result = ConversationApi.editShared(editSharedSpace)
+      expect Success
+      expect emits SharedSpaceChanged { spaceId = spaceId kind = Open }
+      expect emits MembershipGranted { spaceId = spaceId personIds = grantedPersonIds }
+      expect emits MembershipRevoked { spaceId = spaceId personIds = revokedPersonIds }
+    }
+    example "reject edits to a direct conversation" {
+      when result = ConversationApi.editShared(EditSharedSpace { actorId = actorId spaceId = spaceId name = "Design" kind = Direct retainedMemberIds = [] occurredAt = "2026-09-25T00:00:00Z" })
+      expect result fails DirectConversationImmutable
+    }
+    example "remove a space" {
+      given ConversationRepository.remove(removeSpace) returns Unit
+      when result = ConversationApi.remove(removeSpace)
+      expect Success
+      expect emits SpaceRemoved { spaceId = spaceId }
+    }
+    example "change personal attention" {
+      given ConversationRepository.changeAttention(changeAttention) returns MembershipView { id = membershipId spaceId = spaceId personId = personId attention = Mentions }
+      when result = ConversationApi.changeAttention(changeAttention)
+      expect Success
+      expect emits AttentionChanged { spaceId = spaceId personId = personId attention = Mentions }
+    }
+    example "list visible spaces" {
+      given ConversationRepository.listVisible(personId) returns SpaceDirectory { items = visibleSpaces }
+      when result = ConversationApi.listVisible(personId)
+      expect Success
+    }
+    example "inspect a permitted space" {
+      given ConversationRepository.inspect(spaceId, personId) returns SpaceView { id = spaceId kind = Private name = Some("Design") creatorId = creatorId participantIds = participantIds }
+      when result = ConversationApi.inspect(spaceId, personId)
+      expect Success
+    }
+    example "authorize a current membership" {
+      given ConversationRepository.authorize(spaceId, personId) returns MembershipView { id = membershipId spaceId = spaceId personId = personId attention = AllMessages }
+      when result = ConversationApi.authorize(spaceId, personId)
+      expect Success
+    }
+  }
+}

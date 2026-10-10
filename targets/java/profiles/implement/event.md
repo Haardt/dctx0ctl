@@ -1,0 +1,5 @@
+# Implement event
+
+Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
+
+Publish the complete event payload and delivery contract without adding unmodeled guarantees.

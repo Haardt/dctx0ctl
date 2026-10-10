@@ -1,0 +1,590 @@
+domain ProjectWork {
+  value ProjectId = UUID
+  value TeamId = UUID
+  value WorkstreamId = UUID
+  value WorkConversationId = UUID
+  value WorkActorId = UUID
+  value ProjectMembershipId = UUID
+  value TeamMembershipId = UUID
+  value ProjectName = String { length 1..160 }
+  value TeamName = String { length 1..120 }
+  value WorkstreamTitle = String { length 1..240 }
+
+  type ProjectStanding = Active | Archived
+  type TeamStanding = Active | Archived
+  type WorkstreamKind = Feature | Bug | Task | Investigation | Decision | Operational
+  type WorkstreamStage = Discussing | ReadyForImplementation | InProgress | NeedsReview | ReadyForDeployment | ObservingProduction | Blocked | Done | Rejected | Archived
+  type ProjectRole = Contributor | Maintainer | Administrator
+  type ConversationScopeKind = Project | Team | Workstream
+
+  failure ProjectNotFound { projectId: ProjectId }
+  failure TeamNotFound { teamId: TeamId }
+  failure WorkstreamNotFound { workstreamId: WorkstreamId }
+  failure ProjectWorkAccessDenied { actorId: WorkActorId }
+  failure InvalidProjectPlacement { reason: String }
+  failure InvalidWorkstreamTransition { reason: String }
+  failure ProjectWorkPersistenceUnavailable { reason: String }
+  failure ScopeConversationUnavailable { reason: String }
+
+  entity Project {
+    id: ProjectId
+    name: ProjectName
+    conversationId: WorkConversationId
+    standing: ProjectStanding
+    createdBy: WorkActorId
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity Team {
+    id: TeamId
+    projectId: ProjectId
+    name: TeamName
+    conversationId: WorkConversationId
+    standing: TeamStanding
+    createdBy: WorkActorId
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity Workstream {
+    id: WorkstreamId
+    projectId: ProjectId
+    teamId: Option<TeamId>
+    conversationId: WorkConversationId
+    kind: WorkstreamKind
+    stage: WorkstreamStage
+    title: WorkstreamTitle
+    openedBy: WorkActorId
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity ProjectMembership {
+    id: ProjectMembershipId
+    projectId: ProjectId
+    participantId: WorkActorId
+    role: ProjectRole
+    joinedAt: Timestamp
+    key id
+  }
+
+  entity TeamMembership {
+    id: TeamMembershipId
+    teamId: TeamId
+    participantId: WorkActorId
+    joinedAt: Timestamp
+    key id
+  }
+
+  message CreateProject {
+    projectId: ProjectId
+    conversationId: WorkConversationId
+    actorId: WorkActorId
+    name: ProjectName
+    occurredAt: Timestamp
+  }
+  message CreateTeam {
+    teamId: TeamId
+    projectId: ProjectId
+    conversationId: WorkConversationId
+    actorId: WorkActorId
+    name: TeamName
+    initialParticipantIds: List<WorkActorId>
+    occurredAt: Timestamp
+  }
+  message OpenWorkstream {
+    workstreamId: WorkstreamId
+    projectId: ProjectId
+    teamId: Option<TeamId>
+    conversationId: WorkConversationId
+    actorId: WorkActorId
+    kind: WorkstreamKind
+    title: WorkstreamTitle
+    initialParticipantIds: List<WorkActorId>
+    occurredAt: Timestamp
+  }
+  message AddProjectMember {
+    membershipId: ProjectMembershipId
+    projectId: ProjectId
+    actorId: WorkActorId
+    participantId: WorkActorId
+    role: ProjectRole
+    occurredAt: Timestamp
+  }
+  message AddTeamMember {
+    membershipId: TeamMembershipId
+    teamId: TeamId
+    actorId: WorkActorId
+    participantId: WorkActorId
+    occurredAt: Timestamp
+  }
+  message MoveWorkstream {
+    workstreamId: WorkstreamId
+    actorId: WorkActorId
+    teamId: Option<TeamId>
+    occurredAt: Timestamp
+  }
+  message ChangeWorkstreamStage {
+    workstreamId: WorkstreamId
+    actorId: WorkActorId
+    stage: WorkstreamStage
+    reason: String
+    evidenceArtifactIds: List<UUID>
+    occurredAt: Timestamp
+  }
+  message ProvisionScopeConversation {
+    scopeKind: ConversationScopeKind
+    scopeId: UUID
+    conversationId: WorkConversationId
+    name: String
+    participantIds: List<WorkActorId>
+  }
+  message SynchronizeScopeParticipants {
+    conversationId: WorkConversationId
+    participantIds: List<WorkActorId>
+  }
+  message ProjectView {
+    id: ProjectId
+    name: ProjectName
+    conversationId: WorkConversationId
+    standing: ProjectStanding
+  }
+  message TeamView {
+    id: TeamId
+    projectId: ProjectId
+    name: TeamName
+    conversationId: WorkConversationId
+    standing: TeamStanding
+  }
+  message WorkstreamView {
+    id: WorkstreamId
+    projectId: ProjectId
+    teamId: Option<TeamId>
+    conversationId: WorkConversationId
+    kind: WorkstreamKind
+    stage: WorkstreamStage
+    title: WorkstreamTitle
+  }
+  message WorkstreamBoard { items: List<WorkstreamView> }
+
+  event ProjectCreated { projectId: ProjectId; conversationId: WorkConversationId }
+  event TeamCreated { teamId: TeamId; projectId: ProjectId; conversationId: WorkConversationId }
+  event WorkstreamOpened { workstreamId: WorkstreamId; projectId: ProjectId; conversationId: WorkConversationId; kind: WorkstreamKind }
+  event ProjectMemberAdded { projectId: ProjectId; participantId: WorkActorId }
+  event TeamMemberAdded { teamId: TeamId; participantId: WorkActorId }
+  event WorkstreamMoved { workstreamId: WorkstreamId; teamId: Option<TeamId> }
+  event WorkstreamStageChanged { workstreamId: WorkstreamId; stage: WorkstreamStage }
+
+  module Workstreams {
+    intent """
+      Organize software work as projects with optional teams and durable
+      workstreams, give every scope one conversation, and expose an
+      evidence-oriented work view without introducing sprint mechanics.
+      """
+
+    decision WorkstreamIsTheContinuityBoundary {
+      choose "Keep discussion, formal definition, implementation, delivery, and production follow-up under one durable workstream identity."
+      because "The reason for a change and the evidence of its effect must survive tool and lifecycle transitions."
+      avoid "Do not treat a ticket, chat room, branch, deployment, or alert as the sole container for the work."
+    }
+    decision TeamsAreOptionalPlacement {
+      choose "Allow a workstream to belong directly to a project or to one team in that project."
+      because "Small projects need no artificial team hierarchy while larger projects still need ownership boundaries."
+      avoid "Do not require a sprint, board, or team merely to open and discuss work."
+    }
+
+    owns {
+      value ProjectId value TeamId value WorkstreamId value WorkConversationId value WorkActorId
+      value ProjectMembershipId value TeamMembershipId value ProjectName value TeamName value WorkstreamTitle
+      entity Project entity Team entity Workstream entity ProjectMembership entity TeamMembership
+      event ProjectCreated event TeamCreated event WorkstreamOpened event ProjectMemberAdded event TeamMemberAdded
+      event WorkstreamMoved event WorkstreamStageChanged
+    }
+
+    requires { ProjectWorkRepository ScopeConversationGateway }
+
+    port ProjectWorkRepository {
+      operation createProject(request: CreateProject)
+        -> ProjectView
+        ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable {
+        state inserts Project from Project { id = request.projectId name = request.name conversationId = request.conversationId standing = ProjectStanding.Active createdBy = request.actorId createdAt = request.occurredAt updatedAt = request.occurredAt }
+        state inserts ProjectMembership
+        ensures success implies result == ProjectView { id = request.projectId name = request.name conversationId = request.conversationId standing = ProjectStanding.Active }
+        ensures success implies length(after.ProjectMembership) == length(before.ProjectMembership) + 1
+        ensures success implies all(previous in before.ProjectMembership where after.ProjectMembership(previous.id) == previous)
+        ensures success implies all(member in after.ProjectMembership where count(previous in before.ProjectMembership where previous.id == member.id) == 0 implies member == ProjectMembership { id = member.id projectId = request.projectId participantId = request.actorId role = Administrator joinedAt = request.occurredAt })
+        ensures not success implies before.Project == after.Project and before.ProjectMembership == after.ProjectMembership
+        effects { write Project write ProjectMembership }
+      }
+      operation createTeam(request: CreateTeam)
+        -> TeamView
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable
+      effects { read Project write Team write TeamMembership }
+      operation openWorkstream(request: OpenWorkstream)
+        -> WorkstreamView
+        ! ProjectNotFound ! TeamNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable {
+        state inserts Workstream from Workstream {
+          id = request.workstreamId
+          projectId = request.projectId
+          teamId = request.teamId
+          conversationId = request.conversationId
+          kind = request.kind
+          stage = Discussing
+          title = request.title
+          openedBy = request.actorId
+          createdAt = request.occurredAt
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result == WorkstreamView {
+          id = after.Workstream(request.workstreamId).id
+          projectId = after.Workstream(request.workstreamId).projectId
+          teamId = after.Workstream(request.workstreamId).teamId
+          conversationId = after.Workstream(request.workstreamId).conversationId
+          kind = after.Workstream(request.workstreamId).kind
+          stage = after.Workstream(request.workstreamId).stage
+          title = after.Workstream(request.workstreamId).title
+        }
+        effects { read Project read Team write Workstream }
+      }
+      operation addProjectMember(request: AddProjectMember)
+        -> ProjectView
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable {
+        state observes Project by request.projectId
+        state inserts ProjectMembership from ProjectMembership { id = request.membershipId projectId = request.projectId participantId = request.participantId role = request.role joinedAt = request.occurredAt }
+        ensures success implies result == ProjectView { id = before.Project(request.projectId).id name = before.Project(request.projectId).name conversationId = before.Project(request.projectId).conversationId standing = before.Project(request.projectId).standing }
+        ensures not success implies before.Project == after.Project and before.ProjectMembership == after.ProjectMembership
+        effects { read Project write ProjectMembership }
+      }
+      operation addTeamMember(request: AddTeamMember)
+        -> TeamView
+        ! TeamNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable {
+        state observes Team by request.teamId
+        state lists ProjectMembership
+        state inserts TeamMembership from TeamMembership { id = request.membershipId teamId = request.teamId participantId = request.participantId joinedAt = request.occurredAt }
+        ensures success implies result == TeamView { id = before.Team(request.teamId).id projectId = before.Team(request.teamId).projectId name = before.Team(request.teamId).name conversationId = before.Team(request.teamId).conversationId standing = before.Team(request.teamId).standing }
+        ensures not success implies before.Team == after.Team and before.ProjectMembership == after.ProjectMembership and before.TeamMembership == after.TeamMembership
+        effects { read Team read ProjectMembership write TeamMembership }
+      }
+      operation moveWorkstream(request: MoveWorkstream)
+        -> WorkstreamView
+        ! WorkstreamNotFound ! TeamNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable {
+        state replaces Workstream by request.workstreamId from Workstream {
+          id = self.id
+          projectId = self.projectId
+          teamId = request.teamId
+          conversationId = self.conversationId
+          kind = self.kind
+          stage = self.stage
+          title = self.title
+          openedBy = self.openedBy
+          createdAt = self.createdAt
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result == WorkstreamView {
+          id = after.Workstream(request.workstreamId).id
+          projectId = after.Workstream(request.workstreamId).projectId
+          teamId = after.Workstream(request.workstreamId).teamId
+          conversationId = after.Workstream(request.workstreamId).conversationId
+          kind = after.Workstream(request.workstreamId).kind
+          stage = after.Workstream(request.workstreamId).stage
+          title = after.Workstream(request.workstreamId).title
+        }
+        effects { read Team write Workstream }
+      }
+      operation changeStage(request: ChangeWorkstreamStage)
+        -> WorkstreamView
+        ! WorkstreamNotFound ! ProjectWorkAccessDenied ! InvalidWorkstreamTransition ! ProjectWorkPersistenceUnavailable {
+        state replaces Workstream by request.workstreamId from Workstream {
+          id = self.id
+          projectId = self.projectId
+          teamId = self.teamId
+          conversationId = self.conversationId
+          kind = self.kind
+          stage = request.stage
+          title = self.title
+          openedBy = self.openedBy
+          createdAt = self.createdAt
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result == WorkstreamView {
+          id = after.Workstream(request.workstreamId).id
+          projectId = after.Workstream(request.workstreamId).projectId
+          teamId = after.Workstream(request.workstreamId).teamId
+          conversationId = after.Workstream(request.workstreamId).conversationId
+          kind = after.Workstream(request.workstreamId).kind
+          stage = after.Workstream(request.workstreamId).stage
+          title = after.Workstream(request.workstreamId).title
+        }
+        ensures failure is ProjectWorkAccessDenied implies preserves Workstream(request.workstreamId)
+        ensures failure is InvalidWorkstreamTransition implies preserves Workstream(request.workstreamId)
+        effects { write Workstream }
+      }
+      operation project(projectId: ProjectId, actorId: WorkActorId)
+        -> ProjectView
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable {
+        state observes Project by projectId
+        ensures success implies result == ProjectView { id = before.Project(projectId).id name = before.Project(projectId).name conversationId = before.Project(projectId).conversationId standing = before.Project(projectId).standing }
+        effects { read Project read ProjectMembership }
+      }
+      operation team(teamId: TeamId, actorId: WorkActorId)
+        -> TeamView
+        ! TeamNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable {
+        state observes Team by teamId
+        ensures success implies result == TeamView { id = before.Team(teamId).id projectId = before.Team(teamId).projectId name = before.Team(teamId).name conversationId = before.Team(teamId).conversationId standing = before.Team(teamId).standing }
+        effects { read Team read ProjectMembership }
+      }
+      operation workstream(workstreamId: WorkstreamId, actorId: WorkActorId)
+        -> WorkstreamView
+        ! WorkstreamNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable {
+        state observes Workstream by workstreamId
+        ensures success implies result == WorkstreamView { id = before.Workstream(workstreamId).id projectId = before.Workstream(workstreamId).projectId teamId = before.Workstream(workstreamId).teamId conversationId = before.Workstream(workstreamId).conversationId kind = before.Workstream(workstreamId).kind stage = before.Workstream(workstreamId).stage title = before.Workstream(workstreamId).title }
+        effects { read Workstream read ProjectMembership }
+      }
+      operation board(projectId: ProjectId, actorId: WorkActorId)
+        -> WorkstreamBoard
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable {
+        state observes Project by projectId
+        state lists Workstream
+        state lists ProjectMembership
+        ensures success implies result == WorkstreamBoard { items = result.items }
+        ensures success implies length(result.items) == count(workstream in before.Workstream where workstream.projectId == projectId)
+        ensures success implies all(item in result.items where item == WorkstreamView { id = before.Workstream(item.id).id projectId = before.Workstream(item.id).projectId teamId = before.Workstream(item.id).teamId conversationId = before.Workstream(item.id).conversationId kind = before.Workstream(item.id).kind stage = before.Workstream(item.id).stage title = before.Workstream(item.id).title } and item.projectId == projectId and count(other in result.items where other.id == item.id) == 1)
+        effects { read Project read Workstream read ProjectMembership }
+      }
+    }
+
+    port ScopeConversationGateway {
+      operation provision(request: ProvisionScopeConversation)
+        -> Unit
+        ! ScopeConversationUnavailable
+      operation synchronize(request: SynchronizeScopeParticipants)
+        -> Unit
+        ! ScopeConversationUnavailable
+    }
+
+    surface ProjectWorkApi exposes requestReply {
+      operation createProject(request: CreateProject)
+        -> ProjectView
+        ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable ! ScopeConversationUnavailable
+      effects { write Project write ProjectMembership call ScopeConversationGateway.provision call ProjectWorkRepository.createProject emit ProjectCreated(projectId: request.projectId, conversationId: request.conversationId) }
+
+      operation createTeam(request: CreateTeam)
+        -> TeamView
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable ! ScopeConversationUnavailable
+      effects { read Project write Team write TeamMembership call ScopeConversationGateway.provision call ProjectWorkRepository.createTeam emit TeamCreated(teamId: request.teamId, projectId: request.projectId, conversationId: request.conversationId) }
+
+      operation openWorkstream(request: OpenWorkstream)
+        -> WorkstreamView
+        ! ProjectNotFound ! TeamNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable ! ScopeConversationUnavailable
+      effects { read Project read Team write Workstream call ScopeConversationGateway.provision call ProjectWorkRepository.openWorkstream emit WorkstreamOpened(workstreamId: request.workstreamId, projectId: request.projectId, conversationId: request.conversationId, kind: request.kind) }
+
+      operation addProjectMember(request: AddProjectMember)
+        -> ProjectView
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable ! ScopeConversationUnavailable
+      effects { read Project write ProjectMembership call ProjectWorkRepository.addProjectMember call ScopeConversationGateway.synchronize emit ProjectMemberAdded(projectId: request.projectId, participantId: request.participantId) }
+
+      operation addTeamMember(request: AddTeamMember)
+        -> TeamView
+        ! TeamNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable ! ScopeConversationUnavailable
+      effects { read Team read ProjectMembership write TeamMembership call ProjectWorkRepository.addTeamMember call ScopeConversationGateway.synchronize emit TeamMemberAdded(teamId: request.teamId, participantId: request.participantId) }
+
+      operation moveWorkstream(request: MoveWorkstream)
+        -> WorkstreamView
+        ! WorkstreamNotFound ! TeamNotFound ! ProjectWorkAccessDenied ! InvalidProjectPlacement ! ProjectWorkPersistenceUnavailable
+      effects { read Team write Workstream call ProjectWorkRepository.moveWorkstream emit WorkstreamMoved(workstreamId: request.workstreamId, teamId: request.teamId) }
+
+      operation changeStage(request: ChangeWorkstreamStage)
+        -> WorkstreamView
+        ! WorkstreamNotFound ! ProjectWorkAccessDenied ! InvalidWorkstreamTransition ! ProjectWorkPersistenceUnavailable
+      effects { write Workstream call ProjectWorkRepository.changeStage emit WorkstreamStageChanged(workstreamId: request.workstreamId, stage: request.stage) }
+
+      operation project(projectId: ProjectId, actorId: WorkActorId)
+        -> ProjectView
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable
+      effects { read Project read ProjectMembership call ProjectWorkRepository.project }
+
+      operation team(teamId: TeamId, actorId: WorkActorId)
+        -> TeamView
+        ! TeamNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable
+      effects { read Team read ProjectMembership call ProjectWorkRepository.team }
+
+      operation workstream(workstreamId: WorkstreamId, actorId: WorkActorId)
+        -> WorkstreamView
+        ! WorkstreamNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable
+      effects { read Workstream read ProjectMembership call ProjectWorkRepository.workstream }
+
+      operation board(projectId: ProjectId, actorId: WorkActorId)
+        -> WorkstreamBoard
+        ! ProjectNotFound ! ProjectWorkAccessDenied ! ProjectWorkPersistenceUnavailable
+      effects { read Project read Workstream read ProjectMembership call ProjectWorkRepository.board }
+    }
+
+    constraint "Every project, team, and workstream has exactly one durable conversation provisioned with the same access boundary as its scope."
+    constraint "A team belongs to exactly one active project; its participants are active members of that project."
+    constraint "A workstream belongs to exactly one project and either no team or one active team from that same project."
+    constraint "A workstream may be opened directly below a project; team placement is optional and can change without changing workstream or conversation identity."
+    constraint "Project removal or membership revocation removes future access to descendant team and workstream conversations without deleting retained attributable history."
+    constraint "Participant synchronization never grants a team or workstream participant access beyond their current project membership."
+    constraint "Workstream kind describes the source of work and never selects a fixed delivery process."
+    constraint "ReadyForImplementation requires a current reviewed ticket definition, no blocking open question, satisfied declared dependencies, and every policy-required formal review."
+    constraint "Done requires the evidence selected by project policy; a code merge alone never proves completion."
+    constraint "Blocked retains the previous stage, blocker reason, and supporting evidence so unblocking can resume deliberately."
+    constraint "Boards sort and filter workstreams by evidence-backed stage, kind, priority projection, ownership, activity, and production health without introducing Sprint or StoryPoint concepts."
+    constraint "Archiving a scope prevents new work and messages but retains its conversations, tickets, run history, artifacts, and audit relations."
+
+    example "real project reads the complete project" {
+      when result = ProjectWorkRepository.project("00000000-0000-4000-8000-000000000021", "00000000-0000-4000-8000-000000000001")
+      expect result == ProjectView { id = "00000000-0000-4000-8000-000000000021" name = "Native project" conversationId = "00000000-0000-4000-8000-000000000022" standing = Active }
+    }
+    example "real project denies an outsider project read" {
+      when result = ProjectWorkRepository.project("00000000-0000-4000-8000-000000000021", "00000000-0000-4000-8000-000000000099")
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project reads the complete team" {
+      when result = ProjectWorkRepository.team("00000000-0000-4000-8000-000000000024", "00000000-0000-4000-8000-000000000001")
+      expect result == TeamView { id = "00000000-0000-4000-8000-000000000024" projectId = "00000000-0000-4000-8000-000000000021" name = "Native team" conversationId = "00000000-0000-4000-8000-000000000025" standing = Active }
+    }
+    example "real project denies an outsider team read" {
+      when result = ProjectWorkRepository.team("00000000-0000-4000-8000-000000000024", "00000000-0000-4000-8000-000000000099")
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project reads the complete workstream" {
+      when result = ProjectWorkRepository.workstream("00000000-0000-4000-8000-000000000028", "00000000-0000-4000-8000-000000000001")
+      expect result == WorkstreamView { id = "00000000-0000-4000-8000-000000000028" projectId = "00000000-0000-4000-8000-000000000021" teamId = None conversationId = "00000000-0000-4000-8000-000000000029" kind = Task stage = Discussing title = "Native workstream" }
+    }
+    example "real project denies an outsider workstream read" {
+      when result = ProjectWorkRepository.workstream("00000000-0000-4000-8000-000000000028", "00000000-0000-4000-8000-000000000099")
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project reads the complete board" {
+      when result = ProjectWorkRepository.board("00000000-0000-4000-8000-000000000021", "00000000-0000-4000-8000-000000000001")
+      expect result == WorkstreamBoard { items = [WorkstreamView { id = "00000000-0000-4000-8000-000000000028" projectId = "00000000-0000-4000-8000-000000000021" teamId = None conversationId = "00000000-0000-4000-8000-000000000029" kind = Task stage = Discussing title = "Native workstream" }] }
+    }
+    example "real project denies an outsider board read" {
+      when result = ProjectWorkRepository.board("00000000-0000-4000-8000-000000000021", "00000000-0000-4000-8000-000000000099")
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project persists the complete openWorkstream" {
+      when result = ProjectWorkRepository.openWorkstream(OpenWorkstream { workstreamId = "00000000-0000-4000-8000-000000000041" projectId = "00000000-0000-4000-8000-000000000021" teamId = None conversationId = "00000000-0000-4000-8000-000000000042" actorId = "00000000-0000-4000-8000-000000000001" kind = Task title = "New native workstream" initialParticipantIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == WorkstreamView { id = "00000000-0000-4000-8000-000000000041" projectId = "00000000-0000-4000-8000-000000000021" teamId = None conversationId = "00000000-0000-4000-8000-000000000042" kind = Task stage = Discussing title = "New native workstream" }
+    }
+    example "real project denies an outsider openWorkstream" {
+      when result = ProjectWorkRepository.openWorkstream(OpenWorkstream { workstreamId = "00000000-0000-4000-8000-000000000041" projectId = "00000000-0000-4000-8000-000000000021" teamId = None conversationId = "00000000-0000-4000-8000-000000000042" actorId = "00000000-0000-4000-8000-000000000099" kind = Task title = "New native workstream" initialParticipantIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project persists the complete moveWorkstream" {
+      when result = ProjectWorkRepository.moveWorkstream(MoveWorkstream { workstreamId = "00000000-0000-4000-8000-000000000028" actorId = "00000000-0000-4000-8000-000000000001" teamId = Some("00000000-0000-4000-8000-000000000024") occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == WorkstreamView { id = "00000000-0000-4000-8000-000000000028" projectId = "00000000-0000-4000-8000-000000000021" teamId = Some("00000000-0000-4000-8000-000000000024") conversationId = "00000000-0000-4000-8000-000000000029" kind = Task stage = Discussing title = "Native workstream" }
+    }
+    example "real project denies an outsider moveWorkstream" {
+      when result = ProjectWorkRepository.moveWorkstream(MoveWorkstream { workstreamId = "00000000-0000-4000-8000-000000000028" actorId = "00000000-0000-4000-8000-000000000099" teamId = Some("00000000-0000-4000-8000-000000000024") occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project persists the complete changeStage" {
+      when result = ProjectWorkRepository.changeStage(ChangeWorkstreamStage { workstreamId = "00000000-0000-4000-8000-000000000028" actorId = "00000000-0000-4000-8000-000000000001" stage = Rejected reason = "Decision rejects implementation" evidenceArtifactIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == WorkstreamView { id = "00000000-0000-4000-8000-000000000028" projectId = "00000000-0000-4000-8000-000000000021" teamId = None conversationId = "00000000-0000-4000-8000-000000000029" kind = Task stage = Rejected title = "Native workstream" }
+    }
+    example "real project denies an outsider changeStage" {
+      when result = ProjectWorkRepository.changeStage(ChangeWorkstreamStage { workstreamId = "00000000-0000-4000-8000-000000000028" actorId = "00000000-0000-4000-8000-000000000099" stage = Rejected reason = "Decision rejects implementation" evidenceArtifactIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails ProjectWorkAccessDenied
+    }
+
+    example "real project persists an authorized project membership" {
+      when result = ProjectWorkRepository.addProjectMember(AddProjectMember { membershipId = "00000000-0000-4000-8000-000000000028" projectId = "00000000-0000-4000-8000-000000000021" actorId = "00000000-0000-4000-8000-000000000001" participantId = "00000000-0000-4000-8000-000000000003" role = Contributor occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == ProjectView { id = "00000000-0000-4000-8000-000000000021" name = "Native project" conversationId = "00000000-0000-4000-8000-000000000022" standing = Active }
+    }
+    example "real project rejects an unauthorized project membership" {
+      when result = ProjectWorkRepository.addProjectMember(AddProjectMember { membershipId = "00000000-0000-4000-8000-000000000028" projectId = "00000000-0000-4000-8000-000000000021" actorId = "00000000-0000-4000-8000-000000000099" participantId = "00000000-0000-4000-8000-000000000003" role = Contributor occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails ProjectWorkAccessDenied
+    }
+    example "real project persists an authorized team membership" {
+      when result = ProjectWorkRepository.addTeamMember(AddTeamMember { membershipId = "00000000-0000-4000-8000-000000000028" teamId = "00000000-0000-4000-8000-000000000024" actorId = "00000000-0000-4000-8000-000000000001" participantId = "00000000-0000-4000-8000-000000000002" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == TeamView { id = "00000000-0000-4000-8000-000000000024" projectId = "00000000-0000-4000-8000-000000000021" name = "Native team" conversationId = "00000000-0000-4000-8000-000000000025" standing = Active }
+    }
+    example "real project rejects an unauthorized team membership" {
+      when result = ProjectWorkRepository.addTeamMember(AddTeamMember { membershipId = "00000000-0000-4000-8000-000000000028" teamId = "00000000-0000-4000-8000-000000000024" actorId = "00000000-0000-4000-8000-000000000099" participantId = "00000000-0000-4000-8000-000000000002" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails ProjectWorkAccessDenied
+    }
+
+    example "real project creates one actual administrator membership" {
+      when result = ProjectWorkRepository.createProject(CreateProject { projectId = "00000000-0000-4000-8000-000000000031" conversationId = "00000000-0000-4000-8000-000000000032" actorId = "00000000-0000-4000-8000-000000000001" name = "Native new project" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == ProjectView { id = "00000000-0000-4000-8000-000000000031" name = "Native new project" conversationId = "00000000-0000-4000-8000-000000000032" standing = Active }
+    }
+    example "real project rejects an existing project identity" {
+      when result = ProjectWorkRepository.createProject(CreateProject { projectId = "00000000-0000-4000-8000-000000000021" conversationId = "00000000-0000-4000-8000-000000000032" actorId = "00000000-0000-4000-8000-000000000001" name = "Native new project" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails InvalidProjectPlacement
+    }
+
+    example "create a project with its durable conversation" {
+      given ScopeConversationGateway.provision(ProvisionScopeConversation { scopeKind = Project scopeId = "projectId" conversationId = projectConversationId name = name participantIds = [actorId] }) returns Unit
+      given ProjectWorkRepository.createProject(createProject) returns ProjectView { id = projectId name = "Atlas" conversationId = projectConversationId standing = Active }
+      when result = ProjectWorkApi.createProject(createProject)
+      expect Success
+      expect emits ProjectCreated { projectId = projectId conversationId = projectConversationId }
+    }
+    example "create a team inside an active project" {
+      given ScopeConversationGateway.provision(ProvisionScopeConversation { scopeKind = Team scopeId = "teamId" conversationId = teamConversationId name = "Platform" participantIds = [actorId] }) returns Unit
+      given ProjectWorkRepository.createTeam(CreateTeam { teamId = teamId projectId = projectId conversationId = teamConversationId actorId = actorId name = "Platform" initialParticipantIds = [] occurredAt = occurredAt }) returns TeamView { id = teamId projectId = projectId name = "Platform" conversationId = teamConversationId standing = Active }
+      when result = ProjectWorkApi.createTeam(CreateTeam { teamId = teamId projectId = projectId conversationId = teamConversationId actorId = actorId name = "Platform" initialParticipantIds = [] occurredAt = occurredAt })
+      expect Success
+      expect emits TeamCreated { teamId = teamId projectId = projectId conversationId = teamConversationId }
+    }
+    example "open a workstream with its own conversation" {
+      given ScopeConversationGateway.provision(ProvisionScopeConversation { scopeKind = Workstream scopeId = "workstreamId" conversationId = workstreamConversationId name = "Durable delivery history" participantIds = [actorId] }) returns Unit
+      given ProjectWorkRepository.openWorkstream(OpenWorkstream { workstreamId = workstreamId projectId = projectId teamId = Some(teamId) conversationId = workstreamConversationId actorId = actorId kind = Feature title = "Durable delivery history" initialParticipantIds = [] occurredAt = occurredAt }) returns WorkstreamView { id = workstreamId projectId = projectId teamId = Some(teamId) conversationId = workstreamConversationId kind = Feature stage = Discussing title = "Durable delivery history" }
+      when result = ProjectWorkApi.openWorkstream(OpenWorkstream { workstreamId = workstreamId projectId = projectId teamId = Some(teamId) conversationId = workstreamConversationId actorId = actorId kind = Feature title = "Durable delivery history" initialParticipantIds = [] occurredAt = occurredAt })
+      expect Success
+      expect emits WorkstreamOpened { workstreamId = workstreamId projectId = projectId conversationId = workstreamConversationId kind = Feature }
+    }
+    example "add a project participant and synchronize descendant access" {
+      given ScopeConversationGateway.synchronize(SynchronizeScopeParticipants { conversationId = projectConversationId participantIds = [actorId, participantId] }) returns Unit
+      given ProjectWorkRepository.addProjectMember(addProjectMember) returns ProjectView { id = projectId name = "Atlas" conversationId = projectConversationId standing = Active }
+      when result = ProjectWorkApi.addProjectMember(addProjectMember)
+      expect Success
+      expect emits ProjectMemberAdded { projectId = projectId participantId = participantId }
+    }
+    example "add a team participant and synchronize scope access" {
+      given ScopeConversationGateway.synchronize(SynchronizeScopeParticipants { conversationId = teamConversationId participantIds = [actorId, participantId] }) returns Unit
+      given ProjectWorkRepository.addTeamMember(addTeamMember) returns TeamView { id = teamId projectId = projectId name = "Platform" conversationId = teamConversationId standing = Active }
+      when result = ProjectWorkApi.addTeamMember(addTeamMember)
+      expect Success
+      expect emits TeamMemberAdded { teamId = teamId participantId = participantId }
+    }
+    example "move a workstream to another project team" {
+      given ProjectWorkRepository.moveWorkstream(moveWorkstream) returns WorkstreamView { id = workstreamId projectId = projectId teamId = Some(targetTeamId) conversationId = workstreamConversationId kind = Feature stage = Discussing title = "Durable delivery history" }
+      when result = ProjectWorkApi.moveWorkstream(moveWorkstream)
+      expect Success
+      expect emits WorkstreamMoved { workstreamId = workstreamId teamId = Some(targetTeamId) }
+    }
+    example "advance a workstream when its evidence permits it" {
+      given ProjectWorkRepository.changeStage(changeWorkstreamStage) returns WorkstreamView { id = workstreamId projectId = projectId teamId = Some(teamId) conversationId = workstreamConversationId kind = Feature stage = ReadyForImplementation title = "Durable delivery history" }
+      when result = ProjectWorkApi.changeStage(changeWorkstreamStage)
+      expect Success
+      expect emits WorkstreamStageChanged { workstreamId = workstreamId stage = ReadyForImplementation }
+    }
+    example "show a project to an authorized participant" {
+      given ProjectWorkRepository.project(projectId, actorId) returns ProjectView { id = projectId name = "Atlas" conversationId = projectConversationId standing = Active }
+      when result = ProjectWorkApi.project(projectId, actorId)
+      expect Success
+    }
+    example "show a team to an authorized participant" {
+      given ProjectWorkRepository.team(teamId, actorId) returns TeamView { id = teamId projectId = projectId name = "Platform" conversationId = teamConversationId standing = Active }
+      when result = ProjectWorkApi.team(teamId, actorId)
+      expect Success
+    }
+    example "show a durable workstream" {
+      given ProjectWorkRepository.workstream(workstreamId, actorId) returns WorkstreamView { id = workstreamId projectId = projectId teamId = Some(teamId) conversationId = workstreamConversationId kind = Feature stage = Discussing title = "Durable delivery history" }
+      when result = ProjectWorkApi.workstream(workstreamId, actorId)
+      expect Success
+    }
+    example "show an evidence-backed project board" {
+      given ProjectWorkRepository.board(projectId, actorId) returns WorkstreamBoard { items = workstreamItems }
+      when result = ProjectWorkApi.board(projectId, actorId)
+      expect Success
+    }
+  }
+}

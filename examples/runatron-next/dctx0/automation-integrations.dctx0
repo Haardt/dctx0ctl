@@ -1,0 +1,313 @@
+domain Automation {
+  value AutomationId = UUID
+  value AutomationSpaceId = UUID
+  value AutomationMessageId = UUID
+  value AutomationReactionId = UUID
+  value AdministratorId = UUID
+  value WebhookTimeoutSeconds = Int { range 1..15 }
+  value FetchByteLimit = Int { range 1024..10485760 }
+  value RedirectLimit = Int { range 0..10 }
+
+  type AutomationStanding = Active | Deactivated
+  type WebhookReplyKind = Empty | Text | Attachment
+
+  failure AutomationAdministrationDenied { administratorId: AdministratorId }
+  failure AutomationContentRejected { reason: String }
+  failure AutomationPublicationConflict { clientMessageKey: String }
+  failure AutomationNotFound { automationId: AutomationId }
+  failure AutomationAccessDenied { automationId: AutomationId; spaceId: AutomationSpaceId }
+  failure AutomationKeyRejected { reason: String }
+  failure AutomationMutationDenied { messageId: AutomationMessageId }
+  failure WebhookTargetRejected { reason: String }
+  failure WebhookDeliveryFailed { reason: String }
+  failure PreviewTargetRejected { reason: String }
+  failure PreviewUnavailable { reason: String }
+  failure AutomationPersistenceUnavailable { reason: String }
+
+  entity AutomationAccount {
+    id: AutomationId
+    name: String
+    standing: AutomationStanding
+    webhookUrl: Option<String>
+    keyVersion: Int
+    key id
+  }
+
+  message CreateAutomation {
+    administratorId: AdministratorId
+    automationId: AutomationId
+    name: String
+    avatar: Option<Bytes>
+    webhookUrl: Option<String>
+    occurredAt: Timestamp
+  }
+  message EditAutomation {
+    administratorId: AdministratorId
+    automationId: AutomationId
+    name: String
+    avatar: Option<Bytes>
+    webhookUrl: Option<String>
+    occurredAt: Timestamp
+  }
+  message RotateAutomationKey {
+    administratorId: AdministratorId
+    automationId: AutomationId
+    occurredAt: Timestamp
+  }
+  message AutomationCredential {
+    automationId: AutomationId
+    key: String
+    keyVersion: Int
+    issuedAt: Timestamp
+  }
+  message AutomationPost {
+    automationId: AutomationId
+    spaceId: AutomationSpaceId
+    clientMessageKey: String
+    body: Option<String>
+    attachmentName: Option<String>
+    attachment: Option<Bytes>
+    occurredAt: Timestamp
+  }
+  message AutomationEdit {
+    automationId: AutomationId
+    spaceId: AutomationSpaceId
+    messageId: AutomationMessageId
+    body: String
+    occurredAt: Timestamp
+  }
+  message AutomationReaction {
+    automationId: AutomationId
+    spaceId: AutomationSpaceId
+    messageId: AutomationMessageId
+    reactionId: AutomationReactionId
+    mark: String
+    occurredAt: Timestamp
+  }
+  message AutomationDelete {
+    automationId: AutomationId
+    spaceId: AutomationSpaceId
+    messageId: AutomationMessageId
+    occurredAt: Timestamp
+  }
+  message AutomationReactionRemoval {
+    automationId: AutomationId
+    spaceId: AutomationSpaceId
+    messageId: AutomationMessageId
+    reactionId: AutomationReactionId
+    occurredAt: Timestamp
+  }
+  message IncomingMessageNotification {
+    messageId: AutomationMessageId
+    spaceId: AutomationSpaceId
+    authorId: UUID
+    body: String
+    attachmentName: Option<String>
+    mentionedAutomationIds: List<AutomationId>
+  }
+  message WebhookReply {
+    kind: WebhookReplyKind
+    body: Option<String>
+    attachmentName: Option<String>
+    attachment: Option<Bytes>
+  }
+  message PreviewLink {
+    requesterId: UUID
+    spaceId: AutomationSpaceId
+    url: String
+    byteLimit: FetchByteLimit
+    redirectLimit: RedirectLimit
+  }
+  message LinkPreview {
+    canonicalUrl: String
+    title: String
+    description: Option<String>
+    imageUrl: Option<String>
+    siteName: Option<String>
+  }
+
+  event AutomationCreated { automationId: AutomationId }
+  event AutomationChanged { automationId: AutomationId }
+  event AutomationKeyRotated { automationId: AutomationId; keyVersion: Int }
+  event AutomationDeactivated { automationId: AutomationId }
+  event WebhookReplyAccepted { automationId: AutomationId; sourceMessageId: AutomationMessageId }
+
+  module BotsAndExternalContent {
+    intent """
+      Let administrators manage automation identities, let active automation
+      act only inside its memberships, deliver bounded webhook callbacks, and
+      preview public links through a hardened outbound-network boundary.
+      """
+
+    decision AutomationIsARestrictedPrincipal {
+      choose "Represent automation as an explicit principal with membership and authorship, but a separate credential and API surface."
+      because "The same conversation access rules apply while interactive human session capabilities remain unavailable."
+      avoid "Do not let an automation key authenticate a human endpoint or submit another author identifier."
+    }
+    decision OutboundRequestsAreHostile {
+      choose "Resolve, validate, pin, bound, and revalidate every externally supplied network destination."
+      because "Webhook and preview URLs otherwise become server-side request forgery and resource-exhaustion channels."
+      avoid "Do not trust URL syntax, DNS validation performed at save time, redirect targets, response-declared sizes, or image URLs."
+    }
+
+    owns {
+      value AutomationId value AutomationSpaceId value AutomationMessageId value AutomationReactionId value AdministratorId
+      value WebhookTimeoutSeconds value FetchByteLimit value RedirectLimit
+      entity AutomationAccount
+      event AutomationCreated event AutomationChanged event AutomationKeyRotated event AutomationDeactivated
+      event WebhookReplyAccepted
+    }
+
+    requires { AutomationRepository OutboundGateway }
+
+    port AutomationRepository {
+      operation create(request: CreateAutomation)
+        -> AutomationCredential
+        ! AutomationAdministrationDenied ! WebhookTargetRejected ! AutomationPersistenceUnavailable
+      effects { write AutomationAccount }
+      operation edit(request: EditAutomation)
+        -> AutomationAccount
+        ! AutomationAdministrationDenied ! AutomationNotFound ! WebhookTargetRejected ! AutomationPersistenceUnavailable {
+        state replaces AutomationAccount by request.automationId from AutomationAccount {
+          id = self.id
+          name = request.name
+          standing = self.standing
+          webhookUrl = request.webhookUrl
+          keyVersion = self.keyVersion
+        }
+        ensures success implies result == after.AutomationAccount(request.automationId)
+        ensures failure is WebhookTargetRejected implies preserves AutomationAccount(request.automationId)
+        effects { write AutomationAccount }
+      }
+      operation rotateKey(request: RotateAutomationKey)
+        -> AutomationCredential
+        ! AutomationAdministrationDenied ! AutomationNotFound ! AutomationPersistenceUnavailable
+      effects { write AutomationAccount }
+      operation deactivate(administratorId: AdministratorId, automationId: AutomationId)
+        -> Unit
+        ! AutomationAdministrationDenied ! AutomationNotFound ! AutomationPersistenceUnavailable {
+        state replaces AutomationAccount by automationId from AutomationAccount {
+          id = self.id
+          name = self.name
+          standing = Deactivated
+          webhookUrl = self.webhookUrl
+          keyVersion = self.keyVersion
+        }
+        effects { write AutomationAccount }
+      }
+      operation authorizeChat(automationId: AutomationId, spaceId: AutomationSpaceId)
+        -> Unit
+        ! AutomationKeyRejected ! AutomationAccessDenied ! AutomationPersistenceUnavailable {
+        state observes AutomationAccount by automationId
+        ensures before.AutomationAccount == after.AutomationAccount
+        effects { read AutomationAccount }
+      }
+      operation find(automationId: AutomationId)
+        -> AutomationAccount
+        ! AutomationNotFound ! AutomationPersistenceUnavailable {
+        state observes AutomationAccount by automationId
+        effects { read AutomationAccount }
+      }
+    }
+
+    port OutboundGateway {
+      operation dispatchWebhook(automationId: AutomationId, message: IncomingMessageNotification)
+        -> WebhookReply
+        ! AutomationNotFound ! WebhookTargetRejected ! WebhookDeliveryFailed ! AutomationPersistenceUnavailable
+      operation preview(request: PreviewLink)
+        -> Option<LinkPreview>
+        ! AutomationAccessDenied ! PreviewTargetRejected ! PreviewUnavailable
+    }
+
+    surface AutomationAdminApi exposes requestReply {
+      operation create(request: CreateAutomation)
+        -> AutomationCredential
+        ! AutomationAdministrationDenied ! WebhookTargetRejected ! AutomationPersistenceUnavailable
+      effects { write AutomationAccount call AutomationRepository.create emit AutomationCreated(automationId: request.automationId) }
+
+      operation edit(request: EditAutomation)
+        -> AutomationAccount
+        ! AutomationAdministrationDenied ! AutomationNotFound ! WebhookTargetRejected ! AutomationPersistenceUnavailable
+      effects { write AutomationAccount call AutomationRepository.edit emit AutomationChanged(automationId: request.automationId) }
+
+      operation rotateKey(request: RotateAutomationKey)
+        -> AutomationCredential
+        ! AutomationAdministrationDenied ! AutomationNotFound ! AutomationPersistenceUnavailable
+      effects { write AutomationAccount call AutomationRepository.rotateKey as credential emit AutomationKeyRotated(automationId: credential.automationId, keyVersion: credential.keyVersion) }
+
+      operation deactivate(administratorId: AdministratorId, automationId: AutomationId)
+        -> Unit
+        ! AutomationAdministrationDenied ! AutomationNotFound ! AutomationPersistenceUnavailable
+      effects { write AutomationAccount call AutomationRepository.deactivate emit AutomationDeactivated(automationId: automationId) }
+    }
+
+    surface ExternalContentApi exposes requestReply {
+      operation dispatchWebhook(automationId: AutomationId, message: IncomingMessageNotification)
+        -> WebhookReply
+        ! AutomationNotFound ! WebhookTargetRejected ! WebhookDeliveryFailed
+      effects { read AutomationAccount call AutomationRepository.find call OutboundGateway.dispatchWebhook emit WebhookReplyAccepted(automationId: automationId, sourceMessageId: message.messageId) }
+
+      operation preview(request: PreviewLink)
+        -> Option<LinkPreview>
+        ! AutomationAccessDenied ! PreviewTargetRejected ! PreviewUnavailable
+      effects { call OutboundGateway.preview }
+    }
+
+    constraint "Only an active administrator may create, edit, rotate credentials for, or deactivate automation accounts."
+    constraint "An automation credential is shown only on creation or rotation, stored only as a verifier, and every rotation immediately invalidates all older key versions."
+    constraint "Authorization does not reserve message or reaction identities and changes no persistence. Only the actual Messaging owner stores messages, publication receipts, reactions and attachments. Success is returned only after that mutation succeeds. Publication retries use the actual Messaging receipt and reject changed payloads. All failed writes preserve the complete prior state."
+    constraint "Automation deletion has no text requirement. Reaction removal validates the actual target message, space and reaction author; publication and mutation cannot use caller-supplied identities in place of the authenticated automation principal."
+    constraint "Only an Active automation account with a valid current key may use AutomationChatApi."
+    constraint "Automation operations ignore submitted author identity and derive authorship from the authenticated automation credential."
+    constraint "Automation may list, read, publish, edit, delete, and react only inside spaces where it is a current member; it may mutate only messages and reactions it authored."
+    constraint "Automation publication requires non-blank body or one valid attachment and uses the same idempotency, sanitization, attachment, and pagination rules as human publication."
+    constraint "A shared-space message invokes only validly mentioned member automation accounts; a Direct message invokes all active member automation accounts except its author."
+    constraint "One source message is delivered at most once to one automation key version; retries are idempotent."
+    constraint "Webhook payloads expose the source message, safe author identity, accessible space, sanitized text, and attachment metadata but never credentials or inaccessible history."
+    constraint "Webhook delivery has a seven-second default timeout and a bounded response body; non-success responses create no reply message."
+    constraint "A successful text reply is published as the automation author; an allowed attachment reply is published as an attachment; empty success creates no message."
+    constraint "Timeout may create one explicit failure message attributed to the automation, but network diagnostics and secrets are not exposed to room members."
+    constraint "All webhook and preview requests require an allowed HTTP or HTTPS scheme, a syntactically valid public host, and no user-info credentials."
+    constraint "Every destination and redirect is DNS-resolved immediately before connection, rejects private, loopback, link-local, multicast, documentation, transition, carrier-grade NAT, metadata, and invalid addresses, and connects to the validated pinned address."
+    constraint "Link preview follows at most ten redirects, reads at most five mebibytes by default, accepts HTML only, and stops on cycles or a rejected redirect target."
+    constraint "Preview title and description are stripped of markup and blank values; canonical and image URLs are resolved against the final document URL and independently pass the outbound-network policy."
+    constraint "A preview returns no content when no safe meaningful title or description exists; preview failure never prevents publishing the original chat message."
+
+    example "create an automation account" {
+      given AutomationRepository.create(createAutomation) returns AutomationCredential { automationId = automationId key = "issued-only-key" keyVersion = 1 issuedAt = occurredAt }
+      when result = AutomationAdminApi.create(createAutomation)
+      expect Success
+      expect emits AutomationCreated { automationId = automationId }
+    }
+    example "edit an automation account" {
+      given AutomationRepository.edit(editAutomation) returns AutomationAccount { id = automationId name = "Deploy bot" standing = Active webhookUrl = Some("https://bot.example.com/hooks") keyVersion = 1 }
+      when result = AutomationAdminApi.edit(editAutomation)
+      expect Success
+      expect emits AutomationChanged { automationId = automationId }
+    }
+    example "rotate an automation key" {
+      given AutomationRepository.rotateKey(rotateAutomationKey) returns AutomationCredential { automationId = automationId key = "new-issued-only-key" keyVersion = 2 issuedAt = occurredAt }
+      when result = AutomationAdminApi.rotateKey(rotateAutomationKey)
+      expect Success
+      expect emits AutomationKeyRotated { automationId = automationId keyVersion = 2 }
+    }
+    example "deactivate an automation account" {
+      given AutomationRepository.deactivate(administratorId, automationId) returns Unit
+      when result = AutomationAdminApi.deactivate(administratorId, automationId)
+      expect Success
+      expect emits AutomationDeactivated { automationId = automationId }
+    }
+    example "dispatch a bounded webhook" {
+      given AutomationRepository.find(automationId) returns AutomationAccount { id = automationId name = "Deploy bot" standing = Active webhookUrl = Some("https://bot.example.com/hooks") keyVersion = 1 }
+      given OutboundGateway.dispatchWebhook(automationId, incomingMessage) returns WebhookReply { kind = Text body = Some("received") attachmentName = None attachment = None }
+      when result = ExternalContentApi.dispatchWebhook(automationId, incomingMessage)
+      expect Success
+      expect emits WebhookReplyAccepted { automationId = automationId sourceMessageId = messageId }
+    }
+    example "preview a safe public link" {
+      given OutboundGateway.preview(previewLink) returns Some(LinkPreview { canonicalUrl = "https://example.com/article" title = "Article" description = Some("A safe preview") imageUrl = None siteName = Some("Example") })
+      when result = ExternalContentApi.preview(previewLink)
+      expect Success
+    }
+  }
+}

@@ -1,0 +1,1062 @@
+domain WorkEvidence {
+  value WorkArtifactId = UUID
+  value ArtifactRelationId = UUID
+  value ArtifactWorkstreamId = UUID
+  value ArtifactActorId = UUID
+  value ArtifactMessageId = UUID
+  value ArtifactRunId = UUID
+  value ArtifactProducerId = UUID
+  value ArtifactVersion = Int { range 1..1000000 }
+  value ArtifactContentHash = String { length 16..256 }
+  value ArtifactContentReference = String { length 1..500 }
+
+  type WorkArtifactKind = Ticket | Decision | Dctx0Specification | Dctx0Review | ImplementationPlan | CodeDiff | Commit | TestReport | BuildReport | DeploymentRecord | MonitoringReport | AlertRecord | IncidentRecord | Document
+  type ArtifactState = Available | Superseded | Invalidated
+  type ArtifactProducerKind = Human | Agent | Automation | ExternalSystem
+  type ArtifactRelationKind = DerivedFrom | Implements | Verifies | Deploys | Observes | TriggeredBy | Supersedes | ForkedFrom
+
+  failure WorkArtifactNotFound { artifactId: WorkArtifactId }
+  failure ArtifactRelationNotFound { relationId: ArtifactRelationId }
+  failure ArtifactAccessDenied { actorId: ArtifactActorId }
+  failure ArtifactRegistrationRejected { reason: String }
+  failure ArtifactRelationRejected { reason: String }
+  failure ArtifactStateRejected { reason: String }
+  failure ArtifactLedgerUnavailable { reason: String }
+
+  entity WorkArtifact {
+    id: WorkArtifactId
+    workstreamId: ArtifactWorkstreamId
+    kind: WorkArtifactKind
+    version: ArtifactVersion
+    state: ArtifactState
+    title: String
+    contentHash: ArtifactContentHash
+    contentReference: ArtifactContentReference
+    producerKind: ArtifactProducerKind
+    producerId: ArtifactProducerId
+    sourceMessageId: Option<ArtifactMessageId>
+    sourceRunId: Option<ArtifactRunId>
+    createdAt: Timestamp
+    key id
+  }
+
+  entity ArtifactRelation {
+    id: ArtifactRelationId
+    workstreamId: ArtifactWorkstreamId
+    sourceArtifactId: WorkArtifactId
+    targetArtifactId: WorkArtifactId
+    kind: ArtifactRelationKind
+    rationale: String
+    createdBy: ArtifactActorId
+    createdAt: Timestamp
+    key id
+  }
+
+  message RegisterWorkArtifact {
+    artifactId: WorkArtifactId
+    workstreamId: ArtifactWorkstreamId
+    kind: WorkArtifactKind
+    version: ArtifactVersion
+    title: String
+    contentHash: ArtifactContentHash
+    contentReference: ArtifactContentReference
+    producerKind: ArtifactProducerKind
+    producerId: ArtifactProducerId
+    sourceMessageId: Option<ArtifactMessageId>
+    sourceRunId: Option<ArtifactRunId>
+    actorId: ArtifactActorId
+    occurredAt: Timestamp
+  }
+  message RelateWorkArtifacts {
+    relationId: ArtifactRelationId
+    workstreamId: ArtifactWorkstreamId
+    sourceArtifactId: WorkArtifactId
+    targetArtifactId: WorkArtifactId
+    kind: ArtifactRelationKind
+    rationale: String
+    actorId: ArtifactActorId
+    occurredAt: Timestamp
+  }
+  message SupersedeWorkArtifact {
+    relationId: ArtifactRelationId
+    workstreamId: ArtifactWorkstreamId
+    currentArtifactId: WorkArtifactId
+    replacementArtifactId: WorkArtifactId
+    actorId: ArtifactActorId
+    rationale: String
+    occurredAt: Timestamp
+  }
+  message InvalidateWorkArtifact {
+    artifactId: WorkArtifactId
+    actorId: ArtifactActorId
+    reason: String
+    occurredAt: Timestamp
+  }
+  message WorkArtifactView {
+    id: WorkArtifactId
+    workstreamId: ArtifactWorkstreamId
+    kind: WorkArtifactKind
+    version: ArtifactVersion
+    state: ArtifactState
+    title: String
+    contentHash: ArtifactContentHash
+    contentReference: ArtifactContentReference
+    producerKind: ArtifactProducerKind
+    producerId: ArtifactProducerId
+    sourceMessageId: Option<ArtifactMessageId>
+    sourceRunId: Option<ArtifactRunId>
+    createdAt: Timestamp
+  }
+  type ArtifactPayload = Ticket(TicketDefinitionView) | Decision(ArtifactContentReference) | Dctx0Specification(ArtifactContentReference) | Dctx0Review(ArtifactContentReference) | ImplementationPlan(ArtifactContentReference) | CodeDiff(ArtifactContentReference) | Commit(ArtifactContentReference) | TestReport(ArtifactContentReference) | BuildReport(ArtifactContentReference) | DeploymentRecord(ArtifactContentReference) | MonitoringReport(ArtifactContentReference) | AlertRecord(ArtifactContentReference) | IncidentRecord(ArtifactContentReference) | Document(ArtifactContentReference)
+  message ArtifactEntry {
+    artifact: WorkArtifactView
+    content: ArtifactPayload
+  }
+
+  message ArtifactGraph {
+    workstreamId: ArtifactWorkstreamId
+    artifacts: List<WorkArtifactView>
+    relations: List<ArtifactRelation>
+  }
+  message ArtifactTimeline {
+    workstreamId: ArtifactWorkstreamId
+    artifacts: List<WorkArtifactView>
+  }
+
+  event WorkArtifactRegistered { artifactId: WorkArtifactId; workstreamId: ArtifactWorkstreamId; kind: WorkArtifactKind }
+  event WorkArtifactsRelated { relationId: ArtifactRelationId; sourceArtifactId: WorkArtifactId; targetArtifactId: WorkArtifactId; kind: ArtifactRelationKind }
+  event WorkArtifactSuperseded { currentArtifactId: WorkArtifactId; replacementArtifactId: WorkArtifactId }
+  event WorkArtifactInvalidated { artifactId: WorkArtifactId; reason: String }
+
+
+  value TicketId = UUID
+  value TicketRevisionId = UUID
+  value TicketWorkstreamId = UUID
+  value TicketActorId = UUID
+  value TicketMessageId = UUID
+  value RevisionNumber = Int { range 1..1000000 }
+
+  type TicketKind = Bug | Change | Task | Investigation | Decision
+  type TicketPriority = Critical | High | Normal | Low
+  type TicketDefinitionState = Draft | Complete | Reviewed | Stale
+  type TicketReadinessState = NeedsClarification | ReadyForImplementation | Blocked
+  type TicketReviewVerdict = Approved | ChangesRequested
+  type TicketAutomationMode = ObserveOnly | TriageAutomatically | PrepareImplementation | ImplementWithApproval | ImplementAutomatically
+
+  failure TicketNotFound { ticketId: TicketId }
+  failure TicketRevisionNotFound { revisionId: TicketRevisionId }
+  failure TicketAccessDenied { actorId: TicketActorId }
+  failure TicketDefinitionRejected { reason: String }
+  failure TicketReviewRejected { reason: String }
+  failure TicketReadinessRejected { reason: String }
+  failure TicketPersistenceUnavailable { reason: String }
+
+  entity Ticket {
+    id: TicketId
+    workstreamId: TicketWorkstreamId
+    kind: TicketKind
+    priority: TicketPriority
+    definitionState: TicketDefinitionState
+    readiness: TicketReadinessState
+    automationMode: TicketAutomationMode
+    currentRevisionId: TicketRevisionId
+    openedBy: TicketActorId
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity TicketRevision {
+    id: TicketRevisionId
+    ticketId: TicketId
+    artifactId: WorkArtifactId
+    number: RevisionNumber
+    problem: String
+    desiredOutcome: String
+    acceptanceCriteria: List<String>
+    boundaryConditions: List<String>
+    excludedScope: List<String>
+    affectedAreas: List<String>
+    openQuestions: List<String>
+    sourceMessageIds: List<TicketMessageId>
+    formalSpecificationArtifactId: Option<WorkArtifactId>
+    createdBy: TicketActorId
+    createdAt: Timestamp
+    key id
+  }
+
+  message CreateTicket {
+    ticketId: TicketId
+    revisionId: TicketRevisionId
+    artifactId: WorkArtifactId
+    workstreamId: TicketWorkstreamId
+    actorId: TicketActorId
+    kind: TicketKind
+    priority: TicketPriority
+    automationMode: TicketAutomationMode
+    problem: String
+    desiredOutcome: String
+    acceptanceCriteria: List<String>
+    boundaryConditions: List<String>
+    excludedScope: List<String>
+    affectedAreas: List<String>
+    openQuestions: List<String>
+    sourceMessageIds: List<TicketMessageId>
+    occurredAt: Timestamp
+  }
+  message ReviseTicket {
+    ticketId: TicketId
+    revisionId: TicketRevisionId
+    artifactId: WorkArtifactId
+    expectedCurrentRevisionId: TicketRevisionId
+    actorId: TicketActorId
+    problem: String
+    desiredOutcome: String
+    acceptanceCriteria: List<String>
+    boundaryConditions: List<String>
+    excludedScope: List<String>
+    affectedAreas: List<String>
+    openQuestions: List<String>
+    sourceMessageIds: List<TicketMessageId>
+    formalSpecificationArtifactId: Option<WorkArtifactId>
+    occurredAt: Timestamp
+  }
+  message ReviewTicket {
+    ticketId: TicketId
+    revisionId: TicketRevisionId
+    reviewerId: TicketActorId
+    verdict: TicketReviewVerdict
+    findings: List<String>
+    evidenceArtifactIds: List<WorkArtifactId>
+    occurredAt: Timestamp
+  }
+  message MarkTicketStale {
+    ticketId: TicketId
+    actorId: TicketActorId
+    reason: String
+    sourceMessageIds: List<TicketMessageId>
+    occurredAt: Timestamp
+  }
+  message ChangeTicketAutomation {
+    ticketId: TicketId
+    actorId: TicketActorId
+    automationMode: TicketAutomationMode
+    reason: String
+    occurredAt: Timestamp
+  }
+  message AssessTicketReadiness {
+    ticketId: TicketId
+    revisionId: TicketRevisionId
+    actorId: TicketActorId
+    dependenciesSatisfied: Boolean
+    requiredReviewsSatisfied: Boolean
+    formalSpecificationCurrent: Boolean
+    blockingEvidenceArtifactIds: List<WorkArtifactId>
+    occurredAt: Timestamp
+  }
+  message TicketView {
+    id: TicketId
+    workstreamId: TicketWorkstreamId
+    kind: TicketKind
+    priority: TicketPriority
+    definitionState: TicketDefinitionState
+    readiness: TicketReadinessState
+    automationMode: TicketAutomationMode
+    currentRevisionId: TicketRevisionId
+  }
+  message TicketDefinitionView {
+    ticket: TicketView
+    revision: TicketRevision
+  }
+  message TicketReadiness {
+    ticketId: TicketId
+    revisionId: TicketRevisionId
+    state: TicketReadinessState
+    reasons: List<String>
+    evidenceArtifactIds: List<WorkArtifactId>
+  }
+
+  event TicketCreated { ticketId: TicketId; workstreamId: TicketWorkstreamId; revisionId: TicketRevisionId }
+  event TicketRevised { ticketId: TicketId; revisionId: TicketRevisionId; artifactId: WorkArtifactId }
+  event TicketReviewed { ticketId: TicketId; revisionId: TicketRevisionId; verdict: TicketReviewVerdict }
+  event TicketBecameStale { ticketId: TicketId; revisionId: TicketRevisionId }
+  event TicketReadinessChanged { ticketId: TicketId; revisionId: TicketRevisionId; readiness: TicketReadinessState }
+  event TicketAutomationChanged { ticketId: TicketId; automationMode: TicketAutomationMode }
+
+
+  module ArtifactLineage {
+    intent """
+      Preserve every formal definition, implementation result, verification,
+      deployment, and production signal as an immutable workstream artifact and
+      make the provenance between them navigable as both graph and timeline.
+      """
+
+    decision EvidenceIsVersionedAndRelated {
+      choose "Store immutable artifact versions and explicit typed relations instead of replacing attachments in place."
+      because "A team must be able to prove which definition produced which run, diff, test, deployment, observation, and alert."
+      avoid "Do not infer provenance later from filenames, timestamps, current links, or mutable external pages."
+    }
+    decision ContentStaysBehindAReference {
+      choose "Keep stable content hashes and access-controlled references in the ledger while specialized stores own large or sensitive payloads."
+      because "Code, logs, recordings, and reports have different storage, retention, and secrecy requirements."
+      avoid "Do not copy every payload into chat messages or expose an external reference without workstream authorization."
+    }
+
+    owns {
+      value WorkArtifactId value ArtifactRelationId value ArtifactWorkstreamId value ArtifactActorId
+      value ArtifactMessageId value ArtifactRunId value ArtifactProducerId value ArtifactVersion
+      value ArtifactContentHash value ArtifactContentReference
+      entity WorkArtifact entity ArtifactRelation entity Ticket entity TicketRevision
+      value TicketId value TicketRevisionId value TicketWorkstreamId value TicketActorId value TicketMessageId value RevisionNumber
+      event TicketCreated event TicketRevised event TicketReviewed event TicketBecameStale event TicketReadinessChanged event TicketAutomationChanged
+      event WorkArtifactRegistered event WorkArtifactsRelated event WorkArtifactSuperseded event WorkArtifactInvalidated
+    }
+
+    requires { WorkArtifactRepository ArtifactContentGateway ArtifactDetailsRead TicketRepository TicketArtifactPersistence }
+
+    port TicketArtifactPersistence {
+      operation record(definition: TicketDefinitionView, supersedesArtifactId: Option<WorkArtifactId>)
+        -> Unit
+        ! TicketPersistenceUnavailable
+      effects { write WorkArtifact write ArtifactRelation }
+    }
+
+    port ArtifactDetailsRead {
+      operation inspect(artifactId: WorkArtifactId, actorId: ArtifactActorId)
+        -> ArtifactEntry
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactLedgerUnavailable
+      effects { read WorkArtifact read Ticket read TicketRevision }
+    }
+
+    port WorkArtifactRepository {
+      operation register(request: RegisterWorkArtifact)
+        -> WorkArtifactView
+        ! ArtifactAccessDenied ! ArtifactRegistrationRejected ! ArtifactLedgerUnavailable {
+        state upserts WorkArtifact from WorkArtifact {
+          id = request.artifactId
+          workstreamId = request.workstreamId
+          kind = request.kind
+          version = request.version
+          state = result.state
+          title = request.title
+          contentHash = request.contentHash
+          contentReference = request.contentReference
+          producerKind = request.producerKind
+          producerId = request.producerId
+          sourceMessageId = request.sourceMessageId
+          sourceRunId = request.sourceRunId
+          createdAt = request.occurredAt
+        }
+        ensures success implies result == WorkArtifactView {
+          id = after.WorkArtifact(request.artifactId).id
+          workstreamId = after.WorkArtifact(request.artifactId).workstreamId
+          kind = after.WorkArtifact(request.artifactId).kind
+          version = after.WorkArtifact(request.artifactId).version
+          state = after.WorkArtifact(request.artifactId).state
+          title = after.WorkArtifact(request.artifactId).title
+          contentHash = after.WorkArtifact(request.artifactId).contentHash
+          contentReference = after.WorkArtifact(request.artifactId).contentReference
+          producerKind = after.WorkArtifact(request.artifactId).producerKind
+          producerId = after.WorkArtifact(request.artifactId).producerId
+          sourceMessageId = after.WorkArtifact(request.artifactId).sourceMessageId
+          sourceRunId = after.WorkArtifact(request.artifactId).sourceRunId
+          createdAt = after.WorkArtifact(request.artifactId).createdAt
+        }
+        ensures success and creates WorkArtifact(request.artifactId) implies result.state == Available
+        ensures success and not creates WorkArtifact(request.artifactId) implies preserves WorkArtifact(request.artifactId)
+        ensures not success implies before.WorkArtifact == after.WorkArtifact
+        effects { write WorkArtifact }
+      }
+      operation relate(request: RelateWorkArtifacts)
+        -> ArtifactRelation
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactRelationRejected ! ArtifactLedgerUnavailable {
+        state observes WorkArtifact by request.sourceArtifactId
+        state upserts ArtifactRelation from ArtifactRelation {
+          id = request.relationId
+          workstreamId = request.workstreamId
+          sourceArtifactId = request.sourceArtifactId
+          targetArtifactId = request.targetArtifactId
+          kind = request.kind
+          rationale = request.rationale
+          createdBy = request.actorId
+          createdAt = request.occurredAt
+        }
+        ensures success implies result == after.ArtifactRelation(request.relationId)
+        ensures before.WorkArtifact == after.WorkArtifact
+        ensures not success implies before.ArtifactRelation == after.ArtifactRelation
+        effects { read WorkArtifact write ArtifactRelation }
+      }
+      operation supersede(request: SupersedeWorkArtifact)
+        -> WorkArtifactView
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactRelationRejected ! ArtifactStateRejected ! ArtifactLedgerUnavailable {
+        state replaces WorkArtifact by request.currentArtifactId from WorkArtifact {
+          id = self.id
+          workstreamId = self.workstreamId
+          kind = self.kind
+          version = self.version
+          state = Superseded
+          title = self.title
+          contentHash = self.contentHash
+          contentReference = self.contentReference
+          producerKind = self.producerKind
+          producerId = self.producerId
+          sourceMessageId = self.sourceMessageId
+          sourceRunId = self.sourceRunId
+          createdAt = self.createdAt
+        }
+        state upserts ArtifactRelation from ArtifactRelation {
+          id = request.relationId
+          workstreamId = request.workstreamId
+          sourceArtifactId = request.replacementArtifactId
+          targetArtifactId = request.currentArtifactId
+          kind = Supersedes
+          rationale = request.rationale
+          createdBy = request.actorId
+          createdAt = request.occurredAt
+        }
+        ensures success implies result == WorkArtifactView {
+          id = before.WorkArtifact(request.replacementArtifactId).id
+          workstreamId = before.WorkArtifact(request.replacementArtifactId).workstreamId
+          kind = before.WorkArtifact(request.replacementArtifactId).kind
+          version = before.WorkArtifact(request.replacementArtifactId).version
+          state = before.WorkArtifact(request.replacementArtifactId).state
+          title = before.WorkArtifact(request.replacementArtifactId).title
+          contentHash = before.WorkArtifact(request.replacementArtifactId).contentHash
+          contentReference = before.WorkArtifact(request.replacementArtifactId).contentReference
+          producerKind = before.WorkArtifact(request.replacementArtifactId).producerKind
+          producerId = before.WorkArtifact(request.replacementArtifactId).producerId
+          sourceMessageId = before.WorkArtifact(request.replacementArtifactId).sourceMessageId
+          sourceRunId = before.WorkArtifact(request.replacementArtifactId).sourceRunId
+          createdAt = before.WorkArtifact(request.replacementArtifactId).createdAt
+        }
+        effects { write WorkArtifact write ArtifactRelation }
+      }
+      operation invalidate(request: InvalidateWorkArtifact)
+        -> WorkArtifactView
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactStateRejected ! ArtifactLedgerUnavailable {
+        state replaces WorkArtifact by request.artifactId from WorkArtifact {
+          id = self.id
+          workstreamId = self.workstreamId
+          kind = self.kind
+          version = self.version
+          state = Invalidated
+          title = self.title
+          contentHash = self.contentHash
+          contentReference = self.contentReference
+          producerKind = self.producerKind
+          producerId = self.producerId
+          sourceMessageId = self.sourceMessageId
+          sourceRunId = self.sourceRunId
+          createdAt = self.createdAt
+        }
+        ensures success implies result == WorkArtifactView {
+          id = after.WorkArtifact(request.artifactId).id
+          workstreamId = after.WorkArtifact(request.artifactId).workstreamId
+          kind = after.WorkArtifact(request.artifactId).kind
+          version = after.WorkArtifact(request.artifactId).version
+          state = after.WorkArtifact(request.artifactId).state
+          title = after.WorkArtifact(request.artifactId).title
+          contentHash = after.WorkArtifact(request.artifactId).contentHash
+          contentReference = after.WorkArtifact(request.artifactId).contentReference
+          producerKind = after.WorkArtifact(request.artifactId).producerKind
+          producerId = after.WorkArtifact(request.artifactId).producerId
+          sourceMessageId = after.WorkArtifact(request.artifactId).sourceMessageId
+          sourceRunId = after.WorkArtifact(request.artifactId).sourceRunId
+          createdAt = after.WorkArtifact(request.artifactId).createdAt
+        }
+        ensures failure is ArtifactAccessDenied implies preserves WorkArtifact(request.artifactId)
+        ensures failure is ArtifactStateRejected implies preserves WorkArtifact(request.artifactId)
+        effects { write WorkArtifact }
+      }
+      operation inspect(artifactId: WorkArtifactId, actorId: ArtifactActorId)
+        -> WorkArtifactView
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactLedgerUnavailable {
+        state observes WorkArtifact by artifactId
+        ensures success implies result == WorkArtifactView {
+          id = after.WorkArtifact(artifactId).id
+          workstreamId = after.WorkArtifact(artifactId).workstreamId
+          kind = after.WorkArtifact(artifactId).kind
+          version = after.WorkArtifact(artifactId).version
+          state = after.WorkArtifact(artifactId).state
+          title = after.WorkArtifact(artifactId).title
+          contentHash = after.WorkArtifact(artifactId).contentHash
+          contentReference = after.WorkArtifact(artifactId).contentReference
+          producerKind = after.WorkArtifact(artifactId).producerKind
+          producerId = after.WorkArtifact(artifactId).producerId
+          sourceMessageId = after.WorkArtifact(artifactId).sourceMessageId
+          sourceRunId = after.WorkArtifact(artifactId).sourceRunId
+          createdAt = after.WorkArtifact(artifactId).createdAt
+        }
+        ensures not success implies before.WorkArtifact == after.WorkArtifact
+        effects { read WorkArtifact }
+      }
+
+      operation graph(workstreamId: ArtifactWorkstreamId, actorId: ArtifactActorId)
+        -> ArtifactGraph
+        ! ArtifactAccessDenied ! ArtifactLedgerUnavailable {
+        state lists WorkArtifact
+        state lists ArtifactRelation
+        ensures before.WorkArtifact == after.WorkArtifact
+        ensures before.ArtifactRelation == after.ArtifactRelation
+        effects { read WorkArtifact read ArtifactRelation }
+      }
+      operation timeline(workstreamId: ArtifactWorkstreamId, actorId: ArtifactActorId)
+        -> ArtifactTimeline
+        ! ArtifactAccessDenied ! ArtifactLedgerUnavailable {
+        state lists WorkArtifact
+        ensures before.WorkArtifact == after.WorkArtifact
+        effects { read WorkArtifact }
+      }
+    }
+
+    port ArtifactContentGateway {
+      operation assertAvailable(contentReference: ArtifactContentReference, contentHash: ArtifactContentHash, actorId: ArtifactActorId)
+        -> Unit
+        ! ArtifactAccessDenied ! ArtifactRegistrationRejected
+    }
+
+    surface WorkArtifactApi exposes requestReply {
+      operation details(artifactId: WorkArtifactId, actorId: ArtifactActorId)
+        -> ArtifactEntry
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactLedgerUnavailable
+      effects { read WorkArtifact read Ticket read TicketRevision call ArtifactDetailsRead.inspect }
+
+      operation register(request: RegisterWorkArtifact)
+        -> WorkArtifactView
+        ! ArtifactAccessDenied ! ArtifactRegistrationRejected ! ArtifactLedgerUnavailable
+      effects { write WorkArtifact call ArtifactContentGateway.assertAvailable call WorkArtifactRepository.register emit WorkArtifactRegistered(artifactId: request.artifactId, workstreamId: request.workstreamId, kind: request.kind) }
+
+      operation relate(request: RelateWorkArtifacts)
+        -> ArtifactRelation
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactRelationRejected ! ArtifactLedgerUnavailable
+      effects { read WorkArtifact write ArtifactRelation call WorkArtifactRepository.relate emit WorkArtifactsRelated(relationId: request.relationId, sourceArtifactId: request.sourceArtifactId, targetArtifactId: request.targetArtifactId, kind: request.kind) }
+
+      operation supersede(request: SupersedeWorkArtifact)
+        -> WorkArtifactView
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactRelationRejected ! ArtifactStateRejected ! ArtifactLedgerUnavailable
+      effects { write WorkArtifact write ArtifactRelation call WorkArtifactRepository.supersede emit WorkArtifactSuperseded(currentArtifactId: request.currentArtifactId, replacementArtifactId: request.replacementArtifactId) }
+
+      operation invalidate(request: InvalidateWorkArtifact)
+        -> WorkArtifactView
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactStateRejected ! ArtifactLedgerUnavailable
+      effects { write WorkArtifact call WorkArtifactRepository.invalidate emit WorkArtifactInvalidated(artifactId: request.artifactId, reason: request.reason) }
+
+      operation inspect(artifactId: WorkArtifactId, actorId: ArtifactActorId)
+        -> WorkArtifactView
+        ! WorkArtifactNotFound ! ArtifactAccessDenied ! ArtifactLedgerUnavailable
+      effects { read WorkArtifact call WorkArtifactRepository.inspect }
+
+      operation graph(workstreamId: ArtifactWorkstreamId, actorId: ArtifactActorId)
+        -> ArtifactGraph
+        ! ArtifactAccessDenied ! ArtifactLedgerUnavailable
+      effects { read WorkArtifact read ArtifactRelation call WorkArtifactRepository.graph }
+
+      operation timeline(workstreamId: ArtifactWorkstreamId, actorId: ArtifactActorId)
+        -> ArtifactTimeline
+        ! ArtifactAccessDenied ! ArtifactLedgerUnavailable
+      effects { read WorkArtifact call WorkArtifactRepository.timeline }
+    }
+
+    constraint "Artifacts are the single public work-object collection. Tickets are the Ticket specialization of ArtifactEntry, never a parallel ticket list. The payload variant must match the artifact kind and every Ticket payload identifies the exact persisted revision behind that artifact version. Specialized stores may own ticket state and immutable revision content."
+    constraint "Artifact lists show creation date, title and type; opening an artifact resolves its typed detail. Ticket review, readiness, priority and automation are specialization behavior, not generic fields on every artifact."
+    constraint "Ticket creation and revision atomically commit their specialized state, immutable revision and common artifact metadata. Revisions supersede the earlier artifact through explicit lineage while preserving its content. Generic artifact registration cannot manufacture a Ticket without its specialized content."
+    constraint "An artifact is append-only after registration; title, kind, version, producer, source, content hash, and content reference never change."
+    constraint "A new representation is a new artifact version and an explicit Supersedes relation; superseding never deletes the prior version."
+    constraint "Invalidation records attributable reason and time, preserves the artifact, and prevents it from satisfying a current readiness or completion gate."
+    constraint "Every artifact belongs to exactly one workstream and is readable only through that workstream's access policy."
+    constraint "A cross-workstream derivation requires access to both workstreams and an explicit bridge record; an ordinary relation cannot leak a private artifact."
+    constraint "Every artifact records a real producer, stable content hash, resolvable content reference, and at least one attributable source when created from chat or an agent run."
+    constraint "Artifact relations are directed, typed, attributable, and immutable; retries with the same relation identity are idempotent."
+    constraint "Supersedes and ForkedFrom cannot form a cycle, and a self relation is always rejected."
+    constraint "Implements points from an implementation result to the exact ticket or specification version it implements."
+    constraint "Verifies points from a test, build, or review result to the exact change, implementation, or specification it evaluated."
+    constraint "Deploys identifies the exact verified change delivered, while Observes identifies the exact deployment or release observed in production."
+    constraint "Artifact registration proves provenance and integrity, not correctness, approval, successful verification, deployment health, or ticket completion."
+    constraint "Graph and timeline views expose the same authorized ledger: the graph explains causality and the timeline explains sequence."
+
+    example "native register records the complete artifact" {
+      when result = WorkArtifactRepository.register(RegisterWorkArtifact { artifactId = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None actorId = "00000000-0000-4000-8000-000000000083" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result == WorkArtifactView { id = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None state = Available createdAt = "2026-10-07T10:00:00.000Z" }
+    }
+    example "native register retries preserve immutable metadata" {
+      when result = WorkArtifactRepository.register(RegisterWorkArtifact { artifactId = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None actorId = "00000000-0000-4000-8000-000000000083" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result == WorkArtifactView { id = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None state = Available createdAt = "2026-10-07T10:00:00.000Z" }
+    }
+    example "native relate records exact artifact provenance" {
+      when result = WorkArtifactRepository.relate(RelateWorkArtifacts { relationId = "00000000-0000-4000-8000-000000000086" workstreamId = "00000000-0000-4000-8000-000000000085" sourceArtifactId = "00000000-0000-4000-8000-000000000081" targetArtifactId = "00000000-0000-4000-8000-000000000082" kind = Implements actorId = "00000000-0000-4000-8000-000000000083" rationale = "Native provenance" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result == ArtifactRelation { id = "00000000-0000-4000-8000-000000000086" workstreamId = "00000000-0000-4000-8000-000000000085" sourceArtifactId = "00000000-0000-4000-8000-000000000081" targetArtifactId = "00000000-0000-4000-8000-000000000082" kind = Implements createdBy = "00000000-0000-4000-8000-000000000083" rationale = "Native provenance" createdAt = "2026-10-07T10:00:00.000Z" }
+    }
+    example "native inspect returns complete persisted metadata" {
+      when result = WorkArtifactRepository.inspect("00000000-0000-4000-8000-000000000081", "00000000-0000-4000-8000-000000000083")
+      expect result == WorkArtifactView { id = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None state = Available createdAt = "2026-10-07T10:00:00.000Z" }
+    }
+    example "native invalidate retains complete immutable metadata" {
+      when result = WorkArtifactRepository.invalidate(InvalidateWorkArtifact { artifactId = "00000000-0000-4000-8000-000000000081" actorId = "00000000-0000-4000-8000-000000000083" reason = "Native invalidation" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result == WorkArtifactView { id = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None state = Invalidated createdAt = "2026-10-07T10:00:00.000Z" }
+    }
+    example "native inspect rejects a missing artifact" {
+      when result = WorkArtifactRepository.inspect("00000000-0000-4000-8000-000000000087", "00000000-0000-4000-8000-000000000083")
+      expect result fails WorkArtifactNotFound
+    }
+    example "native inspect rejects unauthorized metadata" {
+      when result = WorkArtifactRepository.inspect("00000000-0000-4000-8000-000000000081", "00000000-0000-4000-8000-000000000084")
+      expect result fails ArtifactAccessDenied
+    }
+
+    example "native supersede preserves exact replacement metadata" {
+      when result = WorkArtifactRepository.supersede(SupersedeWorkArtifact { relationId = "00000000-0000-4000-8000-000000000086" workstreamId = "00000000-0000-4000-8000-000000000085" currentArtifactId = "00000000-0000-4000-8000-000000000081" replacementArtifactId = "00000000-0000-4000-8000-000000000082" actorId = "00000000-0000-4000-8000-000000000083" rationale = "Native supersession" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result == WorkArtifactView { id = "00000000-0000-4000-8000-000000000082" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 2 state = Available title = "Native target" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None createdAt = "2026-10-07T10:00:00.000Z" }
+    }
+    example "native register rejects conflicting immutable metadata" {
+      when result = WorkArtifactRepository.register(RegisterWorkArtifact { artifactId = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 title = "Conflicting native title" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None actorId = "00000000-0000-4000-8000-000000000083" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result fails ArtifactRegistrationRejected
+    }
+    example "native relate rejects a missing target" {
+      when result = WorkArtifactRepository.relate(RelateWorkArtifacts { relationId = "00000000-0000-4000-8000-000000000086" workstreamId = "00000000-0000-4000-8000-000000000085" sourceArtifactId = "00000000-0000-4000-8000-000000000081" targetArtifactId = "00000000-0000-4000-8000-000000000087" kind = Implements actorId = "00000000-0000-4000-8000-000000000083" rationale = "Native missing target" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result fails WorkArtifactNotFound
+    }
+    example "native invalidate rejects already invalidated evidence" {
+      when result = WorkArtifactRepository.invalidate(InvalidateWorkArtifact { artifactId = "00000000-0000-4000-8000-000000000081" actorId = "00000000-0000-4000-8000-000000000083" reason = "Native repeated invalidation" occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result fails ArtifactStateRejected
+    }
+
+    example "native graph returns exact authorized provenance and excludes foreign rows" {
+      when result = WorkArtifactRepository.graph("00000000-0000-4000-8000-000000000085", "00000000-0000-4000-8000-000000000083")
+      expect result == ArtifactGraph { workstreamId = "00000000-0000-4000-8000-000000000085" artifacts = [WorkArtifactView { id = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 state = Available title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None createdAt = "2026-10-07T10:00:00.000Z" }, WorkArtifactView { id = "00000000-0000-4000-8000-000000000082" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 2 state = Available title = "Native target" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None createdAt = "2026-10-07T10:00:00.000Z" }] relations = [ArtifactRelation { id = "00000000-0000-4000-8000-000000000086" workstreamId = "00000000-0000-4000-8000-000000000085" sourceArtifactId = "00000000-0000-4000-8000-000000000081" targetArtifactId = "00000000-0000-4000-8000-000000000082" kind = Implements rationale = "Native provenance" createdBy = "00000000-0000-4000-8000-000000000083" createdAt = "2026-10-07T10:00:00.000Z" }] }
+    }
+    example "native timeline returns exact scoped deterministic sequence" {
+      when result = WorkArtifactRepository.timeline("00000000-0000-4000-8000-000000000085", "00000000-0000-4000-8000-000000000083")
+      expect result == ArtifactTimeline { workstreamId = "00000000-0000-4000-8000-000000000085" artifacts = [WorkArtifactView { id = "00000000-0000-4000-8000-000000000081" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 1 state = Available title = "Native document" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None createdAt = "2026-10-07T10:00:00.000Z" }, WorkArtifactView { id = "00000000-0000-4000-8000-000000000082" workstreamId = "00000000-0000-4000-8000-000000000085" kind = Document version = 2 state = Available title = "Native target" contentHash = "0123456789abcdef" contentReference = "inline:Native document" producerKind = Human producerId = "00000000-0000-4000-8000-000000000083" sourceMessageId = None sourceRunId = None createdAt = "2026-10-07T10:00:00.000Z" }] }
+    }
+
+    example "native artifact content verifies actual inline bytes" {
+      when result = ArtifactContentGateway.assertAvailable("inline:Native persisted artifact", "6fa43cbfeab0636fd4d39e494c0b1dec9ad0c67ce0024848cda715d252feefcd", "00000000-0000-4000-8000-000000000763")
+      expect Success
+    }
+    example "native artifact content verifies actual history persistence" {
+      when result = ArtifactContentGateway.assertAvailable("history-native-artifact", "6fa43cbfeab0636fd4d39e494c0b1dec9ad0c67ce0024848cda715d252feefcd", "00000000-0000-4000-8000-000000000763")
+      expect Success
+    }
+    example "native artifact content rejects a mismatched digest" {
+      when result = ArtifactContentGateway.assertAvailable("inline:Native persisted artifact", "0000000000000000000000000000000000000000000000000000000000000000", "00000000-0000-4000-8000-000000000763")
+      expect result fails ArtifactRegistrationRejected
+    }
+    example "native artifact content rejects inactive human" {
+      when result = ArtifactContentGateway.assertAvailable("inline:Native persisted artifact", "6fa43cbfeab0636fd4d39e494c0b1dec9ad0c67ce0024848cda715d252feefcd", "00000000-0000-4000-8000-000000000763")
+      expect result fails ArtifactAccessDenied
+    }
+    example "native artifact content rejects missing stored bytes" {
+      when result = ArtifactContentGateway.assertAvailable("history-content-missing", "6fa43cbfeab0636fd4d39e494c0b1dec9ad0c67ce0024848cda715d252feefcd", "00000000-0000-4000-8000-000000000763")
+      expect result fails ArtifactRegistrationRejected
+    }
+
+    example "native graph returns an exact empty authorized ledger" {
+      when result = WorkArtifactRepository.graph("00000000-0000-4000-8000-000000000085", "00000000-0000-4000-8000-000000000083")
+      expect result == ArtifactGraph { workstreamId = "00000000-0000-4000-8000-000000000085" artifacts = [] relations = [] }
+    }
+    example "native timeline returns an exact empty authorized ledger" {
+      when result = WorkArtifactRepository.timeline("00000000-0000-4000-8000-000000000085", "00000000-0000-4000-8000-000000000083")
+      expect result == ArtifactTimeline { workstreamId = "00000000-0000-4000-8000-000000000085" artifacts = [] }
+    }
+    example "native graph rejects unauthorized ledger access" {
+      when result = WorkArtifactRepository.graph("00000000-0000-4000-8000-000000000085", "00000000-0000-4000-8000-000000000084")
+      expect result fails ArtifactAccessDenied
+    }
+    example "native timeline rejects unauthorized ledger access" {
+      when result = WorkArtifactRepository.timeline("00000000-0000-4000-8000-000000000085", "00000000-0000-4000-8000-000000000084")
+      expect result fails ArtifactAccessDenied
+    }
+    example "native ticket inspect rejects unauthorized definition access" {
+      when result = TicketRepository.inspect("00000000-0000-4000-8000-000000000501", "00000000-0000-4000-8000-000000000505")
+      expect result fails TicketAccessDenied
+    }
+
+    example "read persisted document artifact content" {
+      when result = ArtifactDetailsRead.inspect("00000000-0000-4000-8000-000000000071", "00000000-0000-4000-8000-000000000073")
+      expect result == ArtifactEntry { artifact = WorkArtifactView { id = "00000000-0000-4000-8000-000000000071" workstreamId = "00000000-0000-4000-8000-000000000072" kind = Document version = 1 state = Available title = "Native document" contentHash = "4d7d4264603b12edd5066c04c4c12996502ed9f4073fc25ac1a221627fc59add" contentReference = "inline:Native document content" producerKind = Human producerId = "00000000-0000-4000-8000-000000000073" sourceMessageId = None sourceRunId = None createdAt = "2026-10-06T10:00:00.000Z" } content = Document { value = "inline:Native document content" } }
+    }
+    example "reject missing artifact content" {
+      when result = ArtifactDetailsRead.inspect("00000000-0000-4000-8000-000000000074", "00000000-0000-4000-8000-000000000073")
+      expect result fails WorkArtifactNotFound
+    }
+    example "inspect an artifact through its typed content surface" {
+      given ArtifactDetailsRead.inspect("00000000-0000-4000-8000-000000000071", "00000000-0000-4000-8000-000000000073") returns ArtifactEntry { artifact = WorkArtifactView { id = "00000000-0000-4000-8000-000000000071" workstreamId = "00000000-0000-4000-8000-000000000072" kind = Document version = 1 state = Available title = "Native document" contentHash = "4d7d4264603b12edd5066c04c4c12996502ed9f4073fc25ac1a221627fc59add" contentReference = "inline:Native document content" producerKind = Human producerId = "00000000-0000-4000-8000-000000000073" sourceMessageId = None sourceRunId = None createdAt = "2026-10-06T10:00:00.000Z" } content = Document { value = "inline:Native document content" } }
+      when result = WorkArtifactApi.details("00000000-0000-4000-8000-000000000071", "00000000-0000-4000-8000-000000000073")
+      expect result == ArtifactEntry { artifact = WorkArtifactView { id = "00000000-0000-4000-8000-000000000071" workstreamId = "00000000-0000-4000-8000-000000000072" kind = Document version = 1 state = Available title = "Native document" contentHash = "4d7d4264603b12edd5066c04c4c12996502ed9f4073fc25ac1a221627fc59add" contentReference = "inline:Native document content" producerKind = Human producerId = "00000000-0000-4000-8000-000000000073" sourceMessageId = None sourceRunId = None createdAt = "2026-10-06T10:00:00.000Z" } content = Document { value = "inline:Native document content" } }
+    }
+
+    example "register an immutable artifact after its referenced content is available" {
+      given ArtifactContentGateway.assertAvailable(contentReference, contentHash, actorId) returns Unit
+      given WorkArtifactRepository.register(registerWorkArtifact) returns WorkArtifactView { id = artifactId workstreamId = workstreamId kind = Dctx0Specification version = artifactVersion state = Available title = "Workstream specification" contentHash = contentHash contentReference = contentReference producerKind = Agent producerId = producerId sourceMessageId = Some(messageId) sourceRunId = Some(runId) createdAt = occurredAt }
+      when result = WorkArtifactApi.register(registerWorkArtifact)
+      expect Success
+      expect emits WorkArtifactRegistered { artifactId = artifactId workstreamId = workstreamId kind = Dctx0Specification }
+    }
+    example "relate an implementation artifact to its exact specification" {
+      given WorkArtifactRepository.relate(relateWorkArtifacts) returns ArtifactRelation { id = relationId workstreamId = workstreamId sourceArtifactId = implementationArtifactId targetArtifactId = specificationArtifactId kind = Implements rationale = "implements the reviewed definition" createdBy = actorId createdAt = occurredAt }
+      when result = WorkArtifactApi.relate(relateWorkArtifacts)
+      expect Success
+      expect emits WorkArtifactsRelated { relationId = relationId sourceArtifactId = implementationArtifactId targetArtifactId = specificationArtifactId kind = Implements }
+    }
+    example "supersede a representation without mutating prior provenance" {
+      given WorkArtifactRepository.supersede(supersedeWorkArtifact) returns WorkArtifactView { id = replacementArtifactId workstreamId = workstreamId kind = Ticket version = replacementVersion state = Available title = "Revised ticket definition" contentHash = replacementHash contentReference = replacementReference producerKind = Human producerId = producerId sourceMessageId = Some(messageId) sourceRunId = None createdAt = occurredAt }
+      when result = WorkArtifactApi.supersede(supersedeWorkArtifact)
+      expect Success
+      expect emits WorkArtifactSuperseded { currentArtifactId = currentArtifactId replacementArtifactId = replacementArtifactId }
+    }
+    example "reject a relation that would rewrite immutable provenance" {
+      when result = WorkArtifactApi.supersede(SupersedeWorkArtifact { relationId = relationId workstreamId = workstreamId currentArtifactId = artifactId replacementArtifactId = artifactId actorId = actorId rationale = "An artifact cannot supersede itself" occurredAt = occurredAt })
+      expect result fails ArtifactRelationRejected
+    }
+    example "invalidate an artifact while retaining its attributable history" {
+      given WorkArtifactRepository.invalidate(invalidateWorkArtifact) returns WorkArtifactView { id = artifactId workstreamId = workstreamId kind = TestReport version = artifactVersion state = Invalidated title = "Superseded test report" contentHash = contentHash contentReference = contentReference producerKind = Automation producerId = producerId sourceMessageId = None sourceRunId = Some(runId) createdAt = occurredAt }
+      when result = WorkArtifactApi.invalidate(invalidateWorkArtifact)
+      expect Success
+      expect emits WorkArtifactInvalidated { artifactId = artifactId reason = "test environment was misconfigured" }
+    }
+    example "inspect an authorized immutable artifact" {
+      given WorkArtifactRepository.inspect(artifactId, actorId) returns WorkArtifactView { id = artifactId workstreamId = workstreamId kind = CodeDiff version = artifactVersion state = Available title = "Reviewed implementation" contentHash = contentHash contentReference = contentReference producerKind = Agent producerId = producerId sourceMessageId = None sourceRunId = Some(runId) createdAt = occurredAt }
+      when result = WorkArtifactApi.inspect(artifactId, actorId)
+      expect Success
+    }
+    example "navigate causal provenance as a graph" {
+      given WorkArtifactRepository.graph(workstreamId, actorId) returns ArtifactGraph { workstreamId = workstreamId artifacts = authorizedArtifacts relations = authorizedRelations }
+      when result = WorkArtifactApi.graph(workstreamId, actorId)
+      expect Success
+    }
+    example "navigate the authorized artifact sequence as a timeline" {
+      given WorkArtifactRepository.timeline(workstreamId, actorId) returns ArtifactTimeline { workstreamId = workstreamId artifacts = authorizedArtifacts }
+      when result = WorkArtifactApi.timeline(workstreamId, actorId)
+      expect Success
+    }
+    decision TicketIsALivingContract {
+      choose "Represent the ticket as a stable identity whose current definition points to an immutable revision."
+      because "Discussion can refine the work without rewriting the basis on which earlier reviews and runs acted."
+      avoid "Do not silently edit a reviewed definition or treat the latest chat summary as the historical ticket."
+    }
+    decision ReadinessRequiresEvidence {
+      choose "Assess readiness from the current revision, open questions, dependencies, required reviews, and policy-required formal specification."
+      because "A manually selected board column cannot prove that implementation has a stable target."
+      avoid "Do not equate a title, assignee, priority, estimate, or agent confidence with ReadyForImplementation."
+    }
+
+
+
+    port TicketRepository {
+      operation create(request: CreateTicket)
+        -> TicketDefinitionView
+        ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable {
+        state inserts Ticket
+        state inserts TicketRevision
+        state inserts WorkArtifact
+        state lists ArtifactRelation
+        ensures success and count(ticket in before.Ticket where ticket.id == request.ticketId) == 0 implies after.Ticket(request.ticketId) == Ticket { id = request.ticketId workstreamId = request.workstreamId kind = request.kind priority = request.priority definitionState = Complete readiness = NeedsClarification automationMode = request.automationMode currentRevisionId = request.revisionId openedBy = request.actorId createdAt = request.occurredAt updatedAt = request.occurredAt }
+        ensures success and count(ticket in before.Ticket where ticket.id == request.ticketId) == 0 implies after.TicketRevision(request.revisionId) == TicketRevision { id = request.revisionId ticketId = request.ticketId artifactId = request.artifactId number = 1 problem = request.problem desiredOutcome = request.desiredOutcome acceptanceCriteria = request.acceptanceCriteria boundaryConditions = request.boundaryConditions excludedScope = request.excludedScope affectedAreas = request.affectedAreas openQuestions = request.openQuestions sourceMessageIds = request.sourceMessageIds formalSpecificationArtifactId = None() createdBy = request.actorId createdAt = request.occurredAt }
+        ensures success and count(ticket in before.Ticket where ticket.id == request.ticketId) == 0 and length(request.sourceMessageIds) == 0 implies after.WorkArtifact(request.artifactId) == WorkArtifact { id = request.artifactId workstreamId = request.workstreamId kind = WorkArtifactKind.Ticket version = 1 state = Available title = request.problem contentHash = after.WorkArtifact(request.artifactId).contentHash contentReference = after.WorkArtifact(request.artifactId).contentReference producerKind = Human producerId = request.actorId sourceMessageId = None() sourceRunId = None() createdAt = request.occurredAt }
+        ensures success implies length(after.WorkArtifact(request.artifactId).contentHash) == 64
+        ensures success implies length(after.WorkArtifact(request.artifactId).contentReference) > 0
+        ensures success and count(ticket in before.Ticket where ticket.id == request.ticketId) > 0 implies before.Ticket == after.Ticket
+        ensures success and count(ticket in before.Ticket where ticket.id == request.ticketId) > 0 implies before.TicketRevision == after.TicketRevision
+        ensures success and count(ticket in before.Ticket where ticket.id == request.ticketId) > 0 implies before.WorkArtifact == after.WorkArtifact
+        ensures before.ArtifactRelation == after.ArtifactRelation
+        ensures success implies result == TicketDefinitionView { ticket = TicketView { id = after.Ticket(request.ticketId).id workstreamId = after.Ticket(request.ticketId).workstreamId kind = after.Ticket(request.ticketId).kind priority = after.Ticket(request.ticketId).priority definitionState = after.Ticket(request.ticketId).definitionState readiness = after.Ticket(request.ticketId).readiness automationMode = after.Ticket(request.ticketId).automationMode currentRevisionId = after.Ticket(request.ticketId).currentRevisionId } revision = after.TicketRevision(request.revisionId) }
+        ensures not success implies before.Ticket == after.Ticket and before.TicketRevision == after.TicketRevision and before.WorkArtifact == after.WorkArtifact
+        effects { write Ticket write TicketRevision write WorkArtifact write ArtifactRelation call TicketArtifactPersistence.record }
+      }
+      operation revise(request: ReviseTicket)
+        -> TicketDefinitionView
+        ! TicketNotFound ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable {
+        state replaces Ticket by request.ticketId
+        state inserts TicketRevision
+        state inserts WorkArtifact
+        state replaces WorkArtifact by before.TicketRevision(request.expectedCurrentRevisionId).artifactId
+        state inserts ArtifactRelation
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) == 0 implies after.Ticket(request.ticketId) == Ticket { id = before.Ticket(request.ticketId).id workstreamId = before.Ticket(request.ticketId).workstreamId kind = before.Ticket(request.ticketId).kind priority = before.Ticket(request.ticketId).priority automationMode = before.Ticket(request.ticketId).automationMode openedBy = before.Ticket(request.ticketId).openedBy createdAt = before.Ticket(request.ticketId).createdAt definitionState = Complete readiness = NeedsClarification currentRevisionId = request.revisionId updatedAt = request.occurredAt }
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) == 0 implies after.TicketRevision(request.revisionId) == TicketRevision { id = request.revisionId ticketId = request.ticketId artifactId = request.artifactId number = before.TicketRevision(request.expectedCurrentRevisionId).number + 1 problem = request.problem desiredOutcome = request.desiredOutcome acceptanceCriteria = request.acceptanceCriteria boundaryConditions = request.boundaryConditions excludedScope = request.excludedScope affectedAreas = request.affectedAreas openQuestions = request.openQuestions sourceMessageIds = request.sourceMessageIds formalSpecificationArtifactId = request.formalSpecificationArtifactId createdBy = request.actorId createdAt = request.occurredAt }
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) == 0 and length(request.sourceMessageIds) == 0 implies after.WorkArtifact(request.artifactId) == WorkArtifact { id = request.artifactId workstreamId = before.Ticket(request.ticketId).workstreamId kind = WorkArtifactKind.Ticket version = before.TicketRevision(request.expectedCurrentRevisionId).number + 1 state = Available title = request.problem contentHash = after.WorkArtifact(request.artifactId).contentHash contentReference = after.WorkArtifact(request.artifactId).contentReference producerKind = Human producerId = request.actorId sourceMessageId = None() sourceRunId = None() createdAt = request.occurredAt }
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) == 0 implies after.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId) == WorkArtifact { id = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).id workstreamId = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).workstreamId kind = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).kind version = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).version title = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).title contentHash = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).contentHash contentReference = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).contentReference producerKind = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).producerKind producerId = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).producerId sourceMessageId = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).sourceMessageId sourceRunId = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).sourceRunId createdAt = before.WorkArtifact(before.TicketRevision(request.expectedCurrentRevisionId).artifactId).createdAt state = Superseded }
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) == 0 implies after.ArtifactRelation(request.revisionId) == ArtifactRelation { id = request.revisionId workstreamId = before.Ticket(request.ticketId).workstreamId sourceArtifactId = request.artifactId targetArtifactId = before.TicketRevision(request.expectedCurrentRevisionId).artifactId kind = Supersedes rationale = "Ticket definition revised" createdBy = request.actorId createdAt = request.occurredAt }
+        ensures success implies length(after.WorkArtifact(request.artifactId).contentHash) == 64
+        ensures success implies length(after.WorkArtifact(request.artifactId).contentReference) > 0
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) > 0 implies before.Ticket == after.Ticket
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) > 0 implies before.TicketRevision == after.TicketRevision
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) > 0 implies before.WorkArtifact == after.WorkArtifact
+        ensures success and count(revision in before.TicketRevision where revision.id == request.revisionId) > 0 implies before.ArtifactRelation == after.ArtifactRelation
+        ensures success implies result == TicketDefinitionView { ticket = TicketView { id = after.Ticket(request.ticketId).id workstreamId = after.Ticket(request.ticketId).workstreamId kind = after.Ticket(request.ticketId).kind priority = after.Ticket(request.ticketId).priority definitionState = after.Ticket(request.ticketId).definitionState readiness = after.Ticket(request.ticketId).readiness automationMode = after.Ticket(request.ticketId).automationMode currentRevisionId = after.Ticket(request.ticketId).currentRevisionId } revision = after.TicketRevision(request.revisionId) }
+        ensures not success implies before.Ticket == after.Ticket and before.TicketRevision == after.TicketRevision and before.WorkArtifact == after.WorkArtifact and before.ArtifactRelation == after.ArtifactRelation
+        effects { write Ticket write TicketRevision write WorkArtifact write ArtifactRelation call TicketArtifactPersistence.record }
+      }
+      operation review(request: ReviewTicket)
+        -> TicketDefinitionView
+        ! TicketNotFound ! TicketRevisionNotFound ! TicketAccessDenied ! TicketReviewRejected ! TicketPersistenceUnavailable {
+        state replaces Ticket by request.ticketId
+        state observes TicketRevision by request.revisionId
+        ensures success and request.verdict == Approved implies after.Ticket(request.ticketId) == Ticket { id = before.Ticket(request.ticketId).id workstreamId = before.Ticket(request.ticketId).workstreamId kind = before.Ticket(request.ticketId).kind priority = before.Ticket(request.ticketId).priority definitionState = Reviewed readiness = NeedsClarification automationMode = before.Ticket(request.ticketId).automationMode currentRevisionId = before.Ticket(request.ticketId).currentRevisionId openedBy = before.Ticket(request.ticketId).openedBy createdAt = before.Ticket(request.ticketId).createdAt updatedAt = request.occurredAt }
+        ensures success and request.verdict == ChangesRequested implies after.Ticket(request.ticketId) == Ticket { id = before.Ticket(request.ticketId).id workstreamId = before.Ticket(request.ticketId).workstreamId kind = before.Ticket(request.ticketId).kind priority = before.Ticket(request.ticketId).priority definitionState = Complete readiness = NeedsClarification automationMode = before.Ticket(request.ticketId).automationMode currentRevisionId = before.Ticket(request.ticketId).currentRevisionId openedBy = before.Ticket(request.ticketId).openedBy createdAt = before.Ticket(request.ticketId).createdAt updatedAt = request.occurredAt }
+        ensures success implies result == TicketDefinitionView { ticket = TicketView { id = after.Ticket(request.ticketId).id workstreamId = after.Ticket(request.ticketId).workstreamId kind = after.Ticket(request.ticketId).kind priority = after.Ticket(request.ticketId).priority definitionState = after.Ticket(request.ticketId).definitionState readiness = after.Ticket(request.ticketId).readiness automationMode = after.Ticket(request.ticketId).automationMode currentRevisionId = after.Ticket(request.ticketId).currentRevisionId } revision = before.TicketRevision(request.revisionId) }
+        ensures before.TicketRevision == after.TicketRevision
+        ensures not success implies before.Ticket == after.Ticket
+        effects { write Ticket read TicketRevision }
+      }
+      operation markStale(request: MarkTicketStale)
+        -> TicketView
+        ! TicketNotFound ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable {
+        state replaces Ticket by request.ticketId from Ticket {
+          id = self.id
+          workstreamId = self.workstreamId
+          kind = self.kind
+          priority = self.priority
+          definitionState = Stale
+          readiness = NeedsClarification
+          automationMode = self.automationMode
+          currentRevisionId = self.currentRevisionId
+          openedBy = self.openedBy
+          createdAt = self.createdAt
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result == TicketView { id = after.Ticket(request.ticketId).id workstreamId = after.Ticket(request.ticketId).workstreamId kind = after.Ticket(request.ticketId).kind priority = after.Ticket(request.ticketId).priority definitionState = after.Ticket(request.ticketId).definitionState readiness = after.Ticket(request.ticketId).readiness automationMode = after.Ticket(request.ticketId).automationMode currentRevisionId = after.Ticket(request.ticketId).currentRevisionId }
+        ensures not success implies before.Ticket == after.Ticket
+        effects { write Ticket }
+      }
+      operation changeAutomation(request: ChangeTicketAutomation)
+        -> TicketView
+        ! TicketNotFound ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable {
+        state replaces Ticket by request.ticketId from Ticket {
+          id = self.id
+          workstreamId = self.workstreamId
+          kind = self.kind
+          priority = self.priority
+          definitionState = self.definitionState
+          readiness = self.readiness
+          automationMode = request.automationMode
+          currentRevisionId = self.currentRevisionId
+          openedBy = self.openedBy
+          createdAt = self.createdAt
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result == TicketView { id = after.Ticket(request.ticketId).id workstreamId = after.Ticket(request.ticketId).workstreamId kind = after.Ticket(request.ticketId).kind priority = after.Ticket(request.ticketId).priority definitionState = after.Ticket(request.ticketId).definitionState readiness = after.Ticket(request.ticketId).readiness automationMode = after.Ticket(request.ticketId).automationMode currentRevisionId = after.Ticket(request.ticketId).currentRevisionId }
+        ensures not success implies before.Ticket == after.Ticket
+        effects { write Ticket }
+      }
+      operation assessReadiness(request: AssessTicketReadiness)
+        -> TicketReadiness
+        ! TicketNotFound ! TicketRevisionNotFound ! TicketAccessDenied ! TicketReadinessRejected ! TicketPersistenceUnavailable {
+        state observes TicketRevision by request.revisionId
+        state replaces Ticket by request.ticketId from Ticket {
+          id = self.id
+          workstreamId = self.workstreamId
+          kind = self.kind
+          priority = self.priority
+          definitionState = self.definitionState
+          readiness = result.state
+          automationMode = self.automationMode
+          currentRevisionId = self.currentRevisionId
+          openedBy = self.openedBy
+          createdAt = self.createdAt
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result.ticketId == request.ticketId
+        ensures success implies result.revisionId == request.revisionId
+        ensures success implies result.state == after.Ticket(request.ticketId).readiness
+        ensures success implies result.evidenceArtifactIds == request.blockingEvidenceArtifactIds
+        ensures success and count(request.blockingEvidenceArtifactIds) > 0 implies result.state == Blocked
+        ensures success and count(request.blockingEvidenceArtifactIds) == 0 implies result.state != Blocked
+        ensures success and result.state == NeedsClarification implies count(result.reasons) > 0
+        ensures success and result.state == ReadyForImplementation implies result == TicketReadiness { ticketId = request.ticketId revisionId = request.revisionId state = ReadyForImplementation reasons = [] evidenceArtifactIds = [] }
+        ensures before.TicketRevision == after.TicketRevision
+        ensures not success implies before.Ticket == after.Ticket
+        effects { write Ticket read TicketRevision }
+      }
+      operation inspect(ticketId: TicketId, actorId: TicketActorId)
+        -> TicketDefinitionView
+        ! TicketNotFound ! TicketAccessDenied ! TicketPersistenceUnavailable {
+        state observes Ticket by ticketId
+        state lists TicketRevision
+        ensures success implies result == TicketDefinitionView {
+          ticket = TicketView { id = after.Ticket(ticketId).id workstreamId = after.Ticket(ticketId).workstreamId kind = after.Ticket(ticketId).kind priority = after.Ticket(ticketId).priority definitionState = after.Ticket(ticketId).definitionState readiness = after.Ticket(ticketId).readiness automationMode = after.Ticket(ticketId).automationMode currentRevisionId = after.Ticket(ticketId).currentRevisionId }
+          revision = after.TicketRevision(before.Ticket(ticketId).currentRevisionId)
+        }
+        ensures before.Ticket == after.Ticket
+        ensures before.TicketRevision == after.TicketRevision
+        effects { read Ticket read TicketRevision }
+      }
+    }
+
+
+    surface TicketApi exposes requestReply {
+      operation create(request: CreateTicket)
+        -> TicketDefinitionView
+        ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable
+      effects { write Ticket write TicketRevision write WorkArtifact write ArtifactRelation call TicketRepository.create emit TicketCreated(ticketId: request.ticketId, workstreamId: request.workstreamId, revisionId: request.revisionId) }
+
+      operation revise(request: ReviseTicket)
+        -> TicketDefinitionView
+        ! TicketNotFound ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable
+      effects { write Ticket write TicketRevision write WorkArtifact write ArtifactRelation call TicketRepository.revise emit TicketRevised(ticketId: request.ticketId, revisionId: request.revisionId, artifactId: request.artifactId) }
+
+      operation review(request: ReviewTicket)
+        -> TicketDefinitionView
+        ! TicketNotFound ! TicketRevisionNotFound ! TicketAccessDenied ! TicketReviewRejected ! TicketPersistenceUnavailable
+      effects { write Ticket read TicketRevision call TicketRepository.review emit TicketReviewed(ticketId: request.ticketId, revisionId: request.revisionId, verdict: request.verdict) }
+
+      operation markStale(request: MarkTicketStale)
+        -> TicketView
+        ! TicketNotFound ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable
+      effects { write Ticket call TicketRepository.markStale as ticket emit TicketBecameStale(ticketId: ticket.id, revisionId: ticket.currentRevisionId) }
+
+      operation changeAutomation(request: ChangeTicketAutomation)
+        -> TicketView
+        ! TicketNotFound ! TicketAccessDenied ! TicketDefinitionRejected ! TicketPersistenceUnavailable
+      effects { write Ticket call TicketRepository.changeAutomation emit TicketAutomationChanged(ticketId: request.ticketId, automationMode: request.automationMode) }
+
+      operation assessReadiness(request: AssessTicketReadiness)
+        -> TicketReadiness
+        ! TicketNotFound ! TicketRevisionNotFound ! TicketAccessDenied ! TicketReadinessRejected ! TicketPersistenceUnavailable
+      effects { write Ticket read TicketRevision call TicketRepository.assessReadiness as readiness emit TicketReadinessChanged(ticketId: readiness.ticketId, revisionId: readiness.revisionId, readiness: readiness.state) }
+
+      operation inspect(ticketId: TicketId, actorId: TicketActorId)
+        -> TicketDefinitionView
+        ! TicketNotFound ! TicketAccessDenied ! TicketPersistenceUnavailable
+      effects { read Ticket read TicketRevision call TicketRepository.inspect }
+    }
+
+    constraint "Ticket and TicketRevision are specialized state and content of Ticket artifacts. The shared artifact ledger owns public artifact identity, version metadata and lineage. Every revision artifact has kind Ticket, matching workstream, title, revision number, immutable content hash and access-controlled ticket-revision content reference."
+    constraint "A workstream may exist while its purpose is still discussed, but it has at most one active primary ticket identity."
+    constraint "Every ticket revision is immutable, has a strictly increasing revision number, and cites at least one source message or explicit human creation decision."
+    constraint "Revision replaces the current definition only when expectedCurrentRevisionId still matches; concurrent revisions fail instead of silently overwriting one another."
+    constraint "A reviewed revision remains inspectable after later revision, staleness, rejection, implementation, or closure."
+    constraint "ChangesRequested leaves the ticket outside ReadyForImplementation and records findings against the reviewed revision."
+    constraint "Approved applies only to the exact current revision; a subsequent revision returns the definition to Complete until reviewed again."
+    constraint "A new relevant conversation decision, changed dependency, invalidated evidence, or changed formal specification marks the current reviewed definition Stale until reconciled."
+    constraint "ReadyForImplementation requires the current revision to be Reviewed, no blocking open question, satisfied dependencies, satisfied required reviews, and a current valid formal specification when project policy requires one."
+    constraint "A ticket without a required DCTX0 artifact may still become ready when its risk and project policy do not require formal specification."
+    constraint "Automation mode never grants permissions by itself; actor rights, project policy, risk gates, and tool policy further restrict every automated action."
+    constraint "Critical work and protected components cannot use ImplementAutomatically without an explicit policy that names the permitted scope and required rollback evidence."
+    constraint "Ticket priority changes ordering and attention only; it does not weaken review, access, readiness, or evidence requirements."
+    constraint "Ticket definitions contain no Sprint or StoryPoint field; planning cadence and estimates may be external views but are not work identity or readiness evidence."
+
+    example "native ticket create rejects denied current access" {
+      when result = TicketRepository.create(CreateTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" artifactId = "00000000-0000-4000-8000-000000000503" workstreamId = "00000000-0000-4000-8000-000000000504" actorId = "00000000-0000-4000-8000-000000000505" kind = Task priority = Normal automationMode = ObserveOnly problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result fails TicketAccessDenied
+    }
+    example "native ticket create rejects a changed immutable revision identity" {
+      when result = TicketRepository.create(CreateTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000508" artifactId = "00000000-0000-4000-8000-000000000503" workstreamId = "00000000-0000-4000-8000-000000000504" actorId = "00000000-0000-4000-8000-000000000505" kind = Task priority = Normal automationMode = ObserveOnly problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result fails TicketDefinitionRejected
+    }
+    example "native ticket revise persists exact formal specification and lineage" {
+      when result = TicketRepository.revise(ReviseTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000508" artifactId = "00000000-0000-4000-8000-000000000510" expectedCurrentRevisionId = "00000000-0000-4000-8000-000000000502" actorId = "00000000-0000-4000-8000-000000000505" problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = Some("00000000-0000-4000-8000-000000000509") occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == TicketDefinitionView { ticket = TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Complete readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000508" } revision = TicketRevision { id = "00000000-0000-4000-8000-000000000508" ticketId = "00000000-0000-4000-8000-000000000501" artifactId = "00000000-0000-4000-8000-000000000510" number = 2 problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = Some("00000000-0000-4000-8000-000000000509") createdBy = "00000000-0000-4000-8000-000000000505" createdAt = "2026-10-07T12:00:00.000Z" } }
+    }
+    example "native ticket revise rejects stale expected revision" {
+      when result = TicketRepository.revise(ReviseTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000508" artifactId = "00000000-0000-4000-8000-000000000510" expectedCurrentRevisionId = "00000000-0000-4000-8000-000000000511" actorId = "00000000-0000-4000-8000-000000000505" problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = Some("00000000-0000-4000-8000-000000000509") occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails TicketDefinitionRejected
+    }
+    example "native ticket revise rejects denied current access" {
+      when result = TicketRepository.revise(ReviseTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000508" artifactId = "00000000-0000-4000-8000-000000000510" expectedCurrentRevisionId = "00000000-0000-4000-8000-000000000502" actorId = "00000000-0000-4000-8000-000000000505" problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = Some("00000000-0000-4000-8000-000000000509") occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails TicketAccessDenied
+    }
+    example "native ticket create stores a complete definition" {
+      when result = TicketRepository.create(CreateTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" artifactId = "00000000-0000-4000-8000-000000000503" workstreamId = "00000000-0000-4000-8000-000000000504" actorId = "00000000-0000-4000-8000-000000000505" kind = Task priority = Normal automationMode = ObserveOnly problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] occurredAt = "2026-10-07T10:00:00.000Z" })
+      expect result == TicketDefinitionView { ticket = TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Complete readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000502" } revision = TicketRevision { id = "00000000-0000-4000-8000-000000000502" ticketId = "00000000-0000-4000-8000-000000000501" artifactId = "00000000-0000-4000-8000-000000000503" number = 1 problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = None createdBy = "00000000-0000-4000-8000-000000000505" createdAt = "2026-10-07T10:00:00.000Z" } }
+    }
+    example "native ticket create retry preserves original audit metadata" {
+      when result = TicketRepository.create(CreateTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" artifactId = "00000000-0000-4000-8000-000000000503" workstreamId = "00000000-0000-4000-8000-000000000504" actorId = "00000000-0000-4000-8000-000000000505" kind = Task priority = Normal automationMode = ObserveOnly problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == TicketDefinitionView { ticket = TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Complete readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000502" } revision = TicketRevision { id = "00000000-0000-4000-8000-000000000502" ticketId = "00000000-0000-4000-8000-000000000501" artifactId = "00000000-0000-4000-8000-000000000503" number = 1 problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = None createdBy = "00000000-0000-4000-8000-000000000505" createdAt = "2026-10-07T10:00:00.000Z" } }
+    }
+    example "native ticket review records concrete requested changes" {
+      when result = TicketRepository.review(ReviewTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" reviewerId = "00000000-0000-4000-8000-000000000505" verdict = ChangesRequested findings = ["Clarify persisted scope"] evidenceArtifactIds = [] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketDefinitionView { ticket = TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Complete readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000502" } revision = TicketRevision { id = "00000000-0000-4000-8000-000000000502" ticketId = "00000000-0000-4000-8000-000000000501" artifactId = "00000000-0000-4000-8000-000000000503" number = 1 problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = None createdBy = "00000000-0000-4000-8000-000000000505" createdAt = "2026-10-07T10:00:00.000Z" } }
+    }
+    example "native ticket review approves the exact current revision" {
+      when result = TicketRepository.review(ReviewTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" reviewerId = "00000000-0000-4000-8000-000000000505" verdict = Approved findings = [] evidenceArtifactIds = [] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketDefinitionView { ticket = TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Reviewed readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000502" } revision = TicketRevision { id = "00000000-0000-4000-8000-000000000502" ticketId = "00000000-0000-4000-8000-000000000501" artifactId = "00000000-0000-4000-8000-000000000503" number = 1 problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = None createdBy = "00000000-0000-4000-8000-000000000505" createdAt = "2026-10-07T10:00:00.000Z" } }
+    }
+    example "native ticket mark stale preserves definition history" {
+      when result = TicketRepository.markStale(MarkTicketStale { ticketId = "00000000-0000-4000-8000-000000000501" actorId = "00000000-0000-4000-8000-000000000505" reason = "Conversation decision changed" sourceMessageIds = ["00000000-0000-4000-8000-000000000506"] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Stale readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000502" }
+    }
+    example "native ticket automation updates only the permitted mode" {
+      when result = TicketRepository.changeAutomation(ChangeTicketAutomation { ticketId = "00000000-0000-4000-8000-000000000501" actorId = "00000000-0000-4000-8000-000000000505" automationMode = ImplementWithApproval reason = "Human approved" occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Reviewed readiness = NeedsClarification automationMode = ImplementWithApproval currentRevisionId = "00000000-0000-4000-8000-000000000502" }
+    }
+    example "native ticket readiness ready" {
+      when result = TicketRepository.assessReadiness(AssessTicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" actorId = "00000000-0000-4000-8000-000000000505" dependenciesSatisfied = true requiredReviewsSatisfied = true formalSpecificationCurrent = false blockingEvidenceArtifactIds = [] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" state = ReadyForImplementation reasons = [] evidenceArtifactIds = [] }
+    }
+    example "native ticket readiness incomplete" {
+      when result = TicketRepository.assessReadiness(AssessTicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" actorId = "00000000-0000-4000-8000-000000000505" dependenciesSatisfied = true requiredReviewsSatisfied = true formalSpecificationCurrent = false blockingEvidenceArtifactIds = [] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" state = NeedsClarification reasons = ["current revision is not approved"] evidenceArtifactIds = [] }
+    }
+    example "native ticket readiness blocked" {
+      when result = TicketRepository.assessReadiness(AssessTicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" actorId = "00000000-0000-4000-8000-000000000505" dependenciesSatisfied = true requiredReviewsSatisfied = true formalSpecificationCurrent = false blockingEvidenceArtifactIds = ["00000000-0000-4000-8000-000000000503"] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" state = Blocked reasons = [] evidenceArtifactIds = ["00000000-0000-4000-8000-000000000503"] }
+    }
+    example "native ticket readiness formal" {
+      when result = TicketRepository.assessReadiness(AssessTicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" actorId = "00000000-0000-4000-8000-000000000505" dependenciesSatisfied = true requiredReviewsSatisfied = true formalSpecificationCurrent = false blockingEvidenceArtifactIds = [] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result == TicketReadiness { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" state = NeedsClarification reasons = ["required formal specification is missing or stale"] evidenceArtifactIds = [] }
+    }
+    example "native ticket inspect returns current immutable definition" {
+      when result = TicketRepository.inspect("00000000-0000-4000-8000-000000000501", "00000000-0000-4000-8000-000000000505")
+      expect result == TicketDefinitionView { ticket = TicketView { id = "00000000-0000-4000-8000-000000000501" workstreamId = "00000000-0000-4000-8000-000000000504" kind = Task priority = Normal definitionState = Reviewed readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = "00000000-0000-4000-8000-000000000502" } revision = TicketRevision { id = "00000000-0000-4000-8000-000000000502" ticketId = "00000000-0000-4000-8000-000000000501" artifactId = "00000000-0000-4000-8000-000000000503" number = 1 problem = "Native ticket" desiredOutcome = "Complete persisted proof" acceptanceCriteria = ["Exact evidence"] boundaryConditions = [] excludedScope = [] affectedAreas = [] openQuestions = [] sourceMessageIds = [] formalSpecificationArtifactId = None createdBy = "00000000-0000-4000-8000-000000000505" createdAt = "2026-10-07T10:00:00.000Z" } }
+    }
+    example "native ticket inspect rejects missing ticket" {
+      when result = TicketRepository.inspect("00000000-0000-4000-8000-000000000599", "00000000-0000-4000-8000-000000000505")
+      expect result fails TicketNotFound
+    }
+    example "native ticket automation rejects actual denied policy" {
+      when result = TicketRepository.changeAutomation(ChangeTicketAutomation { ticketId = "00000000-0000-4000-8000-000000000501" actorId = "00000000-0000-4000-8000-000000000505" automationMode = ImplementWithApproval reason = "Request" occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result fails TicketDefinitionRejected
+    }
+    example "native ticket review rejects findings without changes" {
+      when result = TicketRepository.review(ReviewTicket { ticketId = "00000000-0000-4000-8000-000000000501" revisionId = "00000000-0000-4000-8000-000000000502" reviewerId = "00000000-0000-4000-8000-000000000505" verdict = ChangesRequested findings = [] evidenceArtifactIds = [] occurredAt = "2026-10-07T11:00:00.000Z" })
+      expect result fails TicketReviewRejected
+    }
+
+    example "create a versioned ticket and publish its immutable definition artifact" {
+      given TicketRepository.create(createTicket) returns TicketDefinitionView { ticket = createdTicket revision = initialRevision }
+      when result = TicketApi.create(createTicket)
+      expect Success
+      expect emits TicketCreated { ticketId = ticketId workstreamId = workstreamId revisionId = revisionId }
+    }
+    example "revise a ticket through a new immutable revision artifact" {
+      given TicketRepository.revise(reviseTicket) returns TicketDefinitionView { ticket = revisedTicket revision = revisedRevision }
+      when result = TicketApi.revise(reviseTicket)
+      expect Success
+      expect emits TicketRevised { ticketId = ticketId revisionId = revisedRevisionId artifactId = revisedArtifactId }
+    }
+    example "review the exact current ticket revision" {
+      given TicketRepository.review(reviewTicket) returns TicketDefinitionView { ticket = reviewedTicket revision = reviewedRevision }
+      when result = TicketApi.review(reviewTicket)
+      expect Success
+      expect emits TicketReviewed { ticketId = ticketId revisionId = revisionId verdict = Approved }
+    }
+    example "mark a formerly reviewed ticket stale when its basis changed" {
+      given TicketRepository.markStale(markTicketStale) returns TicketView { id = ticketId workstreamId = workstreamId kind = Change priority = High definitionState = Stale readiness = NeedsClarification automationMode = ObserveOnly currentRevisionId = revisionId }
+      when result = TicketApi.markStale(markTicketStale)
+      expect Success
+      expect emits TicketBecameStale { ticketId = ticketId revisionId = revisionId }
+    }
+    example "change automation mode without changing authorization" {
+      given TicketRepository.changeAutomation(changeTicketAutomation) returns TicketView { id = ticketId workstreamId = workstreamId kind = Bug priority = High definitionState = Reviewed readiness = ReadyForImplementation automationMode = ImplementWithApproval currentRevisionId = revisionId }
+      when result = TicketApi.changeAutomation(changeTicketAutomation)
+      expect Success
+      expect emits TicketAutomationChanged { ticketId = ticketId automationMode = ImplementWithApproval }
+    }
+    example "assess a reviewed ticket as ready with current evidence" {
+      given TicketRepository.assessReadiness(assessTicketReadiness) returns TicketReadiness { ticketId = ticketId revisionId = revisionId state = ReadyForImplementation reasons = readinessReasons evidenceArtifactIds = readinessArtifacts }
+      when result = TicketApi.assessReadiness(assessTicketReadiness)
+      expect Success
+      expect emits TicketReadinessChanged { ticketId = ticketId revisionId = revisionId readiness = ReadyForImplementation }
+    }
+    example "reject readiness while required evidence is incomplete" {
+      given TicketRepository.assessReadiness(blockedReadinessAssessment) fails TicketReadinessRejected { reason = "required evidence incomplete" }
+      when result = TicketApi.assessReadiness(blockedReadinessAssessment)
+      expect result fails TicketReadinessRejected
+    }
+    example "inspect the current ticket definition with its historical revision" {
+      given TicketRepository.inspect(ticketId, actorId) returns TicketDefinitionView { ticket = currentTicket revision = currentRevision }
+      when result = TicketApi.inspect(ticketId, actorId)
+      expect Success
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# Implement message
+
+Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
+
+Publish the complete input contract, including fields and refinements.

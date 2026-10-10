@@ -1,0 +1,18 @@
+import { defineHonoOperationBinding } from "../runatronHonoBinding"
+
+export const authorization = "HumanSession" as const
+
+export default defineHonoOperationBinding({
+  operation: "RunatronChat.Attention.PresenceAndNotifications.AttentionApi.unread",
+  family: "chatApi",
+  mode: "custom",
+  handler: { root: "apps/backend/src/presenceandnotifications/http/attention-api-unread.ts", export: "registerAttentionApiUnread" },
+  method: "get",
+  path: "/api/attention-api/unread",
+  request: { parameters: { personId: { in: "query" } } },
+  responses: {
+    success: { status: 200, body: { from: "result", optionEncoding: "tagged" } },
+    failures: { AttentionPersistenceUnavailable: { status: 503, body: { from: "failure", optionEncoding: "tagged" } } }
+  }
+})
+

@@ -1,0 +1,21 @@
+watchPlugins: false
+logLevel: warn
+plugins:
+  plugin-dctx0:
+    target: typescript
+    contractMode: app-owned
+    bindingsFile: dctx0.bindings.ts
+    implementationProfiles:
+      hono:
+        bindingsFile: dctx0.hono.bindings.ts
+    sources:
+      - dctx0/**/*.dctx0
+    outDir: .runatron/dctx0
+    implementationMaxParallel: 3
+    executionTimeoutMs: 120000
+    propertyTesting:
+      seed: 42
+      maxCases: 2
+      maxCollectionSize: 6
+      maxTraceLength: 6
+      enabledExternalProfiles: []

@@ -1,0 +1,697 @@
+domain IdentityAccess {
+  value PersonId = UUID
+  value SessionId = UUID
+  value HumanSessionCredential = String { length 32..256 }
+  value HumanSessionVerifier = String { length 64..256 }
+  value InvitationCode = String { length 20..128 }
+  value DisplayName = String { length 1..120 }
+  value EmailAddress = String {
+    length 3..254
+    format Email
+  }
+
+  type PrincipalKind = Human | Agent | Automation
+  type AccountRole = Member | Administrator
+  type AccountStanding = Active | Deactivated | Banned
+
+  failure WorkspaceAlreadyInitialized { reason: String }
+  failure InvitationRejected { reason: String }
+  failure CredentialsRejected { reason: String }
+  failure AccountUnavailable { personId: PersonId }
+  failure AccountNotActive { personId: PersonId }
+  failure SessionRejected { sessionId: SessionId }
+  failure ProfileRejected { reason: String }
+  failure AccessPersistenceUnavailable { reason: String }
+
+  entity Person {
+    id: PersonId
+    kind: PrincipalKind
+    role: AccountRole
+    standing: AccountStanding
+    name: DisplayName
+    email: Option<EmailAddress>
+    bio: Option<String>
+    key id
+  }
+
+  entity Session {
+    id: SessionId
+    personId: PersonId
+    createdAt: Timestamp
+    lastSeenAt: Timestamp
+    expiresAt: Timestamp
+    credentialVerifier: HumanSessionVerifier
+    revokedAt: Option<Timestamp>
+    key id
+  }
+
+  message BootstrapWorkspace {
+    workspaceId: WorkspaceId
+    workspaceName: WorkspaceName
+    administratorId: PersonId
+    name: DisplayName
+    email: EmailAddress
+    password: String
+    occurredAt: Timestamp
+  }
+  message JoinWorkspace {
+    personId: PersonId
+    invitationCode: InvitationCode
+    name: DisplayName
+    email: EmailAddress
+    password: String
+    occurredAt: Timestamp
+  }
+  message SignIn {
+    email: EmailAddress
+    password: String
+    userAgent: Option<String>
+    networkAddress: Option<String>
+    occurredAt: Timestamp
+  }
+  message StartTransferredSession {
+    transferToken: String
+    userAgent: Option<String>
+    networkAddress: Option<String>
+    occurredAt: Timestamp
+  }
+  message SessionReceipt {
+    sessionId: SessionId
+    personId: PersonId
+    expiresAt: Timestamp
+  }
+  message VerifyHumanSession { credential: HumanSessionCredential }
+  message HumanSessionAuthority {
+    sessionId: SessionId
+    personId: PersonId
+    expiresAt: Timestamp
+  }
+  message IssuedHumanSession {
+    session: HumanSessionAuthority
+    credential: HumanSessionCredential
+  }
+  message EndSession {
+    sessionId: SessionId
+    personId: PersonId
+    occurredAt: Timestamp
+  }
+  message EditOwnProfile {
+    personId: PersonId
+    name: DisplayName
+    email: EmailAddress
+    password: Option<String>
+    bio: Option<String>
+    avatar: Option<Bytes>
+    occurredAt: Timestamp
+  }
+  message PersonProfile {
+    personId: PersonId
+    kind: PrincipalKind
+    role: AccountRole
+    standing: AccountStanding
+    name: DisplayName
+    email: Option<EmailAddress>
+    bio: Option<String>
+  }
+  message ChangeStanding {
+    administratorId: PersonId
+    personId: PersonId
+    occurredAt: Timestamp
+    reason: Option<String>
+  }
+
+  event WorkspaceBootstrapped { administratorId: PersonId }
+  event PersonJoined { personId: PersonId }
+  event SessionStarted { sessionId: SessionId; personId: PersonId }
+  event SessionEnded { sessionId: SessionId; personId: PersonId }
+  event ProfileChanged { personId: PersonId }
+  event PersonDeactivated { personId: PersonId }
+  event PersonBanned { personId: PersonId }
+  event PersonUnbanned { personId: PersonId }
+
+  module HumanAccess {
+    intent """
+      Establish the first administrator exactly once, admit invited people,
+      authenticate active humans, maintain revocable sessions, and let each
+      person change only their own public profile and credentials.
+      """
+
+    decision ExplicitActorIdentity {
+      choose "Every mutating request carries the acting or affected person identifier explicitly."
+      because "Authorization can be checked at the application boundary without relying on ambient framework state."
+      avoid "Do not let cookies, route parameters, or submitted ownership fields silently select another actor."
+    }
+    decision OpaqueCredentials {
+      choose "Password verification, transfer tokens, and session tokens remain opaque boundary concerns."
+      because "The domain needs authentication outcomes, never stored secrets."
+      avoid "Never return passwords, password hashes, credential verifiers, session tokens, or automation keys from read models; invitation tokens leave the system only through administrator-only invitation views and administrator-authorized join links."
+    }
+
+    owns {
+      value PersonId value SessionId value HumanSessionCredential value HumanSessionVerifier value InvitationCode value DisplayName value EmailAddress
+      entity Person entity Session
+      event WorkspaceBootstrapped event PersonJoined event SessionStarted event SessionEnded event ProfileChanged
+      event PersonDeactivated event PersonBanned event PersonUnbanned
+    }
+
+    requires { AccessRepository WorkspaceBootstrap WorkspaceInvitationAcceptance }
+
+    port InvitedAccountAuthority {
+      operation verify(request: AcceptWorkspaceInvitation)
+        -> Boolean {
+        state observes Person by request.personId
+        ensures success implies before.Person == after.Person
+        effects { read Person }
+      }
+    }
+
+    port AccessRepository {
+      operation bootstrap(request: BootstrapWorkspace)
+        -> PersonProfile
+        ! WorkspaceAlreadyInitialized ! ProfileRejected ! AccessPersistenceUnavailable {
+        state upserts Person from Person {
+          id = request.administratorId kind = Human role = Administrator standing = Active
+          name = request.name email = Some(request.email) bio = None()
+        }
+        ensures success implies result == PersonProfile {
+          personId = after.Person(request.administratorId).id kind = after.Person(request.administratorId).kind
+          role = after.Person(request.administratorId).role standing = after.Person(request.administratorId).standing
+          name = after.Person(request.administratorId).name email = after.Person(request.administratorId).email bio = after.Person(request.administratorId).bio
+        }
+        ensures not success implies before.Person == after.Person
+        effects { write Person call WorkspaceBootstrap.initialize }
+      }
+      operation join(request: JoinWorkspace)
+        -> PersonProfile
+        ! InvitationRejected ! ProfileRejected ! AccessPersistenceUnavailable {
+        state inserts Person from Person {
+          id = request.personId
+          kind = result.kind
+          role = result.role
+          standing = result.standing
+          name = result.name
+          email = result.email
+          bio = result.bio
+        }
+        ensures success implies result.personId == request.personId
+        ensures success implies result.kind == Human and result.role == Member and result.standing == Active
+        ensures not success implies before.Person == after.Person
+        effects { write Person call WorkspaceInvitationAcceptance.accept }
+      }
+      operation signIn(request: SignIn)
+        -> IssuedHumanSession
+        ! CredentialsRejected ! AccountNotActive ! AccessPersistenceUnavailable {
+        state lists Person
+        state inserts Session from Session {
+          id = result.session.sessionId personId = result.session.personId
+          createdAt = after.Session(result.session.sessionId).createdAt lastSeenAt = after.Session(result.session.sessionId).lastSeenAt
+          expiresAt = result.session.expiresAt credentialVerifier = after.Session(result.session.sessionId).credentialVerifier revokedAt = None()
+        }
+        ensures success implies before.Person(result.session.personId).kind == Human and before.Person(result.session.personId).standing == Active
+        ensures success implies after.Session(result.session.sessionId).createdAt < result.session.expiresAt and after.Session(result.session.sessionId).lastSeenAt < result.session.expiresAt
+        ensures success implies after.Session(result.session.sessionId).createdAt == after.Session(result.session.sessionId).lastSeenAt
+        ensures success implies length(after.Session(result.session.sessionId).credentialVerifier) >= 64 and after.Session(result.session.sessionId).credentialVerifier != result.credential
+        ensures success implies length(result.credential) >= 32
+        ensures success implies result == IssuedHumanSession {
+          session = HumanSessionAuthority { sessionId = after.Session(result.session.sessionId).id personId = after.Session(result.session.sessionId).personId expiresAt = after.Session(result.session.sessionId).expiresAt }
+          credential = result.credential
+        }
+        ensures not success implies before.Person == after.Person and before.Session == after.Session
+        effects { read Person write Session }
+      }
+      operation acceptTransfer(request: StartTransferredSession)
+        -> IssuedHumanSession
+        ! CredentialsRejected ! AccountNotActive ! AccessPersistenceUnavailable {
+        state lists Person
+        state inserts Session from Session {
+          id = result.session.sessionId personId = result.session.personId
+          createdAt = after.Session(result.session.sessionId).createdAt lastSeenAt = after.Session(result.session.sessionId).lastSeenAt
+          expiresAt = result.session.expiresAt credentialVerifier = after.Session(result.session.sessionId).credentialVerifier revokedAt = None()
+        }
+        ensures success implies before.Person(result.session.personId).kind == Human and before.Person(result.session.personId).standing == Active
+        ensures success implies after.Session(result.session.sessionId).createdAt < result.session.expiresAt and after.Session(result.session.sessionId).lastSeenAt < result.session.expiresAt
+        ensures success implies after.Session(result.session.sessionId).createdAt == after.Session(result.session.sessionId).lastSeenAt
+        ensures success implies length(after.Session(result.session.sessionId).credentialVerifier) >= 64 and after.Session(result.session.sessionId).credentialVerifier != result.credential
+        ensures success implies length(result.credential) >= 32
+        ensures success implies result == IssuedHumanSession {
+          session = HumanSessionAuthority { sessionId = after.Session(result.session.sessionId).id personId = after.Session(result.session.sessionId).personId expiresAt = after.Session(result.session.sessionId).expiresAt }
+          credential = result.credential
+        }
+        ensures not success implies before.Person == after.Person and before.Session == after.Session
+        effects { read Person write Session }
+      }
+      operation verifySession(request: VerifyHumanSession)
+        -> HumanSessionAuthority
+        ! CredentialsRejected ! AccessPersistenceUnavailable
+      effects { read Person read Session }
+      operation signOut(request: EndSession)
+        -> Unit
+        ! SessionRejected ! AccessPersistenceUnavailable {
+        state replaces Session by request.sessionId
+        ensures success implies before.Session(request.sessionId).personId == request.personId and before.Session(request.sessionId).revokedAt == None()
+        ensures success implies after.Session(request.sessionId) == Session {
+          id = before.Session(request.sessionId).id personId = before.Session(request.sessionId).personId
+          createdAt = before.Session(request.sessionId).createdAt lastSeenAt = before.Session(request.sessionId).lastSeenAt
+          expiresAt = before.Session(request.sessionId).expiresAt credentialVerifier = before.Session(request.sessionId).credentialVerifier
+          revokedAt = after.Session(request.sessionId).revokedAt
+        }
+        ensures success implies after.Session(request.sessionId).revokedAt != None()
+        ensures not success implies before.Session == after.Session
+        effects { read Session write Session }
+      }
+      operation viewProfile(requesterId: PersonId, personId: PersonId)
+        -> PersonProfile
+        ! AccountUnavailable ! AccountNotActive ! AccessPersistenceUnavailable {
+        state observes Person by personId
+        ensures success implies result == PersonProfile {
+          personId = after.Person(personId).id
+          kind = after.Person(personId).kind
+          role = after.Person(personId).role
+          standing = after.Person(personId).standing
+          name = after.Person(personId).name
+          email = after.Person(personId).email
+          bio = after.Person(personId).bio
+        }
+        ensures not success implies before.Person == after.Person
+        effects { read Person }
+      }
+
+      operation editOwnProfile(request: EditOwnProfile)
+        -> PersonProfile
+        ! AccountUnavailable ! AccountNotActive ! ProfileRejected ! AccessPersistenceUnavailable {
+        state replaces Person by request.personId from Person {
+          id = self.id
+          kind = self.kind
+          role = self.role
+          standing = self.standing
+          name = request.name
+          email = Some(request.email)
+          bio = request.bio
+        }
+        ensures success implies result == PersonProfile {
+          personId = after.Person(request.personId).id
+          kind = after.Person(request.personId).kind
+          role = after.Person(request.personId).role
+          standing = after.Person(request.personId).standing
+          name = after.Person(request.personId).name
+          email = after.Person(request.personId).email
+          bio = after.Person(request.personId).bio
+        }
+        ensures not success implies before.Person == after.Person
+        effects { write Person }
+      }
+      operation deactivate(request: ChangeStanding)
+        -> PersonProfile
+        ! AccountUnavailable ! AccessPersistenceUnavailable {
+        state replaces Person by request.personId from Person {
+          id = self.id kind = self.kind role = self.role standing = Deactivated
+          name = self.name email = None() bio = self.bio
+        }
+        state replaces Session where self.personId == request.personId and self.revokedAt == None()
+        ensures success implies before.Person(request.administratorId).role == Administrator and before.Person(request.administratorId).standing == Active
+        ensures success implies before.Person(request.personId).standing == Active
+        ensures success implies result == PersonProfile {
+          personId = after.Person(request.personId).id kind = after.Person(request.personId).kind
+          role = after.Person(request.personId).role standing = after.Person(request.personId).standing
+          name = after.Person(request.personId).name email = after.Person(request.personId).email bio = after.Person(request.personId).bio
+        }
+        ensures success implies all(session in before.Session where session.personId == request.personId and session.revokedAt == None() implies after.Session(session.id) == Session {
+          id = session.id personId = session.personId createdAt = session.createdAt
+          lastSeenAt = session.lastSeenAt expiresAt = session.expiresAt credentialVerifier = session.credentialVerifier
+          revokedAt = after.Session(session.id).revokedAt
+        })
+        ensures success implies all(session in before.Session where session.personId == request.personId and session.revokedAt == None() implies after.Session(session.id).revokedAt != None())
+        ensures not success implies before.Person == after.Person and before.Session == after.Session
+        effects { read Person write Person read Session write Session }
+      }
+      operation ban(request: ChangeStanding)
+        -> PersonProfile
+        ! AccountUnavailable ! AccessPersistenceUnavailable {
+        state replaces Person by request.personId from Person {
+          id = self.id kind = self.kind role = self.role standing = Banned
+          name = self.name email = self.email bio = self.bio
+        }
+        state replaces Session where self.personId == request.personId and self.revokedAt == None()
+        ensures success implies before.Person(request.administratorId).role == Administrator and before.Person(request.administratorId).standing == Active
+        ensures success implies before.Person(request.personId).standing == Active
+        ensures success implies result == PersonProfile {
+          personId = after.Person(request.personId).id kind = after.Person(request.personId).kind
+          role = after.Person(request.personId).role standing = after.Person(request.personId).standing
+          name = after.Person(request.personId).name email = after.Person(request.personId).email bio = after.Person(request.personId).bio
+        }
+        ensures success implies all(session in before.Session where session.personId == request.personId and session.revokedAt == None() implies after.Session(session.id) == Session {
+          id = session.id personId = session.personId createdAt = session.createdAt
+          lastSeenAt = session.lastSeenAt expiresAt = session.expiresAt credentialVerifier = session.credentialVerifier
+          revokedAt = after.Session(session.id).revokedAt
+        })
+        ensures success implies all(session in before.Session where session.personId == request.personId and session.revokedAt == None() implies after.Session(session.id).revokedAt != None())
+        ensures not success implies before.Person == after.Person and before.Session == after.Session
+        effects { read Person write Person read Session write Session }
+      }
+      operation unban(request: ChangeStanding)
+        -> PersonProfile
+        ! AccountUnavailable ! AccessPersistenceUnavailable {
+        state replaces Person by request.personId from Person {
+          id = self.id kind = self.kind role = self.role standing = Active
+          name = self.name email = self.email bio = self.bio
+        }
+        state replaces Session where self.personId == request.personId and self.revokedAt == None()
+        ensures success implies before.Person(request.administratorId).role == Administrator and before.Person(request.administratorId).standing == Active
+        ensures success implies before.Person(request.personId).standing == Banned
+        ensures success implies result == PersonProfile {
+          personId = after.Person(request.personId).id kind = after.Person(request.personId).kind
+          role = after.Person(request.personId).role standing = after.Person(request.personId).standing
+          name = after.Person(request.personId).name email = after.Person(request.personId).email bio = after.Person(request.personId).bio
+        }
+        ensures success implies all(session in before.Session where session.personId == request.personId and session.revokedAt == None() implies after.Session(session.id) == Session {
+          id = session.id personId = session.personId createdAt = session.createdAt
+          lastSeenAt = session.lastSeenAt expiresAt = session.expiresAt credentialVerifier = session.credentialVerifier
+          revokedAt = after.Session(session.id).revokedAt
+        })
+        ensures success implies all(session in before.Session where session.personId == request.personId and session.revokedAt == None() implies after.Session(session.id).revokedAt != None())
+        ensures not success implies before.Person == after.Person and before.Session == after.Session
+        effects { read Person write Person read Session write Session }
+      }
+    }
+
+    surface AccessApi exposes requestReply {
+      operation bootstrap(request: BootstrapWorkspace)
+        -> PersonProfile
+        ! WorkspaceAlreadyInitialized ! ProfileRejected ! AccessPersistenceUnavailable
+      effects { write Person call AccessRepository.bootstrap emit WorkspaceBootstrapped(administratorId: request.administratorId) }
+
+      operation join(request: JoinWorkspace)
+        -> PersonProfile
+        ! InvitationRejected ! ProfileRejected ! AccessPersistenceUnavailable
+      effects { write Person call AccessRepository.join emit PersonJoined(personId: request.personId) }
+
+      operation signIn(request: SignIn)
+        -> IssuedHumanSession
+        ! CredentialsRejected ! AccountNotActive ! AccessPersistenceUnavailable
+      effects { read Person write Session call AccessRepository.signIn as issued emit SessionStarted(sessionId: issued.session.sessionId, personId: issued.session.personId) }
+
+      operation acceptTransfer(request: StartTransferredSession)
+        -> IssuedHumanSession
+        ! CredentialsRejected ! AccountNotActive ! AccessPersistenceUnavailable
+      effects { read Person write Session call AccessRepository.acceptTransfer as issued emit SessionStarted(sessionId: issued.session.sessionId, personId: issued.session.personId) }
+
+      operation verifySession(request: VerifyHumanSession)
+        -> HumanSessionAuthority
+        ! CredentialsRejected ! AccessPersistenceUnavailable
+      effects { read Person read Session call AccessRepository.verifySession }
+      operation signOut(request: EndSession)
+        -> Unit
+        ! SessionRejected ! AccessPersistenceUnavailable
+      effects { read Session write Session call AccessRepository.signOut emit SessionEnded(sessionId: request.sessionId, personId: request.personId) }
+
+      operation viewProfile(requesterId: PersonId, personId: PersonId)
+        -> PersonProfile
+        ! AccountUnavailable ! AccountNotActive ! AccessPersistenceUnavailable
+      effects { read Person call AccessRepository.viewProfile }
+
+      operation editOwnProfile(request: EditOwnProfile)
+        -> PersonProfile
+        ! AccountUnavailable ! AccountNotActive ! ProfileRejected ! AccessPersistenceUnavailable
+      effects { write Person call AccessRepository.editOwnProfile emit ProfileChanged(personId: request.personId) }
+
+      operation deactivate(request: ChangeStanding)
+        -> PersonProfile
+        ! AccountUnavailable ! AccessPersistenceUnavailable
+      effects { read Person write Person read Session write Session call AccessRepository.deactivate emit PersonDeactivated(personId: request.personId) }
+
+      operation ban(request: ChangeStanding)
+        -> PersonProfile
+        ! AccountUnavailable ! AccessPersistenceUnavailable
+      effects { read Person write Person read Session write Session call AccessRepository.ban emit PersonBanned(personId: request.personId) }
+
+      operation unban(request: ChangeStanding)
+        -> PersonProfile
+        ! AccountUnavailable ! AccessPersistenceUnavailable
+      effects {
+        read Person write Person read Session write Session
+        call AccessRepository.unban emit PersonUnbanned(personId: request.personId)
+      }
+    }
+
+    constraint "The first accepted account bootstrap, WorkspaceConfiguration and first active human administrator membership commit atomically. WorkspaceBootstrap is an internal owner handoff used only after accepting that first account; it is never an unauthenticated transport operation."
+    constraint "Workspace bootstrap succeeds at most once and the first human is an active administrator."
+    constraint "Only an unauthenticated caller holding a live individual invitation token may join. A successful join atomically creates the active human member and deletes exactly that token; all other tokens remain valid. A used or unknown code receives the same InvitationRejected failure without changing people or tokens."
+    constraint "Email addresses are unique under canonical case-insensitive comparison among accounts that can authenticate."
+    constraint "Only Active human principals may create interactive sessions; agent principals run through the agent-system boundary and automation principals authenticate through their integration boundary."
+    constraint "Opaque credentials are issued only by signIn or acceptTransfer; only their verifiers are persisted. verifySession derives the human principal from the credential, checks server time, current Active Human account, expiry, and revocation. Submitted person IDs, actor headers, connectivity and deployment-wide tokens are never human identity evidence."
+    constraint "A session is accepted only while it exists, is unrevoked, unexpired, and belongs to an Active person."
+    constraint "Signing out revokes only the presented session and disconnects that person's live connection associated with it."
+    constraint "A transfer token is single-purpose, tamper-evident, time-limited, and cannot authenticate a Deactivated or Banned account."
+    constraint "Profile editing never changes role, standing, principal kind, another person's profile, or any secret through submitted fields."
+    constraint "Deactivation and moderation require an active administrator who is not the affected person when that would remove the last active administrator."
+    constraint "Deactivation revokes sessions and non-direct memberships and anonymizes reusable login identity while retaining authored conversation history and direct-thread continuity."
+    constraint "Banning revokes sessions, records the abusive network addresses known from those sessions, schedules removal of authored messages, and blocks unsafe requests from those addresses."
+    constraint "Unbanning removes the recorded network-address blocks and returns the person to Active without restoring deleted messages or prior sessions."
+    constraint "Avatar input is validated as an image and normalized by an adapter; generated initials, an agent glyph, or an automation glyph are presentation fallbacks, not stored domain identity."
+    constraint "Authentication failure does not reveal whether the email, password, invitation, transfer token, or account standing caused rejection."
+
+    example "real access bootstraps the first account" {
+      when result = AccessRepository.bootstrap(BootstrapWorkspace { workspaceId = "00000000-0000-4000-8000-000000000071" workspaceName = "Native account workspace" administratorId = "00000000-0000-4000-8000-000000000072" name = "First administrator" email = "first@example.com" password = "conformance-password" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result == PersonProfile { personId = "00000000-0000-4000-8000-000000000072" kind = Human role = Administrator standing = Active name = "First administrator" email = Some("first@example.com") bio = None }
+    }
+    example "real access rejects an initialized account workspace" {
+      when result = AccessRepository.bootstrap(BootstrapWorkspace { workspaceId = "00000000-0000-4000-8000-000000000071" workspaceName = "Native account workspace" administratorId = "00000000-0000-4000-8000-000000000072" name = "First administrator" email = "first@example.com" password = "conformance-password" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails WorkspaceAlreadyInitialized
+    }
+    example "real access rejects an empty bootstrap password" {
+      when result = AccessRepository.bootstrap(BootstrapWorkspace { workspaceId = "00000000-0000-4000-8000-000000000071" workspaceName = "Native account workspace" administratorId = "00000000-0000-4000-8000-000000000072" name = "First administrator" email = "first@example.com" password = "" occurredAt = "2026-10-06T12:00:00.000Z" })
+      expect result fails ProfileRejected
+    }
+    example "real access signs out one active session" {
+      when result = AccessRepository.signOut(EndSession { personId = "00000000-0000-4000-8000-000000000011" sessionId = "00000000-0000-4000-8000-000000000020" occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect Success
+    }
+    example "real access rejects sign-out of a foreign session" {
+      when result = AccessRepository.signOut(EndSession { personId = "00000000-0000-4000-8000-000000000010" sessionId = "00000000-0000-4000-8000-000000000020" occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails SessionRejected
+    }
+    example "real access rejects sign-out of a revoked session" {
+      when result = AccessRepository.signOut(EndSession { personId = "00000000-0000-4000-8000-000000000011" sessionId = "00000000-0000-4000-8000-000000000021" occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails SessionRejected
+    }
+    example "real access rejects sign-out of an absent session" {
+      when result = AccessRepository.signOut(EndSession { personId = "00000000-0000-4000-8000-000000000011" sessionId = "00000000-0000-4000-8000-000000000029" occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails SessionRejected
+    }
+
+    example "real access signs in an active human" {
+      when result = AccessRepository.signIn(SignIn { email = "member@example.com" password = "conformance-password" userAgent = Some("Native session test") networkAddress = Some("192.0.2.1") occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result == IssuedHumanSession { session = HumanSessionAuthority { sessionId = "00000000-0000-4000-8000-000000000080" personId = "00000000-0000-4000-8000-000000000011" expiresAt = "2026-10-07T12:00:00.000Z" } credential = "gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA" }
+    }
+    example "real access rejects sign-in with a wrong password" {
+      when result = AccessRepository.signIn(SignIn { email = "member@example.com" password = "wrong-password" userAgent = Some("Native session test") networkAddress = Some("192.0.2.1") occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects sign-in for an unknown email" {
+      when result = AccessRepository.signIn(SignIn { email = "absent@example.com" password = "conformance-password" userAgent = Some("Native session test") networkAddress = Some("192.0.2.1") occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects sign-in for an inactive account" {
+      when result = AccessRepository.signIn(SignIn { email = "member@example.com" password = "conformance-password" userAgent = Some("Native session test") networkAddress = Some("192.0.2.1") occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails AccountNotActive
+    }
+    example "real access rejects sign-in for an agent principal" {
+      when result = AccessRepository.signIn(SignIn { email = "member@example.com" password = "conformance-password" userAgent = Some("Native session test") networkAddress = Some("192.0.2.1") occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails CredentialsRejected
+    }
+    example "real access accepts a transferred session" {
+      when result = AccessRepository.acceptTransfer(StartTransferredSession { transferToken = "native-transfer-token" userAgent = None networkAddress = None occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result == IssuedHumanSession { session = HumanSessionAuthority { sessionId = "00000000-0000-4000-8000-000000000080" personId = "00000000-0000-4000-8000-000000000011" expiresAt = "2026-10-07T12:00:00.000Z" } credential = "gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA" }
+    }
+    example "real access rejects transferred unknown tokens" {
+      when result = AccessRepository.acceptTransfer(StartTransferredSession { transferToken = "unknown-transfer-token" userAgent = None networkAddress = None occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects transferred expired transfer tokens" {
+      when result = AccessRepository.acceptTransfer(StartTransferredSession { transferToken = "native-transfer-token" userAgent = None networkAddress = None occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects transferred inactive accounts" {
+      when result = AccessRepository.acceptTransfer(StartTransferredSession { transferToken = "native-transfer-token" userAgent = None networkAddress = None occurredAt = "2000-01-01T00:00:00.000Z" })
+      expect result fails AccountNotActive
+    }
+    example "real access verifies a session for an active human" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = "native-verified-session-credential-xxxxxxxx" })
+      expect result == HumanSessionAuthority { sessionId = "00000000-0000-4000-8000-000000000075" personId = "00000000-0000-4000-8000-000000000011" expiresAt = "2026-10-07T12:00:00.000Z" }
+    }
+    example "real access rejects verification of a revoked session" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = "native-verified-session-credential-xxxxxxxx" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects verification of an expired session" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = "native-verified-session-credential-xxxxxxxx" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects verification for a banned account" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = "native-verified-session-credential-xxxxxxxx" })
+      expect result fails CredentialsRejected
+    }
+    example "real access rejects verification for an agent principal" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = "native-verified-session-credential-xxxxxxxx" })
+      expect result fails CredentialsRejected
+    }
+
+    example "bootstrap the first administrator" {
+      given AccessRepository.bootstrap(bootstrapWorkspace) returns PersonProfile { personId = administratorId kind = Human role = Administrator standing = Active name = "Ada" email = Some("ada@example.com") bio = None }
+      when result = AccessApi.bootstrap(bootstrapWorkspace)
+      expect Success
+      expect emits WorkspaceBootstrapped { administratorId = administratorId }
+    }
+    example "reject a second bootstrap" {
+      given AccessRepository.bootstrap(secondBootstrap) fails WorkspaceAlreadyInitialized { reason = "workspace already initialized" }
+      when result = AccessApi.bootstrap(secondBootstrap)
+      expect result fails WorkspaceAlreadyInitialized
+    }
+    example "actual pending account authorizes invitation admission" {
+      when result = InvitedAccountAuthority.verify(AcceptWorkspaceInvitation { invitationCode = "native-invitation-code" personId = "00000000-0000-4000-8000-000000000048" name = "Mira" })
+      expect result == true
+    }
+    example "identifiers alone cannot authorize invitation admission" {
+      when result = InvitedAccountAuthority.verify(AcceptWorkspaceInvitation { invitationCode = "native-invitation-code" personId = "00000000-0000-4000-8000-000000000048" name = "Mira" })
+      expect result == false
+    }
+
+    example "join with an invitation" {
+      given AccessRepository.join(joinWorkspace) returns PersonProfile { personId = personId kind = Human role = Member standing = Active name = "Mira" email = Some("mira@example.com") bio = None }
+      when result = AccessApi.join(joinWorkspace)
+      expect Success
+      expect emits PersonJoined { personId = personId }
+    }
+
+    example "real access deactivate changes standing" {
+      when result = AccessRepository.deactivate(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000010" personId = "00000000-0000-4000-8000-000000000011" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result == PersonProfile { personId = "00000000-0000-4000-8000-000000000011" kind = Human role = Member standing = Deactivated name = "Member" email = None bio = Some("Retained biography") }
+    }
+    example "real access deactivate rejects missing target" {
+      when result = AccessRepository.deactivate(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000010" personId = "00000000-0000-4000-8000-000000000012" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result fails AccountUnavailable
+    }
+    example "real access deactivate rejects inactive administrator" {
+      when result = AccessRepository.deactivate(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000013" personId = "00000000-0000-4000-8000-000000000011" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result fails AccountUnavailable
+    }
+    example "real access ban changes standing" {
+      when result = AccessRepository.ban(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000010" personId = "00000000-0000-4000-8000-000000000011" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result == PersonProfile { personId = "00000000-0000-4000-8000-000000000011" kind = Human role = Member standing = Banned name = "Member" email = Some("member@example.com") bio = Some("Retained biography") }
+    }
+    example "real access ban rejects missing target" {
+      when result = AccessRepository.ban(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000010" personId = "00000000-0000-4000-8000-000000000012" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result fails AccountUnavailable
+    }
+    example "real access ban rejects inactive administrator" {
+      when result = AccessRepository.ban(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000013" personId = "00000000-0000-4000-8000-000000000011" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result fails AccountUnavailable
+    }
+    example "real access unban changes standing" {
+      when result = AccessRepository.unban(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000010" personId = "00000000-0000-4000-8000-000000000011" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result == PersonProfile { personId = "00000000-0000-4000-8000-000000000011" kind = Human role = Member standing = Active name = "Member" email = Some("member@example.com") bio = Some("Retained biography") }
+    }
+    example "real access unban rejects missing target" {
+      when result = AccessRepository.unban(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000010" personId = "00000000-0000-4000-8000-000000000012" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result fails AccountUnavailable
+    }
+    example "real access unban rejects inactive administrator" {
+      when result = AccessRepository.unban(ChangeStanding { administratorId = "00000000-0000-4000-8000-000000000013" personId = "00000000-0000-4000-8000-000000000011" occurredAt = "2000-01-01T00:00:00.000Z" reason = Some("Standing decision") })
+      expect result fails AccountUnavailable
+    }
+
+    example "real access repository joins with a live invitation" {
+      when result = AccessRepository.join(JoinWorkspace { personId = "00000000-0000-4000-8000-000000000048" invitationCode = "native-access-join-code" name = "Mira" email = "mira@example.com" password = "native-valid-password" occurredAt = "2026-10-05T12:00:00.000Z" })
+      expect result == PersonProfile { personId = "00000000-0000-4000-8000-000000000048" kind = Human role = Member standing = Active name = "Mira" email = Some("mira@example.com") bio = None }
+    }
+    example "real access repository rejects an empty join password" {
+      when result = AccessRepository.join(JoinWorkspace { personId = "00000000-0000-4000-8000-000000000048" invitationCode = "native-access-join-code" name = "Mira" email = "mira@example.com" password = "" occurredAt = "2026-10-05T12:00:00.000Z" })
+      expect result fails ProfileRejected
+    }
+    example "real access repository rejects an unknown invitation" {
+      when result = AccessRepository.join(JoinWorkspace { personId = "00000000-0000-4000-8000-000000000048" invitationCode = "native-unknown-join-code" name = "Mira" email = "mira@example.com" password = "native-valid-password" occurredAt = "2026-10-05T12:00:00.000Z" })
+      expect result fails InvitationRejected
+    }
+
+    example "reject reuse of a deleted invitation token" {
+      given AccessRepository.join(replayJoin) fails InvitationRejected { reason = "invitation rejected" }
+      when result = AccessApi.join(replayJoin)
+      expect result fails InvitationRejected
+    }
+    example "sign in an active person" {
+      given AccessRepository.signIn(signIn) returns IssuedHumanSession { session = HumanSessionAuthority { sessionId = sessionId personId = personId expiresAt = expiresAt } credential = credential }
+      when result = AccessApi.signIn(signIn)
+      expect Success
+      expect emits SessionStarted { sessionId = sessionId personId = personId }
+    }
+    example "start a transferred session" {
+      given AccessRepository.acceptTransfer(startTransferredSession) returns IssuedHumanSession { session = HumanSessionAuthority { sessionId = sessionId personId = personId expiresAt = expiresAt } credential = credential }
+      when result = AccessApi.acceptTransfer(startTransferredSession)
+      expect Success
+      expect emits SessionStarted { sessionId = sessionId personId = personId }
+    }
+    example "verify a current opaque human credential" {
+      given AccessRepository.verifySession(verifyRequest) returns HumanSessionAuthority { sessionId = sessionId personId = personId expiresAt = expiresAt }
+      when result = AccessApi.verifySession(verifyRequest)
+      expect result == HumanSessionAuthority { sessionId = sessionId personId = personId expiresAt = expiresAt }
+    }
+    example "reject a revoked or expired human credential" {
+      given AccessRepository.verifySession(revokedCredential) fails CredentialsRejected { reason = "credentials rejected" }
+      when result = AccessApi.verifySession(revokedCredential)
+      expect result fails CredentialsRejected
+    }
+    example "real session verifier rejects an unknown credential" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = unknownCredential })
+      expect result fails CredentialsRejected
+    }
+    example "real session verifier rejects a credential for a banned account" {
+      when result = AccessRepository.verifySession(VerifyHumanSession { credential = bannedCredential })
+      expect result fails CredentialsRejected
+    }
+    example "sign out the presented session" {
+      given AccessRepository.signOut(endSession) returns Unit
+      when result = AccessApi.signOut(endSession)
+      expect Success
+      expect emits SessionEnded { sessionId = sessionId personId = personId }
+    }
+    example "view an active profile" {
+      given AccessRepository.viewProfile(requesterId, personId) returns PersonProfile { personId = personId kind = Human role = Member standing = Active name = "Mira" email = Some("mira@example.com") bio = None }
+      when result = AccessApi.viewProfile(requesterId, personId)
+      expect Success
+    }
+    example "edit only the caller profile" {
+      given AccessRepository.editOwnProfile(editOwnProfile) returns PersonProfile { personId = personId kind = Human role = Member standing = Active name = "Mira S" email = Some("mira@example.com") bio = Some("Hello") }
+      when result = AccessApi.editOwnProfile(editOwnProfile)
+      expect Success
+      expect emits ProfileChanged { personId = personId }
+    }
+    example "deactivate an account" {
+      given AccessRepository.deactivate(deactivatePerson) returns PersonProfile { personId = personId kind = Human role = Member standing = Deactivated name = "Mira" email = None bio = None }
+      when result = AccessApi.deactivate(deactivatePerson)
+      expect Success
+      expect emits PersonDeactivated { personId = personId }
+    }
+    example "ban an account" {
+      given AccessRepository.ban(banPerson) returns PersonProfile { personId = personId kind = Human role = Member standing = Banned name = "Mira" email = Some("mira@example.com") bio = None }
+      when result = AccessApi.ban(banPerson)
+      expect Success
+      expect emits PersonBanned { personId = personId }
+    }
+    example "unban an account" {
+      given AccessRepository.unban(unbanPerson) returns PersonProfile { personId = personId kind = Human role = Member standing = Active name = "Mira" email = Some("mira@example.com") bio = None }
+      when result = AccessApi.unban(unbanPerson)
+      expect Success
+      expect emits PersonUnbanned { personId = personId }
+    }
+
+    lifecycle PersonStanding for Person using standing {
+      state Active initial
+      state Deactivated terminal
+      state Banned
+
+      transition HumanAccess.AccessApi.deactivate from Active to Deactivated
+      transition HumanAccess.AccessApi.ban from Active to Banned
+      transition HumanAccess.AccessApi.unban from Banned to Active
+    }
+  }
+}

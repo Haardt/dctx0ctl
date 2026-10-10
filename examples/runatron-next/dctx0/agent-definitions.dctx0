@@ -1,0 +1,496 @@
+domain RunnerInventory {
+  value RunnerId = UUID
+  value RunnerActorId = UUID
+  value RunnerAgentId = String { length 1..160 }
+  value AgentSnapshotId = UUID
+  value InventoryVersion = String { length 1..160 }
+  value InventoryFingerprint = String { length 16..256 }
+  value AgentVersion = String { length 1..160 }
+  value AgentFingerprint = String { length 16..256 }
+  value ProviderName = String { length 1..120 }
+  value RunnerKeyId = UUID
+  value RunnerKeyVerifier = String { length 16..512 }
+  value RunnerSecret = String { length 16..512 }
+  value ProviderCallLimit = Int { range 1..1000000 }
+  value RunnerConcurrency = Int { range 1..1000000 }
+
+  type RunnerStanding = Active | Revoked
+  type AgentSessionMode = Persistent | OneShot
+  type AgentToolExposure = Direct | EvalOnly | Hybrid
+
+  failure RunnerNotFound { runnerId: RunnerId }
+  failure RunnerAccessDenied { reason: String }
+  failure RunnerKeyRejected { reason: String }
+  failure InventoryConflict { reason: String }
+  failure InventoryRejected { reason: String }
+  failure AgentSnapshotNotFound { snapshotId: AgentSnapshotId }
+  failure ProviderLimitRejected { reason: String }
+  failure RunnerInventoryUnavailable { reason: String }
+
+  entity RunnerInstallation {
+    id: RunnerId
+    name: String
+    standing: RunnerStanding
+    currentInventoryVersion: Option<InventoryVersion>
+    maxConcurrentRuns: Option<RunnerConcurrency>
+    createdAt: Timestamp
+    updatedAt: Timestamp
+    key id
+  }
+
+  entity RunnerCredential {
+    id: RunnerKeyId
+    runnerId: RunnerId
+    verifier: RunnerKeyVerifier
+    issuedAt: Timestamp
+    revokedAt: Option<Timestamp>
+    key id
+  }
+
+  entity RunnerInventoryRevision {
+    runnerId: RunnerId
+    version: InventoryVersion
+    fingerprint: InventoryFingerprint
+    agentSnapshotIds: List<AgentSnapshotId>
+    providerCapacities: List<ProviderLocalCapacity>
+    maxConcurrentRuns: RunnerConcurrency
+    reportedAt: Timestamp
+    key runnerId version
+  }
+
+  entity RunnerAgentSnapshot {
+    id: AgentSnapshotId
+    runnerId: RunnerId
+    localAgentId: RunnerAgentId
+    version: AgentVersion
+    fingerprint: AgentFingerprint
+    mission: String
+    personaContent: String
+    instructionContent: String
+    contextContent: String
+    skillNames: List<String>
+    toolConfiguration: List<AgentToolSetting>
+    toolInclude: List<String>
+    toolExclude: List<String>
+    toolExposure: AgentToolExposure
+    directToolNames: List<String>
+    alsoNestedToolNames: List<String>
+    strictTools: Boolean
+    delegatedAgentIds: List<RunnerAgentId>
+    executionProfile: String
+    modelProfiles: List<AgentModelProfile>
+    sessionName: String
+    sessionMode: AgentSessionMode
+    structuredOutputProfile: Option<String>
+    promptCompactionProfile: Option<String>
+    reportedAt: Timestamp
+    key id
+  }
+
+  entity GlobalProviderLimit {
+    provider: ProviderName
+    maximumCalls: ProviderCallLimit
+    updatedBy: RunnerActorId
+    updatedAt: Timestamp
+    key provider
+  }
+  message AgentToolSetting {
+    name: String
+    exposure: AgentToolExposure
+    enabled: Boolean
+    metadata: List<AgentConfigurationEntry>
+  }
+  message AgentConfigurationEntry {
+    key: String
+    value: String
+  }
+  message AgentModelProfile {
+    name: String
+    provider: ProviderName
+    modelId: String
+    metadata: List<AgentConfigurationEntry>
+  }
+  message ProviderLocalCapacity {
+    provider: ProviderName
+    maximumCalls: ProviderCallLimit
+  }
+  message ReportedAgentSnapshot {
+    snapshotId: AgentSnapshotId
+    localAgentId: RunnerAgentId
+    version: AgentVersion
+    fingerprint: AgentFingerprint
+    mission: String
+    personaContent: String
+    instructionContent: String
+    contextContent: String
+    skillNames: List<String>
+    toolConfiguration: List<AgentToolSetting>
+    toolInclude: List<String>
+    toolExclude: List<String>
+    toolExposure: AgentToolExposure
+    directToolNames: List<String>
+    alsoNestedToolNames: List<String>
+    strictTools: Boolean
+    delegatedAgentIds: List<RunnerAgentId>
+    executionProfile: String
+    modelProfiles: List<AgentModelProfile>
+    sessionName: String
+    sessionMode: AgentSessionMode
+    structuredOutputProfile: Option<String>
+    promptCompactionProfile: Option<String>
+  }
+  message ProvisionRunner {
+    runnerId: RunnerId
+    keyId: RunnerKeyId
+    administratorId: RunnerActorId
+    name: String
+    occurredAt: Timestamp
+  }
+  message RotateRunnerKey {
+    runnerId: RunnerId
+    keyId: RunnerKeyId
+    administratorId: RunnerActorId
+    occurredAt: Timestamp
+  }
+  message RevokeRunner {
+    runnerId: RunnerId
+    administratorId: RunnerActorId
+    occurredAt: Timestamp
+  }
+  message RunnerKeyMaterial { secret: RunnerSecret; verifier: RunnerKeyVerifier }
+  message RunnerKeyReceipt { runnerId: RunnerId; keyId: RunnerKeyId; secret: RunnerSecret }
+  message ReportRunnerInventory {
+    runnerId: RunnerId
+    keyId: RunnerKeyId
+    expectedCurrentVersion: Option<InventoryVersion>
+    version: InventoryVersion
+    fingerprint: InventoryFingerprint
+    agents: List<ReportedAgentSnapshot>
+    providerCapacities: List<ProviderLocalCapacity>
+    maxConcurrentRuns: RunnerConcurrency
+    occurredAt: Timestamp
+  }
+  message RunnerInventoryView {
+    runnerId: RunnerId
+    version: InventoryVersion
+    agentSnapshotIds: List<AgentSnapshotId>
+    providerCapacities: List<ProviderLocalCapacity>
+    maxConcurrentRuns: RunnerConcurrency
+  }
+  message RunnerInstallationView {
+    id: RunnerId
+    name: String
+    standing: RunnerStanding
+    maxConcurrentRuns: Option<RunnerConcurrency>
+    currentInventoryVersion: Option<InventoryVersion>
+    createdAt: Timestamp
+    updatedAt: Timestamp
+  }
+  message SetGlobalProviderLimit {
+    provider: ProviderName
+    maximumCalls: ProviderCallLimit
+    administratorId: RunnerActorId
+    occurredAt: Timestamp
+  }
+  message RunnerAgentReference {
+    runnerId: RunnerId
+    localAgentId: RunnerAgentId
+    snapshotId: AgentSnapshotId
+    version: AgentVersion
+    fingerprint: AgentFingerprint
+  }
+
+  event RunnerProvisioned { runnerId: RunnerId; keyId: RunnerKeyId }
+  event RunnerKeyRotated { runnerId: RunnerId; keyId: RunnerKeyId }
+  event RunnerRevoked { runnerId: RunnerId }
+  event RunnerInventoryAccepted { runnerId: RunnerId; version: InventoryVersion }
+  event GlobalProviderLimitChanged { provider: ProviderName; maximumCalls: ProviderCallLimit }
+
+  module RunnerRegistry {
+    intent """
+      Let each Runatron installation authenticate as its own runner and report
+      immutable agent snapshots. Keep credentials, inventory, and administrator
+      provider limits in the product while Runatron authors agent configuration.
+      """
+
+    decision RunnerOwnsAgentConfiguration {
+      choose "Accept versioned, non-secret agent snapshots reported by each runner."
+      because "Runatron is the source of its persona, instructions, tools, skills, delegation, execution, and model configuration."
+      avoid "Do not author or publish runtime agent definitions in the product."
+    }
+    decision RunnerIdentityScopesAgents {
+      choose "Identify an agent by runner installation and runner-local agent ID."
+      because "Identical configurations from separate installations have separate access and history."
+      avoid "Do not merge agents by name, version, or fingerprint across runners."
+    }
+
+    owns {
+      value RunnerId value RunnerActorId value RunnerAgentId value AgentSnapshotId value InventoryVersion value InventoryFingerprint
+      value AgentVersion value AgentFingerprint value ProviderName value RunnerKeyId value RunnerKeyVerifier
+      value RunnerSecret value ProviderCallLimit value RunnerConcurrency
+      entity RunnerInstallation entity RunnerCredential entity RunnerInventoryRevision entity RunnerAgentSnapshot
+      entity GlobalProviderLimit
+      event RunnerProvisioned event RunnerKeyRotated event RunnerRevoked event RunnerInventoryAccepted
+      event GlobalProviderLimitChanged
+    }
+
+    requires { RunnerCredentialIssuer RunnerInventoryRepository }
+
+    port RunnerCredentialIssuer {
+      operation issue(runnerId: RunnerId, keyId: RunnerKeyId)
+        -> RunnerKeyMaterial
+        ! RunnerInventoryUnavailable
+    }
+
+    port RunnerInventoryRepository {
+      operation provision(request: ProvisionRunner, material: RunnerKeyMaterial)
+        -> RunnerKeyReceipt
+        ! RunnerAccessDenied ! InventoryConflict ! RunnerInventoryUnavailable {
+        state upserts RunnerInstallation from RunnerInstallation { id = request.runnerId name = request.name standing = Active currentInventoryVersion = None() maxConcurrentRuns = None() createdAt = request.occurredAt updatedAt = request.occurredAt }
+        state upserts RunnerCredential from RunnerCredential { id = request.keyId runnerId = request.runnerId verifier = material.verifier issuedAt = request.occurredAt revokedAt = None() }
+        ensures success implies result == RunnerKeyReceipt { runnerId = request.runnerId keyId = request.keyId secret = material.secret }
+        ensures not success implies before.RunnerInstallation == after.RunnerInstallation and before.RunnerCredential == after.RunnerCredential
+      }
+      effects { read RunnerInstallation read RunnerCredential write RunnerInstallation write RunnerCredential }
+      operation rotateKey(request: RotateRunnerKey, material: RunnerKeyMaterial)
+        -> RunnerKeyReceipt
+        ! RunnerNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable {
+        state replaces RunnerCredential where self.runnerId == request.runnerId and self.id != request.keyId and self.revokedAt == None() from RunnerCredential { id = self.id runnerId = self.runnerId verifier = self.verifier issuedAt = self.issuedAt revokedAt = Some(request.occurredAt) }
+        state upserts RunnerCredential from RunnerCredential { id = request.keyId runnerId = request.runnerId verifier = material.verifier issuedAt = request.occurredAt revokedAt = None() }
+        ensures success implies result == RunnerKeyReceipt { runnerId = request.runnerId keyId = request.keyId secret = material.secret }
+        ensures not success implies before.RunnerCredential == after.RunnerCredential
+      }
+      effects { read RunnerInstallation read RunnerCredential write RunnerCredential }
+      operation revoke(request: RevokeRunner)
+        -> Unit
+        ! RunnerNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable {
+        state replaces RunnerInstallation by request.runnerId from RunnerInstallation { id = self.id name = self.name standing = Revoked currentInventoryVersion = self.currentInventoryVersion maxConcurrentRuns = self.maxConcurrentRuns createdAt = self.createdAt updatedAt = request.occurredAt }
+        state replaces RunnerCredential where self.runnerId == request.runnerId and self.revokedAt == None() from RunnerCredential { id = self.id runnerId = self.runnerId verifier = self.verifier issuedAt = self.issuedAt revokedAt = Some(request.occurredAt) }
+        ensures not success implies before.RunnerInstallation == after.RunnerInstallation and before.RunnerCredential == after.RunnerCredential
+      }
+      effects { read RunnerInstallation read RunnerCredential write RunnerInstallation write RunnerCredential }
+      operation report(request: ReportRunnerInventory)
+        -> RunnerInventoryView
+        ! RunnerKeyRejected ! InventoryConflict ! InventoryRejected ! RunnerInventoryUnavailable {
+        state observes RunnerCredential by request.keyId
+        state replaces RunnerInstallation by request.runnerId
+        state inserts RunnerInventoryRevision
+        state inserts RunnerAgentSnapshot
+        ensures success and count(revision in before.RunnerInventoryRevision where revision.runnerId == request.runnerId and revision.version == request.version) == 0 and length(request.agents) == 0 implies after.RunnerInstallation(request.runnerId) == RunnerInstallation { id = request.runnerId name = before.RunnerInstallation(request.runnerId).name standing = before.RunnerInstallation(request.runnerId).standing currentInventoryVersion = Some(request.version) maxConcurrentRuns = Some(request.maxConcurrentRuns) createdAt = before.RunnerInstallation(request.runnerId).createdAt updatedAt = request.occurredAt }
+        ensures success and count(revision in before.RunnerInventoryRevision where revision.runnerId == request.runnerId and revision.version == request.version) > 0 implies after.RunnerInstallation(request.runnerId) == before.RunnerInstallation(request.runnerId)
+        ensures success and count(revision in before.RunnerInventoryRevision where revision.runnerId == request.runnerId and revision.version == request.version) == 0 and length(request.agents) == 0 implies after.RunnerInventoryRevision(request.runnerId, request.version) == RunnerInventoryRevision { runnerId = request.runnerId version = request.version fingerprint = request.fingerprint agentSnapshotIds = [] providerCapacities = request.providerCapacities maxConcurrentRuns = request.maxConcurrentRuns reportedAt = request.occurredAt }
+        ensures success and count(revision in before.RunnerInventoryRevision where revision.runnerId == request.runnerId and revision.version == request.version) > 0 implies before.RunnerInventoryRevision == after.RunnerInventoryRevision
+        ensures success and length(request.agents) == 0 implies before.RunnerAgentSnapshot == after.RunnerAgentSnapshot
+        ensures success and count(revision in before.RunnerInventoryRevision where revision.runnerId == request.runnerId and revision.version == request.version) > 0 implies before.RunnerAgentSnapshot == after.RunnerAgentSnapshot
+        ensures success implies result == RunnerInventoryView { runnerId = request.runnerId version = request.version agentSnapshotIds = after.RunnerInventoryRevision(request.runnerId, request.version).agentSnapshotIds providerCapacities = after.RunnerInventoryRevision(request.runnerId, request.version).providerCapacities maxConcurrentRuns = after.RunnerInventoryRevision(request.runnerId, request.version).maxConcurrentRuns }
+        ensures not success implies before.RunnerInstallation == after.RunnerInstallation and before.RunnerInventoryRevision == after.RunnerInventoryRevision and before.RunnerAgentSnapshot == after.RunnerAgentSnapshot
+        ensures before.RunnerCredential == after.RunnerCredential
+        ensures success implies result.runnerId == request.runnerId and result.version == request.version
+        ensures success implies result.providerCapacities == request.providerCapacities and result.maxConcurrentRuns == request.maxConcurrentRuns
+        ensures success implies count(result.agentSnapshotIds) == count(request.agents)
+        ensures success implies all(agent in request.agents where contains(result.agentSnapshotIds, agent.snapshotId))
+      }
+      effects { read RunnerCredential read RunnerInstallation read RunnerInventoryRevision read RunnerAgentSnapshot write RunnerInstallation write RunnerInventoryRevision write RunnerAgentSnapshot }
+      operation setProviderLimit(request: SetGlobalProviderLimit)
+        -> GlobalProviderLimit
+        ! RunnerAccessDenied ! ProviderLimitRejected ! RunnerInventoryUnavailable {
+        effects { write GlobalProviderLimit }
+        state upserts GlobalProviderLimit from GlobalProviderLimit {
+          provider = request.provider
+          maximumCalls = request.maximumCalls
+          updatedBy = request.administratorId
+          updatedAt = request.occurredAt
+        }
+        ensures success implies result == after.GlobalProviderLimit(request.provider)
+        ensures not success implies before.GlobalProviderLimit == after.GlobalProviderLimit
+      }
+      operation snapshot(snapshotId: AgentSnapshotId, actorId: RunnerActorId)
+        -> RunnerAgentSnapshot
+        ! AgentSnapshotNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable {
+        effects { read RunnerAgentSnapshot }
+        state observes RunnerAgentSnapshot by snapshotId
+        ensures success implies result == before.RunnerAgentSnapshot(snapshotId)
+        ensures before.RunnerAgentSnapshot == after.RunnerAgentSnapshot
+      }
+      operation currentInventory(runnerId: RunnerId, actorId: RunnerActorId)
+        -> RunnerInventoryView
+        ! RunnerNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation read RunnerInventoryRevision }
+      operation listInstallations(actorId: RunnerActorId)
+        -> List<RunnerInstallationView>
+        ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation }
+    }
+
+    example "native inventory accepts a complete empty report" {
+      when result = RunnerInventoryRepository.report(ReportRunnerInventory { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a5" expectedCurrentVersion = None version = "native-report-v1" fingerprint = "becdddfbcaa91c236a73bdd4cc42c2f9a2d8da5e5bba25dd60f1c2cd32abf2d6" agents = [] providerCapacities = [] maxConcurrentRuns = 2 occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result == RunnerInventoryView { runnerId = "00000000-0000-4000-8000-0000000000a1" version = "native-report-v1" agentSnapshotIds = [] providerCapacities = [] maxConcurrentRuns = 2 }
+    }
+    example "native inventory rejects a corrupted empty report" {
+      when result = RunnerInventoryRepository.report(ReportRunnerInventory { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a5" expectedCurrentVersion = None version = "native-report-v1" fingerprint = "corrupted-inventory-fingerprint-00001" agents = [] providerCapacities = [] maxConcurrentRuns = 2 occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails InventoryRejected
+    }
+    example "real inventory provision persists its complete installation and credential" {
+      when result = RunnerInventoryRepository.provision(ProvisionRunner { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a2" administratorId = "00000000-0000-4000-8000-0000000000a3" name = "Native runner" occurredAt = "2026-10-07T12:00:00.000Z" }, RunnerKeyMaterial { secret = "native-runner-secret-00001" verifier = "native-runner-verifier-00001" })
+      expect result == RunnerKeyReceipt { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a2" secret = "native-runner-secret-00001" }
+    }
+    example "real inventory provision rejects missing administrator authority without writes" {
+      when result = RunnerInventoryRepository.provision(ProvisionRunner { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a2" administratorId = "00000000-0000-4000-8000-0000000000a3" name = "Native runner" occurredAt = "2026-10-07T12:00:00.000Z" }, RunnerKeyMaterial { secret = "native-runner-secret-00001" verifier = "native-runner-verifier-00001" })
+      expect result fails RunnerAccessDenied
+    }
+    example "real inventory rotation rejects an absent installation" {
+      when result = RunnerInventoryRepository.rotateKey(RotateRunnerKey { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a2" administratorId = "00000000-0000-4000-8000-0000000000a3" occurredAt = "2026-10-07T12:00:00.000Z" }, RunnerKeyMaterial { secret = "native-runner-secret-00001" verifier = "native-runner-verifier-00001" })
+      expect result fails RunnerNotFound
+    }
+    example "real inventory revocation rejects an absent installation" {
+      when result = RunnerInventoryRepository.revoke(RevokeRunner { runnerId = "00000000-0000-4000-8000-0000000000a1" administratorId = "00000000-0000-4000-8000-0000000000a3" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails RunnerNotFound
+    }
+    example "real inventory snapshot rejects an absent immutable snapshot" {
+      when result = RunnerInventoryRepository.snapshot("00000000-0000-4000-8000-0000000000a4", "00000000-0000-4000-8000-0000000000a3")
+      expect result fails AgentSnapshotNotFound
+    }
+
+    example "real inventory rotation returns its new key receipt" {
+      when result = RunnerInventoryRepository.rotateKey(RotateRunnerKey { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a2" administratorId = "00000000-0000-4000-8000-0000000000a3" occurredAt = "2026-10-07T12:00:00.000Z" }, RunnerKeyMaterial { secret = "native-runner-secret-00001" verifier = "native-runner-verifier-00001" })
+      expect result == RunnerKeyReceipt { runnerId = "00000000-0000-4000-8000-0000000000a1" keyId = "00000000-0000-4000-8000-0000000000a2" secret = "native-runner-secret-00001" }
+    }
+    example "real inventory revocation marks the stored installation and credential" {
+      when result = RunnerInventoryRepository.revoke(RevokeRunner { runnerId = "00000000-0000-4000-8000-0000000000a1" administratorId = "00000000-0000-4000-8000-0000000000a3" occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect Success
+    }
+    example "real inventory reads the persisted current revision" {
+      when result = RunnerInventoryRepository.currentInventory("00000000-0000-4000-8000-0000000000a1", "00000000-0000-4000-8000-0000000000a3")
+      expect result == RunnerInventoryView { runnerId = "00000000-0000-4000-8000-0000000000a1" version = "native-v1" agentSnapshotIds = [] providerCapacities = [] maxConcurrentRuns = 2 }
+    }
+    example "real inventory current revision rejects an unknown installation" {
+      when result = RunnerInventoryRepository.currentInventory("00000000-0000-4000-8000-0000000000a1", "00000000-0000-4000-8000-0000000000a3")
+      expect result fails RunnerNotFound
+    }
+    example "real inventory listing returns the complete empty authorized directory" {
+      when result = RunnerInventoryRepository.listInstallations("00000000-0000-4000-8000-0000000000a3")
+      expect result == []
+    }
+    example "real inventory listing rejects missing administrator authority" {
+      when result = RunnerInventoryRepository.listInstallations("00000000-0000-4000-8000-0000000000a3")
+      expect result fails RunnerAccessDenied
+    }
+
+    surface RunnerRegistryApi exposes requestReply {
+      operation provision(request: ProvisionRunner)
+        -> RunnerKeyReceipt
+        ! RunnerAccessDenied ! InventoryConflict ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation read RunnerCredential write RunnerInstallation write RunnerCredential call RunnerCredentialIssuer.issue as material call RunnerInventoryRepository.provision emit RunnerProvisioned(runnerId: request.runnerId, keyId: request.keyId) }
+
+      operation rotateKey(request: RotateRunnerKey)
+        -> RunnerKeyReceipt
+        ! RunnerNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation read RunnerCredential write RunnerCredential call RunnerCredentialIssuer.issue as material call RunnerInventoryRepository.rotateKey emit RunnerKeyRotated(runnerId: request.runnerId, keyId: request.keyId) }
+
+      operation revoke(request: RevokeRunner)
+        -> Unit
+        ! RunnerNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation read RunnerCredential write RunnerInstallation write RunnerCredential call RunnerInventoryRepository.revoke emit RunnerRevoked(runnerId: request.runnerId) }
+
+      operation report(request: ReportRunnerInventory)
+        -> RunnerInventoryView
+        ! RunnerKeyRejected ! InventoryConflict ! InventoryRejected ! RunnerInventoryUnavailable
+      effects { read RunnerCredential read RunnerInstallation read RunnerInventoryRevision read RunnerAgentSnapshot write RunnerInstallation write RunnerInventoryRevision write RunnerAgentSnapshot call RunnerInventoryRepository.report emit RunnerInventoryAccepted(runnerId: request.runnerId, version: request.version) }
+
+      operation setProviderLimit(request: SetGlobalProviderLimit)
+        -> GlobalProviderLimit
+        ! RunnerAccessDenied ! ProviderLimitRejected ! RunnerInventoryUnavailable
+      effects { write GlobalProviderLimit call RunnerInventoryRepository.setProviderLimit emit GlobalProviderLimitChanged(provider: request.provider, maximumCalls: request.maximumCalls) }
+
+      operation snapshot(snapshotId: AgentSnapshotId, actorId: RunnerActorId)
+        -> RunnerAgentSnapshot
+        ! AgentSnapshotNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerAgentSnapshot call RunnerInventoryRepository.snapshot }
+      operation currentInventory(runnerId: RunnerId, actorId: RunnerActorId)
+        -> RunnerInventoryView
+        ! RunnerNotFound ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation read RunnerInventoryRevision call RunnerInventoryRepository.currentInventory }
+
+      operation listInstallations(actorId: RunnerActorId)
+        -> List<RunnerInstallationView>
+        ! RunnerAccessDenied ! RunnerInventoryUnavailable
+      effects { read RunnerInstallation call RunnerInventoryRepository.listInstallations }
+    }
+
+    example "rotate a runner key and invalidate the previous key" {
+      given RunnerCredentialIssuer.issue(runnerId, keyId) returns keyMaterial
+      given RunnerInventoryRepository.rotateKey(rotateRequest, keyMaterial) returns keyReceipt
+      when result = RunnerRegistryApi.rotateKey(rotateRequest)
+      expect Success
+      expect emits RunnerKeyRotated { runnerId = runnerId keyId = keyId }
+    }
+    example "provision one runner and return its key once" {
+      given RunnerCredentialIssuer.issue(runnerId, keyId) returns keyMaterial
+      given RunnerInventoryRepository.provision(provisionRequest, keyMaterial) returns keyReceipt
+      when result = RunnerRegistryApi.provision(provisionRequest)
+      expect Success
+      expect emits RunnerProvisioned { runnerId = runnerId keyId = keyId }
+    }
+    example "revoke a runner and its current key" {
+      given RunnerInventoryRepository.revoke(revokeRequest) returns Unit
+      when result = RunnerRegistryApi.revoke(revokeRequest)
+      expect Success
+      expect emits RunnerRevoked { runnerId = runnerId }
+    }
+    example "reject an inventory report authenticated with a revoked key" {
+      given RunnerInventoryRepository.report(revokedKeyReport) fails RunnerKeyRejected { reason = "key revoked" }
+      when result = RunnerRegistryApi.report(revokedKeyReport)
+      expect result fails RunnerKeyRejected
+    }
+    example "accept one complete inventory version idempotently" {
+      given RunnerInventoryRepository.report(inventoryReport) returns inventoryView
+      when result = RunnerRegistryApi.report(inventoryReport)
+      expect Success
+      expect emits RunnerInventoryAccepted { runnerId = runnerId version = version }
+    }
+    example "reject a delayed inventory report that would replace a newer version" {
+      given RunnerInventoryRepository.report(staleInventoryReport) fails InventoryConflict { reason = "inventory version superseded" }
+      when result = RunnerRegistryApi.report(staleInventoryReport)
+      expect result fails InventoryConflict
+    }
+    example "configure the global provider call ceiling" {
+      given RunnerInventoryRepository.setProviderLimit(limitRequest) returns configuredLimit
+      when result = RunnerRegistryApi.setProviderLimit(limitRequest)
+      expect Success
+      expect emits GlobalProviderLimitChanged { provider = provider maximumCalls = maximumCalls }
+    }
+    example "reject a global limit below active provider calls" {
+      given RunnerInventoryRepository.setProviderLimit(overcommittedLimitRequest) fails ProviderLimitRejected { reason = "limit below active calls" }
+      when result = RunnerRegistryApi.setProviderLimit(overcommittedLimitRequest)
+      expect result fails ProviderLimitRejected
+    }
+    example "inspect an immutable reported agent snapshot" {
+      given RunnerInventoryRepository.snapshot(snapshotId, actorId) returns agentSnapshot
+      when result = RunnerRegistryApi.snapshot(snapshotId, actorId)
+      expect Success
+    }
+    example "inspect the active complete inventory of one runner" {
+      given RunnerInventoryRepository.currentInventory(runnerId, actorId) returns inventoryView
+      when result = RunnerRegistryApi.currentInventory(runnerId, actorId)
+      expect Success
+    }
+    example "list runner installations for an administrator" {
+      given RunnerInventoryRepository.listInstallations(actorId) returns installations
+      when result = RunnerRegistryApi.listInstallations(actorId)
+      expect Success
+    }
+    constraint "Internal current and retained snapshot reads expose owner-validated enabled tool and skill capabilities. Invalid tool selections reject the binding; retained and current capabilities are separate and consumers cannot recompute installation authority."
+    constraint "A runner key authenticates only its own installation; no runner key can act as a human session or choose the author or destination of a chat reply."
+    constraint "Only the verifier is persisted; a newly issued secret is returned once. Rotation revokes every earlier key before the new key can authorize inventory, claims, permits, or results."
+    constraint "Runner-bound operations verify a presented secret against the stored verifier through trusted request authentication; runner ID and key ID supplied in a request never prove identity by themselves."
+    constraint "Revocation denies all later runner actions, including inventory reports, claims, provider permits, progress, and results."
+    constraint "A report replaces the complete current inventory atomically. Repeating the same runner, version, and fingerprint has the same result; reusing a version with different content is rejected."
+    constraint "Inventory replacement compares expectedCurrentVersion with the current version; a delayed older report cannot roll back the active inventory. The product verifies the inventory fingerprint against canonical reported content."
+    constraint "Each runner-local agent ID occurs at most once in one inventory. Historical snapshots remain immutable and readable after an agent disappears."
+    constraint "A removed agent receives no new run; queued and historical runs retain their selected snapshot even after an inventory update."
+    constraint "Agent snapshots contain no credentials, provider tokens, or other secrets; those remain with Runatron."
+    constraint "A provider has no usable global capacity until an administrator configures its limit. A runner's reported local capacity cannot change the global limit."
+    constraint "Reducing a global provider limit below the number of active unexpired permits is rejected; an administrator cannot retroactively invalidate already granted calls."
+    constraint "Listing runner installations is read-only inventory visibility for administrators; it never exposes runner key material and grants no runner authority."
+  }
+}

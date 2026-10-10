@@ -1,0 +1,243 @@
+domain Discovery {
+  value DiscoveryPersonId = UUID
+  value DiscoverySpaceId = UUID
+  value DiscoveryMessageId = UUID
+  value SearchId = UUID
+  value SearchQuery = String { length 1..240 }
+  value SearchLimit = Int { range 1..100 }
+  value DirectoryLimit = Int { range 1..20 }
+
+  failure SearchAccessDenied { personId: DiscoveryPersonId }
+  failure SearchQueryRejected { reason: String }
+  failure SearchTargetNotFound { messageId: DiscoveryMessageId }
+  failure DirectoryAccessDenied { spaceId: DiscoverySpaceId; personId: DiscoveryPersonId }
+  failure DiscoveryUnavailable { reason: String }
+
+  entity RecentSearch {
+    id: SearchId
+    personId: DiscoveryPersonId
+    query: SearchQuery
+    lastUsedAt: Timestamp
+    key id
+  }
+
+  entity SearchDocument {
+    messageId: DiscoveryMessageId
+    spaceId: DiscoverySpaceId
+    authorId: DiscoveryPersonId
+    plainText: String
+    published: Boolean
+    changedAt: Timestamp
+    key messageId
+  }
+
+  entity DirectoryEntry {
+    personId: DiscoveryPersonId
+    name: String
+    active: Boolean
+    key personId
+  }
+
+  message SearchMessages {
+    personId: DiscoveryPersonId
+    query: SearchQuery
+    limit: SearchLimit
+    occurredAt: Timestamp
+  }
+  message SearchHit {
+    messageId: DiscoveryMessageId
+    spaceId: DiscoverySpaceId
+    authorId: DiscoveryPersonId
+    excerpt: String
+    createdAt: Timestamp
+  }
+  message SearchResults { searchId: SearchId; query: SearchQuery; items: List<SearchHit> }
+  message RecentSearches { personId: DiscoveryPersonId; queries: List<SearchQuery> }
+  message FindPeople {
+    requesterId: DiscoveryPersonId
+    spaceId: Option<DiscoverySpaceId>
+    query: Option<String>
+    limit: DirectoryLimit
+  }
+  message PersonSuggestion {
+    personId: DiscoveryPersonId
+    name: String
+    avatarReference: Option<String>
+  }
+  message PeopleSuggestions { items: List<PersonSuggestion> }
+  message OpenMessage {
+    personId: DiscoveryPersonId
+    messageId: DiscoveryMessageId
+  }
+  message MessageLocation {
+    spaceId: DiscoverySpaceId
+    messageId: DiscoveryMessageId
+  }
+
+  event SearchRemembered { personId: DiscoveryPersonId; searchId: SearchId }
+  event SearchHistoryCleared { personId: DiscoveryPersonId }
+
+  module FindAndNavigate {
+    intent """
+      Help a person find reachable conversation history and active people while
+      preserving the exact same membership boundary as direct reads and keeping
+      a small private history of useful queries.
+      """
+
+    decision SearchIsAnAccessCheckedProjection {
+      choose "Index message text for discovery but resolve every result through current conversation access."
+      because "Index freshness must never turn revoked history into a data leak."
+      avoid "Do not treat a search index hit, permalink, or cached participant suggestion as proof of access."
+    }
+
+    owns {
+      value DiscoveryPersonId value DiscoverySpaceId value DiscoveryMessageId value SearchId value SearchQuery value SearchLimit value DirectoryLimit
+      entity RecentSearch entity SearchDocument entity DirectoryEntry
+      event SearchRemembered event SearchHistoryCleared
+    }
+
+    requires { DiscoveryRepository }
+
+    port DiscoveryRepository {
+      operation search(request: SearchMessages)
+        -> SearchResults
+        ! SearchAccessDenied ! SearchQueryRejected ! DiscoveryUnavailable
+      effects { read SearchDocument read RecentSearch write RecentSearch }
+      operation recent(personId: DiscoveryPersonId)
+        -> RecentSearches
+        ! SearchAccessDenied ! DiscoveryUnavailable {
+        state lists RecentSearch
+        ensures success implies result.personId == personId
+        ensures success implies length(result.queries) == count(search in before.RecentSearch where search.personId == personId)
+        effects { read RecentSearch }
+      }
+      operation clearHistory(personId: DiscoveryPersonId)
+        -> Unit
+        ! SearchAccessDenied ! DiscoveryUnavailable {
+        state removes RecentSearch where self.personId == personId
+        effects { write RecentSearch }
+      }
+      operation suggestPeople(request: FindPeople)
+        -> PeopleSuggestions
+        ! DirectoryAccessDenied ! DiscoveryUnavailable
+      effects { read DirectoryEntry }
+      operation locate(request: OpenMessage)
+        -> MessageLocation
+        ! SearchTargetNotFound ! SearchAccessDenied ! DiscoveryUnavailable {
+        state observes SearchDocument by request.messageId
+        ensures success implies result == MessageLocation { spaceId = before.SearchDocument(request.messageId).spaceId messageId = before.SearchDocument(request.messageId).messageId }
+        ensures success implies before.SearchDocument(request.messageId).published == true
+        effects { read SearchDocument }
+      }
+    }
+
+    surface DiscoveryApi exposes requestReply {
+      operation search(request: SearchMessages)
+        -> SearchResults
+        ! SearchAccessDenied ! SearchQueryRejected ! DiscoveryUnavailable
+      effects { read SearchDocument read RecentSearch write RecentSearch call DiscoveryRepository.search as results emit SearchRemembered(personId: request.personId, searchId: results.searchId) }
+
+      operation recent(personId: DiscoveryPersonId)
+        -> RecentSearches
+        ! SearchAccessDenied ! DiscoveryUnavailable
+      effects { read RecentSearch call DiscoveryRepository.recent }
+
+      operation clearHistory(personId: DiscoveryPersonId)
+        -> Unit
+        ! SearchAccessDenied ! DiscoveryUnavailable
+      effects { write RecentSearch call DiscoveryRepository.clearHistory emit SearchHistoryCleared(personId: personId) }
+
+      operation suggestPeople(request: FindPeople)
+        -> PeopleSuggestions
+        ! DirectoryAccessDenied ! DiscoveryUnavailable
+      effects { read DirectoryEntry call DiscoveryRepository.suggestPeople }
+
+      operation locate(request: OpenMessage)
+        -> MessageLocation
+        ! SearchTargetNotFound ! SearchAccessDenied ! DiscoveryUnavailable
+      effects { read SearchDocument call DiscoveryRepository.locate }
+    }
+
+    constraint "Searchable content is the sanitized plain-text form of published messages; markup syntax, deleted content, secrets, and raw attachment bytes are not indexed."
+    constraint "Search returns only messages in spaces where the requester has a current membership at response time."
+    constraint "If search authority or a returned message-space membership is withdrawn during an awaited search, the search returns SearchAccessDenied and commits no recent-history change. Failed searches preserve the complete message index, directory and private histories."
+    constraint "Search results are capped by the request limit, ordered deterministically by conversation time, and contain a safely escaped excerpt."
+    constraint "Query normalization replaces unsupported punctuation with spaces, collapses whitespace, preserves Unicode words, and rejects an empty normalized query."
+    constraint "A successful non-empty search updates one private recent-search entry per canonical query instead of creating duplicates."
+    constraint "Each person retains at most ten recent searches ordered newest first; adding an eleventh removes the least recently used entry."
+    constraint "Clearing history affects only the requesting person and never changes the message index or another person's history."
+    constraint "People suggestions contain only active principals; with a space filter they contain only current members of a space the requester may access."
+    constraint "People suggestions are name-filtered, safely escaped, deterministically ordered, and limited to twenty."
+    constraint "A message permalink resolves only while the requester can access its current space; otherwise the response is indistinguishable from a missing message."
+    constraint "The search projection removes deleted messages and updates edited messages, but stale projection rows are still filtered by authoritative access and message state."
+
+    example "real discovery reads only private recent searches in newest-first order" {
+      when result = DiscoveryRepository.recent("00000000-0000-4000-8000-000000000081")
+      expect result == RecentSearches { personId = "00000000-0000-4000-8000-000000000081" queries = ["review", "deployment"] }
+    }
+    example "real discovery denies another principal private history" {
+      when result = DiscoveryRepository.recent("00000000-0000-4000-8000-000000000082")
+      expect result fails SearchAccessDenied
+    }
+    example "real discovery clears only the requester private history" {
+      when result = DiscoveryRepository.clearHistory("00000000-0000-4000-8000-000000000081")
+      expect Success
+    }
+    example "real discovery locates a complete accessible message" {
+      when result = DiscoveryRepository.locate(OpenMessage { personId = "00000000-0000-4000-8000-000000000081" messageId = "00000000-0000-4000-8000-000000000085" })
+      expect result == MessageLocation { spaceId = "00000000-0000-4000-8000-000000000083" messageId = "00000000-0000-4000-8000-000000000085" }
+    }
+    example "real discovery hides an inaccessible message location" {
+      when result = DiscoveryRepository.locate(OpenMessage { personId = "00000000-0000-4000-8000-000000000082" messageId = "00000000-0000-4000-8000-000000000085" })
+      expect result fails SearchTargetNotFound
+    }
+    example "real discovery suggests only actual current members with safe names" {
+      when result = DiscoveryRepository.suggestPeople(FindPeople { requesterId = "00000000-0000-4000-8000-000000000081" spaceId = Some("00000000-0000-4000-8000-000000000083") query = None limit = 10 })
+      expect result == PeopleSuggestions { items = [PersonSuggestion { personId = "00000000-0000-4000-8000-000000000081" name = "Ada &lt;Review&gt;" avatarReference = None }] }
+    }
+    example "real discovery rejects an inaccessible people directory" {
+      when result = DiscoveryRepository.suggestPeople(FindPeople { requesterId = "00000000-0000-4000-8000-000000000082" spaceId = Some("00000000-0000-4000-8000-000000000083") query = None limit = 10 })
+      expect result fails DirectoryAccessDenied
+    }
+    example "real discovery rejects a punctuation-only normalized query" {
+      when result = DiscoveryRepository.search(SearchMessages { personId = "00000000-0000-4000-8000-000000000081" query = "!!!" limit = 10 occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails SearchQueryRejected
+    }
+    example "real discovery denies an unauthorized search principal" {
+      when result = DiscoveryRepository.search(SearchMessages { personId = "00000000-0000-4000-8000-000000000082" query = "deployment" limit = 10 occurredAt = "2026-10-07T12:00:00.000Z" })
+      expect result fails SearchAccessDenied
+    }
+
+    example "search accessible message history" {
+      given DiscoveryRepository.search(searchMessages) returns SearchResults { searchId = searchId query = "deployment" items = searchHits }
+      when result = DiscoveryApi.search(searchMessages)
+      expect Success
+      expect emits SearchRemembered { personId = personId searchId = searchId }
+    }
+    example "reject an empty normalized search query" {
+      when result = DiscoveryApi.search(SearchMessages { personId = personId query = "!!!" limit = 20 occurredAt = "2026-09-25T00:00:00Z" })
+      expect result fails SearchQueryRejected
+    }
+    example "read private recent searches" {
+      given DiscoveryRepository.recent(personId) returns RecentSearches { personId = personId queries = recentQueries }
+      when result = DiscoveryApi.recent(personId)
+      expect Success
+    }
+    example "clear only the caller search history" {
+      given DiscoveryRepository.clearHistory(personId) returns Unit
+      when result = DiscoveryApi.clearHistory(personId)
+      expect Success
+      expect emits SearchHistoryCleared { personId = personId }
+    }
+    example "suggest active people in an accessible space" {
+      given DiscoveryRepository.suggestPeople(findPeople) returns PeopleSuggestions { items = people }
+      when result = DiscoveryApi.suggestPeople(findPeople)
+      expect Success
+    }
+    example "locate an accessible message" {
+      given DiscoveryRepository.locate(openMessage) returns MessageLocation { spaceId = spaceId messageId = messageId }
+      when result = DiscoveryApi.locate(openMessage)
+      expect Success
+    }
+  }
+}
