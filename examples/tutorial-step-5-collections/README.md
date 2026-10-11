@@ -1,36 +1,100 @@
-# Schritt 5: Collections, Strings und exakte Dezimalrechnung
+# Step 5: Collections, strings and exact decimals
 
-Die bisherige Spec bleibt vollständig erhalten. Kleine Operationen zeigen jede
-Collection-Funktion: Anzahl und Summe, all/any, contains/distinct, min/max,
-filter/map, auf- und absteigendes Sortieren, first/single, mean/indexOf,
-getOrElse, reverse und slice. `optional` kombiniert ifElse, Some und None.
+This directory retains the complete specification and implementation from [step 4](../tutorial-step-4-expressions/README.md), then adds the features below.
 
-`min` und `max` verlangen eine nicht leere Liste; `single` verlangt genau ein
-Element. Die Spec verwendet dafür ausführbare Vorbedingungen. Die Produktion
-validiert sie ebenfalls. Sortieren, Filtern und Slicing verändern die Eingabe
-nicht. **slice nimmt Offset und Anzahl**, während JavaScript slice einen
-Endindex nimmt: `slice(values, 1, 3)` wird daher als `values.slice(1, 4)` angebunden.
+## What this step adds
 
-Die Stringoperationen zeigen lowercase, uppercase, trim, length, startsWith,
-endsWith und includesText. Stringlängen zählen UTF-16-Codeeinheiten.
+This step adds the registered collection and string functions, conditional option construction, and exact decimal arithmetic. Collection operations are pure and preserve their input; cardinality-dependent operations state their preconditions explicitly.
 
-Vier Dezimaloperationen zeigen Down, Up, HalfUp und HalfEven. `third` zeigt
-divide mit ausdrücklich gewählter Präzision und Rundung. Die Anwendung rechnet
-mit bigint-Koeffizienten und transportiert Ergebnisse als exakte Strings.
-Ein endlicher exakter Quotient bleibt erhalten; eine periodische Division wird
-gerundet. Das Beispiel prüft positive und negative Rundungsties ausdrücklich.
+## Specification extension
+
+The following excerpts are copied from this step’s actual spec. Surrounding declarations are retained in the complete files: [workspace.dctx0](dctx0/workspace.dctx0).
+
+```dctx0
+operation positive(values: List<Count>) -> List<Count> {
+  pure
+  ensures result == filter(value in values where value > 0)
+}
+```
+
+```dctx0
+operation doubled(values: List<Count>) -> List<Int> {
+  pure
+  ensures result == map(value * 2 for value in values)
+}
+```
+
+```dctx0
+operation only(values: List<Count>) -> Count {
+  pure
+  requires count(values) == 1
+  ensures result == single(values)
+}
+```
+
+```dctx0
+operation fallback(values: List<Count>) -> Int {
+  pure
+  ensures result == getOrElse(first(values), -1)
+}
+```
+
+```dctx0
+operation optional(value: Count, present: Boolean) -> Option<Count> {
+  pure
+  ensures result == ifElse(present, Some(value), None())
+}
+```
+
+```dctx0
+operation halfEven(amount: ExactAmount) -> ExactAmount {
+  pure
+  ensures result == round(amount, 2, HalfEven)
+}
+```
+
+```dctx0
+example "signed decimal ties remain exact" {
+  when even = Actions.halfEven(2.345)
+  when away = Actions.halfUp(-2.345)
+  when third = Actions.third(1.0)
+  expect even == 2.34
+  expect away == -2.35
+  expect third == 0.33
+}
+```
+
+The full source also covers count, sum, all, any, contains, distinct, min, max, sorting in both directions, first, mean, indexOf, reverse and slice. String contracts cover lowercase, uppercase, trim, length, startsWith, endsWith and includesText. `ifElse`, `Some` and `None()` construct options. Decimal round supports Down, Up, HalfUp and HalfEven; divide makes its scale and rounding mode explicit. Exact finite quotients are retained; repeating quotients are rounded.
+
+## TypeScript implementation
+
+[src/collections.ts](src/collections.ts) implements lists and strings. [src/decimal.ts](src/decimal.ts) uses exact integer arithmetic rather than floating-point approximations for decimal results.
+
+## What is tested
+
+[src/collections.test.ts](src/collections.test.ts) checks empty/nonempty inputs, order, distinctness, selection, missing indexes, text semantics and optional values. [src/decimal.test.ts](src/decimal.test.ts) checks positive/negative ties, every rounding mode, digits beyond JavaScript safe integers and finite/repeating division. Native clauses compare the actual output with the Rust evaluator. Mutating doubled values must fail.
+
+## Run this step
+
+From this step directory, after building the Rust CLI as described in the [series guide](../tutorial/README.md):
 
 ```sh
 bun install --frozen-lockfile
 bun run typecheck
-bun test --coverage src
+bun run test --coverage
 ../../target/release/dctx0 verify complete dctx0 --project .
 ```
 
-Der Checkpoint besteht mit 2.793 nativen Pflichtfällen, 107 Tasks Done/PASS
-und keinen offenen Obligations.
-Die unabhängigen Produktionstests bestehen mit 100 % gemessener Zeilen- und
-Funktionsabdeckung. Abschließende Mutationstests und Gesamtvalidierung stehen aus.
+The checks include inherited tests and contracts. `verify complete` runs the configured finite native plan and binds valid source-bound inspections where needed. It does not automatically approve free-form architecture text. Measured line/function coverage and a passing finite plan do not prove every possible input or branch.
 
-`examples/tutorial/agent-step.sh 5` erstellt vom Repository aus eine frische
-Übung mit diesen Anforderungen und Tests sowie dem Produktionscode aus Schritt 4.
+## Reimplement this step with an agent
+
+From the repository root:
+
+```sh
+./examples/tutorial/agent-step.sh 5
+# Optionally execute an agent in that new exercise directory:
+./examples/tutorial/agent-step.sh 5 -- codex exec --full-auto
+```
+
+The exercise supplies this step’s spec, testing adapter and acceptance tests, but starts production code at step 4. The full reference in Git is preserved. Previous SQLite history and inspection approvals are omitted; manual requirements need a fresh substantive review. See the [series guide](../tutorial/README.md) for full-series, mutation and replay commands.

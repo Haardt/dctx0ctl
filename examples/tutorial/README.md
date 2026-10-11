@@ -1,37 +1,35 @@
-# dctx0 Schritt für Schritt: MiniBoard
+# Learn dctx0 step by step: MiniBoard
 
-16 eigenständige TypeScript-Anwendungen erweitern dasselbe kleine Task-Board.
-Jedes Verzeichnis enthält die vollständige Spec dieses Schritts, echten
-Produktionscode, unabhängige Tests und einen externen Prüfadapter. Vorherige
-Anforderungen bleiben erhalten. Produktion importiert keine dctx0-Runtime,
-Spec-Dateien oder generierten Prüfartefakte.
+This tutorial grows a small TypeScript task board through 16 complete examples. Each directory contains the specification at that stage, actual production code, independent tests and an external verification adapter. Every step retains earlier contracts and introduces a new part of the language. Production code imports neither dctx0 runtime nor specification/testing artifacts.
 
-Der Abgleich mit den tatsächlichen Sprachregistern, AST-Knoten und typisierten
-Prüfausdrücken belegt 158 Features: sämtliche registrierten Statements,
-Kontextknoten, Builtins, Operatoren, Funktionen, Formate, Ausdrucksarten und
-Zustandsprädikate. [features.json](features.json) führt den Umfang auf;
-[validation/features.json](validation/features.json) nennt den ersten Schritt
-und die Quellposition jedes Features. Worte in Kommentaren und Intents zählen
-nicht als ausführbare Feature-Nachweise.
+Each step’s README explains what was added, shows the actual specification extension, identifies its TypeScript implementation and describes the tests. Start at step 1 and compare adjacent directories, or use a complete later step as a reference.
 
-Alle 16 aktuellen Produktionsstände bestehen ihre endlichen nativen Pläne:
-insgesamt 43.490 Pflichtfälle, passende quellgebundene Inspektionen, keine
-unfertigen oder nicht bestandenen aktiven Tasks und 100 % gemessene
-Produktionszeilen/-funktionen. Die Browseroberfläche wird zusätzlich in echtem
-Chromium geprüft. [validation/mutations.json](validation/mutations.json)
-belegt 21 negative Prüfungen einschließlich Lifecycle-/HTTP-Replay. Die
-abschließende Workspace-/Performance-Abnahme bleibt bis zu ihrem gespeicherten
-Gesamtbericht separat erkennbar.
+## The learning path
 
-## Voraussetzungen und erster Lauf
+| Step | New features | What the new checks establish |
+| --- | --- | --- |
+| [1: Values](../tutorial-step-1-values/README.md) | Workspace/domain, intent, range, pure operations, pre/postconditions, examples and quantified invariants | Legal counter values, real increment results and monotonicity |
+| [2: Refinements](../tutorial-step-2-refinements/README.md) | Scalars, alias chains, length/where, formats and data stableId | Inherited validation, text/identity/date boundaries and collection lengths |
+| [3: Structured data](../tutorial-step-3-data/README.md) | Records, variants, options, results and builtin representations | Recursive field contracts, exact numeric values and alternative preservation |
+| [4: Expressions](../tutorial-step-4-expressions/README.md) | Arithmetic/Boolean operators, membership, construction and sequential bindings | Actual calculations, precedence, predicates and constructed values |
+| [5: Collections](../tutorial-step-5-collections/README.md) | Collection/string functions and exact decimal rounding/division | Order, cardinality, empty cases, signed ties and precision |
+| [6: Entities](../tutorial-step-6-entities/README.md) | Single/composite keys, messages, state lists/observes and before-state expressions | Actual stored reads, identity uniqueness and public projections |
+| [7: Boundaries](../tutorial-step-7-boundaries/README.md) | Modules, ownership, required ports, surfaces, decisions and constraints | Real reader/consumer composition plus separately reviewed architecture |
+| [8: Mocks](../tutorial-step-8-mocks/README.md) | Given scenarios and exact collaborator call traces | Real consumer behavior, actual call arguments/count and asynchronous replies |
+| [9: Failures and events](../tutorial-step-9-failures-events/README.md) | Declared failures, conditional outcomes and emitted event payload/count | Success publication, missing-task failure and no event on failure |
+| [10: Effects](../tutorial-step-10-effects/README.md) | Read/observe permissions and an explicit clock boundary | Actual scoped resource access, clock sampling and observer cleanup |
+| [11: Writes](../tutorial-step-11-state/README.md) | Insert/replace/upsert/remove, keyed after-state and state predicates | Correct stored changes, preserved failures and composite-key isolation |
+| [12: Lifecycles](../tutorial-step-12-lifecycle/README.md) | Initial/terminal states, guarded transitions and status/presence paths | Connected real-state transitions and fresh independent sessions |
+| [13: External HTTP](../tutorial-step-13-external/README.md) | External service contracts and explicit endpoint configuration | Real client/handler interaction, response validation and cleanup |
+| [14: Fragments](../tutorial-step-14-fragments/README.md) | Multi-file composition and qualified references | Cross-file contract inheritance and actual fragment operation results |
+| [15: Review and policy](../tutorial-step-15-reviews-policy/README.md) | Review inputs/criteria/questions, named suites and release requirements | Evidence composition and rejection of missing, stale or adverse reviews |
+| [16: HTTP and UI](../tutorial-step-16-http-replay/README.md) | Explicit HTTP operations, interactive board, mutation acceptance and replay | Real routes/writes, browser behavior and reproducible counterexamples |
 
-Rust baut die CLI; Bun 1.4.2 führt TypeScript und dessen Tests aus. Die kompletten
-nativen Läufe benötigen Linux mit erreichbarem systemd-User-Manager für die
-Begrenzung auf zwei Drittel des verfügbaren RAM ohne Swap. Diese Prozessgrenze
-ist keine Sicherheitssandbox. TypeScript 6.0.3 und die Bun-Typen sind pro Projekt
-im Lockfile gepinnt. Python ist für diese Produktbefehle und Tutorial-Skripte
-nicht erforderlich; der gesamte Repository-Entwicklungslauf verwendet weiterhin
-den vorhandenen Python-Runner.
+[features.json](features.json) inventories 158 features across registered statements/context nodes, builtins, operators, functions, formats, expression kinds and state predicates. [check-features.ts](check-features.ts) compares the inventory with the actual Rust language registries and inspects parsed/typed specification nodes. [validation/features.json](validation/features.json) records the first step and source position for each feature. Mentioning a feature in an intent or comment does not count as an executable occurrence.
+
+## Prerequisites and your first run
+
+Build the Rust CLI from the repository root. Bun runs the TypeScript application and tests; each example pins its development dependencies in bun.lock. The retained native acceptance uses Bun 1.4.2. Full native verification currently requires Linux and a reachable systemd user manager for the process memory limit: two thirds of available memory, without swap. This resource limit is not a security sandbox.
 
 ```sh
 cargo build --release -p dctx0-cli --all-features --locked
@@ -42,111 +40,62 @@ bun run test --coverage
 ../../target/release/dctx0 verify complete dctx0 --project .
 ```
 
-`verify complete` veröffentlicht einen aktuellen Check, führt den ausdrücklich
-konfigurierten Plan aus und bindet anschließend vorhandene, überprüfbare
-Inspektionen. Es genehmigt keine Architekturprosa automatisch. Native Fehler
-können durch einen Review nicht überstimmt werden. Die Referenz enthält die
-verfassten Inspektionen; eine neu bearbeitete Implementierung braucht neue
-inhaltliche Prüfung, bevor deren Quellhashes aktualisiert werden.
+`verify complete` publishes a current compiler check, runs the explicitly configured plan and binds valid authored inspections. The Rust verification core decides the result from actual values and observations. A reviewer cannot override native FAIL, and architecture prose is not automatically turned into assertions. Changed code needs a new substantive inspection before its evidence hashes are updated.
 
-## Einen Schritt selbst umsetzen lassen
+These product commands and tutorial helpers do not require Python. The repository’s combined development/coverage/performance runner still uses Python.
+
+## Use an agent to implement a step
+
+From the repository root:
 
 ```sh
 ./examples/tutorial/agent-step.sh 1
 ./examples/tutorial/agent-step.sh 16 -- codex exec --full-auto
 ```
 
-Das Skript erzeugt eine neue temporäre Arbeitskopie mit aktueller Spec, Adapter,
-Fixtures und Akzeptanztests. Der Produktionscode stammt vom vorherigen Schritt;
-bei Schritt 1 ist er leer. Die vollständigen Referenzlösungen im Git bleiben
-unverändert. Es kopiert weder SQLite-Historie noch alte Reviewfreigaben.
-Der Agent muss tatsächlichen Code liefern, alle Tests ausführen und verbleibende
-manuelle Anforderungen selbst prüfen. Für Schritt 16 sind auch der tatsächliche
-Server-Start und die interaktive Webseite gefordert.
+The script creates a new temporary exercise directory. It supplies the current step’s complete spec, testing configuration, adapter, fixtures and acceptance tests. Production starts at the previous step; step 1 starts empty. The full reference solution in Git remains untouched. The script omits SQLite history and old inspection approvals.
 
-`DCTX0_BIN` wählt ein anderes Rust-Binary. Ein optionaler Agent-Befehl läuft in
-der neuen Arbeitskopie und erhält die Aufgabe als eigenes Argument.
+The printed directory contains AGENTS.md and TASK.md with implementation and verification requirements. The agent must implement real application behavior, run the provided checks and review manual requirements against the new sources. Step 16 also requires the actual server entry point and interactive page. `DCTX0_BIN` selects a different Rust binary. An optional agent command runs in the exercise directory and receives the task as a separate argument.
 
-## Die Schritte
+## Verify the series
 
-| Schritt | Erweiterung |
-| --- | --- |
-| [1](../tutorial-step-1-values/README.md) | Werte, endlicher Bereich, reine Operation, Beispiel und forall |
-| [2](../tutorial-step-2-refinements/README.md) | Aliase, Refinements, alle Formate und stableId |
-| [3](../tutorial-step-3-data/README.md) | Records, Varianten und alle Builtins mit eigenen Repräsentationen |
-| [4](../tutorial-step-4-expressions/README.md) | Operatoren, Konstruktionen und Operationsaufrufe |
-| [5](../tutorial-step-5-collections/README.md) | Collection-, String- und exakte Dezimalfunktionen |
-| [6](../tutorial-step-6-entities/README.md) | Entities, einfache/zusammengesetzte Schlüssel, Messages und Zustandslesen |
-| [7](../tutorial-step-7-boundaries/README.md) | Module, Ownership, Ports, Surfaces, Constraints und Decisions |
-| [8](../tutorial-step-8-mocks/README.md) | given, echte Consumer unter Mocks und exakte beobachtete Aufrufzahlen |
-| [9](../tutorial-step-9-failures-events/README.md) | Echte Fehler, Event-Payloads und exakte Emissionszahlen |
-| [10](../tutorial-step-10-effects/README.md) | Tatsächlich beobachtete Reads, Calls, Emits und externe Clock |
-| [11](../tutorial-step-11-state/README.md) | Writes, alle Zustandsmodi/-prädikate und vollständige keyed before/after-Zugriffe |
-| [12](../tutorial-step-12-lifecycle/README.md) | Verbundene Status-/Presence-Lifecycles mit typisierten Guards |
-| [13](../tutorial-step-13-external/README.md) | Explizite externe HTTP-Grenze und realer Client/Handler |
-| [14](../tutorial-step-14-fragments/README.md) | Mehrere Spec-Dateien, Fragmente und qualifizierte Auflösung |
-| [15](../tutorial-step-15-reviews-policy/README.md) | Alle benannten Suiten, Review-Kriterien/-Fragen und Release-Policy |
-| [16](../tutorial-step-16-http-replay/README.md) | Tatsächlicher HTTP-Server, interaktives MiniBoard, Mutation und Replay |
-
-## Alles prüfen
-
-Vom Repository-Verzeichnis aus:
+From the repository root, after building the CLI:
 
 ```sh
 bun examples/tutorial/verify-series.ts
 bun examples/tutorial/mutation-acceptance.ts
 ```
 
-Der erste Befehl installiert eingefrorene Abhängigkeiten, prüft TypeScript und
-alle Produktionsmodule mit LCOV, verlangt 100 % Zeilen/Funktionen für jede
-Produktionsdatei, führt die nativen Pläne aus und prüft alle Pflichtfälle und
-aktiven Tasks. Er erhält tatsächliche Worker-RSS-Messungen und Quellhashes.
-Mit `bun examples/tutorial/verify-series.ts 12 16` lässt sich ein Ausschnitt
-prüfen; der Bericht behauptet dann keine vollständige Serienabnahme.
+The series runner installs frozen dependencies, checks TypeScript, runs independent tests, requires 100% measured production line/function coverage per file and executes every configured mandatory native case. It checks the saved evidence and active task results, retaining source hashes and actual worker peak RSS. A selected run such as `bun examples/tutorial/verify-series.ts 12 16` establishes only those steps, not the entire series.
 
-Der zweite Befehl verändert ausschließlich neue temporäre Kopien. Er testet
-spezifische Fehler in jeder fachlichen Etappe, eine nachgebaute Adapterantwort,
-falsche HTTP-Inserts/Replacements und die vier Review-/Provenienzschutzfälle.
-Er verlangt tatsächliche zentrale FAIL-Ergebnisse für Code-Mutationen.
-Lifecycle- und HTTP-Replay verwenden dieselben gespeicherten Eingaben; geänderter
-Code wird als neuer Vergleich mit eigener Provenienz ausgewiesen. Es ändert
-keinen Task-Fortschritt der Referenzprojekte.
+The mutation runner works in isolated temporary copies. It introduces meaningful production defects, an adapter with a canned answer, incorrect HTTP insert/replace behavior and invalid review/provenance conditions. Production mutations must yield actual failing cases, rather than merely a technical error. Lifecycle and HTTP replay rerun stored counterexample inputs against broken and repaired implementations, with changed implementation provenance recorded. Reference task progress is preserved.
 
-Der Browsercheck und seine V8-Abdeckung stehen im
-[letzten Schritt](../tutorial-step-16-http-replay/README.md). Die gekoppelte
-Repository-Abnahme führt die langen Prüfungen gemeinsam aus und misst Release-
-Phasen am Ende; die akzeptierte Baseline bleibt unverändert:
+The retained per-step [validation reports](validation/) record 43,490 mandatory native cases across the 16 steps and 100% measured production line/function coverage. [validation/mutations.json](validation/mutations.json) records 21 negative acceptance checks. These records describe their captured sources; they are not a claim that an arbitrary later working tree has already passed. The repository-wide gate is a separate report, and retained failed attempts remain explicitly failed.
+
+The combined development validation runs long functional and coverage checks first, then release performance measurements:
 
 ```sh
 PATH="$HOME/.cargo/bin:$PATH" python3 scripts/validate.py --coverage --example cinema --tutorial
 ```
 
-## Das Board ansehen
+It leaves the accepted benchmark baseline unchanged. Documentation-only edits do not require repeating the entire native/performance suite.
+
+## Open the finished board
 
 ```sh
 cd examples/tutorial-step-16-http-replay
+bun install --frozen-lockfile
 bun run start
 ```
 
-Öffne <http://127.0.0.1:4173/>. Aufgaben lassen sich anlegen, als erledigt markieren
-und wieder öffnen. Die echte API verwendet die bestehenden Board-Methoden.
-Ein Neustart stellt die drei Beispieldatensätze wieder her; die kleine App nutzt
-bewusst Arbeitsspeicher. `PORT=4180 bun run start` wählt einen anderen Port.
+Open <http://127.0.0.1:4173/>. Create tasks with the form, select them to view details and use the checkbox to mark them Done or reopen them. Writes go through the real HTTP routes and existing Board methods. The example stores changes in memory; restarting restores the three seed tasks. `PORT=4180 bun run start` selects another port.
 
-## Was PASS aussagt
+The [step 16 guide](../tutorial-step-16-http-replay/README.md) explains separate Chromium acceptance and actual browser JavaScript coverage. Bun coverage of an HTML-generating module alone cannot establish browser execution.
 
-PASS belegt sämtliche Pflichtprüfungen des ausgewiesenen endlichen Plans,
-zusammen mit ausdrücklich getrennten quellgebundenen Inspektionen. Größere
-Eingaberäume bleiben deterministisch begrenzt: Seed 42, höchstens 100 generierte
-Fälle pro Obligation und Collection-Größe 4. Diese Grenzen sind keine heimliche
-Kürzung expliziter Pflichtfälle. Es ist kein Beweis über alle möglichen Eingaben
-oder beliebige Architekturprosa. Beobachtete Mocks belegen ihre echten Consumer,
-nicht automatisch einen Produktionsadapter.
+## Understand the evidence
 
-Die gemessene TypeScript- und Browser-Abdeckung ist keine vollständige Branch-
-Abdeckung. Browserzeilen werden anhand der innersten V8-Bereiche an ausführbaren
-Zeilenanfängen bewertet; die Rohbereiche bleiben erhalten. Unmodellierte Labels,
-fehlende Beobachter, Ressourcenabbrüche und unvollständige Pläne bleiben offen.
-Absichtlich negative Prüfkopien werden niemals als erfolgreiche Anwendung
-übernommen. Bewusste Semantik-Unterschiede dokumentiert
-[der Sprachhinweis](../../docs/tutorial-language-semantics.md).
+PASS means every mandatory check in the reported finite plan was executed successfully. Larger input spaces use deterministic bounded generation: seed 42, at most 100 generated cases per obligation and maximum collection size 4. Explicit mandatory examples are retained. This is not a proof over every possible input.
+
+Actual mock interactions establish consumer behavior toward those collaborators; they do not automatically establish a production port adapter. Missing observers, unsupported capabilities, aborted budgets and incomplete mandatory plans prevent a complete proof. Free-text constraints, decisions and reviews retain separate authored evidence.
+
+Measured production line/function coverage is distinct from full branch coverage. Browser coverage uses actual V8 ranges and executable line starts, with raw ranges retained. Intentional language/representation differences are documented in [tutorial-language-semantics.md](../../docs/tutorial-language-semantics.md).
