@@ -1,5 +1,8 @@
 //! Collective memory guard for complete native acceptance, without Python.
-use std::{fs, process::Command};
+use std::{
+    fs,
+    process::{Command, Stdio},
+};
 
 fn memory_budget(text: &str) -> Result<u64, String> {
     let fields = text
@@ -24,8 +27,12 @@ pub(crate) fn memory_guard() -> Result<Option<bool>, String> {
     if std::env::var("DCTX0_COMPLETE_MEMORY_GUARDED").as_deref() == Ok("1") {
         return Ok(None);
     }
-    if !cfg!(target_os = "linux") {
-        return Err("Complete verification memory guarding currently requires Linux".into());
+    if std::env::var("DCTX0_MEMORY_GUARD").as_deref() == Ok("0")
+        || !cfg!(target_os = "linux")
+        || !systemd_available()
+    {
+        eprintln!("Memory guard disabled or unavailable; running without a collective RAM cap.");
+        return Ok(None);
     }
     let budget =
         memory_budget(&fs::read_to_string("/proc/meminfo").map_err(crate::error_message)?)?;
@@ -42,6 +49,21 @@ pub(crate) fn memory_guard() -> Result<Option<bool>, String> {
         .status()
         .map_err(crate::error_message)?;
     Ok(Some(status.success()))
+}
+
+fn systemd_available() -> bool {
+    Command::new("systemd-run")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+        && Command::new("systemctl")
+            .args(["--user", "show-environment"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success())
 }
 
 #[cfg(test)]

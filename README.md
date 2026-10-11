@@ -231,10 +231,13 @@ newer focused tests do not establish a new coverage percentage. Native Bun helpe
 coverage is recorded separately from Rust. Earlier foundation coverage and
 measurement reports are historical evidence, not proof for the current tree.
 
-Validation and coverage automatically use a Linux systemd user scope capped at
+Validation and coverage automatically use an available Linux systemd user scope capped at
 two thirds of startup `MemAvailable`, collectively including all child processes,
-with additional swap disabled. If the scope cannot be created, execution fails
-instead of running unbounded. Cargo jobs and Rust test threads default to two.
+with additional swap disabled. Other platforms and systems without a reachable
+systemd user manager run without this cap, with an explicit message. Set
+`DCTX0_MEMORY_GUARD=0` to disable it, including for Rust `verify complete`.
+Once a scope is selected, creation errors fail execution rather than retrying
+the application. Guarded Cargo jobs and Rust test threads default to two.
 For direct checks use `python3 scripts/memory_guard.py dctx0 verify run <spec-root>`.
 The native runner alone has time/output limits but no hard RAM limit. Functional
 checks and coverage run first; benchmark conformance and release speed/RSS run
@@ -259,7 +262,7 @@ dctx0 verify complete examples/cinema/dctx0 --project examples/cinema
 It executes the configured native corpus, verifies existing source-bound review
 notes, publishes effective evidence and requires a nonempty task plan with zero
 unfinished/non-PASS tasks. Use `--json` for the summary or `--inspections <file>`
-for another authored notes file. The Linux command caps collective CLI/native
+for another authored notes file. When available and enabled, the Linux command caps collective CLI/native
 memory at two thirds of available RAM using the systemd user manager. Bun is
 still needed to run TypeScript. See [the complete command](docs/verification-complete.md).
 
