@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "actor": "tutorial-reference-reviewer",
+  "scope": "Tutorial.Board: finite Count contract and actual pure increment; no framework or external integration is claimed. Fresh adapter inspection: invalid wire representations are translated to ordinary unknown native values and passed to real factories; the adapter does not decide domain acceptance.",
+  "reviewed_hashes": {
+    "src/board.ts": "234690c8aac2431dab8d3292ed4e27012154bfc03440edc8f5d66209ff3c1b15",
+    "src/board.test.ts": "f0b810c0a3b23fc2c3692abdd6a97ee49a402baec5dcfc182b69db643a4bf14b",
+    "dctx0/workspace.dctx0": "5fb5bc3d1dfe4d368e49f7765086ae1b7d9cdc0327b1d190e58c358c1a2f1747",
+    "package.json": "91d18120eb81a4b732d1fb744103b7f9e6629313ef513f100df15500d9188743",
+    "bun.lock": "ed0c0e4eb39b312314361a72a1feea665a437c41d7347f30c2351a9c5dad8d22",
+    "tsconfig.json": "2a0ce246bbbaac0c7ce9aa1cae73ae5c87e82dd5f0eed37de2b3d8b75c365d73",
+    ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
+    ".dctx0/testing/typescript/adapter.ts": "1ff77300689b635fc430059419aff21dbba6b8d45f9b29679ddb43bfacd14eae",
+    ".dctx0/testing/typescript/examples.json": "4aa68366aca1087f5a2be007f87eba7522774ca8cf4ae07f97c13d8705880898"
+  },
+  "subjects": {
+    "Tutorial.Board.Count": {
+      "report": "Inspected the application-owned bigint factory: only 0n through 3n are accepted; negative, excessive and non-bigint values are rejected. Independent tests cover every value and each rejection branch. The adapter translates lossless integer strings and delegates validation to this actual factory. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "A finite bounded Count domain is checked; this does not claim validation of arbitrary future declarations."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.increment": {
+      "report": "Inspected the real increment function: it validates Count, rejects the upper boundary, and adds one. The native plan executes the examples, valid parameter tuples and monotonicity assertions centrally. Production imports no spec or testing code. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "Native failures cannot be replaced by this source judgement."
+      ],
+      "review": null
+    }
+  }
+}

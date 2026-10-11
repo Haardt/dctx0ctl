@@ -12,10 +12,28 @@ pub enum Capability {
     Operations,
     Mocks,
     Events,
+    CallObservation,
+    ResourceObservation,
     State,
     Lifecycles,
     Inspection,
     Review,
+}
+impl Capability {
+    /// Required adapter capability, separate from human inspection/review work.
+    pub fn adapter_capability(&self) -> Option<&'static str> {
+        match self {
+            Self::Values => Some("values"),
+            Self::PureCalls | Self::Operations => Some("invocation"),
+            Self::Mocks => Some("mock-injection"),
+            Self::Events => Some("events"),
+            Self::CallObservation => Some("call-observation"),
+            Self::ResourceObservation => Some("resource-observation"),
+            Self::State => Some("state"),
+            Self::Lifecycles => Some("sessions"),
+            Self::Inspection | Self::Review => None,
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContractPlan {
@@ -25,6 +43,14 @@ pub struct ContractPlan {
     /// Historical plans without this field do not gain invented requirement IDs.
     #[serde(default)]
     pub refinement_requirements: Vec<String>,
+    /// Record field declarations enforced by the central type checker for
+    /// every accepted/rejected factory case. Entity keys are separate evidence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub structural_requirements: Vec<String>,
+    /// Declared keys require actual populated persistence observations, separately
+    /// from factory acceptance and record-field validation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub identity_requirements: Vec<String>,
     pub corpus: ValueCorpus,
     #[serde(default = "crate::missing_rejections")]
     pub rejection_corpus: ValueCorpus,
@@ -40,6 +66,28 @@ pub struct OperationPlan {
     pub clauses: Vec<SemanticNode>,
     #[serde(default)]
     pub cases: Vec<crate::OperationCaseInput>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub generated_preparations: Vec<GeneratedPreparation>,
+}
+/// Explicit reviewed preparation for one exact generated binding. No application
+/// result is supplied: the native operation and Rust assessment remain mandatory.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GeneratedPreparation {
+    pub bindings: BTreeMap<String, VerificationValue>,
+    pub setup: Vec<dctx0_core::Invocation>,
+}
+impl OperationPlan {
+    pub fn generated_setup(
+        &self,
+        bindings: &BTreeMap<String, VerificationValue>,
+    ) -> Vec<dctx0_core::Invocation> {
+        self.generated_preparations
+            .iter()
+            .find(|entry| &entry.bindings == bindings)
+            .map(|entry| entry.setup.clone())
+            .unwrap_or_default()
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssertionPlan {
@@ -181,4 +229,6 @@ pub struct ProjectionFixtures {
     pub examples: BTreeMap<String, BTreeMap<String, VerificationValue>>,
     #[serde(default)]
     pub operations: BTreeMap<String, Vec<crate::OperationCaseInput>>,
+    #[serde(default)]
+    pub generated_preparations: BTreeMap<String, Vec<GeneratedPreparation>>,
 }

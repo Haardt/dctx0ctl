@@ -12,6 +12,8 @@ pub struct OperationCaseInput {
     pub id: String,
     pub invocation: Invocation,
     pub setup: Vec<Invocation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mocks: Vec<crate::OperationMock>,
 }
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct OperationObservers {
@@ -216,6 +218,14 @@ pub fn assess_operation(
     );
     let mut after = context.clone();
     after.phase = StatePhase::After;
+    match crate::operation_effects::assess_boundary(ir, plan, &after, budgets) {
+        VerificationResult::Pass => {}
+        VerificationResult::Fail { issue } => {
+            report.result = VerificationResult::Fail { issue };
+            return report;
+        }
+        VerificationResult::Unknown { issue } => report.open.push(issue),
+    }
     match crate::operation_effects::bind_call_aliases(ir, plan, &after, &mut variables, budgets) {
         VerificationResult::Pass => {}
         VerificationResult::Fail { issue } => {
@@ -223,6 +233,19 @@ pub fn assess_operation(
             return report;
         }
         VerificationResult::Unknown { issue } => report.open.push(issue),
+    }
+    if let (Some(resources), Some(node)) = (
+        after.resources.as_ref(),
+        ir.nodes.iter().find(|node| node.id == plan.operation.id),
+    ) {
+        match crate::resource_effects::assess_boundary(ir, plan, node, &after, resources) {
+            VerificationResult::Pass => {}
+            VerificationResult::Fail { issue } => {
+                report.result = VerificationResult::Fail { issue };
+                return report;
+            }
+            VerificationResult::Unknown { issue } => report.open.push(issue),
+        }
     }
     for node in &plan.clauses {
         let result = match node.kind {
@@ -233,6 +256,27 @@ pub fn assess_operation(
             }
             StatementKind::Emit => crate::operation_effects::assess_emission(
                 ir, plan, node, &variables, &after, budgets,
+            ),
+            StatementKind::Read => crate::resource_effects::assess_resource(
+                ir,
+                plan,
+                node,
+                &after,
+                ResourceAccess::Read,
+            ),
+            StatementKind::Write => crate::resource_effects::assess_resource(
+                ir,
+                plan,
+                node,
+                &after,
+                ResourceAccess::Write,
+            ),
+            StatementKind::Observe => crate::resource_effects::assess_resource(
+                ir,
+                plan,
+                node,
+                &after,
+                ResourceAccess::Observe,
             ),
             StatementKind::Call => {
                 crate::operation_effects::assess_call(ir, plan, node, &after, budgets)

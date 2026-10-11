@@ -37,6 +37,8 @@ fn record(
 ) {
     let mut observations = Vec::new();
     let mut events = Vec::new();
+    let mut resources: Option<Vec<ResourceObservation>> = None;
+    let mut resources_complete = true;
     let mut states = Vec::new();
     for entry in worker.session_evidence() {
         match entry {
@@ -44,6 +46,7 @@ fn record(
                 invocation,
                 observation,
                 events: emitted,
+                resources: accessed,
                 ..
             } => {
                 observations.push(InvocationObservation {
@@ -51,16 +54,30 @@ fn record(
                     observation: observation.clone(),
                 });
                 events.extend(emitted.clone());
+                if let Some(accessed) = accessed {
+                    resources
+                        .get_or_insert_with(Vec::new)
+                        .extend(accessed.clone());
+                } else {
+                    resources_complete = false;
+                }
             }
-            NativeSessionEvidence::Observed { states: entities } => {
-                states.push(VerificationStateEvidence {
-                    phase: if states.len() % 2 == 0 {
-                        StatePhase::Before
-                    } else {
-                        StatePhase::After
-                    },
-                    entities: entities.clone(),
-                });
+            NativeSessionEvidence::Observed {
+                phase,
+                states: entities,
+            } => {
+                if let Some(phase) = phase {
+                    states.push(VerificationStateEvidence {
+                        phase: *phase,
+                        phase_recorded: Some(true),
+                        entities: entities.clone(),
+                    });
+                } else {
+                    run.open_obligations.push(issue(
+                        "STATE_EVIDENCE_PHASE_REQUIRED",
+                        "State observation has no recorded before/after phase",
+                    ));
+                }
             }
             _ => {}
         }
@@ -74,6 +91,7 @@ fn record(
         arguments: pending.arguments,
         observations,
         events: events_supported.then_some(events),
+        resources: if resources_complete { resources } else { None },
         states,
         result,
         elapsed_us: elapsed.elapsed().as_micros().min(u64::MAX as u128) as u64,
@@ -94,6 +112,9 @@ fn preserve_prefix(
 }
 pub(super) struct Input<'a> {
     pub ir: &'a WorkspaceIr,
+    pub root: &'a Path,
+    pub adapter: &'a str,
+    pub generated: &'a BTreeSet<String>,
     pub plan: &'a ProgramPlan,
     pub lifecycles: &'a VerificationLifecycleFixtures,
     pub cancel: &'a NativeCancellation,
@@ -114,6 +135,9 @@ pub(super) async fn execute(
 ) -> Result<()> {
     let Input {
         ir,
+        root,
+        adapter,
+        generated,
         plan,
         lifecycles,
         cancel,
@@ -135,7 +159,12 @@ pub(super) async fn execute(
     {
         return Ok(());
     }
-    let mut worker = match NativeWorker::spawn(recipe, directory, NativeLimits::default()).await {
+    let limits = NativeLimits::default();
+    artifacts.push(VerificationArtifact::new(
+        "application/vnd.dctx0.native-limits+json",
+        serde_json::to_vec(&serde_json::json!({"schema_version":1,"limits":limits}))?,
+    ));
+    let mut worker = match NativeWorker::spawn(recipe, directory, limits).await {
         Ok(worker) => worker,
         Err(error) => {
             run.open_obligations
@@ -177,6 +206,19 @@ pub(super) async fn execute(
         }
     }
     let events_supported = description.capabilities.iter().any(|c| c == "events");
+    for capability in &plan.capabilities {
+        if let Some(required) = capability.adapter_capability()
+            && !description
+                .capabilities
+                .iter()
+                .any(|offered| offered == required)
+        {
+            run.open_obligations.push(issue(
+                "ADAPTER_CAPABILITY_UNAVAILABLE",
+                format!("The selected plan requires adapter capability {required}"),
+            ));
+        }
+    }
     if !events_supported {
         run.open_obligations.push(issue(
             "EVENT_OBSERVER_UNAVAILABLE",
@@ -199,6 +241,26 @@ pub(super) async fn execute(
             return Ok(());
         }
     }
+    match worker.runtime_identity() {
+        Ok(identity) => artifacts.push(VerificationArtifact::new(
+            "application/vnd.dctx0.runtime-identity+json",
+            serde_json::to_vec(&identity)?,
+        )),
+        Err(error) => run
+            .provenance
+            .incomplete
+            .push(issue("RUNTIME_IDENTITY_UNAVAILABLE", error.to_string())),
+    }
+    super::dependencies::resolve_native(
+        &mut worker,
+        root,
+        adapter,
+        generated,
+        run,
+        artifacts,
+        cancel,
+    )
+    .await?;
     for contract in &plan.contracts {
         for (rejection, index, value) in contract
             .corpus
@@ -321,7 +383,7 @@ pub(super) async fn execute(
             }
             artifacts.push(VerificationArtifact::new(
                 "application/vnd.dctx0.operation-assessment+json",
-                serde_json::to_vec(&result)?,
+                serde_json::to_vec(&serde_json::json!({"case_id":input.id,"assessment":result}))?,
             ));
             let result = result
                 .map(|r| r.assessment.result)
@@ -353,15 +415,71 @@ pub(super) async fn execute(
                 VerificationCaseKind::Operation,
             );
             pending.bindings = bindings.clone();
+            pending.setup = operation.generated_setup(bindings);
             pending.arguments.push(arguments);
             let started = Instant::now();
-            let result = worker
-                .execute_pure_operation(ir, &operation.operation, invocation, &plan.budgets, cancel)
-                .await;
+            let pure = operation.operation.pure && operation.operation.failures.is_empty();
+            let result = if pure {
+                worker
+                    .execute_pure_operation(
+                        ir,
+                        &operation.operation,
+                        invocation.clone(),
+                        &plan.budgets,
+                        cancel,
+                    )
+                    .await
+            } else {
+                let input = dctx0_verification::OperationCaseInput {
+                    id: id.clone(),
+                    invocation: invocation.clone(),
+                    setup: pending.setup.clone(),
+                    mocks: vec![],
+                };
+                let assessed = worker
+                    .execute_operation_contract(
+                        ir,
+                        operation,
+                        &input,
+                        (&plan.budgets, observers, cancel),
+                    )
+                    .await;
+                if let Ok(report) = &assessed {
+                    run.open_obligations.extend(report.assessment.open.clone());
+                }
+                artifacts.push(VerificationArtifact::new(
+                    "application/vnd.dctx0.operation-assessment+json",
+                    serde_json::to_vec(&serde_json::json!({"case_id":id,"assessment":assessed}))?,
+                ));
+                assessed.map(|report| report.assessment.result)
+            };
             let fatal = result.is_err();
             let result = result.unwrap_or_else(|e| failure(&e));
             preserve_prefix(artifacts, &id, &worker)?;
-            record(run, pending, &worker, result, started, events_supported);
+            record(
+                run,
+                pending,
+                &worker,
+                result.clone(),
+                started,
+                events_supported,
+            );
+            if pure && matches!(result, VerificationResult::Fail { .. }) && !fatal {
+                let (shrink, evidence) = super::shrink::pure(
+                    &mut worker,
+                    ir,
+                    operation,
+                    invocation,
+                    &result,
+                    &plan.budgets,
+                    cancel,
+                )
+                .await;
+                artifacts.push(VerificationArtifact::new(
+                    "application/vnd.dctx0.shrink+json",
+                    serde_json::to_vec(&serde_json::json!({"case_id":id,"report":shrink,"native_attempts":evidence}))?,
+                ));
+            }
             if fatal {
                 aborted(run, &mut worker, &id).await;
                 return Ok(());
@@ -455,17 +573,71 @@ pub(super) async fn execute(
             let fatal = result.is_err();
             artifacts.push(VerificationArtifact::new(
                 "application/vnd.dctx0.lifecycle-assessment+json",
-                serde_json::to_vec(&result)?,
+                serde_json::to_vec(&serde_json::json!({"case_id":path.id,"assessment":result}))?,
             ));
+            let failing_assessment = result
+                .as_ref()
+                .ok()
+                .filter(|result| {
+                    matches!(result.assessment.result, VerificationResult::Fail { .. })
+                })
+                .map(|result| result.assessment.clone());
             let result = result
                 .map(|r| r.assessment.result)
                 .unwrap_or_else(|e| failure(&e));
             preserve_prefix(artifacts, &path.id, &worker)?;
             record(run, pending, &worker, result, started, events_supported);
+            if let Some(assessment) = failing_assessment {
+                let (report, evidence) = super::shrink::lifecycle(
+                    &mut worker,
+                    ir,
+                    lifecycle,
+                    path,
+                    input,
+                    &assessment,
+                    (&plan.budgets, cancel),
+                )
+                .await;
+                artifacts.push(VerificationArtifact::new("application/vnd.dctx0.lifecycle-shrink+json",
+                    serde_json::to_vec(&serde_json::json!({"case_id":path.id,"report":report,"native_attempts":evidence}))?));
+            }
             if fatal {
                 aborted(run, &mut worker, &path.id).await;
                 return Ok(());
             }
+        }
+    }
+    for contract in &plan.contracts {
+        if !contract.identity_requirements.is_empty() {
+            run.cases.push(dctx0_verification::entity_identity_case(
+                ir,
+                &contract.subject,
+                &run.cases,
+                &plan.budgets,
+            ));
+        }
+    }
+    let suite_policy =
+        dctx0_verification::suites::native_suite_policy_assessment(ir, plan, &run.cases);
+    artifacts.push(VerificationArtifact::new(
+        "application/vnd.dctx0.suite-policy-assessment+json",
+        serde_json::to_vec(&suite_policy)?,
+    ));
+    if generated
+        .iter()
+        .any(|path| path.ends_with("/module-observer.json") || path == "module-observer.json")
+    {
+        match worker
+            .request(WorkerRequest::ObserveDependencies, cancel, &mut reject)
+            .await
+        {
+            Ok(WorkerReply::DependenciesObserved { evidence }) => {
+                super::dependencies::reconcile_observer(run, artifacts, &evidence)?;
+            }
+            other => run
+                .provenance
+                .incomplete
+                .push(issue("MODULE_OBSERVER_UNAVAILABLE", format!("{other:?}"))),
         }
     }
     match worker

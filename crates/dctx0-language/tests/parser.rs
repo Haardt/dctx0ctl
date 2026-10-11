@@ -27,7 +27,7 @@ fn both_complete_example_workspaces_match_reference_ast() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut count = 0;
     for (id, directory) in [
-        ("cinema", "examples/cinema/dctx0"),
+        ("cinema", "fixtures/semantic/original-cinema"),
         ("runatron-next", "examples/runatron-next/dctx0"),
     ] {
         let mut paths = fs::read_dir(root.join(directory))

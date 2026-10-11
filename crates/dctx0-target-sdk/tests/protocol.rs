@@ -33,6 +33,7 @@ fn protocol_rejects_versions_success_flags_corruption_and_resource_exhaustion() 
         message: WorkerMessage::Reply {
             id: 1,
             reply: WorkerReply::Invoked {
+                resources: None,
                 calls: None,
                 observation: Observation::Returned {
                     value: VerificationValue::List(vec![
@@ -113,6 +114,7 @@ fn absent_call_observers_differ_from_observed_zero_and_preserve_actual_calls() {
             message: WorkerMessage::Reply {
                 id: 1,
                 reply: WorkerReply::Invoked {
+                    resources: None,
                     observation: Observation::Returned {
                         value: VerificationValue::Unit,
                     },
@@ -131,4 +133,50 @@ fn absent_call_observers_differ_from_observed_zero_and_preserve_actual_calls() {
     }
     let malformed=br#"{"protocol_version":1,"message":{"kind":"reply","id":1,"reply":{"kind":"invoked","observation":{"kind":"returned","value":{"kind":"unit"}},"events":[],"calls":null}}}"#;
     assert!(decode_message(malformed, MAX_MESSAGE_BYTES).is_err());
+}
+
+#[test]
+fn resource_observations_are_optional_and_strictly_typed() {
+    let original = br#"{"protocol_version":1,"message":{"kind":"reply","id":1,"reply":{"kind":"invoked","observation":{"kind":"returned","value":{"kind":"unit"}},"events":[]}}}"#;
+    let mut value: serde_json::Value = serde_json::from_slice(original).unwrap();
+    let legacy = decode_message(original, MAX_MESSAGE_BYTES).unwrap();
+    assert!(matches!(
+        legacy.message,
+        WorkerMessage::Reply {
+            reply: WorkerReply::Invoked {
+                resources: None,
+                ..
+            },
+            ..
+        }
+    ));
+    value["message"]["reply"]["resources"] = serde_json::json!([]);
+    let present = decode_message(&serde_json::to_vec(&value).unwrap(), MAX_MESSAGE_BYTES).unwrap();
+    assert!(
+        matches!(present.message, WorkerMessage::Reply { reply: WorkerReply::Invoked { resources: Some(resources), .. }, .. } if resources.is_empty())
+    );
+    value["message"]["reply"]["resources"] =
+        serde_json::json!([{ "resource":"W.Item", "access":"write", "operation":"W.Store.save" }]);
+    assert!(decode_message(&serde_json::to_vec(&value).unwrap(), MAX_MESSAGE_BYTES).is_ok());
+    value["message"]["reply"]["resources"][0]["access"] = serde_json::json!("guessed");
+    assert!(decode_message(&serde_json::to_vec(&value).unwrap(), MAX_MESSAGE_BYTES).is_err());
+}
+
+#[test]
+fn dependency_resolution_requests_preserve_the_resolution_mode() {
+    for mode in [DependencyResolution::Import, DependencyResolution::Require] {
+        let request = RequestEnvelope {
+            protocol_version: 1,
+            id: 1,
+            request: WorkerRequest::ResolveDependency {
+                mode,
+                specifier: "package".into(),
+                importer: "/captured/app.ts".into(),
+            },
+        };
+        let encoded = encode_request(&request, MAX_MESSAGE_BYTES).unwrap();
+        let decoded: RequestEnvelope =
+            serde_json::from_slice(encoded.strip_suffix(b"\n").unwrap_or(&encoded)).unwrap();
+        assert_eq!(decoded, request);
+    }
 }

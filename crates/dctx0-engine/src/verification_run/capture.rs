@@ -9,6 +9,7 @@ pub(super) struct Capture {
     remaining: u64,
     limits: Limits,
     copy_files: bool,
+    entries_remaining: usize,
 }
 #[derive(Clone, Copy)]
 struct Limits {
@@ -55,13 +56,27 @@ impl Capture {
             remaining: limits.tree,
             limits,
             copy_files,
+            entries_remaining: 40_000,
         };
         capture.directory(application, Path::new(""))?;
         Ok(capture)
     }
     fn directory(&mut self, application: &Path, relative: &Path) -> Result<()> {
-        let mut entries =
-            fs::read_dir(application.join(relative))?.collect::<std::io::Result<Vec<_>>>()?;
+        if relative.components().count() > 64 {
+            return Err(Error::Invalid(
+                "Verification capture exceeds its directory depth budget".into(),
+            ));
+        }
+        let mut entries = Vec::new();
+        for entry in fs::read_dir(application.join(relative))? {
+            if self.entries_remaining == 0 {
+                return Err(Error::Invalid(
+                    "Verification capture exceeds its directory entry budget".into(),
+                ));
+            }
+            self.entries_remaining -= 1;
+            entries.push(entry?);
+        }
         entries.sort_by_key(|e| e.file_name());
         for entry in entries {
             let name = entry.file_name();
@@ -106,8 +121,13 @@ impl Capture {
         }
         let name = relative
             .to_str()
-            .ok_or_else(|| Error::Invalid("Verification paths must be UTF-8".into()))?
-            .replace('\\', "/");
+            .ok_or_else(|| Error::Invalid("Verification paths must be UTF-8".into()))?;
+        if std::path::MAIN_SEPARATOR != '\\' && name.contains('\\') {
+            return Err(Error::Invalid(
+                "Verification paths must use unambiguous forward-slash separators".into(),
+            ));
+        }
+        let name = name.replace('\\', "/");
         self.remaining -= bytes.len() as u64;
         self.files.insert(name, digest(&bytes));
         if self.copy_files {
@@ -177,6 +197,26 @@ mod tests {
 #[cfg(test)]
 mod inventory_tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn distinct_native_paths_cannot_collide_in_verification_provenance() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-path-collision-{}", std::process::id()));
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(root.join("src/app.ts"), "actual implementation").unwrap();
+        fs::write(root.join("src\\app.ts"), "different native path").unwrap();
+        assert!(
+            matches!(Capture::inventory(&root), Err(Error::Invalid(message)) if message.contains("unambiguous"))
+        );
+        assert!(
+            matches!(Capture::new(&root), Err(Error::Invalid(message)) if message.contains("unambiguous"))
+        );
+        assert_eq!(
+            fs::read_to_string(root.join("src/app.ts")).unwrap(),
+            "actual implementation"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn freshness_inventory_detects_edits_additions_removals_and_dependency_changes_without_writes()
     {
@@ -201,5 +241,31 @@ mod inventory_tests {
         assert_ne!(baseline, Capture::inventory(&root).unwrap());
         fs::remove_dir_all(&root).unwrap();
         assert!(Capture::inventory(&root).is_err());
+    }
+}
+
+#[cfg(test)]
+mod directory_budget_tests {
+    use super::*;
+    #[test]
+    fn directory_entries_and_depth_are_bounded_even_without_files() {
+        let application = std::env::temp_dir().join(format!(
+            "dctx0-directory-budget-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&application).unwrap();
+        fs::create_dir(application.join("empty")).unwrap();
+        let mut capture = Capture::new(&application).unwrap();
+        capture.entries_remaining = 0;
+        assert!(
+            matches!(capture.directory(&application, Path::new("")), Err(Error::Invalid(message)) if message.contains("entry budget"))
+        );
+        let too_deep = (0..65).fold(PathBuf::new(), |path, _| path.join("d"));
+        assert!(
+            matches!(capture.directory(&application, &too_deep), Err(Error::Invalid(message)) if message.contains("depth budget"))
+        );
+        drop(capture);
+        fs::remove_dir_all(application).unwrap();
     }
 }

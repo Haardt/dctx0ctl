@@ -2,8 +2,11 @@
 mod contracts;
 mod modeled;
 mod observed;
+mod refinements;
 pub use observed::ObservationContext;
 mod number;
+mod rounding;
+mod sorting;
 pub use contracts::{ValueContract, check_value};
 use dctx0_core::{
     Expression, ExpressionKind as E, Invocation, InvocationObservation, Observation,
@@ -14,7 +17,7 @@ use num_rational::BigRational;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::BTreeMap;
 
-pub const INTERPRETER_VERSION: &str = "dctx0-interpreter-1";
+pub const INTERPRETER_VERSION: &str = "dctx0-interpreter-5";
 
 /// Exact boundary offsets shared by generators; never native floating arithmetic.
 pub fn numeric_offset(value: &V, offset: i8) -> Option<V> {
@@ -147,6 +150,17 @@ impl Evaluator<'_> {
             })
         }
     }
+    fn comparison_number(&self, e: &Expression, value: &V) -> Result<BigRational, Evaluation> {
+        if let V::Float(text) = value {
+            text.parse::<f64>()
+                .ok()
+                .filter(|value| value.is_finite())
+                .and_then(BigRational::from_float)
+                .ok_or_else(|| self.bad(e, "Expected finite Float"))
+        } else {
+            self.numeric(e, value)
+        }
+    }
     fn validate(&self, e: &Expression, value: &V, depth: usize) -> Result<(), Evaluation> {
         if depth > self.budgets.recursion_depth {
             return Err(self.issue(e, "VALUE_DEPTH", "Value recursion budget exhausted"));
@@ -213,6 +227,7 @@ impl Evaluator<'_> {
                     _ => Err(self.bad(e, "Invalid Boolean literal")),
                 },
                 "String" => Ok(V::String(text.clone())),
+                "Float" => Ok(V::Float(text.clone())),
                 "Int" | "Decimal" => {
                     let integer = literal_kind == "Int";
                     let value = number::parse(text, integer)
@@ -293,6 +308,17 @@ impl Evaluator<'_> {
                 target,
                 arguments,
             } => {
+                if name == "ifElse" && target.is_none() {
+                    let [condition, yes, no] = arguments.as_slice() else {
+                        return Err(self.bad(e, "ifElse requires three arguments"));
+                    };
+                    let condition = self.eval(condition, vars, next)?;
+                    return self.eval(
+                        if self.boolean(e, condition)? { yes } else { no },
+                        vars,
+                        next,
+                    );
+                }
                 let values = arguments
                     .iter()
                     .map(|expr| self.eval(expr, vars, next))
@@ -424,6 +450,23 @@ impl Evaluator<'_> {
     }
     fn equal(&self, e: &Expression, left: &V, right: &V) -> Result<bool, Evaluation> {
         match (left, right) {
+            (V::Float(_), V::Integer(_) | V::Decimal(_))
+            | (V::Integer(_) | V::Decimal(_), V::Float(_)) => {
+                Ok(self.comparison_number(e, left)? == self.comparison_number(e, right)?)
+            }
+            (V::Float(a), V::Float(b)) => {
+                let a = a
+                    .parse::<f64>()
+                    .ok()
+                    .filter(|value| value.is_finite())
+                    .ok_or_else(|| self.bad(e, "Expected finite Float"))?;
+                let b = b
+                    .parse::<f64>()
+                    .ok()
+                    .filter(|value| value.is_finite())
+                    .ok_or_else(|| self.bad(e, "Expected finite Float"))?;
+                Ok(a == b)
+            }
             (V::Integer(_) | V::Decimal(_), V::Integer(_) | V::Decimal(_)) => {
                 Ok(self.numeric(e, left)? == self.numeric(e, right)?)
             }
@@ -496,6 +539,18 @@ impl Evaluator<'_> {
             return Ok(V::Boolean(self.boolean(e, right)?));
         }
         let right = self.eval(right, vars, depth)?;
+        if matches!(op, "<" | "<=" | ">" | ">=")
+            && (matches!(&left, V::Float(_)) || matches!(&right, V::Float(_)))
+        {
+            let a = self.comparison_number(e, &left)?;
+            let b = self.comparison_number(e, &right)?;
+            return Ok(V::Boolean(match op {
+                "<" => a < b,
+                "<=" => a <= b,
+                ">" => a > b,
+                _ => a >= b,
+            }));
+        }
         match op {
             "==" | "!=" => return Ok(V::Boolean(self.equal(e, &left, &right)? == (op == "=="))),
             "is" => {
@@ -599,19 +654,141 @@ impl Evaluator<'_> {
         };
         self.numeric_value(e, result, integer)
     }
-    fn builtin(&self, e: &Expression, name: &str, args: Vec<V>) -> EvalResult {
+    fn builtin(&mut self, e: &Expression, name: &str, args: Vec<V>) -> EvalResult {
         match (name, args.as_slice()) {
             ("None", []) => Ok(V::Option(None)),
             ("Some", [value]) => Ok(V::Option(Some(Box::new(value.clone())))),
+            ("first", [V::List(values)]) => Ok(V::Option(values.first().cloned().map(Box::new))),
+            ("single", [V::List(values)]) => match values.as_slice() {
+                [value] => Ok(value.clone()),
+                _ => Err(self.issue(
+                    e,
+                    "RESULT_CARDINALITY_REQUIRED",
+                    "single requires exactly one observed value",
+                )),
+            },
+            ("getOrElse", [V::Option(value), fallback]) => {
+                Ok(value.as_deref().unwrap_or(fallback).clone())
+            }
+            ("indexOf", [V::List(values), needle]) => {
+                for (index, value) in values.iter().enumerate() {
+                    self.steps += 1;
+                    if self.steps > self.budgets.evaluation_steps {
+                        return Err(self.issue(
+                            e,
+                            "EVALUATION_BUDGET",
+                            "List search exceeds evaluation budget",
+                        ));
+                    }
+                    if self.equal(e, value, needle)? {
+                        return Ok(V::Integer(index.to_string()));
+                    }
+                }
+                Ok(V::Integer("-1".into()))
+            }
+            ("mean", [V::List(values)]) => {
+                if values.is_empty() {
+                    return Ok(V::Option(None));
+                }
+                let mut sum = BigRational::zero();
+                for value in values {
+                    self.steps += 1;
+                    if self.steps > self.budgets.evaluation_steps {
+                        return Err(self.issue(
+                            e,
+                            "EVALUATION_BUDGET",
+                            "Mean exceeds evaluation budget",
+                        ));
+                    }
+                    sum += self.numeric(e, value)?;
+                }
+                let mean = sum / BigRational::from_integer(values.len().into());
+                let value = mean
+                    .to_f64()
+                    .filter(|value| value.is_finite())
+                    .ok_or_else(|| {
+                        self.issue(
+                            e,
+                            "FLOAT_REPRESENTATION_REQUIRED",
+                            "Mean cannot be represented as a finite Float",
+                        )
+                    })?;
+                Ok(V::Option(Some(Box::new(V::Float(value.to_string())))))
+            }
             ("lowercase", [V::String(s)]) => Ok(V::String(s.to_lowercase())),
             ("uppercase", [V::String(s)]) => Ok(V::String(s.to_uppercase())),
-            ("trim", [V::String(s)]) => Ok(V::String(s.trim().into())),
+            // Match the reference's ECMAScript WhiteSpace/LineTerminator set;
+            // Rust's Unicode trim includes NEL and excludes BOM.
+            ("trim", [V::String(s)]) => Ok(V::String(
+                s.trim_matches(|character| {
+                    matches!(character,
+                        '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}' |
+                        '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' |
+                        '\u{205f}' | '\u{3000}' | '\u{feff}'
+                    )
+                })
+                .into(),
+            )),
             ("length", [V::String(s)]) => Ok(V::Integer(s.encode_utf16().count().to_string())),
             ("length", [V::List(v)]) => Ok(V::Integer(v.len().to_string())),
             ("startsWith", [V::String(s), V::String(prefix)]) => {
                 Ok(V::Boolean(s.starts_with(prefix)))
             }
             ("endsWith", [V::String(s), V::String(suffix)]) => Ok(V::Boolean(s.ends_with(suffix))),
+            ("includesText", [V::String(text), V::String(query)]) => {
+                Ok(V::Boolean(text.contains(query)))
+            }
+            ("slice", [V::List(values), V::Integer(offset), V::Integer(limit)]) => {
+                let offset = number::parse(offset, true)
+                    .ok_or_else(|| self.bad(e, "Invalid slice offset"))?;
+                let limit =
+                    number::parse(limit, true).ok_or_else(|| self.bad(e, "Invalid slice limit"))?;
+                if offset < BigRational::zero() || limit < BigRational::zero() {
+                    return Err(self.issue(
+                        e,
+                        "SLICE_INDEX_REQUIRED",
+                        "Slice offset and limit must be nonnegative",
+                    ));
+                }
+                let length = BigRational::from_integer(values.len().into());
+                if offset >= length {
+                    return Ok(V::List(vec![]));
+                }
+                let offset = offset
+                    .to_integer()
+                    .to_usize()
+                    .ok_or_else(|| self.bad(e, "Invalid slice offset"))?;
+                let available = values.len() - offset;
+                let count = if limit >= BigRational::from_integer(available.into()) {
+                    available
+                } else {
+                    limit
+                        .to_integer()
+                        .to_usize()
+                        .ok_or_else(|| self.bad(e, "Invalid slice limit"))?
+                };
+                Ok(V::List(
+                    values.iter().skip(offset).take(count).cloned().collect(),
+                ))
+            }
+            ("round", [value, scale, mode]) => {
+                let number = self.numeric(e, value)?;
+                self.round_decimal(e, number, scale, mode)
+            }
+            ("divide", [left, right, scale, mode]) => {
+                let numerator = self.numeric(e, left)?;
+                let denominator = self.numeric(e, right)?;
+                if denominator.is_zero() {
+                    return Err(self.issue(e, "DIVISION_BY_ZERO", "Divisor must be nonzero"));
+                }
+                let quotient = numerator / denominator;
+                // Preserve the reference evaluator's exact finite quotient.
+                if let Some(text) = number::decimal(&quotient) {
+                    self.round_decimal(e, quotient.clone(), scale, mode)?;
+                    return Ok(V::Decimal(text));
+                }
+                self.round_decimal(e, quotient, scale, mode)
+            }
             ("reverse", [V::List(v)]) => Ok(V::List(v.iter().rev().cloned().collect())),
             _ => Err(self.issue(
                 e,
@@ -619,6 +796,39 @@ impl Evaluator<'_> {
                 "Builtin or argument representation is not supported",
             )),
         }
+    }
+    fn round_decimal(&self, e: &Expression, value: BigRational, scale: &V, mode: &V) -> EvalResult {
+        let V::Integer(text) = scale else {
+            return Err(self.bad(e, "Decimal scale must be a nonnegative integer"));
+        };
+        let scale = number::parse(text, true)
+            .and_then(|value| value.to_integer().to_u32())
+            .ok_or_else(|| self.bad(e, "Decimal scale must be a nonnegative integer"))?;
+        if scale as usize > self.budgets.value_bytes.saturating_sub(32)
+            || scale as usize > self.budgets.evaluation_steps.saturating_sub(self.steps)
+        {
+            return Err(self.issue(
+                e,
+                "EVALUATION_BUDGET",
+                "Decimal scale exceeds the declared budget",
+            ));
+        }
+        let V::Variant {
+            declaration,
+            name,
+            payload: None,
+        } = mode
+        else {
+            return Err(self.bad(e, "Expected a rounding mode"));
+        };
+        if declaration != "RoundingMode" {
+            return Err(self.bad(e, "Expected a rounding mode"));
+        }
+        let rounded = rounding::round(value, scale, name)
+            .ok_or_else(|| self.bad(e, "Unknown rounding mode"))?;
+        number::decimal(&rounded)
+            .map(V::Decimal)
+            .ok_or_else(|| self.bad(e, "Rounded decimal is not finite"))
     }
     #[allow(clippy::too_many_arguments)]
     fn collection(
@@ -644,8 +854,10 @@ impl Evaluator<'_> {
             return Ok(V::Boolean(false));
         }
         let mut selected = Vec::new();
+        let mut keyed = Vec::new();
         let mut count = 0usize;
         for value in values {
+            let original = matches!(op, "sortBy" | "sortDescBy").then(|| value.clone());
             self.steps += 1;
             if self.steps > self.budgets.evaluation_steps {
                 return Err(self.issue(
@@ -680,9 +892,28 @@ impl Evaluator<'_> {
             } else {
                 value
             };
-            selected.push(value);
+            if let Some(original) = original {
+                keyed.push((value, original));
+            } else if op != "filter" || matches {
+                selected.push(value);
+            }
         }
         match op {
+            "sortBy" | "sortDescBy" => sorting::sort_direction(
+                keyed,
+                &mut self.steps,
+                self.budgets.evaluation_steps,
+                op == "sortDescBy",
+            )
+            .map(V::List)
+            .map_err(|code| {
+                self.issue(
+                    e,
+                    code,
+                    "Sorting requires supported keys and sufficient comparison budget",
+                )
+            }),
+            "filter" | "map" => Ok(V::List(selected)),
             "count" => Ok(V::Integer(count.to_string())),
             "all" => Ok(V::Boolean(true)),
             "any" => Ok(V::Boolean(false)),

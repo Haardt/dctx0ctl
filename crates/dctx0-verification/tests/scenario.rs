@@ -213,7 +213,7 @@ fn unsupported_or_malformed_scenario_plans_and_delivery_states_are_explicit() {
             }
             10 => {
                 let mut expression = argument.clone();
-                expression.ty = TypeRef::builtin("Duration");
+                expression.ty = TypeRef::builtin("FutureBuiltin");
                 plan.mocks[0].outcome = Some(MockOutcome::Returned { expression });
             }
             11 => {
@@ -404,7 +404,7 @@ fn skipped_or_duplicated_mandatory_actions_cannot_claim_pass() {
 fn unsupported_native_result_contracts_remain_unknown_even_with_an_observation() {
     let (mut ir, plan) = reference();
     let budgets = VerificationBudgets::default();
-    ir.operations.get_mut("W.Api.read").unwrap().result = TypeRef::builtin("Duration");
+    ir.operations.get_mut("W.Api.read").unwrap().result = TypeRef::builtin("FutureBuiltin");
     let mut scenario = Scenario::new(&ir, &plan, &budgets);
     scenario.advance();
     scenario.collaborator(&call());
@@ -434,7 +434,7 @@ fn executed_failures_dominate_unknowns_and_keep_the_first_contract_violation() {
         completed(scenario.advance()).result,
         "UNEXPECTED_COLLABORATOR",
     );
-    ir.operations.get_mut("W.Api.read").unwrap().result = TypeRef::builtin("Duration");
+    ir.operations.get_mut("W.Api.read").unwrap().result = TypeRef::builtin("FutureBuiltin");
     let mut scenario = Scenario::new(&ir, &plan, &budgets);
     scenario.advance();
     scenario.collaborator(&call());

@@ -20,7 +20,18 @@ impl ExpressionParser<'_, '_> {
         self.require("(");
         if matches!(
             token.text.as_str(),
-            "count" | "sum" | "all" | "any" | "contains" | "distinct" | "min" | "max"
+            "count"
+                | "sum"
+                | "all"
+                | "any"
+                | "contains"
+                | "distinct"
+                | "min"
+                | "max"
+                | "filter"
+                | "map"
+                | "sortBy"
+                | "sortDescBy"
         ) {
             return self.collection(token);
         }
@@ -47,6 +58,12 @@ impl ExpressionParser<'_, '_> {
                         .and_then(|t| t.arguments.first().cloned())
                         .into_iter()
                         .collect()
+                } else if token.text == "ifElse" {
+                    let mut parameters = vec![TypeRef::builtin("Boolean")];
+                    if let Some(expected) = expected {
+                        parameters.extend([expected.clone(), expected.clone()]);
+                    }
+                    parameters
                 } else {
                     Vec::new()
                 }
@@ -69,10 +86,17 @@ impl ExpressionParser<'_, '_> {
         } else {
             let (arity, result) = match token.text.as_str() {
                 "Some" => (1, "Option"),
+                "first" => (1, "Option"),
+                "single" => (1, "Unit"),
+                "ifElse" => (3, "Unit"),
+                "mean" => (1, "Option"),
+                "indexOf" => (2, "Int"),
+                "getOrElse" => (2, "Unit"),
                 "None" => (0, "Option"),
                 "lowercase" | "uppercase" | "trim" => (1, "String"),
                 "length" => (1, "Int"),
-                "startsWith" | "endsWith" => (2, "Boolean"),
+                "startsWith" | "endsWith" | "includesText" => (2, "Boolean"),
+                "slice" => (3, "List"),
                 "reverse" => (1, "List"),
                 "divide" => (4, "Decimal"),
                 "round" => (3, "Decimal"),
@@ -91,6 +115,87 @@ impl ExpressionParser<'_, '_> {
                 );
             }
             match token.text.as_str() {
+                "ifElse" => {
+                    if let Some(condition) = args.first() {
+                        self.check(&TypeRef::builtin("Boolean"), condition);
+                    }
+                    let ty = args
+                        .get(1)
+                        .map(|value| value.ty.clone())
+                        .unwrap_or_else(|| TypeRef::builtin("Unit"));
+                    if let Some(alternative) = args.get(2) {
+                        self.check(&ty, alternative);
+                    }
+                    ty
+                }
+                "slice" => {
+                    if let Some(list) = args.first() {
+                        self.element(list);
+                    }
+                    for value in args.iter().skip(1) {
+                        self.check(&TypeRef::builtin("Int"), value);
+                    }
+                    args.first()
+                        .map(|value| value.ty.clone())
+                        .unwrap_or_else(|| TypeRef::builtin("List"))
+                }
+                "single" => args
+                    .first()
+                    .map(|value| self.element(value))
+                    .unwrap_or_else(|| TypeRef::builtin("Unit")),
+                "mean" => {
+                    if let Some(value) = args.first() {
+                        let element = self.element(value);
+                        if !matches!(
+                            expand(&element, self.context.ir).name.as_str(),
+                            "Int" | "Decimal"
+                        ) {
+                            self.error(
+                                "DCTX0_EXPRESSION_TYPE",
+                                "mean requires exact numeric elements",
+                            );
+                        }
+                    }
+                    TypeRef {
+                        name: "Option".into(),
+                        symbol_id: None,
+                        arguments: vec![TypeRef::builtin("Float")],
+                    }
+                }
+                "indexOf" => {
+                    if let Some(list) = args.first() {
+                        let element = self.element(list);
+                        if let Some(value) = args.get(1) {
+                            self.check(&element, value);
+                        }
+                    }
+                    TypeRef::builtin("Int")
+                }
+                "getOrElse" => {
+                    let option = args.first().map(|value| expand(&value.ty, self.context.ir));
+                    if option
+                        .as_ref()
+                        .is_none_or(|ty| ty.name != "Option" || ty.arguments.len() != 1)
+                    {
+                        self.error("DCTX0_EXPRESSION_TYPE", "getOrElse requires an Option");
+                    }
+                    let ty = option
+                        .and_then(|ty| ty.arguments.into_iter().next())
+                        .unwrap_or_else(|| TypeRef::builtin("Unit"));
+                    if let Some(fallback) = args.get(1) {
+                        self.check(&ty, fallback);
+                    }
+                    ty
+                }
+                "first" => TypeRef {
+                    name: "Option".into(),
+                    symbol_id: None,
+                    arguments: args
+                        .first()
+                        .map(|value| self.element(value))
+                        .into_iter()
+                        .collect(),
+                },
                 "Some" => TypeRef {
                     name: "Option".into(),
                     symbol_id: None,
@@ -106,7 +211,7 @@ impl ExpressionParser<'_, '_> {
                         TypeRef::builtin("List")
                     }
                 }
-                "lowercase" | "uppercase" | "trim" | "startsWith" | "endsWith" => {
+                "lowercase" | "uppercase" | "trim" | "startsWith" | "endsWith" | "includesText" => {
                     for a in &args {
                         self.check(&TypeRef::builtin("String"), a);
                     }
@@ -138,7 +243,9 @@ impl ExpressionParser<'_, '_> {
     }
     pub(super) fn collection(&mut self, token: &Token) -> Option<Expression> {
         let marker = top_level(self.tokens, self.index, "for");
-        if let Some(marker) = marker.filter(|_| token.text == "sum") {
+        if let Some(marker) = marker
+            .filter(|_| matches!(token.text.as_str(), "sum" | "map" | "sortBy" | "sortDescBy"))
+        {
             let projection = &self.tokens[self.index..marker];
             let binder = self.tokens.get(marker + 1)?.text.clone();
             self.index = marker + 2;
@@ -148,9 +255,30 @@ impl ExpressionParser<'_, '_> {
             let previous = self.context.variables.insert(binder.clone(), element);
             let value = parse_expression(projection, self.context, None)?;
             restore(&mut self.context.variables, &binder, previous);
+            if matches!(token.text.as_str(), "sortBy" | "sortDescBy")
+                && !matches!(
+                    expand(&value.ty, self.context.ir).name.as_str(),
+                    "Int" | "Decimal" | "Float" | "String" | "UUID"
+                )
+            {
+                self.error(
+                    "DCTX0_EXPRESSION_TYPE",
+                    "sortBy requires a numeric or textual key",
+                );
+            }
             self.require(")");
             return Some(Expression {
-                ty: value.ty.clone(),
+                ty: if token.text == "map" {
+                    TypeRef {
+                        name: "List".into(),
+                        symbol_id: None,
+                        arguments: vec![value.ty.clone()],
+                    }
+                } else if matches!(token.text.as_str(), "sortBy" | "sortDescBy") {
+                    collection.ty.clone()
+                } else {
+                    value.ty.clone()
+                },
                 span: token.span.clone(),
                 value: ExpressionKind::Collection {
                     operator: token.text.clone(),
@@ -160,6 +288,13 @@ impl ExpressionParser<'_, '_> {
                     projection: Some(Box::new(value)),
                 },
             });
+        }
+        if matches!(token.text.as_str(), "map" | "sortBy" | "sortDescBy") {
+            self.error(
+                "DCTX0_EXPRESSION_ARITY",
+                "map requires a projection followed by for and a bound collection",
+            );
+            return None;
         }
         if self
             .tokens
@@ -181,11 +316,15 @@ impl ExpressionParser<'_, '_> {
             restore(&mut self.context.variables, &binder, previous);
             self.require(")");
             return Some(Expression {
-                ty: TypeRef::builtin(if token.text == "count" {
-                    "Int"
+                ty: if token.text == "filter" {
+                    collection.ty.clone()
                 } else {
-                    "Boolean"
-                }),
+                    TypeRef::builtin(if token.text == "count" {
+                        "Int"
+                    } else {
+                        "Boolean"
+                    })
+                },
                 span: token.span.clone(),
                 value: ExpressionKind::Collection {
                     operator: token.text.clone(),
@@ -195,6 +334,13 @@ impl ExpressionParser<'_, '_> {
                     projection: None,
                 },
             });
+        }
+        if token.text == "filter" {
+            self.error(
+                "DCTX0_EXPRESSION_ARITY",
+                "filter requires a bound element and collection",
+            );
+            return None;
         }
         let args = self.arguments(&[])?;
         if args.len() != if token.text == "contains" { 2 } else { 1 } {

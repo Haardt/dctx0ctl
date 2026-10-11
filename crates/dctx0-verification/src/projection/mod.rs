@@ -95,6 +95,25 @@ pub fn project_program(
                 additions.insert(reference.from.clone());
             }
         }
+        for subject in &plan.closure {
+            let reviewed = fixtures
+                .operations
+                .get(subject)
+                .into_iter()
+                .flatten()
+                .flat_map(|case| &case.setup);
+            let generated = fixtures
+                .generated_preparations
+                .get(subject)
+                .into_iter()
+                .flatten()
+                .flat_map(|case| &case.setup);
+            for setup in reviewed.chain(generated) {
+                if ir.operations.contains_key(&setup.subject) {
+                    additions.insert(setup.subject.clone());
+                }
+            }
+        }
         let old = plan.closure.len();
         plan.closure.extend(additions);
         if old == plan.closure.len() {
@@ -134,8 +153,23 @@ pub fn project_program(
                 arguments: Vec::new(),
             };
             plan.capabilities.push(Capability::Values);
+            if !data.keys.is_empty() {
+                plan.capabilities.push(Capability::State);
+            }
             plan.contracts.push(ContractPlan {
                 subject: data.id.clone(),
+                identity_requirements: ir
+                    .nodes
+                    .iter()
+                    .filter(|node| node.owner == data.id && node.kind == StatementKind::Key)
+                    .map(|node| node.id.clone())
+                    .collect(),
+                structural_requirements: ir
+                    .nodes
+                    .iter()
+                    .filter(|node| node.owner == data.id && node.kind == StatementKind::Field)
+                    .map(|node| node.id.clone())
+                    .collect(),
                 refinement_requirements: ir
                     .nodes
                     .iter()
@@ -192,6 +226,11 @@ pub fn project_program(
                 precondition_selection,
                 clauses,
                 cases: fixtures.operations.get(&id).cloned().unwrap_or_default(),
+                generated_preparations: fixtures
+                    .generated_preparations
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_default(),
             });
         }
         let Some(symbol) = ir.symbols.get(&id) else {
@@ -242,6 +281,14 @@ pub fn project_program(
             _ => {}
         }
         for node in owned(ir, &id) {
+            match node.kind {
+                StatementKind::Read | StatementKind::Write | StatementKind::Observe => {
+                    plan.capabilities.push(Capability::ResourceObservation);
+                }
+                StatementKind::Call => plan.capabilities.push(Capability::CallObservation),
+                StatementKind::State => plan.capabilities.push(Capability::State),
+                _ => {}
+            }
             if matches!(node.kind, StatementKind::Constraint | StatementKind::Intent) {
                 plan.manual_checks.push(ManualCheck {
                     subject: node.id.clone(),
@@ -296,7 +343,106 @@ pub fn project_program(
     }
     let mut case_ids = BTreeSet::new();
     for operation in &plan.operations {
-        for case in &operation.cases {
+        let span = ir
+            .symbols
+            .get(&operation.operation.id)
+            .map(|symbol| &symbol.span);
+        let mut seen = Vec::new();
+        for preparation in &operation.generated_preparations {
+            if operation.operation.pure
+                || !operation.inputs.bindings.contains(&preparation.bindings)
+                || seen.contains(&&preparation.bindings)
+            {
+                plan.issues.push(issue(
+                    span,
+                    "INVALID_GENERATED_PREPARATION",
+                    "Preparations require unique exact generated bindings for a nonpure operation",
+                ));
+            }
+            seen.push(&preparation.bindings);
+        }
+        let prepared_cases = operation
+            .generated_preparations
+            .iter()
+            .enumerate()
+            .map(|(index, preparation)| crate::OperationCaseInput {
+                id: format!("{}:preparation:{index}", operation.operation.id),
+                invocation: Invocation {
+                    subject: operation.operation.id.clone(),
+                    arguments: operation
+                        .operation
+                        .parameters
+                        .iter()
+                        .filter_map(|parameter| preparation.bindings.get(&parameter.name).cloned())
+                        .collect(),
+                },
+                setup: preparation.setup.clone(),
+                mocks: vec![],
+            })
+            .collect::<Vec<_>>();
+        for case in operation.cases.iter().chain(&prepared_cases) {
+            for setup in &case.setup {
+                let span = ir
+                    .symbols
+                    .get(&operation.operation.id)
+                    .map(|symbol| &symbol.span);
+                let Some(preparation) = ir.operations.get(&setup.subject) else {
+                    plan.issues.push(issue(
+                        span,
+                        "INVALID_OPERATION_SETUP",
+                        "Reviewed setup operation is undeclared",
+                    ));
+                    continue;
+                };
+                if preparation.parameters.len() != setup.arguments.len() {
+                    plan.issues.push(issue(
+                        span,
+                        "INVALID_OPERATION_SETUP",
+                        "Reviewed setup arguments do not match the declared signature",
+                    ));
+                    continue;
+                }
+                for (parameter, value) in preparation.parameters.iter().zip(&setup.arguments) {
+                    match dctx0_interpreter::check_value(ir, &parameter.ty, value, &plan.budgets) {
+                        dctx0_interpreter::ValueContract::Accepted => {}
+                        dctx0_interpreter::ValueContract::Rejected { reason } => plan
+                            .issues
+                            .push(issue(span, "INVALID_OPERATION_SETUP", &reason)),
+                        dctx0_interpreter::ValueContract::Unknown { issue } => {
+                            plan.issues.push(issue)
+                        }
+                    }
+                }
+            }
+            let mocks = crate::OperationMockSession::new(ir, &case.mocks, &plan.budgets);
+            if !mocks.issues.is_empty() {
+                plan.issues.push(issue(
+                    ir.symbols
+                        .get(&operation.operation.id)
+                        .map(|symbol| &symbol.span),
+                    "INVALID_OPERATION_CASE",
+                    "Reviewed operation mock plans must have valid unambiguous typed replies",
+                ));
+                plan.issues.extend(mocks.issues);
+            }
+            for prepared in &case.mocks {
+                if !ir.references.iter().any(|reference| {
+                    reference.from == operation.operation.id
+                        && reference.target == prepared.invocation.subject
+                        && reference.kind == ReferenceKind::Calls
+                }) {
+                    plan.issues.push(issue(
+                        ir.symbols
+                            .get(&operation.operation.id)
+                            .map(|symbol| &symbol.span),
+                        "INVALID_OPERATION_CASE",
+                        "Prepared mocks must replace declared operation collaborators",
+                    ));
+                }
+            }
+            if !case.mocks.is_empty() {
+                plan.capabilities.push(Capability::Mocks);
+            }
             if case.id.trim().is_empty()
                 || !case_ids.insert(case.id.clone())
                 || case.invocation.subject != operation.operation.id

@@ -1,9 +1,15 @@
 //! Managed native execution from a published snapshot, with immutable reports.
+mod adoption;
+mod attestations;
 mod capture;
+mod dependencies;
 mod execution;
 mod pins;
+mod program_inspection;
 mod replay;
+mod shrink;
 use crate::*;
+pub use attestations::TaskAttestation;
 use capture::Capture;
 use dctx0_core::*;
 use dctx0_store::{StoredVerificationRun, VerificationArtifact};
@@ -12,6 +18,7 @@ use dctx0_target_sdk::{
     WorkerRequest,
 };
 use dctx0_verification::{LifecycleCaseInput, ProgramPlan, ProjectionFixtures};
+pub use program_inspection::InspectedVerificationReport;
 pub use replay::{ReplayChange, VerificationReplayReport};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -45,6 +52,8 @@ pub struct NativeVerificationReport {
     pub evidence: StoredVerificationRun,
     pub adopted_tasks: Vec<i64>,
     pub adoption_issues: Vec<VerificationIssue>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adoption_proposal: Option<dctx0_tasks::AdoptionProposal>,
 }
 impl Project {
     pub async fn run_verification(
@@ -74,6 +83,8 @@ impl Project {
         no_adopt: bool,
         pinned: Option<(ProgramPlan, VerificationLifecycleFixtures)>,
     ) -> Result<NativeVerificationReport> {
+        let historical = selection.historical_check.is_some() || pinned.is_some();
+        let no_adopt = no_adopt || historical;
         let (application, config) = self.verification_configuration(application)?;
         if selection.subjects.is_empty() && selection.tasks.is_empty() {
             selection.subjects = config.scope.subjects.clone();
@@ -86,7 +97,7 @@ impl Project {
         } else {
             Default::default()
         };
-        let (plan, pinned_lifecycles) = match pinned {
+        let (mut plan, pinned_lifecycles) = match pinned {
             Some((plan, lifecycles)) => (plan, Some(lifecycles)),
             None => (
                 self.verification_plan(selection, &fixtures, config.budgets.clone())?,
@@ -113,12 +124,79 @@ impl Project {
             .rsplit_once('/')
             .unwrap_or(("", &config.adapter));
         let directory = Path::new(directory);
-        let bundle = generator
+        let lifecycle_path = capture.root.join(directory).join("lifecycles.json");
+        if pinned_lifecycles.is_none() {
+            plan.issues.extend(self.verification_lifecycle_input_issues(
+                &capture.root,
+                &config.adapter,
+                &plan,
+            )?);
+        }
+        let lifecycles: VerificationLifecycleFixtures = if let Some(lifecycles) = pinned_lifecycles
+        {
+            lifecycles
+        } else if lifecycle_path.try_exists()? {
+            serde_json::from_slice(&fs::read(lifecycle_path)?)?
+        } else {
+            Default::default()
+        };
+        // Setup grants invocation access, not a verification claim for its operation.
+        let mut harness_subjects = plan.closure.clone();
+        for invocation in plan
+            .operations
+            .iter()
+            .flat_map(|operation| &operation.cases)
+            .flat_map(|case| &case.setup)
+            .chain(
+                plan.lifecycles
+                    .iter()
+                    .flat_map(|lifecycle| &lifecycle.paths)
+                    .filter_map(|path| lifecycles.paths.get(&path.id))
+                    .flat_map(|input| &input.setup),
+            )
+        {
+            if snapshot.ir.operations.contains_key(&invocation.subject) {
+                harness_subjects.insert(invocation.subject.clone());
+            }
+        }
+        let mut bundle = generator
             .generate(&HarnessRequest {
                 adapter_import: format!("./{adapter_name}"),
-                subjects: plan.closure.clone(),
+                subjects: harness_subjects,
             })
             .map_err(|e| Error::Invalid(e.to_string()))?;
+        let mut observer_sources = Vec::new();
+        for path in capture.files.keys() {
+            let language = match Path::new(path)
+                .extension()
+                .and_then(|extension| extension.to_str())
+            {
+                Some("ts" | "js" | "mjs" | "cjs") => {
+                    dctx0_target_sdk::InspectionLanguage::TypeScript
+                }
+                Some("tsx" | "jsx") => dctx0_target_sdk::InspectionLanguage::Tsx,
+                _ => continue,
+            };
+            observer_sources.push(dctx0_target_sdk::InspectionSource {
+                path: path.clone(),
+                language,
+                text: fs::read_to_string(capture.root.join(path))?,
+            });
+        }
+        let depth = directory
+            .components()
+            .filter(|component| matches!(component, std::path::Component::Normal(_)))
+            .count();
+        let root_relative = if depth == 0 {
+            "./".into()
+        } else {
+            "../".repeat(depth)
+        };
+        bundle.artifacts.extend(
+            generator
+                .module_observer_artifacts(&observer_sources, &root_relative)
+                .map_err(|error| Error::Invalid(error.to_string()))?,
+        );
         if bundle.sdk_version != SDK_VERSION
             || bundle.target != config.target
             || bundle.recipe.program != config.runtime
@@ -131,6 +209,23 @@ impl Project {
             "application/vnd.dctx0.plan+json",
             serde_json::to_vec(&plan)?,
         )];
+        artifacts.push(VerificationArtifact::new(
+            "application/vnd.dctx0.captured-input-inventory+json",
+            serde_json::to_vec(&captured_inputs)?,
+        ));
+        artifacts.push(VerificationArtifact::new(
+            "application/vnd.dctx0.assessment-version+json",
+            serde_json::to_vec(&serde_json::json!({"schema_version":1,"version":dctx0_verification::ASSESSMENT_VERSION}))?,
+        ));
+        match crate::native::VerifierIdentity::capture() {
+            Ok(identity) => artifacts.push(VerificationArtifact::new(
+                "application/vnd.dctx0.verifier-identity+json",
+                serde_json::to_vec(&identity)?,
+            )),
+            Err(error) => {
+                pin_issues.push(issue("VERIFIER_IDENTITY_UNAVAILABLE", error.to_string()))
+            }
+        }
         let mut artifact_names = BTreeSet::new();
         for artifact in &bundle.artifacts {
             let path = Path::new(&artifact.path);
@@ -151,7 +246,11 @@ impl Project {
                 .files
                 .remove(&directory.join(path).to_string_lossy().into_owned());
             artifacts.push(VerificationArtifact::new(
-                "text/typescript",
+                if artifact.path == "module-observer.json" {
+                    "application/vnd.dctx0.module-observer-manifest+json"
+                } else {
+                    "text/typescript"
+                },
                 artifact.contents.as_bytes().to_vec(),
             ));
         }
@@ -166,15 +265,18 @@ impl Project {
             "application/vnd.dctx0.model+json",
             model.clone(),
         ));
-        let lifecycle_path = capture.root.join(directory).join("lifecycles.json");
-        let lifecycles: VerificationLifecycleFixtures = if let Some(lifecycles) = pinned_lifecycles
-        {
-            lifecycles
-        } else if lifecycle_path.try_exists()? {
-            serde_json::from_slice(&fs::read(lifecycle_path)?)?
-        } else {
-            Default::default()
-        };
+        let generated = artifact_names
+            .iter()
+            .chain(std::iter::once(&"model.json".to_string()))
+            .map(|name| directory.join(name).to_string_lossy().replace('\\', "/"))
+            .collect::<BTreeSet<_>>();
+        pin_issues.extend(dependencies::inspect(
+            &capture,
+            generator,
+            &generated,
+            &mut artifacts,
+        )?);
+        let execution_inputs = Capture::inventory(&capture.root)?;
         let started_at_unix_ns = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| Error::Invalid(e.to_string()))?
@@ -219,13 +321,7 @@ impl Project {
                 .map(|(path, hash)| (path.clone(), hash.clone()))
                 .collect(),
             task_pin,
-            incomplete: {
-                pin_issues.push(issue(
-                "ADOPTION_PROVENANCE_PENDING",
-                "Native evidence still requires dependency closure and guarded publication before adoption",
-                ));
-                pin_issues
-            },
+            incomplete: pin_issues,
         };
         let mut run = VerificationRun {
             schema_version: 1,
@@ -247,6 +343,9 @@ impl Project {
         execution::execute(
             execution::Input {
                 ir: &snapshot.ir,
+                root: &capture.root,
+                adapter: &config.adapter,
+                generated: &generated,
                 plan: &plan,
                 lifecycles: &lifecycles,
                 cancel: cancellation,
@@ -257,8 +356,35 @@ impl Project {
             &mut artifacts,
         )
         .await?;
+        let resolved =
+            dctx0_verification::resolved_state_preconditions(&snapshot.ir, &plan, &run.cases);
+        if !resolved.is_empty() {
+            run.open_obligations
+                .retain(|issue| !resolved.contains(issue));
+            artifacts.push(VerificationArtifact::new(
+                "application/vnd.dctx0.resolved-preconditions+json",
+                serde_json::to_vec(&resolved)?,
+            ));
+        }
+        let resolved_suites = dctx0_verification::suites::resolved_native_suite_policy_obligations(
+            &snapshot.ir,
+            &plan,
+            &run.cases,
+        );
+        run.open_obligations
+            .retain(|issue| !resolved_suites.contains(issue));
         run.elapsed_us = started.elapsed().as_micros().min(u64::MAX as u128) as u64;
         run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
+        let policy_failure = dctx0_verification::suites::native_suite_policy_assessment(
+            &snapshot.ir,
+            &plan,
+            &run.cases,
+        )
+        .policies
+        .into_iter()
+        .find_map(|policy| {
+            matches!(policy.result, VerificationResult::Fail { .. }).then_some(policy.result)
+        });
         run.result = run
             .cases
             .iter()
@@ -269,6 +395,7 @@ impl Project {
                     None
                 }
             })
+            .or(policy_failure)
             .unwrap_or_else(|| {
                 if let Some(problem) = run.open_obligations.first() {
                     VerificationResult::Unknown {
@@ -288,6 +415,17 @@ impl Project {
                     VerificationResult::Pass
                 }
             });
+        match Capture::inventory(&capture.root) {
+            Ok(current) if current == execution_inputs => {}
+            Ok(_) => run.provenance.incomplete.push(issue(
+                "CAPTURED_INPUTS_CHANGED",
+                "Executed sources, adapter, harness or dependencies changed inside the captured tree",
+            )),
+            Err(error) => run.provenance.incomplete.push(issue(
+                "CAPTURED_INPUTS_UNAVAILABLE",
+                format!("Cannot reassess captured execution inputs: {error}"),
+            )),
+        }
         let _lock = self.lock()?;
         match Capture::inventory(&application) {
             Ok(current) if current == captured_inputs => {}
@@ -300,22 +438,43 @@ impl Project {
                 format!("Cannot reassess execution input freshness: {error}"),
             )),
         }
+        if !historical {
+            match self.sources() {
+                Ok(sources) if dctx0_changes::source_hash(&sources) == snapshot.source_hash => {},
+                Ok(_) => run.provenance.incomplete.push(issue("SPEC_INPUTS_CHANGED",
+                    "Spec sources changed during native execution; published requirements remain pinned but current tasks cannot be adopted")),
+                Err(error) => run.provenance.incomplete.push(issue("SPEC_INPUTS_UNAVAILABLE", error.to_string())),
+            }
+        }
+        let identity = artifacts
+            .iter()
+            .find(|artifact| {
+                artifact.reference.media_type == "application/vnd.dctx0.runtime-identity+json"
+            })
+            .map(|artifact| {
+                serde_json::from_slice::<crate::NativeRuntimeIdentity>(&artifact.contents)
+            })
+            .transpose()?;
+        match identity.map(|identity| identity.still_current()) {
+            Some(Ok(true)) => {},
+            other => run.provenance.incomplete.push(issue("RUNTIME_IDENTITY_CHANGED_OR_UNAVAILABLE",
+                format!("Actual runtime executable or launch environment cannot be pinned at publication: {other:?}"))),
+        }
         let saved = self.store(AccessMode::ReadWrite)?.record_verification_run(
             &self.key(),
             &run,
             &artifacts,
         )?;
+        let (adopted_tasks, adoption_issues, adoption_proposal) = if no_adopt {
+            (vec![], vec![], None)
+        } else {
+            adoption::publish(self, &application, &plan, &saved, &artifacts)?
+        };
         Ok(NativeVerificationReport {
             evidence: saved,
-            adopted_tasks: vec![],
-            adoption_issues: if no_adopt {
-                vec![]
-            } else {
-                vec![issue(
-                    "ADOPTION_UNAVAILABLE",
-                    "Run evidence is stored; automatic guarded adoption is not yet implemented",
-                )]
-            },
+            adopted_tasks,
+            adoption_issues,
+            adoption_proposal,
         })
     }
 }

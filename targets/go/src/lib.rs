@@ -1,5 +1,7 @@
 //! Embedded editable defaults for go.
+mod execution;
 use dctx0_core::{ProfileTemplate, TargetManifest, TargetProfileProvider};
+pub use execution::GoHarness;
 pub struct Provider;
 impl TargetProfileProvider for Provider {
     fn manifest(&self) -> TargetManifest {

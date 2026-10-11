@@ -1,0 +1,14 @@
+// This file extends the existing domain rather than declaring a second copy.
+fragment Tutorial.Board {
+  value CopyTitle = Tutorial.Board.Title
+  surface Copy exposes requestReply {
+    operation title(value: CopyTitle) -> CopyTitle {
+      pure
+      ensures result == value
+    }
+  }
+  example "copy a reviewed title" {
+    when result = Copy.title("Read")
+    expect result == "Read"
+  }
+}

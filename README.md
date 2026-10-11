@@ -2,9 +2,17 @@
 
 Rust reimplementation of dctx0 from `../runatron`. The Cargo workspace implements the agreed foundations: deterministic multi-file compilation, typed expression IR, semantic dependencies and impact paths, versioned snapshots and change fingerprints, transactional SQLite history, explicit symbol renames, and target-neutral task planning with versioned work history.
 
-Both complete example workspaces compile: Cinema (2 sources) and runatron-next (18 sources). Tests compare their statement trees and data/operation models against independently generated TypeScript fixtures. Compilation validates declarations and expressions. Target-neutral task planning and administration are available. Pure expression evaluation and explicit finite-plan assessment are available as library foundations. Library drivers execute pure cases, prepared examples and observed lifecycles through a generated Bun harness. The complete verification CLI, immutable run history and automatic task adoption remain under implementation. Four target crates provide editable profiles; TypeScript/Bun additionally supplies the harness. Opaque `calls Boundary.operation(...) exactly n` trace labels accepted by the reference language remain explicitly unmodeled in IR; they do not establish a resolved dependency or prove native execution.
+Both complete example workspaces compile: Cinema (2 sources) and runatron-next (18 sources). Tests compare their statement trees and data/operation models against independently generated TypeScript fixtures. Compilation validates declarations and expressions. Target-neutral task planning and administration are available. Rust centrally evaluates finite verification plans, while generated Bun workers execute actual TypeScript applications through external adapters. The verification CLI, immutable run history, replay and guarded task adoption are implemented. Cinema complete acceptance is documented in [the Rust CLI guide](docs/verification-complete.md); the TypeScript tutorial extends this workflow through 16 cumulative applications. Four target crates supply editable profiles; TypeScript/Bun has CLI execution, and the Go crate additionally supplies SDK worker transport conformance. Opaque `calls Boundary.operation(...) exactly n` labels remain explicitly unmodeled: they do not establish resolved dependencies or prove runtime calls.
 
 ## Setup and commands
+
+The [MiniBoard tutorial](examples/tutorial/README.md) introduces the language
+step by step with real TypeScript applications, independent production tests
+and external verification adapters. Its final page creates and completes actual
+tasks. Run it with `cd examples/tutorial-step-16-http-replay && bun run start`,
+then open <http://127.0.0.1:4173/>. Use
+`./examples/tutorial/agent-step.sh 1 -- codex exec --full-auto` to give your
+agent a fresh exercise while retaining the complete reference solutions.
 
 Use rustup and place `~/.cargo/bin` before system Cargo in `PATH`. Python 3 and Linux are required for the benchmark runner.
 
@@ -60,7 +68,7 @@ A dry run writes neither specs nor database. A real rename acquires the project 
 
 ## Validation and performance
 
-`python3 scripts/validate.py --coverage` runs Python runner tests, rustfmt, Clippy with warnings denied, Rust tests, and the 100% line/function coverage gate. Every validation run also benchmarks uninstrumented release binaries, including failed validation runs. Coverage tools and compiler must use the same rustup toolchain. The gate merges LCOV counts by source line and retains the 100% LLVM function threshold. Raw LLVM instance-summary percentages remain visible; see [coverage measurement](docs/coverage.md) for the observed reporting distinction. No source/error paths are excluded. Coverage does not establish complete behavioral correctness or native execution.
+`python3 scripts/validate.py --coverage` runs Python runner tests, rustfmt, Clippy with warnings denied, Rust tests, and the user-approved 97% line/function coverage gate. Every validation run also benchmarks uninstrumented release binaries, including failed validation runs. Coverage tools and compiler must use the same rustup toolchain. The gate merges LCOV counts by source line and retains the 97% LLVM function threshold. Raw LLVM instance-summary percentages remain visible; see [coverage measurement](docs/coverage.md) for the observed reporting distinction. No source/error paths are excluded. Coverage does not establish complete behavioral correctness or native execution.
 
 For each example, measure parsing, compilation, graph construction, snapshots, unchanged/changed diffs, persistence, and unchanged/changed checks. The changed scenario adds a small domain/type in memory and alternates snapshots for checks; original examples are untouched. Persistence uses temporary databases. One warm-up precedes five fresh-process samples; parsing uses 20 iterations and other phases up to three. Timings exclude phase preparation and source loading; parser timing includes lexing, syntax validation, AST construction, and disposal. Check timing includes compilation, graph/snapshot construction, and SQLite publication, using already loaded sources.
 
@@ -123,104 +131,152 @@ native compiler setup; production generation and complete native verification re
 [the full profile workflow](docs/profiles.md) for roles, discovery, frozen claims,
 missing-file handling, migration 3, report schema 2 and selective adaptation.
 
-`python3 scripts/validate.py --coverage` now measures 84 workloads, including
+`python3 scripts/validate.py --coverage` supports 92 release workloads, including
 profile creation, loading, rendering and claim binding for all four targets and
 both examples, plus core-only plan projection, input generation, unbound expression evaluation and assessment. New workload baselines remain unassessed until explicitly accepted.
 
-The adaptive external-harness direction and remaining stages are recorded in
-[verification-architecture.md](docs/verification-architecture.md). The initial
-[verification foundation](docs/verification-foundation.md) introduced pure library
-assessment. Published planning is now available; native harnesses and automatic
-task adoption remain outstanding.
-[Validation evidence](docs/verification-validation.md) records 142 Rust tests,
-100% merged source lines/functions and the isolated release measurement.
+The adaptive external-harness architecture is recorded in
+[verification-architecture.md](docs/verification-architecture.md). Rust owns
+interpretation, input generation, assessment, shrinking and replay semantics.
+The TypeScript target generates testing-only Bun helpers; an external project
+adapter calls actual application code. Production imports no dctx0 runtime or
+harness. Execution uses bounded Linux processes with cleanup, rather than a
+security sandbox. See [the SDK and harness](docs/bun-harness.md) and
+[managed execution](docs/native-executor.md).
 
-[Deterministic input generation](docs/verification-generation.md) supplies valid
-corpora and parameter assignments for upcoming spec-driven execution. This does
-not yet implement the native verification workflow.
+The implemented workflow is:
 
-Published verification planning is now available with `dctx0 verify plan <spec-root>
---subject <qualified-name>` or `--task T31`. It retains typed requirements, examples,
-property cases and lifecycle paths, reports missing scenario inputs, and reads the
-published check without modifying tasks. Use `--json` for the complete plan;
-`--historical-check <id>` explicitly selects historical requirements. See
-[verification planning](docs/verification-planning.md). Native harness execution,
-run history and automatic adoption remain outstanding.
+```sh
+dctx0 check examples/cinema/dctx0
+dctx0 verify discover examples/cinema/dctx0 --project examples/cinema
+dctx0 verify init examples/cinema/dctx0 --project examples/cinema --target typescript
+dctx0 verify plan examples/cinema/dctx0 --project examples/cinema
+dctx0 verify run examples/cinema/dctx0 --project examples/cinema --no-adopt
+dctx0 verify show examples/cinema/dctx0 <run-id>
+dctx0 verify replay examples/cinema/dctx0 <run-id> --case <case-id>
+```
 
+`discover` produces unconfirmed structural candidates without executing code.
+`init` preserves existing testing files and creates an unavailable scaffold.
+A reviewed adapter must supply actual entry points before native checks can pass.
+Configuration defaults to an empty scope; explicit subjects or tasks override the
+configured selection. Planning preserves mandatory examples and reports missing
+lifecycle inputs without executing the adapter. Changed spec sources require a
+successful `check`; verification never publishes a compiler head implicitly.
+See [setup](docs/verification-setup.md) and
+[planning](docs/verification-planning.md).
 
-The TypeScript target now generates a testing-only Bun worker through the separate
-[dctx0 target SDK](docs/bun-harness.md). Native conformance exercises sessions,
-collaborator requests, events/state and an actual Cinema tie call. These transport
-tests do not establish complete Cinema verification or automatic task adoption.
-Bun 1.4.2 is required for the target conformance tests and installed in CI; native
-costs are recorded separately. `--focus native-transport` selects partial development
-validation while still running release measurements; full acceptance continues to
-use `python3 scripts/validate.py --coverage`.
+The central application configuration is `.dctx0/testing/verification.json`.
+Its `budgets.generated_cases` defaults to 100 per obligation; set it to 1 for a
+small development corpus. Explicit examples remain mandatory, and the saved
+plan reports the chosen corpus and budgets. Cinema's adapter configuration is
+separate at `.dctx0/testing/typescript/config.json`.
 
+Schema-4 writers preserve immutable runs, provenance and artifacts; schema-1–4
+readers do not migrate. `show` reports saved evidence without asserting current
+working-tree freshness. `replay` executes saved inputs against a new capture,
+reports changed inputs and never adopts tasks. Prepared port replies, actual
+calls/events/resources and before/after states are assessed centrally. Native
+operation and lifecycle setup must satisfy its declared preconditions. Missing
+observers, missing model projections and unsupported requirements remain UNKNOWN.
+See [run/replay and evidence limits](docs/verification-run.md) and
+[history](docs/verification-history.md).
 
-The engine now supplies a [managed Linux native executor](docs/native-executor.md)
-with bounded protocol/log streams, cancellation, timeouts and child cleanup. Its
-pure-case continuation checks the complete Cinema winner invariant against actual
-Bun calls and detects an isolated application mutation. The public CLI still
-exposes planning; complete Cinema scenario execution, run history and automatic
-adoption remain outstanding. `--focus native-executor` selects partial development
-checks with paired release measurements; full coverage requires workspace focus.
+Without `--no-adopt`, complete task-specific native evidence may atomically deliver eligible Open,
+unclaimed and unreserved tasks using the ordinary transition/profile guards.
+Imported PASS reports cannot authorize this. Incomplete evidence, changed sources,
+stale pins and unmet prerequisites prevent adoption. Historical Done/PASS work
+remains unchanged. SQLite rollback concerns task events, results and bindings;
+it never reverts code, adapters or specs.
+An overall UNKNOWN for unrelated manual requirements or named suites does not
+prevent fully proved tasks from being delivered. Every mandatory native case
+must still pass; each delivered task needs complete requirement mapping and
+provenance. Reviews, integrations and tasks with incomplete requirements remain
+open. To enable adoption, initialize the implementation profiles and publish a
+current task plan explicitly:
 
+```sh
+dctx0 profile typescript create --project examples/cinema --default
+dctx0 tasks plan examples/cinema/dctx0
+dctx0 verify run examples/cinema/dctx0 --project examples/cinema
+```
 
-[Central Cinema scenario execution](docs/cinema-scenarios.md) now checks all twelve
-examples against actual consumer services through generated Bun sessions, central
-port mocks and observed events/failures. Isolated production mutations are detected.
-These scenario results alone do not prove production persistence, state,
-lifecycles or automatic task adoption. Managed `verify run` now combines the
-available execution layers; the complete
-remaining scope stays in [the Cinema checklist](docs/cinema-verification-progress.md).
+The frozen direct-function and Awilix/Hono fixtures pass the same central plan,
+and mutations of actual business code and HTTP wiring are detected. The complete
+Cinema scope runs through the generated harness: **5,674 mandatory cases, all
+PASS**, including 14 actual HTTP cases. The reference project has **104 tasks
+Done/PASS, zero open**. Native evidence remains UNKNOWN for manual requirements;
+explicit source-bound inspections produce a separate effective PASS without
+rewriting native observations. See [completion evidence](docs/cinema-complete-validation.json).
+Release measurements can be restricted to Cinema with
+`python3 scripts/validate.py --coverage --example cinema`; the two-example
+benchmark conformance check is deferred in this scope.
 
-Cinema now supplies actual SQLite production ports and explicit Hono/Awilix
-composition. Its external test adapter can observe real calls and persisted state;
-Rust evaluates connected lifecycle paths against those observations. See
-[real-state scope and open points](docs/cinema-state-lifecycles.md). This remains a
-library/native continuation: the complete verification run/history/adoption CLI
-is still being implemented. Native application coverage is measured separately
-from Rust and generated helper coverage.
+During implementation, performance measurements are deferred at the user's
+request. Run functional checks with:
 
-For a narrower development check, run
-`PATH=/home/held/.cargo/bin:$PATH python3 scripts/validate.py --focus verification --samples 1 --iterations 1`.
-It installs the Cinema dependencies from the frozen Bun lockfile, runs the selected
-verification/native tests, and records release speed/RSS measurements. Full
-acceptance still requires `python3 scripts/validate.py --coverage`; reduced
-measurement settings do not assess the accepted default-sample baseline.
+```sh
+PATH=/home/held/.cargo/bin:$PATH python3 scripts/validate.py --focus verification --skip-performance
+```
 
+Results are saved separately in `target/validation-without-performance.json`.
+The deferred mode also skips the expensive CLI benchmark conformance test and
+names it in the report. With `--coverage`, this produces explicitly partial
+coverage and cannot pass final acceptance. Default validation retains that test.
+This does not pass a performance gate or alter the accepted baseline. Final
+acceptance still requires full workspace/feature checks, 97% merged Rust source
+lines and LLVM functions, and separately reviewed release speed/RSS measurements.
+The retained assessment-11 coverage run has 98.83% lines and 97.57% functions;
+newer focused tests do not establish a new coverage percentage. Native Bun helper
+coverage is recorded separately from Rust. Earlier foundation coverage and
+measurement reports are historical evidence, not proof for the current tree.
 
-`dctx0 verify init <spec-root> --project <app-root> --target typescript` now
-creates preserved testing artifacts and an explicitly unavailable adapter scaffold.
-Its default scope is empty. `verify plan` can load the saved application
-configuration, scope and reviewed inputs; explicit selectors override configured
-selectors. See [setup and configured planning](docs/verification-setup.md). Neither
-setup nor planning executes the application or adopts tasks. Release validation
-now includes separate fresh-setup workloads for both complete example sources.
+Validation and coverage automatically use a Linux systemd user scope capped at
+two thirds of startup `MemAvailable`, collectively including all child processes,
+with additional swap disabled. If the scope cannot be created, execution fails
+instead of running unbounded. Cargo jobs and Rust test threads default to two.
+For direct checks use `python3 scripts/memory_guard.py dctx0 verify run <spec-root>`.
+The native runner alone has time/output limits but no hard RAM limit. Functional
+checks and coverage run first; benchmark conformance and release speed/RSS run
+last. `python3 scripts/validate.py --coverage --skip-performance` defers those
+final stages and records their status as deferred. The memory budget is shared
+within one guarded invocation; concurrent independent invocations have separate
+budgets and should not be started together.
 
+Cinema entity-key checkpoint (2026-10-11): Assessment 12 executes 5,660 mandatory
+cases with PASS, including five explicit identity checks over actual persisted
+operation states. 46 of 104 tasks are delivered; 58 remain open. The whole result
+is still UNKNOWN for the 18 manual requirements and nine undefined proof/test
+suites. Actual SQLite duplicate-persistence mutation and identity replay pass.
+See [entity identity evidence](docs/cinema-entity-identity-validation.json).
 
-Writers now add verification history through SQLite schema 4 while readers accept
-schemas 1–4 without migration. `dctx0 verify show <spec-root> <run-id>` reads
-immutable saved evidence in Markdown or JSON without asserting working-tree
-freshness. Run recording alone never updates task progress or testing status.
-See [verification history and evidence limits](docs/verification-history.md).
-Managed `verify run` now executes the generated Bun harness and stores actual
-observations from published requirements. See [run workflow](docs/verification-run.md).
-`verify replay` executes saved case inputs against a new captured implementation.
-`dctx0 verify discover <spec-root> --project <app-root>` now provides read-only
-Tree-sitter TypeScript/TSX inventory and unconfirmed name candidates from a
-published snapshot. It executes neither application nor adapter, adopts nothing,
-and creates no testing files. Syntax-error sources are shown but excluded from
-suggestions; multiple candidates remain ambiguous. Class members are structural
-candidates, never proof of an instance, DI registration or runtime type.
-The inventory skips dependencies, testing artifacts and common generated output;
-it rejects symlinks and limits source count/bytes, visited entries and depth.
-See [run workflow and evidence limits](docs/verification-run.md).
-`bench <spec-root> verification-discover 1 --db <temporary-database>` measures
-read-only application inventory/parse separately; compiler publication is setup.
-Validation includes discovery workloads for both examples, with source hashes
-and Linux process RSS. New workloads have no accepted baseline yet.
-Guarded adoption and complete operation obligations remain required.
-The current whole-Cinema report is UNKNOWN. Functional tests pass;
-the new code's complete coverage gate is still being restored.
+Complete Cinema acceptance is available directly from Rust, without Python:
+
+```sh
+dctx0 verify complete examples/cinema/dctx0 --project examples/cinema
+```
+
+It executes the configured native corpus, verifies existing source-bound review
+notes, publishes effective evidence and requires a nonempty task plan with zero
+unfinished/non-PASS tasks. Use `--json` for the summary or `--inspections <file>`
+for another authored notes file. The Linux command caps collective CLI/native
+memory at two thirds of available RAM using the systemd user manager. Bun is
+still needed to run TypeScript. See [the complete command](docs/verification-complete.md).
+
+Explicit inspected task delivery is available as
+`dctx0 verify attest <spec-root> <native-run-id> --project <app-root> --file <reports.json>`.
+The file contains a JSON array of `TaskAttestation` objects. Each inspection pins
+its task (`T<ID>`), snapshot, native plan hash, complete requirement IDs and
+implementation artifact hashes, actor, report, limitations and verdict. Review
+tasks also require a structured approved review without unresolved high/action
+findings. Delivery requires the complete actual native corpus and unchanged
+inputs/profiles. It preserves automatic evidence and records agent evidence in
+normal task history; it does not manufacture an automatic native PASS. See
+[implementation checkpoint](docs/verification-suite-attestation-progress.md).
+
+`dctx0 verify inspect <spec-root> <native-run-id> --project <app-root> --file <reports.json>`
+stores an effective suite/review/Release assessment from a JSON array of
+`ProgramInspection` reports. Automatic and agent outcomes remain separate. The
+inspection report references the unchanged native source and does not claim a new
+execution or authorize automatic task adoption. Current source/check/profile
+bindings are checked before publication.

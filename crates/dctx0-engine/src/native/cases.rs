@@ -27,7 +27,7 @@ impl NativeWorker {
         case: &VerificationCase,
         cancellation: &NativeCancellation,
     ) -> Result<NativeCaseResult, NativeFailure> {
-        self.session_evidence.clear();
+        self.clear_evidence();
         match tokio::time::timeout(
             self.limits.case,
             self.pure_case_session(ir, plan, case, cancellation),

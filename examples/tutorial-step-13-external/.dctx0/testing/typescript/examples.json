@@ -1,0 +1,208 @@
+{
+  "examples": {
+    "Tutorial.Board.Catalog.reader returns a summary": {
+      "foundId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "Tutorial.Board.Catalog.reader returns no task": {
+      "missingId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000003"
+      }
+    },
+    "Tutorial.Board.Catalog.require an existing task": {
+      "foundId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "Tutorial.Board.Catalog.require a missing task": {
+      "missingId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000003"
+      }
+    }
+  },
+  "operations": {
+    "Tutorial.Board.Catalog.TaskWriter.replace": [
+      {
+        "id": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Changed"
+                },
+                "status": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "Tutorial.Board.Status",
+                    "name": "Done",
+                    "payload": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.TaskWriter.save": [
+      {
+        "id": "Tutorial.Board.Catalog.TaskWriter.save:reviewed:existing-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskWriter.save",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Changed"
+                },
+                "status": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "Tutorial.Board.Status",
+                    "name": "Done",
+                    "payload": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.TaskWriter.remove": [
+      {
+        "id": "Tutorial.Board.Catalog.TaskWriter.remove:reviewed:existing-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskWriter.remove",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.TaskWriter.saveNote": [
+      {
+        "id": "Tutorial.Board.Catalog.TaskWriter.saveNote:reviewed:existing-composite-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskWriter.saveNote",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "taskId": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "sequence": {
+                  "kind": "integer",
+                  "value": "0"
+                },
+                "text": {
+                  "kind": "string",
+                  "value": "Changed"
+                }
+              }
+            }
+          ]
+        },
+        "setup": []
+      },
+      {
+        "id": "Tutorial.Board.Catalog.TaskWriter.saveNote:reviewed:new-composite-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskWriter.saveNote",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "taskId": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "sequence": {
+                  "kind": "integer",
+                  "value": "2"
+                },
+                "text": {
+                  "kind": "string",
+                  "value": "New sequence"
+                }
+              }
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Tasks.find": [
+      {
+        "id": "Tutorial.Board.Tasks.find:reviewed:stored-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Tasks.find",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.TaskReader.lookup": [
+      {
+        "id": "Tutorial.Board.Catalog.TaskReader.lookup:reviewed:stored-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskReader.lookup",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.Public.find": [
+      {
+        "id": "Tutorial.Board.Catalog.Public.find:reviewed:stored-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.Public.find",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ]
+  }
+}

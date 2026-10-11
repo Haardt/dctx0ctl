@@ -29,7 +29,7 @@ fn invalid(source: &str, code: &str) {
 fn both_complete_specs_match_independent_typescript_semantic_models() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     for (name, directory) in [
-        ("cinema", "examples/cinema/dctx0"),
+        ("cinema", "fixtures/semantic/original-cinema"),
         ("runatron-next", "examples/runatron-next/dctx0"),
     ] {
         let mut sources = fs::read_dir(root.join(directory))
@@ -588,5 +588,90 @@ fn effects_and_policy_requirements_reject_incompatible_declarations() {
             .iter()
             .any(|reference| reference.target == "W.Api.get"
                 && reference.kind == dctx0_core::ReferenceKind::Observes)
+    );
+}
+#[test]
+fn filtered_lists_retain_element_types_and_reject_missing_binders_or_non_boolean_predicates() {
+    for (expression, valid) in [
+        ("filter(x in [1,2] where x > 1) == [2]", true),
+        ("filter(x in [1,2]) == [1,2]", true),
+        ("map(x + 1 for x in [1,2]) == [2,3]", true),
+        ("map(x + 1 for x in [1,2]) == [true]", false),
+        ("map([1,2]) == [1,2]", false),
+        ("first([1,2]) == Some(1)", true),
+        ("first(1) == Some(1)", false),
+        ("first([1,2]) == Some(true)", false),
+        ("single([1]) == 1", true),
+        ("single(1) == 1", false),
+        ("includesText(\"Cinema\",\"ema\")", true),
+        ("includesText(1,\"ema\")", false),
+        ("slice([1,2],1,1) == [2]", true),
+        ("slice([1,2],true,1) == [2]", false),
+        ("slice([1,2],1,1) == [true]", false),
+        ("sortBy(x for x in [3,1,2]) == [1,2,3]", true),
+        ("sortBy(x for x in [true,false]) == [true,false]", false),
+        ("sortBy([1,2]) == [1,2]", false),
+        ("sortDescBy(x for x in [1,2]) == [2,1]", true),
+        ("ifElse(true,1,2) == 1", true),
+        ("ifElse(1,1,2) == 1", false),
+        ("ifElse(true,1,false) == 1", false),
+        ("getOrElse(mean([4,5]),0e0) == 4.5e0", true),
+        ("mean([true]) == Some(1e0)", false),
+        ("indexOf([1,2],2) == 1", true),
+        ("indexOf([1,2],true) == 1", false),
+        ("getOrElse(first([1,2]),true) == 1", false),
+        ("filter(x in [1,2] where x) == [1,2]", false),
+        ("filter([1,2]) == [1,2]", false),
+        ("filter(x in [1,2] where true) == [true]", false),
+    ] {
+        let compiled = dctx0_language::compile(&[dctx0_core::Source {
+            file: "filter.dctx0".into(),
+            text: format!("workspace W {{ invariant I {{ assert {expression} }} }}"),
+        }]);
+        assert_eq!(
+            compiled.diagnostics.is_empty(),
+            valid,
+            "{expression}: {:?}",
+            compiled.diagnostics
+        );
+    }
+}
+
+#[test]
+fn lifecycle_guards_bind_the_selected_operations_parameters_and_require_boolean_conditions() {
+    let spec = r#"workspace W {
+      type Status = Open | Done
+      entity Task {
+        id: UUID
+        status: Status
+        key id
+      }
+      surface Api { operation replace(request: Task) -> Task }
+      lifecycle Flow for Task using status {
+        state Open initial
+        state Done terminal
+        transition Api.replace from Open to Done when request.status == Done
+      }
+    }"#;
+    let ir = valid(spec);
+    let guard = &ir
+        .nodes
+        .iter()
+        .find(|node| node.kind == K::Transition)
+        .unwrap()
+        .expressions[0];
+    assert_eq!(guard.ty.name, "Boolean");
+    assert!(matches!(guard.value, ExpressionKind::Binary { .. }));
+    invalid(
+        &spec.replace("request.status == Done", "request.id"),
+        "DCTX0_EXPRESSION_TYPE",
+    );
+    invalid(
+        &spec.replace("request.status == Done", "missing.status == Done"),
+        "DCTX0_UNBOUND_VARIABLE",
+    );
+    invalid(
+        &spec.replace("request.status == Done", "count(after.Task) > 0"),
+        "DCTX0_AFTER_STATE_CONTEXT",
     );
 }

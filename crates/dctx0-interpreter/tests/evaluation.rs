@@ -84,6 +84,78 @@ fn unknown(e: Expression, code: &str) {
     assert_eq!(issue.code, code);
     assert_eq!(issue.span.unwrap().file, "reference.dctx0");
 }
+
+#[test]
+fn mean_preserves_exact_cancellation_and_reports_unrepresentable_float_results() {
+    let magnitude = "9".repeat(400);
+    let expression = call("mean", vec![var("values")]);
+    let run_values = |values| {
+        evaluate(
+            &ir(),
+            &expression,
+            &BTreeMap::from([("values".into(), VerificationValue::List(values))]),
+            &[],
+            &Default::default(),
+        )
+    };
+    assert_eq!(
+        run_values(vec![integer(&magnitude), integer(&format!("-{magnitude}"))]),
+        O::Complete(VerificationValue::Option(Some(Box::new(
+            VerificationValue::Float("0".into())
+        ))))
+    );
+    let O::Unknown(issue) = run_values(vec![integer(&magnitude)]) else {
+        panic!("An unrepresentable mean must not silently become infinity");
+    };
+    assert_eq!(issue.code, "FLOAT_REPRESENTATION_REQUIRED");
+    assert_eq!(issue.span.unwrap().file, "reference.dctx0");
+}
+
+#[test]
+fn list_search_and_mean_budget_exhaustion_do_not_return_partial_results() {
+    let variables = BTreeMap::from([
+        (
+            "values".into(),
+            VerificationValue::List(vec![integer("1"); 32]),
+        ),
+        ("needle".into(), integer("9")),
+    ]);
+    for (name, arguments, expected, message) in [
+        (
+            "mean",
+            vec![var("values")],
+            VerificationValue::Option(Some(Box::new(VerificationValue::Float("1".into())))),
+            "Mean",
+        ),
+        (
+            "indexOf",
+            vec![var("values"), var("needle")],
+            integer("-1"),
+            "List search",
+        ),
+    ] {
+        let expression = call(name, arguments);
+        assert_eq!(
+            evaluate(&ir(), &expression, &variables, &[], &Default::default()),
+            O::Complete(expected)
+        );
+        let O::Unknown(issue) = evaluate(
+            &ir(),
+            &expression,
+            &variables,
+            &[],
+            &VerificationBudgets {
+                evaluation_steps: 16,
+                ..Default::default()
+            },
+        ) else {
+            panic!("{name} must report an exhausted mandatory evaluation");
+        };
+        assert_eq!(issue.code, "EVALUATION_BUDGET");
+        assert!(issue.message.contains(message));
+        assert_eq!(issue.span.unwrap().file, "reference.dctx0");
+    }
+}
 fn collection(
     op: &str,
     values: Vec<Expression>,
@@ -98,6 +170,62 @@ fn collection(
         predicate: predicate.map(Box::new),
         projection: projection.map(Box::new),
     })
+}
+
+#[test]
+fn unsupported_sort_keys_and_incomplete_comparisons_never_return_a_partial_order() {
+    unknown(
+        collection(
+            "sortBy",
+            vec![bool_expr(true), bool_expr(false)],
+            Some("item"),
+            None,
+            Some(var("item")),
+        ),
+        "UNSUPPORTED_SORT_KEY",
+    );
+    unknown(
+        collection(
+            "sortBy",
+            vec![int("1"), lit("String", "a")],
+            Some("item"),
+            None,
+            Some(var("item")),
+        ),
+        "INCOMPATIBLE_SORT_KEYS",
+    );
+    let expression = expr(ExpressionKind::Collection {
+        operator: "sortBy".into(),
+        binder: Some("item".into()),
+        collection: Box::new(var("values")),
+        predicate: None,
+        projection: Some(Box::new(var("item"))),
+    });
+    let variables = BTreeMap::from([(
+        "values".into(),
+        VerificationValue::List((0..16).rev().map(|n| integer(&n.to_string())).collect()),
+    )]);
+    assert_eq!(
+        evaluate(&ir(), &expression, &variables, &[], &Default::default()),
+        O::Complete(VerificationValue::List(
+            (0..16).map(|n| integer(&n.to_string())).collect()
+        ))
+    );
+    let O::Unknown(issue) = evaluate(
+        &ir(),
+        &expression,
+        &variables,
+        &[],
+        &VerificationBudgets {
+            evaluation_steps: 40,
+            ..Default::default()
+        },
+    ) else {
+        panic!("An incomplete sort cannot establish an ordering");
+    };
+    assert_eq!(issue.code, "EVALUATION_BUDGET");
+    assert!(issue.message.contains("Sorting"));
+    assert_eq!(issue.span.unwrap().file, "reference.dctx0");
 }
 
 #[test]
@@ -156,9 +284,9 @@ fn exact_arithmetic_matches_independent_reference_vectors() {
     }
     unknown(int(&"9".repeat(65537)), "INVALID_VALUE");
     unknown(lit("Decimal", "1.2a"), "INVALID_VALUE");
-    for (kind, text) in [("Float", "1e2"), ("Timestamp", "now")] {
-        unknown(lit(kind, text), "UNSUPPORTED_LITERAL");
-    }
+    expect(lit("Float", "1e2"), VerificationValue::Float("1e2".into()));
+    unknown(lit("Float", "NaN"), "INVALID_VALUE");
+    unknown(lit("Timestamp", "now"), "UNSUPPORTED_LITERAL");
     unknown(lit("Boolean", "yes"), "INVALID_VALUE");
 }
 
@@ -285,11 +413,138 @@ fn builtin_vectors_cover_strings_options_and_list_translation() {
     );
     expect(call("None", vec![]), VerificationValue::Option(None));
     expect(
+        call(
+            "ifElse",
+            vec![bool_expr(true), int("7"), binary("/", int("1"), int("0"))],
+        ),
+        integer("7"),
+    );
+    expect(
+        call(
+            "ifElse",
+            vec![bool_expr(false), binary("/", int("1"), int("0")), int("8")],
+        ),
+        integer("8"),
+    );
+    expect(
+        binary(">=", lit("Float", "4.5"), int("4")),
+        VerificationValue::Boolean(true),
+    );
+    expect(
+        binary("<", lit("Float", "4.5"), int("4")),
+        VerificationValue::Boolean(false),
+    );
+    expect(
+        binary("==", lit("Float", "1e0"), int("1")),
+        VerificationValue::Boolean(true),
+    );
+    expect(
+        call(
+            "includesText",
+            vec![lit("String", "Cinéma"), lit("String", "né")],
+        ),
+        VerificationValue::Boolean(true),
+    );
+    expect(
+        call(
+            "includesText",
+            vec![lit("String", "Cinema"), lit("String", "cinema")],
+        ),
+        VerificationValue::Boolean(false),
+    );
+    for (offset, limit, expected) in [
+        ("1", "1", vec![integer("2")]),
+        ("0", "0", vec![]),
+        ("99", "1", vec![]),
+        (
+            "0",
+            "9007199254740993",
+            vec![integer("1"), integer("2"), integer("3")],
+        ),
+        ("9007199254740993", "1", vec![]),
+    ] {
+        expect(
+            call(
+                "slice",
+                vec![
+                    list(vec![int("1"), int("2"), int("3")]),
+                    int(offset),
+                    int(limit),
+                ],
+            ),
+            VerificationValue::List(expected),
+        );
+    }
+    unknown(
+        call("slice", vec![list(vec![int("1")]), int("-1"), int("1")]),
+        "SLICE_INDEX_REQUIRED",
+    );
+    expect(call("single", vec![list(vec![int("4")])]), integer("4"));
+    unknown(
+        call("single", vec![list(vec![])]),
+        "RESULT_CARDINALITY_REQUIRED",
+    );
+    unknown(
+        call("single", vec![list(vec![int("1"), int("2")])]),
+        "RESULT_CARDINALITY_REQUIRED",
+    );
+    expect(
+        call("mean", vec![list(vec![int("4"), int("5")])]),
+        VerificationValue::Option(Some(Box::new(VerificationValue::Float("4.5".into())))),
+    );
+    expect(
+        call("mean", vec![list(vec![])]),
+        VerificationValue::Option(None),
+    );
+    expect(
+        call(
+            "getOrElse",
+            vec![call("mean", vec![list(vec![])]), lit("Float", "0e0")],
+        ),
+        VerificationValue::Float("0e0".into()),
+    );
+    expect(
+        call("indexOf", vec![list(vec![int("4"), int("5")]), int("5")]),
+        integer("1"),
+    );
+    expect(
+        call("indexOf", vec![list(vec![int("4"), int("5")]), int("9")]),
+        integer("-1"),
+    );
+    expect(
+        binary("==", lit("Float", "0e0"), lit("Float", "0")),
+        VerificationValue::Boolean(true),
+    );
+    expect(
+        call("first", vec![list(vec![])]),
+        VerificationValue::Option(None),
+    );
+    expect(
+        call("first", vec![list(vec![int("2"), int("1")])]),
+        VerificationValue::Option(Some(Box::new(integer("2")))),
+    );
+    unknown(call("first", vec![int("1")]), "UNSUPPORTED_BUILTIN");
+    expect(
         call("Some", vec![int("1")]),
         VerificationValue::Option(Some(Box::new(integer("1")))),
     );
     unknown(call("round", vec![]), "UNSUPPORTED_BUILTIN");
     unknown(call("trim", vec![int("1")]), "UNSUPPORTED_BUILTIN");
+}
+
+#[test]
+fn unicode_trim_matches_the_independent_typescript_reference() {
+    for (input, expected) in [
+        ("\u{00a0}\u{feff}x\u{feff}\u{00a0}", "x"),
+        ("\u{0085}x\u{0085}", "\u{0085}x\u{0085}"),
+        ("\u{feff}", ""),
+        ("\u{180e}x\u{180e}", "\u{180e}x\u{180e}"),
+    ] {
+        expect(
+            call("trim", vec![lit("String", input)]),
+            VerificationValue::String(expected.into()),
+        );
+    }
 }
 
 #[test]
@@ -398,6 +653,39 @@ fn records_variants_and_nested_equality_are_lossless() {
 
 #[test]
 fn collections_bind_locally_and_cover_empty_and_unknown_aggregates() {
+    expect(
+        collection(
+            "sortDescBy",
+            vec![int("1"), int("3"), int("2")],
+            Some("x"),
+            None,
+            Some(var("x")),
+        ),
+        VerificationValue::List(vec![integer("3"), integer("2"), integer("1")]),
+    );
+    expect(
+        collection(
+            "sortBy",
+            vec![int("3"), int("1"), int("2")],
+            Some("x"),
+            None,
+            Some(var("x")),
+        ),
+        VerificationValue::List(vec![integer("1"), integer("2"), integer("3")]),
+    );
+    expect(
+        collection(
+            "sortBy",
+            vec![lit("Float", "3e0"), lit("Float", "1e0")],
+            Some("x"),
+            None,
+            Some(var("x")),
+        ),
+        VerificationValue::List(vec![
+            VerificationValue::Float("1e0".into()),
+            VerificationValue::Float("3e0".into()),
+        ]),
+    );
     let predicate = || binary(">", var("x"), int("1"));
     for (op, answer) in [
         ("count", integer("1")),
@@ -715,4 +1003,71 @@ fn compiled_postcondition_uses_actual_result_and_keeps_semantic_ir_unchanged() {
         );
     }
     assert_eq!(serde_json::to_string(&ir).unwrap(), original);
+}
+
+fn rounding_mode(name: &str) -> Expression {
+    expr(ExpressionKind::Variant {
+        name: name.into(),
+        declaration: "RoundingMode".into(),
+    })
+}
+#[test]
+fn decimal_rounding_uses_exact_signed_ties_and_all_four_modes() {
+    for (input, mode, output) in [
+        ("2.345", "Down", "2.34"),
+        ("2.341", "Up", "2.35"),
+        ("2.345", "HalfUp", "2.35"),
+        ("2.345", "HalfEven", "2.34"),
+        ("2.355", "HalfEven", "2.36"),
+        ("-2.345", "HalfUp", "-2.35"),
+        ("-2.345", "HalfEven", "-2.34"),
+        ("-2.341", "Up", "-2.35"),
+        ("-2.349", "Down", "-2.34"),
+        ("1", "Up", "1"),
+        ("9007199254740993.125", "HalfEven", "9007199254740993.12"),
+    ] {
+        expect(
+            call(
+                "round",
+                vec![lit("Decimal", input), int("2"), rounding_mode(mode)],
+            ),
+            VerificationValue::Decimal(output.into()),
+        );
+    }
+    for (left, right, mode, output) in [
+        ("1", "3", "Down", "0.33"),
+        ("-1", "3", "Up", "-0.34"),
+        ("1", "8", "Down", "0.125"),
+    ] {
+        expect(
+            call(
+                "divide",
+                vec![
+                    lit("Decimal", left),
+                    lit("Decimal", right),
+                    int("2"),
+                    rounding_mode(mode),
+                ],
+            ),
+            VerificationValue::Decimal(output.into()),
+        );
+    }
+    unknown(
+        call(
+            "divide",
+            vec![int("1"), int("0"), int("2"), rounding_mode("Down")],
+        ),
+        "DIVISION_BY_ZERO",
+    );
+    unknown(
+        call("round", vec![int("1"), int("-1"), rounding_mode("Down")]),
+        "INVALID_VALUE",
+    );
+    unknown(
+        call(
+            "round",
+            vec![int("1"), int("1000000"), rounding_mode("Down")],
+        ),
+        "EVALUATION_BUDGET",
+    );
 }

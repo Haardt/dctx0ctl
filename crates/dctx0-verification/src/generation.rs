@@ -10,8 +10,25 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
-pub const GENERATOR_VERSION: &str = "dctx0-values-1";
-pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-1";
+pub const GENERATOR_VERSION: &str = "dctx0-values-3";
+pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-3";
+
+// Adjacent IEEE-754 values, without the Rust 1.86 next_up/next_down APIs.
+fn adjacent_float(value: f64, up: bool) -> f64 {
+    if value.is_nan() || value == if up { f64::INFINITY } else { f64::NEG_INFINITY } {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits(if up { 1 } else { (1 << 63) | 1 });
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value.is_sign_positive() == up {
+        bits + 1
+    } else {
+        bits - 1
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ValueCorpus {
     pub values: Vec<V>,
@@ -47,6 +64,8 @@ pub fn generate_rejections(
         V::Integer("-1".into()),
         V::String(String::new()),
         V::String("not-a-uuid".into()),
+        V::String("\u{feff}".into()),
+        V::String("\u{0085}".into()),
         V::Float("1.5".into()),
         V::Record(BTreeMap::new()),
         V::List(vec![]),
@@ -70,6 +89,22 @@ pub fn generate_rejections(
             break;
         };
         if let Some((min, max)) = generator.bounds(id) {
+            if matches!(generator.base(current, 0), Some("Float" | "Duration")) {
+                for outside in [
+                    min.parse::<f64>()
+                        .ok()
+                        .map(|value| adjacent_float(value, false)),
+                    max.parse::<f64>()
+                        .ok()
+                        .map(|value| adjacent_float(value, true)),
+                ]
+                .into_iter()
+                .flatten()
+                .filter(|value| value.is_finite())
+                {
+                    candidates.push(V::Float(outside.to_string()));
+                }
+            }
             let bounds = match generator.base(current, 0) {
                 Some("Int") => Some((V::Integer(min), V::Integer(max))),
                 Some("Decimal") => Some((V::Decimal(min), V::Decimal(max))),
@@ -82,7 +117,7 @@ pub fn generate_rejections(
                 )
             }) {
                 candidates.extend([min, max]);
-            } else {
+            } else if !matches!(generator.base(current, 0), Some("Float" | "Duration")) {
                 issues.push(VerificationIssue {
                     code: "REJECTION_RANGE_UNSUPPORTED".into(),
                     message: format!("Cannot construct exact outside-range values for {id}"),
@@ -93,6 +128,56 @@ pub fn generate_rejections(
         let Some(data) = ir.data.get(id) else {
             break;
         };
+        for node in ir
+            .nodes
+            .iter()
+            .filter(|node| node.owner == *id && matches!(node.kind, K::Format | K::Length))
+        {
+            if node.kind == K::Format {
+                let invalid: &[&str] = match node.terms.first().map(|token| token.text.as_str()) {
+                    Some("Email") => &["a@@b.co", "a@b", "a@b.co\u{feff}"],
+                    Some("UUID") => &["00000000-0000-0000-0000-000000000001"],
+                    Some("Uri") => &["/relative", "https://bad host.test"],
+                    Some("Date") => &["1900-02-29", "2026-02-30", "2026-1-01"],
+                    Some("DateTime") => &[
+                        "2026-02-30T00:00:00Z",
+                        "2026-01-01T24:00:00Z",
+                        "October 11, 2026",
+                    ],
+                    _ => &[],
+                };
+                candidates.extend(invalid.iter().map(|text| V::String((*text).into())));
+            } else {
+                let text = node
+                    .terms
+                    .iter()
+                    .map(|token| token.text.as_str())
+                    .collect::<String>();
+                if let Some((minimum, maximum)) = text.split_once("..") {
+                    if let (Ok(minimum), Ok(maximum)) =
+                        (minimum.parse::<usize>(), maximum.parse::<usize>())
+                    {
+                        for size in [minimum.checked_sub(1), maximum.checked_add(1)]
+                            .into_iter()
+                            .flatten()
+                        {
+                            if size > budgets.value_bytes.saturating_sub(32) {
+                                continue;
+                            }
+                            match generator.base(current, 0) {
+                                Some("String") => candidates.push(V::String("x".repeat(size))),
+                                Some("List") if size <= budgets.collection_size => {
+                                    if let Some(V::List(sample)) = data.alias.as_ref().and_then(|alias| generate_values(ir, alias, budgets).values.into_iter().find(|value| matches!(value, V::List(items) if !items.is_empty()))) {
+                                        candidates.push(V::List(vec![sample[0].clone(); size]));
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if !data.variants.is_empty() {
             candidates.push(V::Variant {
                 declaration: id.clone(),
@@ -216,6 +301,14 @@ impl Generator<'_> {
                             corpus.exhaustive = false;
                             corpus
                         }
+                        Some("Float" | "Duration") => {
+                            let mut corpus = self.domain(alias, depth + 1);
+                            corpus
+                                .values
+                                .splice(0..0, [V::Float(bounds.0), V::Float(bounds.1)]);
+                            corpus.exhaustive = false;
+                            corpus
+                        }
                         _ => self.domain(alias, depth + 1),
                     }
                 } else {
@@ -280,6 +373,56 @@ impl Generator<'_> {
         } else {
             self.builtin(ty, depth)
         };
+        if let Some(id) = &ty.symbol_id {
+            for node in self
+                .ir
+                .nodes
+                .iter()
+                .filter(|node| node.owner == *id && matches!(node.kind, K::Format | K::Length))
+            {
+                if node.kind == K::Format {
+                    let samples: &[&str] = match node.terms.first().map(|token| token.text.as_str())
+                    {
+                        Some("Email") => &["a@b.co", "sample@example.test"],
+                        Some("UUID") => &[
+                            "00000000-0000-4000-8000-000000000001",
+                            "ffffffff-ffff-5fff-bfff-ffffffffffff",
+                        ],
+                        Some("Uri") => &[
+                            "https://example.test/tasks",
+                            "mailto:sample@example.test",
+                            "urn:task:1",
+                        ],
+                        Some("Date") => &["1970-01-01", "2000-02-29", "2026-10-11"],
+                        Some("DateTime") => &["1970-01-01T00:00:00Z", "2000-02-29T12:00:00+01:00"],
+                        _ => &[],
+                    };
+                    corpus.values.splice(
+                        0..0,
+                        samples.iter().map(|sample| V::String((*sample).into())),
+                    );
+                    corpus.exhaustive = false;
+                } else if self.base(ty, depth) == Some("String") {
+                    let text = node
+                        .terms
+                        .iter()
+                        .map(|token| token.text.as_str())
+                        .collect::<String>();
+                    if let Some((minimum, maximum)) = text.split_once("..") {
+                        for bound in [minimum, maximum] {
+                            if let Ok(size) = bound.parse::<usize>() {
+                                if size <= self.budgets.value_bytes.saturating_sub(32) {
+                                    corpus.values.insert(0, V::String("x".repeat(size)));
+                                } else {
+                                    corpus.issues.push(VerificationIssue { code: "GENERATION_BUDGET".into(), message: "Required length boundary exceeds the canonical value budget".into(), span: Some(node.span.clone()) });
+                                }
+                            }
+                        }
+                    }
+                    corpus.exhaustive = false;
+                }
+            }
+        }
         if corpus.values.len() > self.budgets.generated_cases {
             corpus.exhaustive = false;
             let last = corpus.values.pop().unwrap();
@@ -445,10 +588,19 @@ impl Generator<'_> {
                 exhaustive = true;
                 vec![V::Boolean(false), V::Boolean(true)]
             }
-            "String" => ["", "a", "Cinema", " whitespace ", "😀", "é"]
-                .into_iter()
-                .map(|s| V::String(s.into()))
-                .collect(),
+            "String" => [
+                "",
+                "a",
+                "Cinema",
+                " whitespace ",
+                "😀",
+                "é",
+                "\u{feff}",
+                "\u{0085}",
+            ]
+            .into_iter()
+            .map(|s| V::String(s.into()))
+            .collect(),
             "Int" => {
                 let mut values = [
                     "0",
@@ -483,7 +635,7 @@ impl Generator<'_> {
             .into_iter()
             .map(|s| V::Decimal(s.into()))
             .collect(),
-            "Float" => [
+            "Float" | "Duration" => [
                 "0",
                 "1",
                 "-1",
@@ -507,7 +659,48 @@ impl Generator<'_> {
             .into_iter()
             .map(|s| V::String(s.into()))
             .collect(),
-            "List" | "Option" => {
+            "None" => {
+                exhaustive = true;
+                vec![V::Option(None)]
+            }
+            "Bytes" => [vec![], vec![0], vec![255], vec![0, 1, 128, 255]]
+                .into_iter()
+                .filter(|bytes| bytes.len() <= self.budgets.collection_size)
+                .map(|bytes| {
+                    V::List(
+                        bytes
+                            .into_iter()
+                            .map(|byte| V::Integer(byte.to_string()))
+                            .collect(),
+                    )
+                })
+                .collect(),
+            "Dctx0Result" => {
+                let [success, failure] = ty.arguments.as_slice() else {
+                    return ValueCorpus::empty(
+                        "TYPE_ARGUMENTS",
+                        "Dctx0Result needs two element types",
+                    );
+                };
+                let success = self.domain(success, depth + 1);
+                let failure = self.domain(failure, depth + 1);
+                return ValueCorpus {
+                    exhaustive: success.exhaustive && failure.exhaustive,
+                    issues: success.issues.into_iter().chain(failure.issues).collect(),
+                    values: success
+                        .values
+                        .into_iter()
+                        .map(|value| ("Success", value))
+                        .chain(failure.values.into_iter().map(|value| ("Failure", value)))
+                        .map(|(name, value)| V::Variant {
+                            declaration: "builtin:Dctx0Result".into(),
+                            name: name.into(),
+                            payload: Some(Box::new(value)),
+                        })
+                        .collect(),
+                };
+            }
+            "List" | "Option" | "Dctx0Option" | "Some" => {
                 let Some(element) = ty.arguments.first().filter(|_| ty.arguments.len() == 1) else {
                     return ValueCorpus::empty(
                         "TYPE_ARGUMENTS",
@@ -515,8 +708,12 @@ impl Generator<'_> {
                     );
                 };
                 let child = self.domain(element, depth + 1);
-                if ty.name == "Option" {
-                    let mut values = vec![V::Option(None)];
+                if ty.name != "List" {
+                    let mut values = if ty.name == "Some" {
+                        vec![]
+                    } else {
+                        vec![V::Option(None)]
+                    };
                     values.extend(
                         child
                             .values
@@ -670,5 +867,60 @@ pub fn generate_inputs(
         bindings,
         exhaustive: exhaustive && complete && issues.is_empty(),
         issues,
+    }
+}
+
+#[cfg(test)]
+mod adjacent_tests {
+    use super::adjacent_float;
+
+    #[test]
+    fn ieee_neighbors_preserve_sign_zero_subnormals_and_infinite_boundaries() {
+        for (bits, up, down) in [
+            (0, 1, 0x8000_0000_0000_0001),
+            (0x8000_0000_0000_0000, 1, 0x8000_0000_0000_0001),
+            (1, 2, 0),
+            (
+                0x8000_0000_0000_0001,
+                0x8000_0000_0000_0000,
+                0x8000_0000_0000_0002,
+            ),
+            (
+                0x3ff0_0000_0000_0000,
+                0x3ff0_0000_0000_0001,
+                0x3fef_ffff_ffff_ffff,
+            ),
+            (
+                0xbff0_0000_0000_0000,
+                0xbfef_ffff_ffff_ffff,
+                0xbff0_0000_0000_0001,
+            ),
+            (
+                0x7fef_ffff_ffff_ffff,
+                0x7ff0_0000_0000_0000,
+                0x7fef_ffff_ffff_fffe,
+            ),
+            (
+                0xffef_ffff_ffff_ffff,
+                0xffef_ffff_ffff_fffe,
+                0xfff0_0000_0000_0000,
+            ),
+            (
+                0x7ff0_0000_0000_0000,
+                0x7ff0_0000_0000_0000,
+                0x7fef_ffff_ffff_ffff,
+            ),
+            (
+                0xfff0_0000_0000_0000,
+                0xffef_ffff_ffff_ffff,
+                0xfff0_0000_0000_0000,
+            ),
+        ] {
+            let value = f64::from_bits(bits);
+            assert_eq!(adjacent_float(value, true).to_bits(), up);
+            assert_eq!(adjacent_float(value, false).to_bits(), down);
+        }
+        assert!(adjacent_float(f64::NAN, true).is_nan());
+        assert!(adjacent_float(f64::NAN, false).is_nan());
     }
 }

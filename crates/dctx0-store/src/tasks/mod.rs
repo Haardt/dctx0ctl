@@ -4,6 +4,7 @@ use crate::Error;
 use dctx0_tasks::*;
 use std::collections::{BTreeMap, BTreeSet};
 mod actions;
+mod native_proof;
 pub use actions::{TaskDelivery, TaskDeliveryPublication, TaskDeliveryPublicationReceipt};
 mod profiles;
 mod publish;

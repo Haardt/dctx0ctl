@@ -1,5 +1,47 @@
 watchPlugins: false
 logLevel: warn
+
+agentProviders:
+  mimo:
+    driver: mimo
+    defaultModel: mimo-v2.6-pro
+    baseUrl: https://token-plan-ams.xiaomimimo.com/v1
+    apiKeyEnv: MIMO_API_KEY
+    models:
+      - id: mimo-v2.6-pro
+        label: MiMo V2.6 Pro
+        description: MiMo V2.6 Pro ueber den MiMo Token Plan, 1M context
+        capabilities:
+          tools: supported
+          tool-choice: supported
+          structured-output: supported
+          reasoning: supported
+        inputModalities:
+          - text
+          - image
+          - audio
+          - video
+        outputModalities:
+          - text
+        contextTokens: 1000000
+        maxInputTokens: 1000000
+      - id: mimo-v2.6-flash
+        label: MiMo V2.6 Flash
+        description: MiMo V2.6 Flash ueber den MiMo Token Plan, 1M context
+        capabilities:
+          tools: supported
+          tool-choice: supported
+          structured-output: supported
+          reasoning: supported
+        inputModalities:
+          - text
+          - image
+          - audio
+          - video
+        outputModalities:
+          - text
+        contextTokens: 1000000
+        maxInputTokens: 1000000
 plugins:
   plugin-dctx0:
     target: typescript

@@ -45,7 +45,7 @@ pub struct VerificationSetupReport {
 }
 // Return the parent separately: publication never needs to infer a parent from
 // unchecked target paths. Reject every symlink, including existing leaf files.
-fn safe_file(root: &Path, relative: &str) -> Result<(PathBuf, PathBuf)> {
+pub(crate) fn safe_file(root: &Path, relative: &str) -> Result<(PathBuf, PathBuf)> {
     let parts = relative.split('/').collect::<Vec<_>>();
     if relative.is_empty()
         || relative.contains(['\\', ':'])

@@ -2,6 +2,27 @@
 use dctx0_target_sdk::*;
 pub struct BunHarness;
 impl HarnessGenerator for BunHarness {
+    fn inspect_dependencies(
+        &self,
+        sources: &[InspectionSource],
+    ) -> Result<DependencyInspection, Error> {
+        crate::TypeScriptDependencies.dependencies(sources)
+    }
+    fn module_observer_artifacts(
+        &self,
+        sources: &[InspectionSource],
+        project_root_relative: &str,
+    ) -> Result<Vec<Artifact>, Error> {
+        let manifest = crate::dependencies::observer_manifest(sources, project_root_relative)?;
+        if manifest.sources.is_empty() {
+            return Ok(vec![]);
+        }
+        Ok(vec![Artifact {
+            path: "module-observer.json".into(),
+            contents: serde_json::to_string(&manifest)
+                .map_err(|error| Error::Invalid(error.to_string()))?,
+        }])
+    }
     fn generate(&self, request: &HarnessRequest) -> Result<HarnessBundle, Error> {
         let path = &request.adapter_import;
         if !path.starts_with("./")
@@ -25,7 +46,7 @@ impl HarnessGenerator for BunHarness {
         let worker = format!("{prefix}{adapter}{middle}{subjects}{suffix}");
         Ok(HarnessBundle {
             sdk_version: SDK_VERSION,
-            generator_version: "dctx0-bun-harness-1".into(),
+            generator_version: "dctx0-bun-harness-3".into(),
             target: "typescript".into(),
             artifacts: vec![
                 Artifact {
@@ -35,6 +56,10 @@ impl HarnessGenerator for BunHarness {
                 Artifact {
                     path: "worker.ts".into(),
                     contents: worker,
+                },
+                Artifact {
+                    path: "module-observer.ts".into(),
+                    contents: include_str!("../harness/module-observer.ts").into(),
                 },
             ],
             recipe: ExecutionRecipe {

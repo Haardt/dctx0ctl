@@ -14,7 +14,7 @@ impl NativeWorker {
         budgets: &VerificationBudgets,
         cancel: &NativeCancellation,
     ) -> Result<VerificationResult, NativeFailure> {
-        self.session_evidence.clear();
+        self.clear_evidence();
         if !operation.pure
             || !operation.failures.is_empty()
             || invocation.subject != operation.id
@@ -65,6 +65,7 @@ impl NativeWorker {
                 .cloned()
                 .collect(),
             cases: vec![],
+            generated_preparations: vec![],
         };
         let ready = operation_ready(ir, &plan, &invocation, &Default::default(), budgets);
         if ready != VerificationResult::Pass {
@@ -102,6 +103,7 @@ impl NativeWorker {
                                     },
                                     &dctx0_interpreter::ObservationContext {
                                         calls: delivered.calls,
+                                        resources: delivered.resources,
                                         events: Some(delivered.events),
                                         ..Default::default()
                                     },

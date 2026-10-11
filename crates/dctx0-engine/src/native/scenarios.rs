@@ -10,7 +10,7 @@ impl NativeWorker {
         budgets: &VerificationBudgets,
         cancellation: &NativeCancellation,
     ) -> Result<ScenarioEvidence, NativeFailure> {
-        self.session_evidence.clear();
+        self.clear_evidence();
         match tokio::time::timeout(
             self.limits.case,
             self.example_session(ir, example, budgets, cancellation),

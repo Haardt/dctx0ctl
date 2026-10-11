@@ -52,6 +52,7 @@ fn state(rows: Vec<VerificationValue>) -> Option<BTreeMap<String, Vec<Verificati
 }
 fn context() -> ObservationContext {
     ObservationContext {
+        resources: None,
         phase: StatePhase::After,
         before: state(vec![row("3")]),
         after: state(vec![row("4")]),
@@ -220,7 +221,7 @@ fn missing_ambiguous_invalid_or_budget_limited_observers_never_become_true() {
         arguments.clear();
     }
     unknown(run(&ir, &expression, &c, &budgets), "STATE_KEY_ARITY");
-    ir.data.get_mut("W.Item").unwrap().alias = Some(TypeRef::builtin("Duration"));
+    ir.data.get_mut("W.Item").unwrap().alias = Some(TypeRef::builtin("FutureBuiltin"));
     unknown(run(&ir, &expressions[0], &c, &budgets), "UNSUPPORTED_TYPE");
 }
 

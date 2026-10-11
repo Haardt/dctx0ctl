@@ -4,6 +4,9 @@ domain MovieNight {
   value MemberId = UUID
   value CommentId = UUID
   value PollId = UUID
+  value CommentText = String {
+    where length(trim(value)) > 0
+  }
   value ReleaseYear = Int {
     range 1888..2100
   }
@@ -53,7 +56,7 @@ domain MovieNight {
     id: CommentId
     filmId: FilmId
     authorId: MemberId
-    text: String
+    text: CommentText
     createdAt: Timestamp
 
     key id
@@ -63,7 +66,7 @@ domain MovieNight {
     memberId: MemberId
     stars: StarRating
 
-    key memberId
+    key filmId memberId
   }
   entity ScreeningPoll {
     id: PollId
@@ -78,7 +81,7 @@ domain MovieNight {
     memberId: MemberId
     filmId: FilmId
 
-    key memberId
+    key pollId memberId
   }
 
   message FilmSearch {
@@ -128,13 +131,13 @@ domain MovieNight {
   message AddComment {
     filmId: FilmId
     authorId: MemberId
-    text: String
+    text: CommentText
   }
   message CommentView {
     id: CommentId
     filmId: FilmId
     authorId: MemberId
-    text: String
+    text: CommentText
     createdAt: Timestamp
   }
   message CommentOverview {
@@ -235,26 +238,138 @@ domain MovieNight {
         ! PersistenceUnavailable {
         intent """Load the filterable film overview from persisted catalog state."""
         state lists Film
+        ensures success implies result == FilmOverview {
+          items = slice(ifElse(filter.sort == NewestFirst, sortDescBy(film.releaseYear for film in sortBy(film.id for film in filter(film in map(FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in before.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in before.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in before.ScreeningPoll where entry.status == Open)))))
+          } for film in before.Film) where includesText(lowercase(film.title), lowercase(getOrElse(filter.query, "")))
+            and (filter.genre == None or contains(film.genres, getOrElse(filter.genre, Action)))
+            and (filter.minimumStars == None or film.averageStars >= indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], getOrElse(filter.minimumStars, OneStar)) + 1)
+            and (filter.availability == None or Some(film.availability) == filter.availability)
+            and (filter.maximumRuntimeMinutes == None or film.runtimeMinutes <= getOrElse(filter.maximumRuntimeMinutes, 600))
+            and (filter.releasedFrom == None or film.releaseYear >= getOrElse(filter.releasedFrom, 1888))))), ifElse(filter.sort == HighestRated, sortDescBy(film.averageStars for film in sortBy(film.id for film in filter(film in map(FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in before.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in before.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in before.ScreeningPoll where entry.status == Open)))))
+          } for film in before.Film) where includesText(lowercase(film.title), lowercase(getOrElse(filter.query, "")))
+            and (filter.genre == None or contains(film.genres, getOrElse(filter.genre, Action)))
+            and (filter.minimumStars == None or film.averageStars >= indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], getOrElse(filter.minimumStars, OneStar)) + 1)
+            and (filter.availability == None or Some(film.availability) == filter.availability)
+            and (filter.maximumRuntimeMinutes == None or film.runtimeMinutes <= getOrElse(filter.maximumRuntimeMinutes, 600))
+            and (filter.releasedFrom == None or film.releaseYear >= getOrElse(filter.releasedFrom, 1888))))), ifElse(filter.sort == MostVoted, sortDescBy(film.currentVoteCount for film in sortBy(film.id for film in filter(film in map(FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in before.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in before.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in before.ScreeningPoll where entry.status == Open)))))
+          } for film in before.Film) where includesText(lowercase(film.title), lowercase(getOrElse(filter.query, "")))
+            and (filter.genre == None or contains(film.genres, getOrElse(filter.genre, Action)))
+            and (filter.minimumStars == None or film.averageStars >= indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], getOrElse(filter.minimumStars, OneStar)) + 1)
+            and (filter.availability == None or Some(film.availability) == filter.availability)
+            and (filter.maximumRuntimeMinutes == None or film.runtimeMinutes <= getOrElse(filter.maximumRuntimeMinutes, 600))
+            and (filter.releasedFrom == None or film.releaseYear >= getOrElse(filter.releasedFrom, 1888))))), sortBy(film.title for film in sortBy(film.id for film in filter(film in map(FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in before.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in before.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in before.ScreeningPoll where entry.status == Open)))))
+          } for film in before.Film) where includesText(lowercase(film.title), lowercase(getOrElse(filter.query, "")))
+            and (filter.genre == None or contains(film.genres, getOrElse(filter.genre, Action)))
+            and (filter.minimumStars == None or film.averageStars >= indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], getOrElse(filter.minimumStars, OneStar)) + 1)
+            and (filter.availability == None or Some(film.availability) == filter.availability)
+            and (filter.maximumRuntimeMinutes == None or film.runtimeMinutes <= getOrElse(filter.maximumRuntimeMinutes, 600))
+            and (filter.releasedFrom == None or film.releaseYear >= getOrElse(filter.releasedFrom, 1888)))))))), filter.offset, filter.limit)
+          total = count(filter(film in map(FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in before.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in before.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in before.ScreeningPoll where entry.status == Open)))))
+          } for film in before.Film) where includesText(lowercase(film.title), lowercase(getOrElse(filter.query, "")))
+            and (filter.genre == None or contains(film.genres, getOrElse(filter.genre, Action)))
+            and (filter.minimumStars == None or film.averageStars >= indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], getOrElse(filter.minimumStars, OneStar)) + 1)
+            and (filter.availability == None or Some(film.availability) == filter.availability)
+            and (filter.maximumRuntimeMinutes == None or film.runtimeMinutes <= getOrElse(filter.maximumRuntimeMinutes, 600))
+            and (filter.releasedFrom == None or film.releaseYear >= getOrElse(filter.releasedFrom, 1888))))
+          offset = filter.offset
+          limit = filter.limit
+        }
       }
       effects {
         read Film
+        read Rating
+        read ScreeningPoll
+        read FilmVote
       }
 
       operation find(id: FilmId)
         -> Option<FilmDetails>
         ! PersistenceUnavailable {
         state observes Film by id
+        ensures success implies result == first(map(FilmDetails { film = FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in before.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in before.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in before.ScreeningPoll where entry.status == Open)))))
+          } } for film in filter(entry in before.Film where entry.id == id)))
       }
       effects {
         read Film
+        read Rating
+        read ScreeningPoll
+        read FilmVote
       }
 
       operation save(request: SaveFilm)
         -> FilmDetails
         ! PersistenceUnavailable {
         state upserts Film from request
+        ensures success implies result == single(map(FilmDetails { film = FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in after.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in after.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in after.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in after.ScreeningPoll where entry.status == Open)))))
+          } } for film in filter(entry in after.Film where entry.id == request.id)))
       }
       effects {
+        read Rating
+        read ScreeningPoll
+        read FilmVote
         write Film
       }
 
@@ -262,9 +377,31 @@ domain MovieNight {
         -> FilmDetails
         ! FilmNotFound
         ! PersistenceUnavailable {
-        state replaces Film by request.filmId
+        state replaces Film by request.filmId from Film {
+          id = request.filmId
+          title = before.Film(request.filmId).title
+          releaseYear = before.Film(request.filmId).releaseYear
+          genres = before.Film(request.filmId).genres
+          runtimeMinutes = before.Film(request.filmId).runtimeMinutes
+          availability = request.availability
+        }
+        ensures success implies result == single(map(FilmDetails { film = FilmSummary {
+            id = film.id
+            title = film.title
+            releaseYear = film.releaseYear
+            genres = film.genres
+            runtimeMinutes = film.runtimeMinutes
+            availability = film.availability
+            averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in after.Rating where entry.filmId == film.id))), 0e0)
+            ratingCount = count(entry in after.Rating where entry.filmId == film.id)
+            currentVoteCount = count(vote in after.FilmVote where vote.filmId == film.id and Some(vote.pollId) == first(map(poll.id for poll in reverse(filter(entry in after.ScreeningPoll where entry.status == Open)))))
+          } } for film in filter(entry in after.Film where entry.id == request.filmId)))
       }
       effects {
+        read Film
+        read Rating
+        read ScreeningPoll
+        read FilmVote
         write Film
       }
     }
@@ -409,6 +546,7 @@ domain MovieNight {
         -> Option<FilmId>
         ! PersistenceUnavailable {
         state observes Film by filmId
+        ensures success implies result == first(map(film.id for film in filter(entry in before.Film where entry.id == filmId)))
       }
       effects {
         read Film
@@ -420,6 +558,16 @@ domain MovieNight {
         -> CommentOverview
         ! PersistenceUnavailable {
         state lists Comment
+        ensures success implies result == CommentOverview {
+          items = map(CommentView {
+            id = comment.id
+            filmId = comment.filmId
+            authorId = comment.authorId
+            text = comment.text
+            createdAt = comment.createdAt
+          } for comment in filter(entry in before.Comment where entry.filmId == filmId))
+          total = count(entry in before.Comment where entry.filmId == filmId)
+        }
       }
       effects {
         read Comment
@@ -429,6 +577,9 @@ domain MovieNight {
         -> CommentView
         ! PersistenceUnavailable {
         state inserts Comment from result
+        ensures success implies result.filmId == request.filmId
+        ensures success implies result.authorId == request.authorId
+        ensures success implies result.text == request.text
       }
       effects {
         write Comment
@@ -440,6 +591,12 @@ domain MovieNight {
         -> RatingSummary
         ! PersistenceUnavailable {
         state lists Rating
+        ensures success implies result == RatingSummary {
+          filmId = filmId
+          averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in before.Rating where entry.filmId == filmId))), 0e0)
+          ratingCount = count(entry in before.Rating where entry.filmId == filmId)
+          memberRating = first(map(rating.stars for rating in filter(entry in before.Rating where entry.filmId == filmId and entry.memberId == memberId)))
+        }
       }
       effects {
         read Rating
@@ -449,8 +606,15 @@ domain MovieNight {
         -> RatingSummary
         ! PersistenceUnavailable {
         state upserts Rating from request
+        ensures success implies result == RatingSummary {
+          filmId = request.filmId
+          averageStars = getOrElse(mean(map(indexOf([OneStar, TwoStars, ThreeStars, FourStars, FiveStars], rating.stars) + 1 for rating in filter(entry in after.Rating where entry.filmId == request.filmId))), 0e0)
+          ratingCount = count(entry in after.Rating where entry.filmId == request.filmId)
+          memberRating = first(map(rating.stars for rating in filter(entry in after.Rating where entry.filmId == request.filmId and entry.memberId == request.memberId)))
+        }
       }
       effects {
+        read Rating
         write Rating
       }
     }
@@ -503,6 +667,7 @@ domain MovieNight {
 
       effects {
         read Film
+        read Rating
         write Rating
         call FilmPresence.exists
         call RatingStore.upsert
@@ -626,9 +791,24 @@ domain MovieNight {
       operation open(request: OpenVoting)
         -> VotingOverview
         ! PersistenceUnavailable {
-        state observes ScreeningPoll by request.pollId
+        state upserts ScreeningPoll from ScreeningPoll {
+          id = request.pollId
+          scheduledFor = request.scheduledFor
+          candidateFilmIds = request.candidateFilmIds
+          status = Open
+        }
+        ensures success implies after.FilmVote == filter(vote in before.FilmVote where vote.pollId != request.pollId)
+        ensures success implies result == VotingOverview {
+          pollId = request.pollId
+          scheduledFor = request.scheduledFor
+          status = Open
+          results = map(FilmVoteResult { filmId = candidate votes = 0 } for candidate in request.candidateFilmIds)
+          winningFilmId = None
+        }
       }
       effects {
+        read FilmVote
+        write FilmVote
         write ScreeningPoll
       }
 
@@ -636,6 +816,13 @@ domain MovieNight {
         -> Option<VotingOverview>
         ! PersistenceUnavailable {
         state lists ScreeningPoll
+        ensures success implies result == first(map(VotingOverview {
+          pollId = poll.id
+          scheduledFor = poll.scheduledFor
+          status = poll.status
+          results = map(FilmVoteResult { filmId = candidate votes = count(vote in before.FilmVote where vote.pollId == poll.id and vote.filmId == candidate) } for candidate in poll.candidateFilmIds)
+          winningFilmId = first(map(candidate.filmId for candidate in sortDescBy(candidate.votes for candidate in filter(entry in map(FilmVoteResult { filmId = candidate votes = count(vote in before.FilmVote where vote.pollId == poll.id and vote.filmId == candidate) } for candidate in poll.candidateFilmIds) where entry.votes > 0))))
+        } for poll in reverse(ifElse(count(poll in before.ScreeningPoll where poll.status == Open) > 0, filter(poll in before.ScreeningPoll where poll.status == Open), before.ScreeningPoll))))
       }
       effects {
         read ScreeningPoll
@@ -650,8 +837,17 @@ domain MovieNight {
         ! PersistenceUnavailable {
         intent """Record this member's one active vote for the open poll; a later successful cast for the same member and poll replaces, rather than adds to, that active vote."""
         state observes ScreeningPoll by request.pollId
+        state upserts FilmVote from request
+        ensures success implies result == VotingOverview {
+          pollId = before.ScreeningPoll(request.pollId).id
+          scheduledFor = before.ScreeningPoll(request.pollId).scheduledFor
+          status = before.ScreeningPoll(request.pollId).status
+          results = map(FilmVoteResult { filmId = candidate votes = count(vote in after.FilmVote where vote.pollId == before.ScreeningPoll(request.pollId).id and vote.filmId == candidate) } for candidate in before.ScreeningPoll(request.pollId).candidateFilmIds)
+          winningFilmId = first(map(candidate.filmId for candidate in sortDescBy(candidate.votes for candidate in filter(entry in map(FilmVoteResult { filmId = candidate votes = count(vote in after.FilmVote where vote.pollId == before.ScreeningPoll(request.pollId).id and vote.filmId == candidate) } for candidate in before.ScreeningPoll(request.pollId).candidateFilmIds) where entry.votes > 0))))
+        }
       }
       effects {
+        read Film
         read ScreeningPoll
         read FilmVote
         write FilmVote
@@ -662,9 +858,22 @@ domain MovieNight {
         ! PollNotFound
         ! VotingClosed
         ! PersistenceUnavailable {
-        state replaces ScreeningPoll by pollId
+        state replaces ScreeningPoll by pollId from ScreeningPoll {
+          id = pollId
+          scheduledFor = before.ScreeningPoll(pollId).scheduledFor
+          candidateFilmIds = before.ScreeningPoll(pollId).candidateFilmIds
+          status = Closed
+        }
+        ensures success implies result == VotingOverview {
+          pollId = after.ScreeningPoll(pollId).id
+          scheduledFor = after.ScreeningPoll(pollId).scheduledFor
+          status = after.ScreeningPoll(pollId).status
+          results = map(FilmVoteResult { filmId = candidate votes = count(vote in after.FilmVote where vote.pollId == after.ScreeningPoll(pollId).id and vote.filmId == candidate) } for candidate in after.ScreeningPoll(pollId).candidateFilmIds)
+          winningFilmId = first(map(candidate.filmId for candidate in sortDescBy(candidate.votes for candidate in filter(entry in map(FilmVoteResult { filmId = candidate votes = count(vote in after.FilmVote where vote.pollId == after.ScreeningPoll(pollId).id and vote.filmId == candidate) } for candidate in after.ScreeningPoll(pollId).candidateFilmIds) where entry.votes > 0))))
+        }
       }
       effects {
+        read ScreeningPoll
         read FilmVote
         write ScreeningPoll
       }
@@ -686,6 +895,8 @@ domain MovieNight {
 
       effects {
         write ScreeningPoll
+        read FilmVote
+        write FilmVote
         call VotingStore.open
         emit VotingOpened(pollId: request.pollId, scheduledFor: request.scheduledFor)
       }
@@ -717,6 +928,7 @@ domain MovieNight {
         read ScreeningPoll
         read FilmVote
         write FilmVote
+        read Film
         call VotingStore.cast
         emit VoteCast(pollId: request.pollId, memberId: request.memberId, filmId: request.filmId)
       }
@@ -733,6 +945,7 @@ domain MovieNight {
 
       effects {
         write ScreeningPoll
+        read ScreeningPoll
         read FilmVote
         call VotingStore.close as voting
         emit VotingCompleted(pollId: pollId, winningFilmId: voting.winningFilmId)

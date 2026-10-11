@@ -10,6 +10,9 @@ pub struct AdoptionTaskProof {
     pub requirements_hash: String,
     /// Exact task subjects, required types and governing requirements accounted for.
     pub covered_requirements: BTreeSet<String>,
+    /// Pinned explanatory facts retained as context, without asserted behavior.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub context_requirements: BTreeSet<String>,
     pub required_cases: BTreeSet<String>,
     pub executed_cases: BTreeMap<String, VerificationResult>,
     pub implementation: String,
@@ -106,6 +109,19 @@ pub fn propose_adoption(
             );
             continue;
         }
+        if session
+            .definitions
+            .get(&id)
+            .is_some_and(Definition::is_adjustment)
+        {
+            block(
+                &mut proposal,
+                id,
+                "ADJUSTMENT_REQUIRES_DEDICATED_EVIDENCE",
+                "Profile adaptations and check/review follow-ups require evidence for their additional assignment; base spec cases alone do not complete them",
+            );
+            continue;
+        }
         if state.work != WorkState::Open
             || state.actor.is_some()
             || state.claim.is_some()
@@ -164,19 +180,31 @@ pub fn propose_adoption(
             );
             continue;
         }
-        let mut requirements = candidate
+        let missing = candidate
             .subjects
             .iter()
             .chain(&candidate.types)
-            .chain(&candidate.facts);
+            .chain(&candidate.facts)
+            .filter(|r| {
+                !proof.covered_requirements.contains(*r) && !proof.context_requirements.contains(*r)
+            })
+            .cloned()
+            .collect::<BTreeSet<_>>();
         if !proof.incomplete.is_empty()
-            || requirements.any(|r| !proof.covered_requirements.contains(r))
+            || !proof
+                .context_requirements
+                .is_subset(&candidate.facts.iter().cloned().collect())
+            || !missing.is_empty()
         {
             block(
                 &mut proposal,
                 id,
                 "INCOMPLETE_REQUIREMENTS",
-                "Subject/type/fact closure contains unsupported or unaccounted requirements",
+                format!(
+                    "Subject/type/fact closure is incomplete; missing requirements: {}; evidence gaps: {}",
+                    missing.into_iter().collect::<Vec<_>>().join(", "),
+                    proof.incomplete.join(", ")
+                ),
             );
             continue;
         }

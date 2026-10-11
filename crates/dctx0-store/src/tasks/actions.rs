@@ -434,6 +434,31 @@ impl Store {
         project: &str,
         request: TaskDeliveryPublication<'_>,
     ) -> Result<TaskDeliveryPublicationReceipt> {
+        self.publish_deliveries(project, request, &BTreeMap::new())
+    }
+
+    /// Explicit inspected delivery, including ordinary guarded review events.
+    /// Native automatic publication cannot use this path for review completion.
+    pub fn publish_inspected_task_deliveries(
+        &mut self,
+        project: &str,
+        request: TaskDeliveryPublication<'_>,
+        reviews: &BTreeMap<i64, dctx0_tasks::ReviewReport>,
+    ) -> Result<TaskDeliveryPublicationReceipt> {
+        if request.run_id.is_some() {
+            return Err(invalid(
+                "Inspected delivery is separate from automatic native adoption",
+            ));
+        }
+        self.publish_deliveries(project, request, reviews)
+    }
+
+    fn publish_deliveries(
+        &mut self,
+        project: &str,
+        request: TaskDeliveryPublication<'_>,
+        reviews: &BTreeMap<i64, dctx0_tasks::ReviewReport>,
+    ) -> Result<TaskDeliveryPublicationReceipt> {
         let TaskDeliveryPublication {
             actor,
             pin,
@@ -445,11 +470,22 @@ impl Store {
         if actor.trim().is_empty() || deliveries.is_empty() {
             return Err(invalid("An actor and nonempty result batch are required"));
         }
+        if reviews
+            .keys()
+            .any(|id| !deliveries.iter().any(|delivery| delivery.task == *id))
+        {
+            return Err(invalid(
+                "Review reports must belong to the delivered task batch",
+            ));
+        }
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let request_hash =
-            dctx0_changes::hash(&(project, actor, pin, deliveries, profiles, run_id));
+        let request_hash = if reviews.is_empty() {
+            dctx0_changes::hash(&(project, actor, pin, deliveries, profiles, run_id))
+        } else {
+            dctx0_changes::hash(&(project, actor, pin, deliveries, profiles, run_id, reviews))
+        };
         let associated_run = if let Some(run_id) = run_id {
             let data: Option<String> = tx
                 .query_row(
@@ -480,22 +516,65 @@ impl Store {
                 .map(|c| c.id.clone())
                 .collect::<BTreeSet<_>>();
             if run.origin != dctx0_core::VerificationRunOrigin::Native
-                || run.result != dctx0_core::VerificationResult::Pass
+                || !run.permits_task_specific_proof()
                 || !run.provenance.incomplete.is_empty()
                 || run.provenance.task_pin.as_ref() != Some(pin)
                 || run.required_cases.is_empty()
                 || executed != run.required_cases
+                || executed.len() != run.cases.len()
+                || run.required_cases.iter().any(|id| id.trim().is_empty())
                 || run
                     .cases
                     .iter()
                     .any(|c| c.result != dctx0_core::VerificationResult::Pass)
-                || !run.open_obligations.is_empty()
             {
                 return Err(invalid(
                     "Run lacks complete pinned execution evidence; imported flags are insufficient",
                 ));
             }
             Some(run)
+        } else {
+            None
+        };
+        let associated_manifest = if let (Some(run), Some(run_id)) = (&associated_run, run_id) {
+            let references = run
+                .artifacts
+                .iter()
+                .filter(|artifact| {
+                    artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                })
+                .collect::<Vec<_>>();
+            if references.len() != 1 {
+                return Err(invalid(
+                    "Native task delivery requires one mandatory case manifest",
+                ));
+            }
+            let reference = references[0];
+            let bytes: Vec<u8> = tx.query_row("SELECT a.bytes FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?1 AND a.hash=?2", params![run_id, reference.hash], |row| row.get(0))?;
+            if crate::VerificationArtifact::new(&reference.media_type, bytes.clone()).reference
+                != *reference
+            {
+                return Err(invalid(
+                    "Mandatory case manifest artifact integrity does not match its run reference",
+                ));
+            }
+            let manifest: dctx0_core::VerificationCaseManifest = serde_json::from_slice(&bytes)
+                .map_err(|error| invalid(format!("Invalid mandatory case manifest: {error}")))?;
+            if manifest.schema_version != 1
+                || manifest.required_cases != run.required_cases
+                || manifest
+                    .case_requirements
+                    .keys()
+                    .cloned()
+                    .collect::<BTreeSet<_>>()
+                    != run.required_cases
+            {
+                return Err(invalid(
+                    "Stored mandatory case manifest does not match executed evidence",
+                ));
+            }
+            super::native_proof::validate_open_obligations(&tx, run_id, run, &manifest)?;
+            Some(manifest)
         } else {
             None
         };
@@ -536,7 +615,33 @@ impl Store {
                 ));
             }
             if let Some(run) = &associated_run {
-                if run.provenance.snapshot != snapshot_id
+                let requirements = member
+                    .candidate
+                    .subjects
+                    .iter()
+                    .chain(&member.candidate.types)
+                    .chain(&member.candidate.facts)
+                    .filter(|id| {
+                        !snapshot.ir.nodes.iter().any(|node| {
+                            node.id == **id && node.kind == dctx0_core::StatementKind::Intent
+                        })
+                    })
+                    .cloned()
+                    .collect::<BTreeSet<_>>();
+                let outcomes = run
+                    .cases
+                    .iter()
+                    .map(|case| (case.id.clone(), case.result.clone()))
+                    .collect::<BTreeMap<_, _>>();
+                let covered = associated_manifest.as_ref().is_some_and(|manifest| {
+                    task_case_coverage(&requirements, &manifest.case_requirements, &outcomes).result
+                        == dctx0_core::VerificationResult::Pass
+                });
+                if !matches!(
+                    member.candidate.kind,
+                    TaskKind::Contract | TaskKind::Operation
+                ) || !covered
+                    || run.provenance.snapshot != snapshot_id
                     || run.provenance.check_occurrence != check
                     || delivery.evidence.report != run_id.unwrap()
                     || delivery.evidence.status != CheckStatus::Pass
@@ -545,8 +650,17 @@ impl Store {
                         .subjects
                         .iter()
                         .chain(&member.candidate.types)
-                        .chain(&member.candidate.facts)
                         .any(|subject| !run.required_subjects.contains(subject))
+                    || member.candidate.facts.iter().any(|fact| {
+                        !snapshot.ir.nodes.iter().any(|node| {
+                            node.id == *fact && node.kind == dctx0_core::StatementKind::Intent
+                        }) && !associated_manifest.as_ref().is_some_and(|manifest| {
+                            manifest
+                                .case_requirements
+                                .values()
+                                .any(|requirements| requirements.contains(fact))
+                        })
+                    })
                     || delivery.result.artifacts.is_empty()
                     || delivery
                         .result
@@ -575,13 +689,31 @@ impl Store {
                 inputs,
                 None,
             )?;
-            let state = started
+            let mut state = started
                 .state
                 .ok_or_else(|| invalid("Started task has no state"))?;
             // Use the claim/version actually created by the start rule.
             let claim = state
                 .claim
                 .ok_or_else(|| invalid("Started task has no claim"))?;
+            if let Some(report) = reviews.get(&id) {
+                let current = session(&tx, project, None, None)?;
+                state = apply_action(
+                    &tx,
+                    &current,
+                    Action::RecordReview {
+                        task: id,
+                        actor: actor.into(),
+                        claim,
+                        version: state.version,
+                        report: report.clone(),
+                    },
+                    inputs,
+                    None,
+                )?
+                .state
+                .ok_or_else(|| invalid("Reviewed task has no state"))?;
+            }
             let current = session(&tx, project, None, None)?;
             apply_action(
                 &tx,

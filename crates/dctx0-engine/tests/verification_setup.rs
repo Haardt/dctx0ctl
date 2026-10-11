@@ -56,7 +56,10 @@ fn setup_preserves_developer_files_configuration_and_compiler_history_without_ex
         .initialize_verification(&app, &BunHarness, Default::default())
         .unwrap();
     assert!(!report.executed);
-    assert_eq!(report.created.len(), 5);
+    assert_eq!(report.created.len(), 6);
+    let observer = app.join(".dctx0/testing/typescript/module-observer.ts");
+    let observer_text = fs::read_to_string(&observer).unwrap();
+    assert!(observer_text.contains("installModuleObserver"));
     assert!(report.configuration.scope.subjects.is_empty());
     assert_eq!(
         p.verification_configuration(None).unwrap(),
@@ -73,7 +76,8 @@ fn setup_preserves_developer_files_configuration_and_compiler_history_without_ex
         .initialize_verification(&app, &BunHarness, scope())
         .unwrap();
     assert!(repeated.created.is_empty());
-    assert_eq!(repeated.preserved.len(), 5);
+    assert_eq!(repeated.preserved.len(), 6);
+    assert_eq!(fs::read_to_string(&observer).unwrap(), observer_text);
     assert!(repeated.configuration.scope.subjects.is_empty());
     assert_eq!(
         fs::read_to_string(adapter).unwrap(),

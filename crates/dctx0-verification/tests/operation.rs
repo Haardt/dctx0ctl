@@ -49,6 +49,7 @@ fn observed(value: VerificationValue) -> InvocationObservation {
 }
 fn context() -> ObservationContext {
     ObservationContext {
+        resources: None,
         calls: Some(vec![InvocationObservation {
             invocation: Invocation {
                 subject: "W.Store.load".into(),
@@ -60,6 +61,27 @@ fn context() -> ObservationContext {
         }]),
         ..Default::default()
     }
+}
+
+#[test]
+fn a_matching_call_count_does_not_prove_an_invalid_collaborator_return() {
+    let (ir, plan) = model();
+    let good = observed(VerificationValue::Integer("2".into()));
+    let mut invalid = context();
+    invalid.calls.as_mut().unwrap()[0].observation = Observation::Returned {
+        value: VerificationValue::String("not an Int".into()),
+    };
+    assert!(
+        matches!(assess_operation(&ir, &plan, &good, &invalid, &Default::default()).result,
+        VerificationResult::Fail { issue } if issue.code == "CALL_CONTRACT_VIOLATED")
+    );
+    invalid.calls.as_mut().unwrap()[0].observation = Observation::Unavailable {
+        reason: "Missing actual result".into(),
+    };
+    assert!(
+        matches!(assess_operation(&ir, &plan, &good, &invalid, &Default::default()).result,
+        VerificationResult::Unknown { issue } if issue.code == "CALL_OBSERVATION_UNAVAILABLE")
+    );
 }
 #[test]
 fn central_clauses_use_observed_call_counts_and_declared_outcomes() {
@@ -143,4 +165,51 @@ fn invalid_inputs_unmet_requires_missing_observers_and_native_exceptions_are_dis
     assert!(
         matches!(operation_ready(&ir,&plan,&good.invocation,&context(),&budgets),VerificationResult::Unknown{issue} if issue.code=="CLAUSE_NOT_EXECUTABLE")
     );
+}
+
+#[test]
+fn incomplete_pinned_postconditions_and_result_types_remain_open() {
+    let (ir, plan) = model();
+    let actual = observed(VerificationValue::Integer("2".into()));
+    assert_eq!(
+        assess_operation(&ir, &plan, &actual, &context(), &Default::default()).result,
+        VerificationResult::Pass
+    );
+    let mut non_boolean = plan.clone();
+    let clause = non_boolean
+        .clauses
+        .iter_mut()
+        .find(|node| node.kind == StatementKind::Ensures)
+        .unwrap();
+    clause.expressions[0].value = ExpressionKind::Variable {
+        name: "input".into(),
+    };
+    let assessed = assess_operation(&ir, &non_boolean, &actual, &context(), &Default::default());
+    assert!(
+        matches!(assessed.result, VerificationResult::Unknown { issue }
+        if issue.code == "CLAUSE_OBSERVATION_REQUIRED")
+    );
+
+    let mut unknown_type = plan.clone();
+    unknown_type.operation.result = TypeRef::builtin("UnmodeledResult");
+    let assessed = assess_operation(&ir, &unknown_type, &actual, &context(), &Default::default());
+    assert!(matches!(
+        assessed.result,
+        VerificationResult::Unknown { .. }
+    ));
+
+    let mut unsupported = plan.clone();
+    let clause = unsupported
+        .clauses
+        .iter_mut()
+        .find(|node| node.kind == StatementKind::Ensures)
+        .unwrap();
+    let clause_id = clause.id.clone();
+    clause.kind = StatementKind::Decision;
+    let assessed = assess_operation(&ir, &unsupported, &actual, &context(), &Default::default());
+    assert!(
+        matches!(assessed.result, VerificationResult::Unknown { issue }
+        if issue.code == "OPERATION_EFFECT_PENDING")
+    );
+    assert!(!assessed.checked.contains(&clause_id));
 }

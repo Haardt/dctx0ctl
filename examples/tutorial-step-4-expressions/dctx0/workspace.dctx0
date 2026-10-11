@@ -1,0 +1,112 @@
+// Step 4 adds arithmetic, Boolean logic, membership and constructors.
+workspace Tutorial {
+  intent """Learn the specification language by growing one small task board."""
+  domain Board {
+    value Count = Int {
+      range 0..3
+    }
+    scalar RawLabel = String
+    value Title = String {
+      length 1..16
+      where length(trim(value)) > 0
+    }
+    value DisplayTitle = Title
+    value Email = String {
+      length 3..254
+      format Email
+    }
+    value Identifier = String { format UUID }
+    value TaskId = UUID { stableId "tutorial.task-id.v1" }
+    value Link = String { format Uri }
+    value Day = String { format Date }
+    value Instant = String { format DateTime }
+    value ShortList = List<Int> { length 1..2 }
+    type Status = Open | Done
+    type Choice = Empty | Named(Title)
+    value Moment = Timestamp
+    value Integer = Int
+    value Flag = Boolean
+    value Measure = Float { range 0..10 }
+    value Estimate = Duration { range 0..3600 }
+    value ExactAmount = Decimal
+    value Attachment = Bytes
+    value NoValue = Unit
+    value MaybeTitle = Option<Title>
+    value CompatOption = Dctx0Option<Title>
+    value PresentTitle = Some<Title>
+    value Absent = None
+    value Attempt = Dctx0Result<Count, Title>
+    type Details {
+      id: TaskId
+      title: Title
+      status: Status
+      choice: Choice
+      active: Flag
+      progress: Measure
+      estimate: Estimate
+      amount: ExactAmount
+      attachment: Attachment
+      note: MaybeTitle
+      labels: List<Title>
+      attempt: Attempt
+    }
+    surface Actions exposes requestReply {
+      operation score(a: Count, b: Count) -> Int {
+        pure
+        requires b > 0
+        ensures result == (a + b) * 2 - a
+        ensures result > 0 and result / result == 1
+        ensures result % 2 == a % 2
+        ensures -result < 0
+      }
+      operation eligible(count: Count) -> Boolean {
+        pure
+        ensures result == (not (count == 0) and (count <= 2 or count >= 3))
+        ensures result == (count in 1..3)
+        ensures result == (count in [1, 2, 3])
+        ensures result implies count != 0
+      }
+      operation describe(title: Title) -> String {
+        pure
+        ensures result == "Task: " + title
+      }
+      operation named(title: Title) -> Choice {
+        pure
+        ensures result == Named { value = title }
+      }
+      operation keepDetails(details: Details) -> Details {
+        pure
+        ensures result == details
+      }
+      operation keepAttempt(attempt: Attempt) -> Attempt {
+        pure
+        ensures result == attempt
+      }
+      operation echo(title: DisplayTitle) -> DisplayTitle {
+        pure
+        ensures result == title
+      }
+      operation increment(count: Count) -> Count {
+        pure
+        requires count < 3
+        ensures result == count + 1
+      }
+    }
+    example "increment one" {
+      when result = Actions.increment(1)
+      expect result == 2
+    }
+    example "arithmetic and construction" {
+      when score = Actions.score(2, 3)
+      when label = Actions.describe("Read")
+      when choice = Actions.named("Read")
+      expect score == 8
+      expect label == "Task: Read"
+      expect choice is Named { value = "Read" }
+    }
+    invariant IncrementIsMonotone {
+      forall count: Count
+      assert count < 3 implies Actions.increment(count) > count
+    }
+  }
+}

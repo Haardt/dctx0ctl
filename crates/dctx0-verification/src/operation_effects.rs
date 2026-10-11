@@ -52,17 +52,24 @@ pub(crate) fn assess_call(
             "Call effect has no resolved operation",
         );
     };
-    let Some(operation) = ir.operations.get(&reference.target) else {
+    assess_call_contract(ir, node, &reference.target, calls, budgets)
+}
+
+fn assess_call_contract(
+    ir: &WorkspaceIr,
+    node: &SemanticNode,
+    subject: &str,
+    calls: &[InvocationObservation],
+    budgets: &VerificationBudgets,
+) -> VerificationResult {
+    let Some(operation) = ir.operations.get(subject) else {
         return unknown(
             node,
             "CALL_CONTRACT_REQUIRED",
             "Observed collaborator has no pinned signature",
         );
     };
-    for call in calls
-        .iter()
-        .filter(|c| c.invocation.subject == reference.target)
-    {
+    for call in calls.iter().filter(|c| c.invocation.subject == subject) {
         let mut valid = call.invocation.arguments.len() == operation.parameters.len();
         for (parameter, value) in operation.parameters.iter().zip(&call.invocation.arguments) {
             match check_value(ir, &parameter.ty, value, budgets) {
@@ -156,6 +163,13 @@ pub(crate) fn bind_call_aliases(
             .iter()
             .filter(|c| c.invocation.subject == reference.target)
             .collect::<Vec<_>>();
+        // An early declared failure may bypass a success-only collaborator.
+        // Leave its alias unbound; expressions that actually need it stay unknown.
+        if matching.is_empty()
+            && variables.get("success") == Some(&VerificationValue::Boolean(false))
+        {
+            continue;
+        }
         if matching.len() != 1 {
             return unknown(
                 node,
@@ -269,4 +283,115 @@ pub(crate) fn assess_emission(
             },
         }
     }
+}
+
+/// Delivered observations must stay within the declared operation boundary.
+/// Missing observers are handled by mandatory clause assessment, not invented.
+pub(crate) fn assess_boundary(
+    ir: &WorkspaceIr,
+    plan: &OperationPlan,
+    context: &ObservationContext,
+    budgets: &VerificationBudgets,
+) -> VerificationResult {
+    let mut unresolved = None;
+    let observations = context
+        .calls
+        .iter()
+        .flatten()
+        .map(|call| (&call.invocation.subject, ReferenceKind::Calls))
+        .chain(
+            context
+                .events
+                .iter()
+                .flatten()
+                .map(|event| (&event.subject, ReferenceKind::Emits)),
+        );
+    for (subject, kind) in observations {
+        let issue = |code: &str, message: String| VerificationIssue {
+            code: code.into(),
+            message,
+            span: ir
+                .symbols
+                .get(&plan.operation.id)
+                .map(|symbol| symbol.span.clone()),
+        };
+        if !ir.symbols.contains_key(subject) {
+            unresolved.get_or_insert_with(|| {
+                issue(
+                    "EFFECT_LABEL_UNMODELED",
+                    format!("Actual effect label {subject} is not modeled"),
+                )
+            });
+            continue;
+        }
+        if !ir.references.iter().any(|reference| {
+            reference.from == plan.operation.id
+                && reference.target == *subject
+                && reference.kind == kind
+        }) {
+            return VerificationResult::Fail {
+                issue: issue(
+                    "UNDECLARED_OPERATION_EFFECT",
+                    format!(
+                        "Actual {kind:?} effect on {subject} is outside the declared operation boundary"
+                    ),
+                ),
+            };
+        }
+    }
+    // A count assertion or early consumer failure does not waive the actual
+    // collaborator/event contract. Validate every delivered permitted effect.
+    for event in context.events.iter().flatten() {
+        let ty = TypeRef {
+            name: event.subject.clone(),
+            symbol_id: Some(event.subject.clone()),
+            arguments: vec![],
+        };
+        match check_value(ir, &ty, &event.payload, budgets) {
+            ValueContract::Accepted => {}
+            ValueContract::Unknown { issue } => {
+                unresolved.get_or_insert(issue);
+            }
+            ValueContract::Rejected { reason } => {
+                return VerificationResult::Fail {
+                    issue: VerificationIssue {
+                        code: "EVENT_CONTRACT_VIOLATED".into(),
+                        message: reason,
+                        span: ir
+                            .symbols
+                            .get(&plan.operation.id)
+                            .map(|symbol| symbol.span.clone()),
+                    },
+                };
+            }
+        }
+    }
+    for call in context.calls.iter().flatten() {
+        let Some(node) = ir.nodes.iter().find(|node| node.id == plan.operation.id) else {
+            return VerificationResult::Unknown {
+                issue: VerificationIssue {
+                    code: "CALL_CONTEXT_REQUIRED".into(),
+                    message: "Caller declaration is unavailable".into(),
+                    span: None,
+                },
+            };
+        };
+        let assessed = assess_call_contract(
+            ir,
+            node,
+            &call.invocation.subject,
+            std::slice::from_ref(call),
+            budgets,
+        );
+        match assessed {
+            VerificationResult::Pass => {}
+            VerificationResult::Unknown { issue } => {
+                unresolved.get_or_insert(issue);
+            }
+            failed @ VerificationResult::Fail { .. } => return failed,
+        }
+    }
+    unresolved.map_or(VerificationResult::Pass, |issue| {
+        VerificationResult::Unknown { issue }
+    })
 }

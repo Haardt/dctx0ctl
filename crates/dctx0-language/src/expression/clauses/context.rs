@@ -43,6 +43,27 @@ pub(super) fn variables_for_clause(
             }
         }
     }
+    if node.kind == StatementKind::Transition {
+        if let Some(operation) = node
+            .terms
+            .first()
+            .and_then(|token| {
+                resolver
+                    .resolve_symbol(&token.text, &node.owner, |kind| {
+                        kind == StatementKind::Operation
+                    })
+                    .ok()
+            })
+            .and_then(|id| ir.operations.get(&id))
+        {
+            variables.extend(
+                operation
+                    .parameters
+                    .iter()
+                    .map(|parameter| (parameter.name.clone(), parameter.ty.clone())),
+            );
+        }
+    }
     if let Some(declaration) = ir.data.get(&node.owner) {
         variables.insert(
             "value".into(),

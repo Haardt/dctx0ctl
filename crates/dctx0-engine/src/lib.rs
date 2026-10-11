@@ -8,6 +8,8 @@ mod profiles;
 mod rename;
 mod tasks;
 mod verification;
+mod verification_complete;
+pub use verification_complete::*;
 mod verification_discovery;
 mod verification_run;
 mod verification_setup;
@@ -27,7 +29,8 @@ use std::{
 pub use verification::VerificationSelection;
 pub use verification_discovery::*;
 pub use verification_run::{
-    NativeVerificationReport, ReplayChange, VerificationLifecycleFixtures, VerificationReplayReport,
+    InspectedVerificationReport, NativeVerificationReport, ReplayChange, TaskAttestation,
+    VerificationLifecycleFixtures, VerificationReplayReport,
 };
 pub use verification_setup::*;
 

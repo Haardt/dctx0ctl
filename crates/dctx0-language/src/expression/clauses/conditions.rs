@@ -31,6 +31,14 @@ pub(super) fn compile_transition_guard<'a>(
             context,
             Some(&TypeRef::builtin("Boolean")),
         ) {
+            if expand(&value.ty, context.ir).name != "Boolean" {
+                problem(
+                    context.diagnostics,
+                    "DCTX0_EXPRESSION_TYPE",
+                    "Transition guard must be Boolean",
+                    &node.span,
+                );
+            }
             expressions.push(value);
         }
     }

@@ -913,6 +913,17 @@ fn linked_delivery_fixture(
                 .cloned()
         })
         .collect::<BTreeSet<_>>();
+    let manifest = VerificationCaseManifest {
+        schema_version: 1,
+        required_cases: ["C1".into()].into(),
+        case_requirements: [("C1".into(), subjects.clone())].into(),
+        open_obligations: vec![],
+        bounded_obligations: vec![],
+    };
+    let mapping = crate::VerificationArtifact::new(
+        "application/vnd.dctx0.case-manifest+json",
+        serde_json::to_vec(&manifest).unwrap(),
+    );
     let run = VerificationRun {
         schema_version: 1,
         origin: VerificationRunOrigin::Native,
@@ -942,6 +953,7 @@ fn linked_delivery_fixture(
         not_selected: vec![],
         required_cases: ["C1".into()].into(),
         cases: vec![VerificationCaseRecord {
+            resources: None,
             id: "C1".into(),
             subject: "W.A".into(),
             kind: VerificationCaseKind::Contract,
@@ -956,11 +968,11 @@ fn linked_delivery_fixture(
         }],
         open_obligations: vec![],
         bounded_obligations: vec![],
-        artifacts: vec![artifact.reference.clone()],
+        artifacts: vec![artifact.reference.clone(), mapping.reference.clone()],
         result: VerificationResult::Pass,
     };
     let id = store
-        .record_verification_run("p", &run, &[artifact])
+        .record_verification_run("p", &run, &[artifact, mapping])
         .unwrap()
         .id;
     for delivery in &mut deliveries {
@@ -1078,15 +1090,76 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
         "no-pin",
         "unknown",
         "unexecuted",
+        "duplicate-case",
+        "empty-case",
         "scope",
         "artifact",
         "report",
+        "missing-manifest",
+        "duplicate-manifest",
+        "corrupt-manifest",
+        "manual-not-in-manifest",
+        "unsupported-open-obligation",
+        "manual-primary-mismatch",
+        "unmapped-subject",
     ] {
         let (mut store, input, _) = prepared();
         let (pin, mut deliveries, run_id) = linked_delivery_fixture(&mut store, &input);
         let (manifest, docs) = profile_catalog();
         let mut run = store.verification_run("p", &run_id).unwrap().run;
         match reason {
+            "unmapped-subject" => {
+                let reference = run
+                    .artifacts
+                    .iter_mut()
+                    .find(|artifact| {
+                        artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                    })
+                    .unwrap();
+                let stored = store
+                    .verification_artifact(&run_id, &reference.hash)
+                    .unwrap();
+                let mut mapping: dctx0_core::VerificationCaseManifest =
+                    serde_json::from_slice(&stored.contents).unwrap();
+                mapping
+                    .case_requirements
+                    .values_mut()
+                    .for_each(|requirements| {
+                        requirements.remove("W.A");
+                    });
+                let changed = crate::VerificationArtifact::new(
+                    &reference.media_type,
+                    serde_json::to_vec(&mapping).unwrap(),
+                );
+                store.connection.execute("INSERT INTO verification_artifacts(hash,media_type,bytes) VALUES(?1,?2,?3)", params![changed.reference.hash, changed.reference.media_type, changed.contents]).unwrap();
+                store.connection.execute("INSERT INTO verification_run_artifacts(run_id,artifact_hash) VALUES(?1,?2)", params![run_id, changed.reference.hash]).unwrap();
+                *reference = changed.reference;
+            }
+            "manual-not-in-manifest"
+            | "unsupported-open-obligation"
+            | "manual-primary-mismatch" => {
+                let issue = dctx0_core::VerificationIssue {
+                    code: if reason == "unsupported-open-obligation" {
+                        "STATE_OBSERVER_REQUIRED"
+                    } else {
+                        "MANUAL_REQUIREMENT"
+                    }
+                    .into(),
+                    message: "A stored obligation remains open".into(),
+                    span: None,
+                };
+                run.open_obligations.push(issue.clone());
+                run.result = dctx0_core::VerificationResult::Unknown {
+                    issue: if reason == "manual-primary-mismatch" {
+                        dctx0_core::VerificationIssue {
+                            message: "Not present in open obligations".into(),
+                            ..issue
+                        }
+                    } else {
+                        issue
+                    },
+                };
+            }
             "imported" => run.origin = dctx0_core::VerificationRunOrigin::Imported,
             "incomplete" => run
                 .provenance
@@ -1109,6 +1182,13 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
             "unexecuted" => {
                 run.required_cases.insert("missing-case".into());
             }
+            "duplicate-case" => run.cases.push(run.cases[0].clone()),
+            "empty-case" => {
+                let old = run.cases[0].id.clone();
+                run.required_cases.remove(&old);
+                run.required_cases.insert(String::new());
+                run.cases[0].id.clear();
+            }
             "scope" => {
                 run.required_subjects.clear();
             }
@@ -1116,6 +1196,36 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
                 deliveries.last_mut().unwrap().result.artifacts = vec!["uncaptured.rs".into()]
             }
             "report" => deliveries.last_mut().unwrap().evidence.report = "different-run".into(),
+            "missing-manifest" => run.artifacts.retain(|artifact| {
+                artifact.media_type != "application/vnd.dctx0.case-manifest+json"
+            }),
+            "duplicate-manifest" => {
+                let reference = run
+                    .artifacts
+                    .iter()
+                    .find(|artifact| {
+                        artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                    })
+                    .unwrap()
+                    .clone();
+                run.artifacts.push(reference);
+            }
+            "corrupt-manifest" => {
+                let reference = run
+                    .artifacts
+                    .iter()
+                    .find(|artifact| {
+                        artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                    })
+                    .unwrap();
+                store
+                    .connection
+                    .execute(
+                        "UPDATE verification_artifacts SET bytes=?1 WHERE hash=?2",
+                        params![b"{}".as_slice(), reference.hash],
+                    )
+                    .unwrap();
+            }
             _ => unreachable!(),
         }
         // Simulate a corrupt/legacy imported storage row to exercise rejection
@@ -1154,5 +1264,240 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
                 .unwrap()
                 .is_none()
         );
+    }
+}
+
+#[test]
+fn discharged_state_hints_are_recomputed_from_immutable_plan_and_actual_before_states() {
+    use crate::VerificationArtifact;
+    use dctx0_core::*;
+    let (mut store, old, _) = prepared();
+    let (_, _, old_run) = linked_delivery_fixture(&mut store, &old);
+    let mut run = store.verification_run("p", &old_run).unwrap().run;
+    let sources = vec![Source {
+        file: "state.dctx0".into(),
+        text: "workspace W { entity Item { id: String\nkey id } surface Api { operation read(id:String) -> String { requires exists Item(id) } } review R { inspect { implementation } criteria { \"Human review remains open\" } } }".into(),
+    }];
+    let ir = dctx0_language::compile(&sources).ir.unwrap();
+    let input = dctx0_changes::snapshot(&sources, ir.clone(), dctx0_graph::build(&ir));
+    store.publish("p", &input, None).unwrap();
+    let occurrence = store.task_check("p").unwrap().0;
+    let plan = dctx0_verification::project_program(
+        &ir,
+        &input.id,
+        occurrence as u64,
+        dctx0_verification::VerificationScope {
+            subjects: ["W".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    let operation = &plan.operations[0];
+    run.cases = operation
+        .inputs
+        .bindings
+        .iter()
+        .enumerate()
+        .map(|(index, bindings)| {
+            let invocation = Invocation {
+                subject: operation.operation.id.clone(),
+                arguments: vec![bindings["id"].clone()],
+            };
+            VerificationCaseRecord {
+                id: format!("W.Api.read:operation:{index}"),
+                subject: "W.Api.read".into(),
+                kind: VerificationCaseKind::Operation,
+                bindings: bindings.clone(),
+                setup: vec![],
+                arguments: vec![invocation.arguments.clone()],
+                observations: vec![InvocationObservation {
+                    invocation,
+                    observation: Observation::Returned {
+                        value: bindings["id"].clone(),
+                    },
+                }],
+                events: None,
+                resources: None,
+                states: vec![VerificationStateEvidence {
+                    phase: StatePhase::Before,
+                    phase_recorded: Some(true),
+                    entities: [(
+                        "W.Item".into(),
+                        vec![VerificationValue::Record(
+                            [("id".into(), bindings["id"].clone())].into(),
+                        )],
+                    )]
+                    .into(),
+                }],
+                result: VerificationResult::Pass,
+                elapsed_us: 0,
+            }
+        })
+        .collect();
+    let manifest = dctx0_verification::case_manifest(&plan);
+    let resolved = dctx0_verification::resolved_state_preconditions(&ir, &plan, &run.cases);
+    assert!(!resolved.is_empty());
+    run.provenance.snapshot = input.id.clone();
+    run.provenance.check_occurrence = occurrence;
+    run.provenance.task_pin = None;
+    run.required_cases = manifest.required_cases.clone();
+    run.selected_subjects = plan.scope.subjects.clone();
+    run.required_subjects = plan.closure.clone();
+    run.open_obligations = manifest
+        .open_obligations
+        .iter()
+        .filter(|issue| !resolved.contains(issue))
+        .cloned()
+        .collect();
+    run.result = VerificationResult::Unknown {
+        issue: run.open_obligations[0].clone(),
+    };
+    let artifacts = vec![
+        VerificationArtifact::new(
+            "application/vnd.dctx0.plan+json",
+            serde_json::to_vec(&plan).unwrap(),
+        ),
+        VerificationArtifact::new(
+            "application/vnd.dctx0.case-manifest+json",
+            serde_json::to_vec(&manifest).unwrap(),
+        ),
+        VerificationArtifact::new(
+            "application/vnd.dctx0.resolved-preconditions+json",
+            serde_json::to_vec(&resolved).unwrap(),
+        ),
+    ];
+    run.provenance.plan_hash = artifacts[0].reference.hash.clone();
+    run.artifacts = artifacts
+        .iter()
+        .map(|artifact| artifact.reference.clone())
+        .collect();
+    // This is a partial storage fixture, not execution authority: the outer
+    // delivery gate separately rejects its missing contract cases.
+    let saved = store
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap();
+    super::native_proof::validate_open_obligations(&store.connection, &saved.id, &run, &manifest)
+        .unwrap();
+    for mutation in 0..8 {
+        let mut invalid = run.clone();
+        match mutation {
+            0 => invalid.cases[0].states.clear(),
+            1 => invalid.cases[0].states[0].phase_recorded = None,
+            2 => invalid.provenance.plan_hash = "different-plan".into(),
+            3 => invalid.budgets.seed += 1,
+            4 => invalid.artifacts.retain(|artifact| {
+                artifact.media_type != "application/vnd.dctx0.resolved-preconditions+json"
+            }),
+            5 => invalid.artifacts.push(artifacts[0].reference.clone()),
+            6 => invalid.open_obligations.clear(),
+            _ => invalid.cases.clear(),
+        }
+        assert!(
+            super::native_proof::validate_open_obligations(
+                &store.connection,
+                &saved.id,
+                &invalid,
+                &manifest
+            )
+            .is_err(),
+            "Mutation {mutation}"
+        );
+    }
+    // A valid content hash does not make a malformed typed proof valid.
+    for (media_type, contents) in [
+        ("application/vnd.dctx0.plan+json", b"not JSON".as_slice()),
+        ("application/vnd.dctx0.plan+json", b"{}".as_slice()),
+        (
+            "application/vnd.dctx0.resolved-preconditions+json",
+            b"{\"invalid\":true}".as_slice(),
+        ),
+    ] {
+        let mut invalid = run.clone();
+        let mut altered = artifacts.clone();
+        let index = altered
+            .iter()
+            .position(|artifact| artifact.reference.media_type == media_type)
+            .unwrap();
+        altered[index] = VerificationArtifact::new(media_type, contents.to_vec());
+        invalid.artifacts = altered
+            .iter()
+            .map(|artifact| artifact.reference.clone())
+            .collect();
+        invalid.provenance.plan_hash = altered[0].reference.hash.clone();
+        let saved_invalid = store
+            .record_verification_run("p", &invalid, &altered)
+            .unwrap();
+        let error = super::native_proof::validate_open_obligations(
+            &store.connection,
+            &saved_invalid.id,
+            &invalid,
+            &manifest,
+        )
+        .unwrap_err();
+        assert!(
+            error.to_string().contains("Invalid native proof artifact"),
+            "{error}"
+        );
+    }
+    let original_snapshot: String = store
+        .connection
+        .query_row(
+            "SELECT data FROM snapshots WHERE id=?1",
+            [&input.id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    store
+        .connection
+        .execute("UPDATE snapshots SET data='{}' WHERE id=?1", [&input.id])
+        .unwrap();
+    assert!(
+        super::native_proof::validate_open_obligations(
+            &store.connection,
+            &saved.id,
+            &run,
+            &manifest
+        )
+        .is_err()
+    );
+    store
+        .connection
+        .execute(
+            "UPDATE snapshots SET data=?1 WHERE id=?2",
+            params![original_snapshot, input.id],
+        )
+        .unwrap();
+    for media_type in [
+        "application/vnd.dctx0.plan+json",
+        "application/vnd.dctx0.resolved-preconditions+json",
+    ] {
+        let artifact = artifacts
+            .iter()
+            .find(|artifact| artifact.reference.media_type == media_type)
+            .unwrap();
+        store
+            .connection
+            .execute(
+                "UPDATE verification_artifacts SET bytes=?1 WHERE hash=?2",
+                params![b"{}".as_slice(), artifact.reference.hash],
+            )
+            .unwrap();
+        assert!(
+            super::native_proof::validate_open_obligations(
+                &store.connection,
+                &saved.id,
+                &run,
+                &manifest
+            )
+            .is_err()
+        );
+        store
+            .connection
+            .execute(
+                "UPDATE verification_artifacts SET bytes=?1 WHERE hash=?2",
+                params![artifact.contents, artifact.reference.hash],
+            )
+            .unwrap();
     }
 }

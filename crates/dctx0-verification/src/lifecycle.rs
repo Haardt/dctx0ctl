@@ -28,6 +28,64 @@ pub struct LifecycleCaseInput {
     /// Ordered arguments for every transition occurrence, including repeats.
     pub arguments: Vec<Vec<VerificationValue>>,
 }
+/// Validate reviewed input contracts without inferring state or executing setup.
+pub fn lifecycle_input_contract(
+    ir: &WorkspaceIr,
+    plan: &LifecyclePlan,
+    path: &LifecyclePath,
+    input: &LifecycleCaseInput,
+    budgets: &VerificationBudgets,
+) -> VerificationResult {
+    let invalid = |message: &str| unknown("LIFECYCLE_INPUT_CONTRACT", message);
+    if path.transitions.is_empty()
+        || !plan.paths.contains(path)
+        || input.arguments.len() != path.transitions.len()
+    {
+        return invalid("Reviewed input must cover its complete pinned path");
+    }
+    let Some(entity) = ir.data.get(&plan.entity) else {
+        return invalid("Lifecycle entity is unavailable");
+    };
+    if entity.keys.is_empty() || input.keys.len() != entity.keys.len() {
+        return invalid("Reviewed input must provide every entity key");
+    }
+    for (name, value) in entity.keys.iter().zip(&input.keys) {
+        let Some(field) = entity.fields.iter().find(|field| &field.name == name) else {
+            return invalid("Entity key field is unavailable");
+        };
+        match check_value(ir, &field.ty, value, budgets) {
+            ValueContract::Accepted => {}
+            ValueContract::Rejected { reason } => return invalid(&reason),
+            ValueContract::Unknown { issue } => return VerificationResult::Unknown { issue },
+        }
+    }
+    let mut invocations = input.setup.clone();
+    for (index, arguments) in path.transitions.iter().zip(&input.arguments) {
+        let Some(transition) = plan.transitions.get(*index) else {
+            return invalid("Lifecycle transition is unavailable");
+        };
+        invocations.push(Invocation {
+            subject: transition.operation.clone(),
+            arguments: arguments.clone(),
+        });
+    }
+    for invocation in &invocations {
+        let Some(operation) = ir.operations.get(&invocation.subject) else {
+            return invalid("Setup or transition operation is undeclared");
+        };
+        if operation.parameters.len() != invocation.arguments.len() {
+            return invalid("Setup or transition arguments do not match the signature");
+        }
+        for (parameter, value) in operation.parameters.iter().zip(&invocation.arguments) {
+            match check_value(ir, &parameter.ty, value, budgets) {
+                ValueContract::Accepted => {}
+                ValueContract::Rejected { reason } => return invalid(&reason),
+                ValueContract::Unknown { issue } => return VerificationResult::Unknown { issue },
+            }
+        }
+    }
+    VerificationResult::Pass
+}
 fn unknown(code: &str, message: &str) -> VerificationResult {
     VerificationResult::Unknown {
         issue: VerificationIssue {
@@ -60,6 +118,66 @@ pub fn lifecycle_status(
             "Lifecycle entity declaration is missing",
         ))
     })?;
+    if plan.field == "presence" {
+        let initial = plan
+            .states
+            .iter()
+            .filter(|state| state.initial)
+            .collect::<Vec<_>>();
+        let terminal = plan
+            .states
+            .iter()
+            .filter(|state| state.terminal)
+            .collect::<Vec<_>>();
+        if plan.states.len() != 2
+            || initial.len() != 1
+            || terminal.len() != 1
+            || initial[0].name == terminal[0].name
+        {
+            return Err(Box::new(unknown(
+                "LIFECYCLE_PRESENCE_STATES",
+                "Presence needs one present initial state and one absent terminal state",
+            )));
+        }
+        let expression = Expression {
+            ty: TypeRef::builtin("Boolean"),
+            span: entity.span.clone(),
+            value: ExpressionKind::Call {
+                name: format!("exists:{}", plan.entity),
+                target: Some(plan.entity.clone()),
+                arguments: keys
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| Expression {
+                        ty: TypeRef::builtin("Sample"),
+                        span: entity.span.clone(),
+                        value: ExpressionKind::Variable {
+                            name: format!("key:{index}"),
+                        },
+                    })
+                    .collect(),
+            },
+        };
+        let variables = keys
+            .iter()
+            .enumerate()
+            .map(|(index, value)| (format!("key:{index}"), value.clone()))
+            .collect();
+        let mut actual = context.clone();
+        actual.phase = phase;
+        return match evaluate_observed(ir, &expression, &variables, &[], &actual, budgets) {
+            Evaluation::Complete(VerificationValue::Boolean(present)) => Ok(if present {
+                initial[0].name.clone()
+            } else {
+                terminal[0].name.clone()
+            }),
+            Evaluation::Unknown(issue) => Err(Box::new(VerificationResult::Unknown { issue })),
+            _ => Err(Box::new(unknown(
+                "LIFECYCLE_STATE_REPRESENTATION",
+                "Presence needs an actual keyed entity observation",
+            ))),
+        };
+    }
     let field = ir
         .data
         .get(&plan.entity)

@@ -8,9 +8,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const VERIFICATION_VERSION: &str = "dctx0-verification-1";
+pub mod attestations;
 mod preconditions;
+pub mod program_inspection;
+pub mod suites;
 pub use preconditions::{
-    PRECONDITION_SELECTION_VERSION, PreconditionSelection, select_precondition_inputs,
+    PRECONDITION_SELECTION_VERSION, PreconditionSelection, resolved_state_preconditions,
+    select_precondition_inputs,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -235,9 +239,11 @@ pub use generation::{
 
 mod projection;
 pub use projection::*;
+mod entity_identity;
 mod operation;
 mod operation_effects;
 mod operation_state;
+pub use entity_identity::{entity_identity_case, validate_entity_identity_cases};
 pub use operation::{
     OperationAssessment, OperationCaseInput, OperationObservers, assess_operation, operation_ready,
 };
@@ -248,3 +254,17 @@ pub use lifecycle::*;
 
 mod manifest;
 pub use manifest::{CaseManifest, case_manifest, supports_generated_operation};
+
+mod resource_effects;
+
+mod shrinking;
+pub use shrinking::{
+    LifecycleShrinkAttempt, LifecycleShrinkReport, SHRINK_VERSION, ShrinkAttempt, ShrinkReport,
+    shrink_invocations, shrink_lifecycle_inputs,
+};
+
+mod operation_mocks;
+pub use operation_mocks::{OperationMock, OperationMockSession};
+
+/// Version of central observation and contract assessment, distinct from generation.
+pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-15";

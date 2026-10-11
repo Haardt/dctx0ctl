@@ -52,7 +52,7 @@ impl NativeWorker {
         budgets: &VerificationBudgets,
         cancel: &NativeCancellation,
     ) -> Result<NativeLifecycleResult, NativeFailure> {
-        self.session_evidence.clear();
+        self.clear_evidence();
         match tokio::time::timeout(
             self.limits.case,
             self.lifecycle_session(ir, plan, path, input, budgets, cancel),
@@ -96,6 +96,18 @@ impl NativeWorker {
         for invocation in input.setup.iter().chain(&invocations) {
             input_contract(ir, invocation, budgets)?;
         }
+        let input_result =
+            dctx0_verification::lifecycle_input_contract(ir, plan, path, input, budgets);
+        if input_result != VerificationResult::Pass {
+            let mut assessment = assess_lifecycle(ir, plan, path, &input.keys, &[], budgets);
+            assessment.result = input_result;
+            return Ok(NativeLifecycleResult {
+                setup: vec![],
+                observations: vec![],
+                assessment,
+                blocked_context: None,
+            });
+        }
         self.begin_case(&path.id, cancel).await?;
         let mut result = NativeLifecycleResult {
             setup: vec![],
@@ -104,6 +116,63 @@ impl NativeWorker {
             blocked_context: None,
         };
         for invocation in &input.setup {
+            let operation = &ir.operations[&invocation.subject];
+            let setup_plan = dctx0_verification::OperationPlan {
+                precondition_selection: None,
+                operation: operation.clone(),
+                inputs: dctx0_verification::InputCorpus {
+                    bindings: vec![],
+                    exhaustive: false,
+                    issues: vec![],
+                },
+                clauses: ir
+                    .nodes
+                    .iter()
+                    .filter(|node| {
+                        node.owner == operation.id
+                            && node.kind == dctx0_core::StatementKind::Requires
+                    })
+                    .cloned()
+                    .collect(),
+                cases: vec![],
+                generated_preparations: vec![],
+            };
+            let mut setup_context = ObservationContext::default();
+            let entities = ir
+                .references
+                .iter()
+                .filter(|reference| {
+                    reference.from == operation.id
+                        && matches!(
+                            reference.kind,
+                            dctx0_core::ReferenceKind::Reads
+                                | dctx0_core::ReferenceKind::Writes
+                                | dctx0_core::ReferenceKind::State
+                        )
+                })
+                .map(|reference| reference.target.clone())
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>();
+            if !setup_plan.clauses.is_empty() && !entities.is_empty() {
+                setup_context.before = Some(
+                    self.observe_case(entities, dctx0_core::StatePhase::Before, cancel)
+                        .await?,
+                );
+            }
+            let ready = dctx0_verification::operation_ready(
+                ir,
+                &setup_plan,
+                invocation,
+                &setup_context,
+                budgets,
+            );
+            if ready != VerificationResult::Pass {
+                result.assessment.result = ready;
+                result.blocked_context = Some(setup_context);
+                self.end_case(cancel).await?;
+                return Ok(result);
+            }
             let delivered = self
                 .invoke_case(invocation.clone(), cancel, &mut cases::reject_mock)
                 .await?;
@@ -151,7 +220,13 @@ impl NativeWorker {
             }
         }
         for (position, invocation) in invocations.into_iter().enumerate() {
-            let before = self.observe_case(vec![plan.entity.clone()], cancel).await?;
+            let before = self
+                .observe_case(
+                    vec![plan.entity.clone()],
+                    dctx0_core::StatePhase::Before,
+                    cancel,
+                )
+                .await?;
             let context = ObservationContext {
                 before: Some(before.clone()),
                 ..Default::default()
@@ -173,7 +248,13 @@ impl NativeWorker {
             let delivered = self
                 .invoke_case(invocation.clone(), cancel, &mut cases::reject_mock)
                 .await?;
-            let after = self.observe_case(vec![plan.entity.clone()], cancel).await?;
+            let after = self
+                .observe_case(
+                    vec![plan.entity.clone()],
+                    dctx0_core::StatePhase::After,
+                    cancel,
+                )
+                .await?;
             result.observations.push(LifecycleObservation {
                 invocation: InvocationObservation {
                     invocation,
@@ -184,6 +265,7 @@ impl NativeWorker {
                     before: Some(before),
                     after: Some(after),
                     calls: delivered.calls,
+                    resources: delivered.resources,
                     events: Some(delivered.events),
                 },
             });

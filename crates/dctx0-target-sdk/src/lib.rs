@@ -1,6 +1,8 @@
 //! Separate native transport contract; profile manifests remain unchanged.
+mod dependencies;
 mod inspection;
 use dctx0_core::{Invocation, Observation, VerificationValue};
+pub use dependencies::*;
 pub use inspection::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -40,6 +42,21 @@ pub enum Error {
     Protocol(String),
 }
 pub trait HarnessGenerator {
+    fn inspect_dependencies(
+        &self,
+        _sources: &[InspectionSource],
+    ) -> Result<DependencyInspection, Error> {
+        Err(Error::Invalid(
+            "Target dependency inspection is unavailable".into(),
+        ))
+    }
+    fn module_observer_artifacts(
+        &self,
+        _sources: &[InspectionSource],
+        _project_root_relative: &str,
+    ) -> Result<Vec<Artifact>, Error> {
+        Ok(vec![])
+    }
     fn generate(&self, request: &HarnessRequest) -> Result<HarnessBundle, Error>;
     /// Setup preserves existing developer adapters; scaffolds are unavailable.
     fn scaffold(&self) -> Artifact;
@@ -73,7 +90,13 @@ pub enum ValueCheck {
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum WorkerRequest {
     Metrics,
+    ObserveDependencies,
     Describe,
+    ResolveDependency {
+        mode: DependencyResolution,
+        specifier: String,
+        importer: String,
+    },
     Begin {
         case_id: String,
     },
@@ -97,6 +120,15 @@ pub enum WorkerRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum WorkerReply {
+    DependenciesObserved {
+        evidence: ModuleObserverEvidence,
+    },
+    DependencyResolved {
+        path: String,
+    },
+    DependencyUnresolved {
+        reason: String,
+    },
     Measured {
         peak_rss_bytes: Option<u64>,
         runtime_version: String,
@@ -114,6 +146,8 @@ pub enum WorkerReply {
         /// None means no real call observer; an observed empty trace is Some([]).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         calls: Option<Vec<dctx0_core::InvocationObservation>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        resources: Option<Vec<dctx0_core::ResourceObservation>>,
     },
     ValueChecked {
         outcome: ValueCheck,

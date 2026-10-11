@@ -1,26 +1,9 @@
 //! Mandatory case inventory shared by execution, replay and task evidence mapping.
 use crate::{OperationPlan, ProgramPlan};
 use dctx0_core::{StatementKind, VerificationIssue};
-use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct CaseManifest {
-    pub schema_version: u32,
-    pub required_cases: BTreeSet<String>,
-    /// Requirements exercised by a case; only actual execution can discharge them.
-    pub case_requirements: BTreeMap<String, BTreeSet<String>>,
-    pub open_obligations: Vec<VerificationIssue>,
-    pub bounded_obligations: Vec<String>,
-}
-impl CaseManifest {
-    fn register(&mut self, id: String) {
-        if !self.required_cases.insert(id.clone()) {
-            self.open_obligations.push(issue("DUPLICATE_CASE_ID", id));
-        }
-    }
-}
+pub use dctx0_core::VerificationCaseManifest as CaseManifest;
 fn issue(code: &str, message: impl Into<String>) -> VerificationIssue {
     VerificationIssue {
         code: code.into(),
@@ -38,6 +21,16 @@ pub fn case_manifest(plan: &ProgramPlan) -> CaseManifest {
         bounded_obligations: vec![],
     };
     for contract in &plan.contracts {
+        if !contract.identity_requirements.is_empty() {
+            let id = format!("{}:identity", contract.subject);
+            manifest.register(id.clone());
+            manifest
+                .case_requirements
+                .insert(id, contract.identity_requirements.iter().cloned().collect());
+            manifest
+                .bounded_obligations
+                .push(format!("{}:identity", contract.subject));
+        }
         manifest
             .open_obligations
             .extend(contract.corpus.issues.clone());
@@ -130,6 +123,11 @@ pub fn case_manifest(plan: &ProgramPlan) -> CaseManifest {
         }
     }
     for manual in plan.manual_checks.iter().chain(&plan.policies) {
+        // Intent explains scope and decisions; it is retained in the plan,
+        // but is not an additional requirement or executable assertion.
+        if manual.kind == StatementKind::Intent {
+            continue;
+        }
         manifest.open_obligations.push(issue(
             "MANUAL_REQUIREMENT",
             format!(
@@ -148,6 +146,7 @@ pub fn case_manifest(plan: &ProgramPlan) -> CaseManifest {
             .into_iter()
             .collect::<BTreeSet<_>>();
         requirements.extend(contract.refinement_requirements.clone());
+        requirements.extend(contract.structural_requirements.clone());
         for (kind, size) in [
             ("value", contract.corpus.values.len()),
             ("rejection", contract.rejection_corpus.values.len()),
@@ -209,10 +208,17 @@ pub fn case_manifest(plan: &ProgramPlan) -> CaseManifest {
     manifest
 }
 pub fn supports_generated_operation(operation: &OperationPlan) -> bool {
-    operation.operation.pure
-        && operation
-            .clauses
-            .iter()
-            .all(|node| matches!(node.kind, StatementKind::Requires | StatementKind::Ensures))
-        && operation.operation.failures.is_empty()
+    operation.clauses.iter().all(|node| {
+        matches!(
+            node.kind,
+            StatementKind::Requires
+                | StatementKind::Ensures
+                | StatementKind::State
+                | StatementKind::Read
+                | StatementKind::Write
+                | StatementKind::Call
+                | StatementKind::Emit
+                | StatementKind::Observe
+        )
+    })
 }

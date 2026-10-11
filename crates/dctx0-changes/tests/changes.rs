@@ -131,10 +131,11 @@ fn complete_example_snapshots_preserve_the_pre_refactoring_wire_format() {
     ))
     .unwrap();
     for example in ["cinema", "runatron-next"] {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../examples")
-            .join(example)
-            .join("dctx0");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(if example == "cinema" {
+            "../../fixtures/semantic/original-cinema"
+        } else {
+            "../../examples/runatron-next/dctx0"
+        });
         let sources = std::fs::read_dir(root)
             .unwrap()
             .map(|entry| entry.unwrap().path())

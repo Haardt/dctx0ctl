@@ -1,0 +1,313 @@
+{
+  "status": "PASS",
+  "browser": {
+    "protocolVersion": "1.3",
+    "product": "Chrome/153.0.8010.52",
+    "revision": "@78e5e45d4bb41035e17ea4da2cc257f496416ac9",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "jsVersion": "15.3.76.13"
+  },
+  "checks": [
+    "real HTTP list renders two tasks",
+    "selection fetches actual task details",
+    "stored Done status is visible",
+    "new task is inserted into the actual board through HTTP",
+    "checkbox changes actual stored status to Done",
+    "checkbox can reopen an actual task",
+    "failed write preserves stored state and restores checkbox",
+    "failed creation retains input for retry",
+    "blank title does not create a task",
+    "missing detail shows an error",
+    "late response cannot overwrite a newer selection",
+    "empty board renders without stale tasks",
+    "HTTP failure allows retry",
+    "retry restores actual tasks",
+    "mobile layout fits the viewport"
+  ],
+  "browser_coverage": {
+    "measurement": "V8 precise function/block ranges; executable line starts mapped to the innermost range, raw ranges retained; not a complete branch proof",
+    "scripts": [
+      {
+        "source": "\n  const tasks = document.getElementById('tasks'), status = document.getElementById('status');\n  const refresh = document.getElementById('refresh'), count = document.getElementById('count');\n  const hint = document.getElementById('hint'), title = document.getElementById('detail-title'), id = document.getElementById('detail-id');\n  const form = document.getElementById('new-task'), input = document.getElementById('new-title'), create = document.getElementById('create');\n  let selection = 0;\n  async function writeTask(path, method, task) {\n    const response = await fetch(path, {method, headers: {'content-type':'application/json'}, body: JSON.stringify(task)});\n    if (!response.ok) throw new Error('Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.');\n    return response.json();\n  }\n  async function selectTask(taskId) {\n    const current = ++selection;\n    hint.textContent = 'Details werden geladen …'; title.textContent = ''; id.textContent = '';\n    try {\n      const response = await fetch('/tasks/' + encodeURIComponent(taskId));\n      if (!response.ok) throw new Error('Die Aufgabe konnte nicht geladen werden.');\n      const task = await response.json();\n      if (current !== selection) return;\n      hint.textContent = 'Deine ausgewählte Aufgabe'; title.textContent = task.title; id.textContent = task.id;\n    } catch (error) { if (current === selection) hint.textContent = error.message; }\n  }\n  async function loadTasks() {\n    refresh.disabled = true; status.textContent = 'Aufgaben werden geladen …';\n    ++selection; hint.textContent = 'Wähle eine Aufgabe aus der Liste.'; title.textContent = ''; id.textContent = '';\n    try {\n      const response = await fetch('/board/tasks');\n      if (!response.ok) throw new Error('Die Aufgaben konnten nicht geladen werden. Bitte erneut versuchen.');\n      const list = await response.json();\n      tasks.replaceChildren(); count.textContent = String(list.length);\n      for (const task of list) {\n        const item = document.createElement('li'), button = document.createElement('button');\n        item.className = 'task-row' + (task.status === 'Done' ? ' done' : '');\n        const completed = document.createElement('input'); completed.type = 'checkbox'; completed.checked = task.status !== 'Open';\n        completed.disabled = task.status === 'Archived'; completed.setAttribute('aria-label', task.title + ' erledigt');\n        completed.addEventListener('change', async () => {\n          completed.disabled = true;\n          try { await writeTask('/tasks/' + encodeURIComponent(task.id), 'PATCH', {...task, status: completed.checked ? 'Done' : 'Open'}); await loadTasks(); }\n          catch (error) { completed.checked = task.status !== 'Open'; status.textContent = error.message; }\n          finally { completed.disabled = task.status === 'Archived'; }\n        });\n        button.type = 'button'; button.className = 'task';\n        const dot = document.createElement('span'), label = document.createElement('span'), arrow = document.createElement('span'), badge = document.createElement('span');\n        dot.className = 'dot'; dot.setAttribute('aria-hidden', 'true'); label.textContent = task.title;\n        label.className = 'task-label'; badge.className = 'badge'; badge.textContent = task.status === 'Open' ? 'Offen' : task.status === 'Done' ? 'Erledigt' : 'Archiviert';\n        arrow.className = 'arrow'; arrow.textContent = '↗'; arrow.setAttribute('aria-hidden', 'true');\n        button.append(dot, label, badge, arrow); button.addEventListener('click', () => selectTask(task.id));\n        item.append(completed, button); tasks.append(item);\n      }\n      status.textContent = list.length ? 'Alles auf dem aktuellen Stand.' : 'Noch keine Aufgaben vorhanden.';\n    } catch (error) { tasks.replaceChildren(); count.textContent = '–'; status.textContent = error.message; }\n    finally { refresh.disabled = false; }\n  }\n  refresh.addEventListener('click', loadTasks);\n  form.addEventListener('submit', async event => {\n    event.preventDefault();\n    if (!input.value.trim()) { status.textContent = 'Bitte einen Titel eingeben.'; return; }\n    create.disabled = true;\n    try { await writeTask('/tasks', 'POST', {id: crypto.randomUUID(), title: input.value, status: 'Open'}); input.value = ''; await loadTasks(); }\n    catch (error) { status.textContent = error.message; }\n    finally { create.disabled = false; }\n  });\n  loadTasks();\n",
+        "functions": 7,
+        "executed_functions": 7,
+        "executable_lines": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          50,
+          51,
+          52,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63
+        ],
+        "uncovered_lines": [],
+        "raw_ranges": [
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 0,
+                "endOffset": 4421,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "writeTask",
+            "ranges": [
+              {
+                "startOffset": 496,
+                "endOffset": 806,
+                "count": 5
+              },
+              {
+                "startOffset": 689,
+                "endOffset": 774,
+                "count": 2
+              },
+              {
+                "startOffset": 774,
+                "endOffset": 805,
+                "count": 3
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "selectTask",
+            "ranges": [
+              {
+                "startOffset": 809,
+                "endOffset": 1428,
+                "count": 4
+              },
+              {
+                "startOffset": 1084,
+                "endOffset": 1144,
+                "count": 1
+              },
+              {
+                "startOffset": 1144,
+                "endOffset": 1220,
+                "count": 3
+              },
+              {
+                "startOffset": 1220,
+                "endOffset": 1227,
+                "count": 1
+              },
+              {
+                "startOffset": 1227,
+                "endOffset": 1346,
+                "count": 2
+              },
+              {
+                "startOffset": 1346,
+                "endOffset": 1424,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "loadTasks",
+            "ranges": [
+              {
+                "startOffset": 1431,
+                "endOffset": 3905,
+                "count": 7
+              },
+              {
+                "startOffset": 1743,
+                "endOffset": 1829,
+                "count": 1
+              },
+              {
+                "startOffset": 1829,
+                "endOffset": 1975,
+                "count": 6
+              },
+              {
+                "startOffset": 1975,
+                "endOffset": 3639,
+                "count": 14
+              },
+              {
+                "startOffset": 2133,
+                "endOffset": 2142,
+                "count": 6
+              },
+              {
+                "startOffset": 2143,
+                "endOffset": 2147,
+                "count": 8
+              },
+              {
+                "startOffset": 3295,
+                "endOffset": 3304,
+                "count": 8
+              },
+              {
+                "startOffset": 3305,
+                "endOffset": 3357,
+                "count": 6
+              },
+              {
+                "startOffset": 3343,
+                "endOffset": 3357,
+                "count": 0
+              },
+              {
+                "startOffset": 3639,
+                "endOffset": 3679,
+                "count": 6
+              },
+              {
+                "startOffset": 3679,
+                "endOffset": 3713,
+                "count": 5
+              },
+              {
+                "startOffset": 3714,
+                "endOffset": 3748,
+                "count": 1
+              },
+              {
+                "startOffset": 3756,
+                "endOffset": 3859,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 2448,
+                "endOffset": 2847,
+                "count": 3
+              },
+              {
+                "startOffset": 2617,
+                "endOffset": 2625,
+                "count": 2
+              },
+              {
+                "startOffset": 2626,
+                "endOffset": 2634,
+                "count": 1
+              },
+              {
+                "startOffset": 2637,
+                "endOffset": 2669,
+                "count": 2
+              },
+              {
+                "startOffset": 2669,
+                "endOffset": 2766,
+                "count": 1
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 3544,
+                "endOffset": 3569,
+                "count": 4
+              }
+            ],
+            "isBlockCoverage": true
+          },
+          {
+            "functionName": "",
+            "ranges": [
+              {
+                "startOffset": 3988,
+                "endOffset": 4403,
+                "count": 3
+              },
+              {
+                "startOffset": 4062,
+                "endOffset": 4125,
+                "count": 1
+              },
+              {
+                "startOffset": 4125,
+                "endOffset": 4261,
+                "count": 2
+              },
+              {
+                "startOffset": 4261,
+                "endOffset": 4358,
+                "count": 1
+              },
+              {
+                "startOffset": 4358,
+                "endOffset": 4399,
+                "count": 2
+              }
+            ],
+            "isBlockCoverage": true
+          }
+        ]
+      }
+    ]
+  },
+  "screenshot": "/tmp/dctx0-miniboard.png"
+}

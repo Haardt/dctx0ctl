@@ -41,6 +41,19 @@ def validation_sources():
     paths.extend(adaptive.glob('spec/*.dctx0'))
     for name in ('package.json', 'bun.lock', 'tsconfig.json'):
         paths.extend(adaptive.glob('*/' + name))
+    paths.extend(path for path in ROOT.glob('examples/**/*.dctx0') if path.is_file())
+    paths.extend(path for path in ROOT.glob('fixtures/**/*.dctx0') if path.is_file())
+    paths.extend(ROOT.glob('fixtures/**/*.json'))
+    paths.extend(ROOT.glob('targets/**/*.go'))
+    for project in ROOT.glob('examples/tutorial-step-*'):
+        paths.extend(project.glob('src/**/*.ts'))
+        paths.extend(project.glob('*.ts'))
+        paths.extend(project.glob('.dctx0/testing/typescript/*.ts'))
+        paths.extend(project.glob('.dctx0/testing/**/*.json'))
+        paths.extend(project / name for name in ('package.json', 'bun.lock', 'tsconfig.json'))
+    paths.extend((ROOT / 'examples/tutorial').glob('*.ts'))
+    paths.extend((ROOT / 'examples/tutorial').glob('*.sh'))
+    paths.append(ROOT / 'examples/tutorial/features.json')
     paths.append(adaptive / 'production-frozen.json')
     return paths
 
@@ -93,6 +106,8 @@ def measure(binary, path, iterations, phase=None, database=None, target=None):
 
 
 def benchmark(args):
+    selected = getattr(args, 'example', 'all')
+    workloads = WORKLOADS if selected == 'all' else {selected: WORKLOADS[selected]}
     record = {'schema_version': 1, 'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
               'status': 'incomplete', 'measurements': {}, 'settings': {'iterations': args.iterations, 'samples': args.samples,
               'warmup_runs': 1, 'profile': 'release', 'features': 'all', 'cache': 'warm filesystem; fresh process per sample'},
@@ -102,12 +117,12 @@ def benchmark(args):
               'revision': capture(['git', 'rev-parse', 'HEAD']),
               'dirty_worktree': capture(['git', 'status', '--porcelain']),
               'source_hash': digest(validation_sources()),
-              'input_hashes': {name: digest((ROOT / path).glob('*.dctx0')) for name, path in WORKLOADS.items()},
+              'input_hashes': {name: digest((ROOT / path).rglob('*.dctx0')) for name, path in workloads.items()},
               'memory_scope': 'Linux post-exec VmHWM from standalone Rust parser process /proc/self/status; no child processes'}
     try:
         subprocess.run(['cargo', 'build', '--release', '--workspace', '--all-features', '--locked'], cwd=ROOT, check=True)
         binary = ROOT / 'target/release/dctx0-parse-bench'
-        for name, path in WORKLOADS.items():
+        for name, path in workloads.items():
             measure(binary, path, args.iterations)
             samples = [measure(binary, path, args.iterations) for _ in range(args.samples)]
             record['measurements'][name] = {'samples': samples,
@@ -117,7 +132,7 @@ def benchmark(args):
         # its prepared inputs. SQLite runs use disposable databases only.
         phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
         phase_iterations = min(args.iterations, 3)
-        for name, path in WORKLOADS.items():
+        for name, path in workloads.items():
             for phase in phases:
                 with tempfile.TemporaryDirectory(prefix='dctx0-benchmark-') as temporary:
                     database = Path(temporary) / 'history.sqlite3'
@@ -134,7 +149,7 @@ def benchmark(args):
                         'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
                         'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
         for target in ('typescript', 'java', 'go', 'rust'):
-            for name, path in WORKLOADS.items():
+            for name, path in workloads.items():
                 for phase in ('create', 'load', 'context-md', 'context-json', 'claim'):
                     with tempfile.TemporaryDirectory(prefix='dctx0-profile-benchmark-') as temporary:
                         database = Path(temporary) / 'history.sqlite3'
@@ -145,6 +160,21 @@ def benchmark(args):
                             'memory_scope': 'Linux post-exec VmHWM; profile files only; no compiler or SQLite' if phase in ('create', 'load') else 'Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children',
                             'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
                             'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+        if getattr(args, 'tutorial', False):
+            # New identities are unassessed until explicit baseline promotion.
+            for step in (1, 8, 12, 16):
+                project = next(ROOT.glob(f'examples/tutorial-step-{step}-*'))
+                path = str((project / 'dctx0').relative_to(ROOT))
+                for phase in ('compile', 'verification-project', 'verification-harness'):
+                    with tempfile.TemporaryDirectory(prefix='dctx0-tutorial-benchmark-') as temporary:
+                        database = Path(temporary) / 'history.sqlite3'
+                        measure(binary, path, phase_iterations, phase, database)
+                        samples = [measure(binary, path, phase_iterations, phase, database) for _ in range(args.samples)]
+                    record['measurements'][f'tutorial-step-{step}/{phase}'] = {
+                        'samples': samples, 'iterations': phase_iterations,
+                        'memory_scope': 'Linux post-exec VmHWM; Rust preparation/projection/artifact generation; no native children',
+                        'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
+                        'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
         record['source_hash_after'] = digest(validation_sources())
         if record['source_hash_after'] != record['source_hash']:
             raise RuntimeError('Benchmark sources changed during measurement; rerun on a stable tree')
@@ -241,7 +271,10 @@ def main():
     os.chdir(ROOT)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--accept-baseline', metavar='RUN', help='latest or a history filename; performs no tests')
-    parser.add_argument('--coverage', action='store_true', help='enforce 100%% line/function coverage')
+    parser.add_argument('--example', choices=('all', 'cinema'), default='all', help='select release measurement scope; cinema defers the two-example benchmark conformance test')
+    parser.add_argument('--coverage', action='store_true', help='enforce 97%% line/function coverage')
+    parser.add_argument('--tutorial', action='store_true', help='validate all 16 TypeScript steps, feature coverage, mutations and replay; measure representative tutorial Rust phases last')
+    parser.add_argument('--skip-performance', action='store_true', help='defer release measurements; save check results separately from benchmark history')
     parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification'), default='workspace', help='native-transport is a partial development check; release measurements still run')
     parser.add_argument('--samples', type=int, default=5)
     parser.add_argument('--iterations', type=int, default=20)
@@ -260,33 +293,81 @@ def main():
                 ['cargo', 'build', '--workspace', '--locked'],
                 ['cargo', 'fmt', '--all', '--', '--check'],
                 ['cargo', 'clippy', '--workspace', '--all-targets', '--all-features', '--locked', '--', '-D', 'warnings'],
-                ['cargo', 'test', '--workspace', '--all-features', '--locked'],
-                ['cargo', 'test', '-p', 'dctx0-cli', '--no-default-features', '--locked'],
-                ['cargo', 'test', '-p', 'dctx0-cli', '--no-default-features', '--features', 'rust', '--locked']]
+                ['cargo', 'test', '--no-fail-fast', '--workspace', '--all-features', '--locked'],
+                ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--locked'],
+                ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--features', 'rust', '--locked']]
     if args.focus == 'native-transport':
         if args.coverage:
             parser.error('Coverage acceptance requires workspace focus')
-        commands = commands[:5] + [['cargo', 'test', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '--all-features', '--locked']]
+        commands = commands[:5] + [['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '--all-features', '--locked']]
     if args.focus == 'native-executor':
         if args.coverage:
             parser.error('Coverage acceptance requires workspace focus')
-        commands = commands[:5] + [['cargo', 'test', '-p', 'dctx0-engine', '--test', 'native', '--locked']]
+        commands = commands[:5] + [['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-engine', '--test', 'native', '--locked']]
     if args.focus == 'verification':
         if args.coverage:
             parser.error('Coverage acceptance requires workspace focus')
-        commands = commands[:5] + [['cargo', 'test', '-p', 'dctx0-interpreter', '-p', 'dctx0-verification', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '-p', 'dctx0-tasks', '-p', 'dctx0-store', '-p', 'dctx0-engine', '--all-features', '--locked']]
+        commands = commands[:5] + [['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-interpreter', '-p', 'dctx0-verification', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '-p', 'dctx0-tasks', '-p', 'dctx0-store', '-p', 'dctx0-engine', '--all-features', '--locked']]
+    for command in commands:
+        if command[:2] == ['cargo', 'test']:
+            command.extend(['--', '--skip', 'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'])
     commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
+    commands.insert(1, ['bun', 'run', '--cwd', 'examples/cinema', 'typecheck'])
+    commands.insert(2, ['bun', 'test', 'examples/cinema/src', './examples/cinema/.dctx0/testing/typescript/http-integration.test.ts', './examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts'])
+    if args.tutorial:
+        commands.extend([
+            ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'],
+            ['bun', 'examples/tutorial/verify-series.ts'],
+            ['bun', 'examples/tutorial/mutation-acceptance.ts'],
+        ])
+    validation_source_hash = digest(validation_sources())
     validation_started_ns = time.time_ns()
     if args.coverage:
-        commands.append([sys.executable, 'scripts/coverage.py'])
+        commands.append([sys.executable, 'scripts/coverage.py', '--skip-performance'])
     passed = True
+    validation_steps = []
     for command in commands:
         print('+ ' + ' '.join(command), flush=True)
-        if subprocess.run(command, cwd=ROOT).returncode:
+        returncode = subprocess.run(command, cwd=ROOT).returncode
+        validation_steps.append({'command': command, 'returncode': returncode})
+        if returncode:
             passed = False
-            break
+            # Independent validation stages still report their failures. Cargo
+            # compiles its own inputs, so failed checks do not authorize stale
+            # binary execution; release measurements build separately below.
+    validation_source_hash_after = digest(validation_sources())
+    if validation_source_hash_after != validation_source_hash:
+        passed = False
+        print('Validation source inputs changed during checks; results do not certify the final tree', flush=True)
+    if args.skip_performance:
+        report = {'schema_version': 1, 'validation_scope': args.focus,
+                  'validation_status': 'pass' if passed else 'fail',
+                  'validation_steps': validation_steps,
+                  'validation_source_hash': validation_source_hash,
+                  'validation_source_hash_after': validation_source_hash_after,
+                  'performance_status': 'deferred',
+                  'deferred_tests': ['verification_core_benchmarks_measure_both_compiled_examples_without_native_claims']}
+        destination = ROOT / 'target/validation-without-performance.json'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        atomic(destination, report)
+        print(f'Performance measurements deferred; checks saved to {destination}', flush=True)
+        return 0 if passed else 1
+    # Benchmark conformance runs only after all functional/coverage stages.
+    conformance = ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--all-features', '--locked',
+                   'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims']
+    conformance_code = 0
+    if args.example == 'all':
+        conformance_code = subprocess.run(conformance, cwd=ROOT).returncode
+        validation_steps.append({'command': conformance, 'returncode': conformance_code})
+    passed = passed and conformance_code == 0
     record = benchmark(args)
+    record['validation_source_hash'] = validation_source_hash
+    record['validation_source_hash_after'] = validation_source_hash_after
+    if record.get('source_hash') != validation_source_hash_after:
+        passed = False
+        print('Measured release inputs differ from the checked source tree', flush=True)
     record['validation_scope'] = args.focus
+    record['validation_steps'] = validation_steps
     adaptive_reports = sorted((p for p in (ROOT / 'target/adaptive-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
     record['adaptive_conformance'] = json.loads(adaptive_reports[-1].read_text()) if passed and adaptive_reports else {'status': 'unavailable', 'reason': 'No fresh successful adaptive report from this validation'}
     executor_reports = sorted((p for p in (ROOT / 'target/native-executor-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
@@ -299,6 +380,8 @@ def main():
 
 
 if __name__ == '__main__':
+    from memory_guard import guard_script
+    guard_script()
     try:
         sys.exit(main())
     except (OSError, ValueError) as error:

@@ -14,10 +14,12 @@ export type AdapterDescription = {
  subjects:{subject:string;role:string;artifact:string;entry_point:string}[];
  artifacts:string[];capabilities:string[];representations:Record<string,string>;
 };
+export type ResourceObservation = {operation?:string;resource:string;access:'read'|'write'|'observe'};
 export type TestContext = {
  collaborator(invocation:Invocation):Promise<Observation>;
  emit(subject:string,payload:Value):void;
  recordCall(invocation:Invocation,observation:Observation):void;
+ recordResource(observation:ResourceObservation):void;
 };
 export type TestSession = {
  invoke(invocation:Invocation):Promise<Observation>;

@@ -17,6 +17,20 @@ fn problem(node: &SemanticNode, code: &str, message: &str, failed: bool) -> Veri
         VerificationResult::Unknown { issue }
     }
 }
+fn marker(node: &SemanticNode, name: &str) -> bool {
+    let mut depth = 0usize;
+    for term in node.terms.iter().skip(2) {
+        if depth == 0 && term.text == name {
+            return true;
+        }
+        match term.text.as_str() {
+            "(" | "[" | "{" => depth += 1,
+            ")" | "]" | "}" => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    false
+}
 fn key(data: &DataIr, row: &VerificationValue) -> Option<Vec<VerificationValue>> {
     let VerificationValue::Record(fields) = row else {
         return None;
@@ -28,6 +42,65 @@ fn key(data: &DataIr, row: &VerificationValue) -> Option<Vec<VerificationValue>>
 }
 fn same_rows(left: &[VerificationValue], right: &[VerificationValue]) -> bool {
     left.len() == right.len() && left.iter().all(|row| right.contains(row))
+}
+fn unalias<'a>(
+    ir: &'a WorkspaceIr,
+    mut ty: &'a TypeRef,
+    budgets: &VerificationBudgets,
+) -> Option<&'a TypeRef> {
+    for _ in 0..=budgets.recursion_depth {
+        match ty
+            .symbol_id
+            .as_ref()
+            .and_then(|id| ir.data.get(id))
+            .and_then(|data| data.alias.as_ref())
+        {
+            Some(alias) => ty = alias,
+            None => return Some(ty),
+        }
+    }
+    None
+}
+fn explicit_projection(plan: &OperationPlan) -> Option<&Expression> {
+    let mut values = Vec::new();
+    for expression in plan
+        .clauses
+        .iter()
+        .filter(|node| node.kind == StatementKind::Ensures)
+        .flat_map(|node| &node.expressions)
+    {
+        let expression = match &expression.value {
+            ExpressionKind::Binary {
+                operator,
+                left,
+                right,
+            } if operator == "implies"
+                && matches!(&left.value,ExpressionKind::Variable{name} if name=="success") =>
+            {
+                right.as_ref()
+            }
+            _ => expression,
+        };
+        if let ExpressionKind::Binary {
+            operator,
+            left,
+            right,
+        } = &expression.value
+        {
+            if operator == "==" {
+                if matches!(&left.value,ExpressionKind::Variable{name} if name=="result") {
+                    values.push(right.as_ref());
+                } else if matches!(&right.value,ExpressionKind::Variable{name} if name=="result") {
+                    values.push(left.as_ref());
+                }
+            }
+        }
+    }
+    if values.len() == 1 {
+        values.pop()
+    } else {
+        None
+    }
 }
 pub(crate) fn assess_state(
     ir: &WorkspaceIr,
@@ -170,8 +243,8 @@ pub(crate) fn assess_state(
                     return problem(
                         node,
                         "INSERT_IDENTITY_EXISTS",
-                        "Selected insertion identity already exists",
-                        false,
+                        "Successful insertion reused an observed existing identity",
+                        true,
                     );
                 }
                 Some(index) => expected[index] = source.clone(),
@@ -190,12 +263,51 @@ pub(crate) fn assess_state(
             expected.retain(|row| key(data, row) != Some(values.clone()));
         }
         "replaces" => {
-            return problem(
-                node,
-                "STATE_REPLACEMENT_SOURCE_REQUIRED",
-                "Replacement needs a complete source or grounded transition/equality",
-                false,
-            );
+            // Only a complete explicit source supplies the replacement values.
+            // A selector alone must never be interpreted as an inferred update.
+            if !marker(node, "from") || marker(node, "where") || values.len() != data.keys.len() + 1
+            {
+                return problem(
+                    node,
+                    "STATE_REPLACEMENT_SOURCE_REQUIRED",
+                    "Replacement needs a complete source and identity selector",
+                    false,
+                );
+            }
+            let identity = values[..data.keys.len()].to_vec();
+            let source = &values[data.keys.len()];
+            match check_value(ir, &ty, source, budgets) {
+                ValueContract::Accepted => {}
+                ValueContract::Unknown { issue } => return VerificationResult::Unknown { issue },
+                _ => {
+                    return problem(
+                        node,
+                        "STATE_SOURCE_INCOMPLETE",
+                        "Replacement source is not a complete valid entity",
+                        false,
+                    );
+                }
+            }
+            if key(data, source) != Some(identity.clone()) {
+                return problem(
+                    node,
+                    "STATE_REPLACEMENT_IDENTITY",
+                    "Replacement source must preserve the selected identity",
+                    false,
+                );
+            }
+            let Some(index) = expected
+                .iter()
+                .position(|row| key(data, row) == Some(identity.clone()))
+            else {
+                return problem(
+                    node,
+                    "STATE_REPLACEMENT_SELECTION_REQUIRED",
+                    "Successful replacement selected an observed absent identity",
+                    true,
+                );
+            };
+            expected[index] = source.clone();
         }
         _ => {
             return problem(
@@ -214,15 +326,83 @@ pub(crate) fn assess_state(
             true,
         );
     }
-    if plan.operation.result.name == "Unit" {
+    if let Some(projection) = explicit_projection(plan) {
+        let mut independent = variables.clone();
+        independent.remove("result");
+        return match evaluate_observed(ir, projection, &independent, &[], context, budgets) {
+            Evaluation::Complete(expected) => {
+                let mut left = projection.clone();
+                left.value = ExpressionKind::Variable {
+                    name: "actual".into(),
+                };
+                let mut right = projection.clone();
+                right.value = ExpressionKind::Variable {
+                    name: "expected".into(),
+                };
+                let comparison = Expression {
+                    ty: TypeRef::builtin("Boolean"),
+                    span: projection.span.clone(),
+                    value: ExpressionKind::Binary {
+                        operator: "==".into(),
+                        left: Box::new(left),
+                        right: Box::new(right),
+                    },
+                };
+                let actual = variables
+                    .get("result")
+                    .cloned()
+                    .unwrap_or(VerificationValue::Unit);
+                let bindings =
+                    BTreeMap::from([("actual".into(), actual), ("expected".into(), expected)]);
+                match evaluate_observed(ir, &comparison, &bindings, &[], context, budgets) {
+                    Evaluation::Complete(VerificationValue::Boolean(true)) => {
+                        VerificationResult::Pass
+                    }
+                    Evaluation::Unknown(issue) => VerificationResult::Unknown { issue },
+                    _ => problem(
+                        node,
+                        "STATE_RESULT_VIOLATED",
+                        "Actual result differs from the explicit modeled result projection",
+                        true,
+                    ),
+                }
+            }
+            Evaluation::Unknown(issue) => VerificationResult::Unknown { issue },
+            _ => problem(
+                node,
+                "STATE_RESULT_PROJECTION_REQUIRED",
+                "Explicit result projection needs unavailable observations",
+                false,
+            ),
+        };
+    }
+    let result_shape = unalias(ir, &plan.operation.result, budgets);
+    if result_shape.is_some_and(|ty| ty.name == "Unit") {
         return VerificationResult::Pass;
     }
-    let result_ty = if matches!(plan.operation.result.name.as_str(), "Option" | "List") {
-        plan.operation.result.arguments.first()
-    } else {
-        Some(&plan.operation.result)
-    };
-    if result_ty.and_then(|t| t.symbol_id.as_ref()) != Some(&data.id) {
+    let result_ty = result_shape
+        .and_then(|ty| {
+            if matches!(ty.name.as_str(), "Option" | "List") {
+                ty.arguments.first()
+            } else {
+                Some(ty)
+            }
+        })
+        .and_then(|ty| unalias(ir, ty, budgets));
+    let equivalent_record = result_ty
+        .and_then(|ty| ty.symbol_id.as_ref())
+        .and_then(|id| ir.data.get(id))
+        .is_some_and(|result| {
+            result.variants.is_empty()
+                && result.fields.len() == data.fields.len()
+                && data.fields.iter().all(|field| {
+                    result
+                        .fields
+                        .iter()
+                        .any(|other| other.name == field.name && other.ty == field.ty)
+                })
+        });
+    if result_ty.and_then(|t| t.symbol_id.as_ref()) != Some(&data.id) && !equivalent_record {
         return problem(
             node,
             "STATE_RESULT_PROJECTION_REQUIRED",
@@ -255,7 +435,11 @@ pub(crate) fn assess_state(
             .cloned()
             .collect()
     } else {
-        let Some(source) = values.first() else {
+        let Some(source) = (if mode == "replaces" {
+            values.last()
+        } else {
+            values.first()
+        }) else {
             return problem(
                 node,
                 "STATE_RESULT_PROJECTION_REQUIRED",
@@ -269,9 +453,9 @@ pub(crate) fn assess_state(
             .cloned()
             .collect()
     };
-    let expected_result = match plan.operation.result.name.as_str() {
-        "List" => VerificationValue::List(selected),
-        "Option" if selected.len() <= 1 => {
+    let expected_result = match result_shape.map(|ty| ty.name.as_str()) {
+        Some("List") => VerificationValue::List(selected),
+        Some("Option") if selected.len() <= 1 => {
             VerificationValue::Option(selected.into_iter().next().map(Box::new))
         }
         _ if selected.len() == 1 => selected[0].clone(),

@@ -1,4 +1,7 @@
 //! Managed Linux native transport. No worker reply constitutes verification PASS.
+mod identity;
+pub use identity::NativeRuntimeIdentity;
+pub(crate) use identity::VerifierIdentity;
 mod cases;
 mod command;
 mod lifecycles;
@@ -82,7 +85,7 @@ impl NativeCancellation {
         let _ = receiver.wait_for(|value| *value).await;
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NativeLimits {
     pub initialization: Duration,
     pub case: Duration,
@@ -90,6 +93,8 @@ pub struct NativeLimits {
     pub cleanup: Duration,
     pub log_bytes: usize,
     pub message_bytes: usize,
+    pub evidence_bytes: usize,
+    pub evidence_entries: usize,
 }
 impl Default for NativeLimits {
     fn default() -> Self {
@@ -100,6 +105,8 @@ impl Default for NativeLimits {
             cleanup: Duration::from_secs(5),
             log_bytes: 262144,
             message_bytes: MAX_MESSAGE_BYTES,
+            evidence_bytes: 4 * MAX_MESSAGE_BYTES,
+            evidence_entries: 10_000,
         }
     }
 }
@@ -111,6 +118,8 @@ impl NativeLimits {
             || self.log_bytes == 0
             || self.message_bytes == 0
             || self.message_bytes > MAX_MESSAGE_BYTES
+            || self.evidence_bytes == 0
+            || self.evidence_entries == 0
         {
             return Err(NativeFailure::new(
                 NativeFailureKind::InvalidLimits,
@@ -143,6 +152,7 @@ pub struct NativeWorker {
     logs: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     received: usize,
     session_evidence: Vec<NativeSessionEvidence>,
+    evidence_bytes: usize,
 }
 pub type NativeMockHandler<'a> =
     dyn FnMut(&Invocation) -> Result<Observation, NativeFailure> + Send + 'a;
@@ -239,6 +249,7 @@ impl NativeWorker {
             logs,
             received: 0,
             session_evidence: Vec::new(),
+            evidence_bytes: 0,
         })
     }
     #[cfg(not(target_os = "linux"))]
@@ -321,11 +332,11 @@ impl NativeWorker {
                             "Duplicate collaborator request ID",
                         ));
                     }
-                    self.session_evidence
-                        .push(NativeSessionEvidence::MockRequested {
-                            request_id,
-                            invocation: invocation.clone(),
-                        });
+                    self.retain_evidence(NativeSessionEvidence::MockRequested {
+                        request_id,
+                        invocation: invocation.clone(),
+                    })
+                    .await?;
                     let observation = mocks(&invocation)?;
                     let next = self.next_id;
                     self.next_id += 1;
@@ -337,11 +348,11 @@ impl NativeWorker {
                         },
                     )
                     .await?;
-                    self.session_evidence
-                        .push(NativeSessionEvidence::MockReplied {
-                            request_id,
-                            observation,
-                        });
+                    self.retain_evidence(NativeSessionEvidence::MockReplied {
+                        request_id,
+                        observation,
+                    })
+                    .await?;
                 }
                 WorkerMessage::TechnicalError {
                     category, message, ..

@@ -132,6 +132,7 @@ fn adoption_inputs(
                 m.task_id,
                 AdoptionTaskProof {
                     requirements_hash: m.candidate.requirements_hash.clone(),
+                    context_requirements: BTreeSet::new(),
                     covered_requirements: m
                         .candidate
                         .subjects
@@ -156,6 +157,29 @@ fn adoption_inputs(
         })
         .collect();
     (pin, proofs)
+}
+
+#[test]
+fn native_base_spec_evidence_cannot_complete_additional_followup_assignments() {
+    let input = snap("workspace W { value Id = Int { range 0..2 } }");
+    let original = session(&input);
+    let (pin, proofs) = adoption_inputs(&original);
+    let id = original.plan.members[0].task_id;
+    for typed in [true, false] {
+        let mut modified = original.clone();
+        let definition = modified.definitions.get_mut(&id).unwrap();
+        if typed {
+            definition.adjustment = Some(AdjustmentReason::FailedCheck { source: id });
+        } else {
+            definition.reason = "Follow-up: historical external finding".into();
+        }
+        let proposal = propose_adoption(&modified, &input.id, 1, &pin, &proofs).unwrap();
+        assert!(!proposal.tasks.contains(&id));
+        assert!(
+            proposal.blocked.iter().any(|block| block.task_id == id
+                && block.code == "ADJUSTMENT_REQUIRES_DEDICATED_EVIDENCE")
+        );
+    }
 }
 
 #[test]
@@ -236,7 +260,7 @@ fn adoption_proposals_reject_partial_unknown_failed_unmapped_and_stale_evidence(
         .find(|m| m.candidate.kind == TaskKind::Contract)
         .unwrap()
         .task_id;
-    for mutation in 0..10 {
+    for mutation in 0..11 {
         let mut changed = proofs.clone();
         let proof = changed.get_mut(&id).unwrap();
         match mutation {
@@ -287,8 +311,14 @@ fn adoption_proposals_reject_partial_unknown_failed_unmapped_and_stale_evidence(
             8 => {
                 proof.profile_bundle = "edited-profile".into();
             }
-            _ => {
+            9 => {
                 proof.requirements_hash = "old-requirements".into();
+            }
+            _ => {
+                proof
+                    .context_requirements
+                    .insert(s.member(id).unwrap().candidate.subjects[0].clone());
+                proof.covered_requirements.clear();
             }
         }
         let proposal = propose_adoption(&s, &input.id, 1, &pin, &changed).unwrap();

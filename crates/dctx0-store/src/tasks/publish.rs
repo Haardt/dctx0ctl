@@ -146,7 +146,25 @@ impl Store {
                 })
         });
         if unchanged {
-            return Ok(old.unwrap().plan);
+            let previous = old.unwrap().plan;
+            if previous.check_run_id == run {
+                return Ok(previous);
+            }
+            // A fresh successful check is a new occurrence, even for identical
+            // requirements. Retain definitions, states and the historical plan;
+            // publish only a new immutable plan binding to the current check.
+            let plan = store_plan(
+                &tx,
+                project,
+                Plan {
+                    id: 0,
+                    parent: Some(previous.id),
+                    check_run_id: run,
+                    ..previous
+                },
+            )?;
+            tx.commit()?;
+            return Ok(plan);
         }
         let previous_snapshot = old
             .as_ref()

@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "actor": "codex-cinema-review",
+  "reviewed_hashes": {
+    ".dctx0/testing/typescript/adapter.ts": "cd3cb93bc6dff57842f0f782d7a2fa5d33c6dd3a57779bfe3dbe46bb16ce0694",
+    ".dctx0/testing/typescript/config.json": "2b882a80a014ec95b4ef71e4e52623d4a84697f3758ef4afabbc551a48e5eca5",
+    ".dctx0/testing/typescript/domain-adapter.ts": "bdbe648ff47ff3329514534dbead933c7af9b6b1c0d0016c17d1ad9789893f72",
+    ".dctx0/testing/typescript/examples.json": "0584c7525cdb2f6721447270b107d195caa150d83c1516f588388083ae3be079",
+    ".dctx0/testing/typescript/http-integration.test.ts": "462e50b1f940c62951b28f1365813ab7ce280e9f85d8d5aee12ac93d863bfdc6",
+    ".dctx0/testing/typescript/http-invocation.ts": "f4ab621a04b8a43de20962498a89ec8a83156a8ed8a24daa8c44d08989c8b0b4",
+    ".dctx0/testing/typescript/lifecycles.json": "1652e70cd8c7d0aec4f40210855aee9a165fae6a891d82523a935c13a007039a",
+    ".dctx0/testing/typescript/persistence-conformance.test.ts": "2e4c6df19b444be377c8b626ecc9a22955ce5d2c565d5a8ade476b6dbb6e1241",
+    ".dctx0/testing/typescript/resource-observer.ts": "7198122a535bd1d554d99eb4bcb022028e5e2309890aeefa7073cb97e48579e0",
+    ".dctx0/testing/verification.json": "24dea76e7698ddd180916aba100681d1ffd25e5579dc92c6cb623b1923d73936",
+    "bun.lock": "5d9499b816c253dfcecc48d31fd9d0af2d9dc8a62e034f4ef7ac15180274b9f9",
+    "dctx0/movie-night.dctx0": "39b8c23eb49c0c2a89a62c37902c9c2722597e472b5476235100f38c35e2e88e",
+    "dctx0/workspace.dctx0": "6d363ddab2910ea5864931e28a243f721251b75adf31b98f4ecc1c6fdffd0195",
+    "package.json": "cf5dfabcb4fe926c419383cb16d7212f423867d9af06f37347130a873d866dea",
+    "src/app/session.ts": "5fa6826263707edd899cfb27331c25d9936aa28d61b9008e98dc2b345ae9813e",
+    "src/application/movie-night.ts": "c7e6661e768ed6d084b90b2e4dd6c75b88c882175815ef0b2ca8d87da34a8f60",
+    "src/domain/candidate-order-winner.ts": "22cdfd6e2bb9bcda1283f345de9cef9f7292d6d059fce17e4a27f4eeebc134ba",
+    "src/domain/contracts.test.ts": "832b3f94eaad0ab5511c05df17af6ed02edc1c09db4dd35cc9abb271b1c449ca",
+    "src/domain/contracts.ts": "ca1c816cdf9c0131a2038d0c9a38939b6b2bded2cb97554d057a70d3f5ee58d3",
+    "src/domain/film-id.ts": "6214495aa8f834c214d2e064c6f9fc4ec4512dcf3f878c9ac4dbfdd9fa56523a",
+    "src/domain/release-year.test.ts": "0114ac0464e26bc8a245aca2bce7da553d05365a2c3e79602d5be3f150e5c328",
+    "src/domain/release-year.ts": "b4814d7a4e97fabab78eae66db59ebad84ccecfca21a1a4d70cbd52a37bbb5dd",
+    "src/domain/timestamp.test.ts": "dcf31042a098623617d4f18a8b1ba3feea6ceffecddf88f17be6a75e4e436d9e",
+    "src/domain/timestamp.ts": "d9a64b4820e676a062a341206d85ba3e4fab3ba14b7924b2dea59310ae3e51b2",
+    "src/domain/voting-rules.test.ts": "26b876fc02d3ce923e35c1a2aed5eb8a7c29616d991695919996fabe1441b1c6",
+    "src/domain/voting-rules.ts": "0a411d55c58886bb870ae99d00df4e2dee5e2087c1cb1a5751eecbbff1053498",
+    "src/http/app.ts": "6b9d188e19704bdb6be783bdc0bb5f7dd5454694b79b78fd98b393edde43a8d9",
+    "src/persistence/sqlite.test.ts": "d09abf9304860e369e61baa9a7c627adcf43f2694724e0e7981593fc96043373",
+    "src/persistence/sqlite.ts": "5305ea4d39ee21f15d9902b6fb833208171116650ea93b031ee8409e6ac99d35",
+    "tsconfig.json": "59f1bd6a93fe3a8e47c08ba6c24e430b3e8dc961af71ad1185b2530285530ca7"
+  },
+  "subjects": {
+    "HomeCinema.MovieNight.Catalog.CatalogReadModel": {
+      "report": "MovieNight exposes application-owned FilmOverview/FilmDetails messages; CinemaStore.summary constructs fresh projections with ratings/vote counts and a copied genre list. Persistence types and SQLite objects do not escape the boundary. The explanatory rationale is consistent with this design, rather than an additional runtime assertion.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Community.MutableRating": {
+      "report": "SQLite uses (film_id,member_id) as primary key and ON CONFLICT updates the document. The application checks film presence before rating. Independent replacement and durable reopen tests retain one rating and the latest stars; modeled state/count checks remain evaluated in Rust.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.ReplaceableVote": {
+      "report": "SQLite uses (poll_id,member_id) as primary key and updates film_id/document on conflict within a transaction. Candidate membership and poll openness are checked before writing. One member therefore retains one current vote per poll in the inspected implementation.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.DeterministicWinner": {
+      "report": "candidateOrderWinner counts eligible votes and traverses candidates in their supplied order, replacing the winner only for a strictly larger count. Ties with eligible votes are deterministic. The modeled no-eligible-vote result remains None; the broad rationale about yielding a film is explanatory, not a new unconditional assertion. The wording is recorded as a low review finding.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:1": {
+      "report": "CinemaStore.search lowercases both title and query and uses includes; the independent catalog test checks mixed-case search.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:2": {
+      "report": "All optional filter predicates occur in one conjunction in CinemaStore.search. Rust compares the complete modeled projection and filtering against actual results.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:3": {
+      "report": "Runtime PageLimit accepts 1..100; search slices offset..offset+limit after filtering and sorting. Both bounded result checks and independent invalid-limit tests exercise the boundary.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Community#constraint:1": {
+      "report": "commentText and the persistence append boundary reject text whose trim() is empty. Actual validators reject malformed records, and native input/rejection checks remain mandatory.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Community#constraint:2": {
+      "report": "Production alternatives list exactly OneStar through FiveStars; the ratings boundary validates before writing. No arbitrary number is admitted by these validators.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Community#constraint:3": {
+      "report": "The composite SQLite rating key and conflict update implement one rating per film/member; replacement and reopened-database checks retain count one.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:1": {
+      "report": "VotingStore.cast checks candidateFilmIds.includes(filmId) before the upsert and throws the declared failure otherwise. Independent noncandidate and missing-film tests verify rejection.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:2": {
+      "report": "The composite SQLite vote key and conflict update retain one active vote per poll/member. Actual state evidence and replacement tests inspect persisted rows.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:3": {
+      "report": "requireOpenPoll checks status before writing and close changes it transactionally. Actual direct/HTTP tests reject subsequent casts and preserve the before-state.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:4": {
+      "report": "overview always projects poll.scheduledFor alongside status; opening, closing and durable reopen preserve the appointment in inspected results.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.Catalog.CatalogArchitecture": {
+      "report": "Inspected MovieNight, MovieNightPorts, CinemaStore, session composition and Hono routes. Catalog search/filter logic remains behind FilmCatalogStore; public DTOs are application-owned projections. SQLite composition is replaceable through the existing ports argument and scoped Awilix registration before resolution. No unresolved findings under the declared criteria.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.Community.CommunityRules": {
+      "report": "Inspected requireFilm, application-owned validators, rating/comment boundaries, primary keys and failure translation. Replacement does not inflate rating counts; public comments/ratings require a film; StarRating rejects numeric alternatives. The inspected criteria are backed by native boundary, replacement, missing-film and persistence tests. No unresolved findings.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.VotingFairness": {
+      "report": "Inspected transactional cast/close, composite keys, candidate-order winner and independent native state/HTTP checks. Changed votes replace prior votes, eligible ties follow candidate order, closed polls reject changes. No high or action-required finding. The no-eligible-vote result is modeled as None and not changed to satisfy explanatory prose.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": [
+          {
+            "id": "empty-vote-rationale",
+            "severity": "low",
+            "description": "The DeterministicWinner rationale says closing always yields a film, while the executable no-eligible-vote contract yields None. Treat the rationale as explanation of eligible tie resolution; the modeled behavior remains authoritative."
+          }
+        ]
+      }
+    },
+    "HomeCinema.MovieNight.TypeConformance": {
+      "report": "First-party TypeScript is checked by the normal strict tsc build. Production runtime contracts and exact adapter representations are exercised by the mandatory native corpus. This inspection accepts conformance for the selected finite scope and reviewed types; it does not claim a compiler-API proof or all-input type soundness.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.SurfaceConformance": {
+      "report": "Reviewed all public MovieNight surface methods, declared port interfaces, adapter mappings and the twelve explicit Hono routes. Fourteen additional reviewed HTTP cases reuse the same Rust expectations; actual service, DI and storage remain under test. No inferred URLs or hidden registration is required.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ArchitectureConformance": {
+      "report": "Reviewed actual imports and composition: application services depend on application-owned ports/domain validators, persistence supplies those ports, Hono delegates to the scoped service, and testing imports production only. Logical bounded contexts share one class/store without an imposed folder/DI architecture. Static inventory does not establish a complete dynamic call graph.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.OwnershipConformance": {
+      "report": "Reviewed ownership as logical responsibility: Catalog mutations target Film, Community changes target Comment/Rating, and ScreeningPlanning changes target polls/votes. Dependencies/read projections across contexts are explicit. Shared physical files do not change declared responsibility; this is an agent judgement rather than a physical-package ownership proof.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.EffectConformance": {
+      "report": "The mandatory native operations/examples/lifecycles retain actual call, event, resource and before/after state evidence. Rust assesses modeled reads/writes/emits and failures. Reviewed observer boundaries and excluded setup observation; no static call count or unmodeled trace is promoted into runtime evidence.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.AdapterConformance": {
+      "report": "Reviewed real CinemaStore port mappings and application-owned input/output validation. Production SQLite replacement, real source mutation, error propagation, state evidence and session cleanup are tested. Mock consumer results are not used as proof of production ports; actual port entry cases and real generated operations provide that separate evidence.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    },
+    "HomeCinema.MovieNight.ExternalConformance": {
+      "report": "The selected Cinema implementation uses the actual Bun SQLite adapter and explicit Hono request path. Durable file-backed SQLite close/reopen tests retain films/comments/ratings/polls/votes and rejected writes preserve state. No undeclared remote service is assumed. This conformance inspection combines actual local external-runtime tests with reviewed resource lifetimes.",
+      "limitations": [
+        "Finite deterministic execution remains the preferred evidence; this is explicit source inspection, not a universal proof."
+      ],
+      "review": null
+    }
+  },
+  "scope": "Complete Cinema MovieNight specification; concrete first-party implementation and testing sources inspected. These notes must not be rebound after source changes without a new inspection."
+}

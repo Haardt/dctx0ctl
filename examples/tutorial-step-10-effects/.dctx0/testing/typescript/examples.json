@@ -1,0 +1,75 @@
+{
+  "examples": {
+    "Tutorial.Board.Catalog.reader returns a summary": {
+      "foundId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "Tutorial.Board.Catalog.reader returns no task": {
+      "missingId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000003"
+      }
+    },
+    "Tutorial.Board.Catalog.require an existing task": {
+      "foundId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "Tutorial.Board.Catalog.require a missing task": {
+      "missingId": {
+        "kind": "string",
+        "value": "00000000-0000-0000-0000-000000000003"
+      }
+    }
+  },
+  "operations": {
+    "Tutorial.Board.Tasks.find": [
+      {
+        "id": "Tutorial.Board.Tasks.find:reviewed:stored-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Tasks.find",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.TaskReader.lookup": [
+      {
+        "id": "Tutorial.Board.Catalog.TaskReader.lookup:reviewed:stored-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.TaskReader.lookup",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ],
+    "Tutorial.Board.Catalog.Public.find": [
+      {
+        "id": "Tutorial.Board.Catalog.Public.find:reviewed:stored-key",
+        "invocation": {
+          "subject": "Tutorial.Board.Catalog.Public.find",
+          "arguments": [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        },
+        "setup": []
+      }
+    ]
+  }
+}

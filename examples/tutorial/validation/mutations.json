@@ -1,0 +1,2297 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "basis": "Isolated mutations of actual production/adapter code and source-bound review evidence; central Rust assessment and saved-input replay",
+  "isolated_workspaces": "/tmp/dctx0-tutorial-mutations-SpemI7",
+  "results": [
+    {
+      "step": 1,
+      "name": "wrong increment",
+      "subject": "Tutorial.Board.Actions.increment",
+      "result": "detected",
+      "native_run": "e0615f322a4f059f26f7e67f9838c504891c38d02683cf9762c41799e52b6da9",
+      "cases": 28,
+      "counterexample": {
+        "id": "Tutorial.Board.Actions.increment:operation:0",
+        "subject": "Tutorial.Board.Actions.increment",
+        "kind": "operation",
+        "bindings": {
+          "count": {
+            "kind": "integer",
+            "value": "0"
+          }
+        },
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "integer",
+              "value": "0"
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Actions.increment",
+              "arguments": [
+                {
+                  "kind": "integer",
+                  "value": "0"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "integer",
+                "value": "0"
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Actions.increment: Ensures",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 379,
+                "line": 12,
+                "column": 17
+              },
+              "end": {
+                "offset": 398,
+                "line": 12,
+                "column": 36
+              }
+            }
+          }
+        },
+        "elapsed_us": 295
+      }
+    },
+    {
+      "step": 2,
+      "name": "loosened title boundary",
+      "subject": "Tutorial.Board.Title",
+      "result": "detected",
+      "native_run": "1b410b6505fb8011e0ce07da4a128207df94dcbcf282534e004626e422b1fe17",
+      "cases": 23,
+      "counterexample": {
+        "id": "Tutorial.Board.Title:rejection:14",
+        "subject": "Tutorial.Board.Title",
+        "kind": "contract",
+        "bindings": {
+          "expect_rejection": {
+            "kind": "boolean",
+            "value": true
+          },
+          "value": {
+            "kind": "string",
+            "value": "xxxxxxxxxxxxxxxxx"
+          }
+        },
+        "setup": [],
+        "arguments": [],
+        "observations": [],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "NATIVE_INVALID_VALUE_ACCEPTED",
+            "message": "Production accepted a centrally rejected contract input",
+            "span": null
+          }
+        },
+        "elapsed_us": 49
+      }
+    },
+    {
+      "step": 3,
+      "name": "loosened float boundary",
+      "subject": "Tutorial.Board.Measure",
+      "result": "detected",
+      "native_run": "75523e98b1e89466f14d7879a40584b50a5c344b7352d62913c11581021e1599",
+      "cases": 23,
+      "counterexample": {
+        "id": "Tutorial.Board.Measure:rejection:16",
+        "subject": "Tutorial.Board.Measure",
+        "kind": "contract",
+        "bindings": {
+          "expect_rejection": {
+            "kind": "boolean",
+            "value": true
+          },
+          "value": {
+            "kind": "float",
+            "value": "10.000000000000002"
+          }
+        },
+        "setup": [],
+        "arguments": [],
+        "observations": [],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "NATIVE_INVALID_VALUE_ACCEPTED",
+            "message": "Production accepted a centrally rejected contract input",
+            "span": null
+          }
+        },
+        "elapsed_us": 140
+      }
+    },
+    {
+      "step": 4,
+      "name": "wrong arithmetic",
+      "subject": "Tutorial.Board.Actions.score",
+      "result": "detected",
+      "native_run": "ae16e338f8d7aee4b0b3f005e44bd3a9ca679d713a7fa050a0a4acf664a921bf",
+      "cases": 98,
+      "counterexample": {
+        "id": "Tutorial.Board.Actions.score:operation:0",
+        "subject": "Tutorial.Board.Actions.score",
+        "kind": "operation",
+        "bindings": {
+          "a": {
+            "kind": "integer",
+            "value": "0"
+          },
+          "b": {
+            "kind": "integer",
+            "value": "1"
+          }
+        },
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "integer",
+              "value": "0"
+            },
+            {
+              "kind": "integer",
+              "value": "1"
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Actions.score",
+              "arguments": [
+                {
+                  "kind": "integer",
+                  "value": "0"
+                },
+                {
+                  "kind": "integer",
+                  "value": "1"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "integer",
+                "value": "3"
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Actions.score: Ensures",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 1690,
+                "line": 57,
+                "column": 17
+              },
+              "end": {
+                "offset": 1715,
+                "line": 57,
+                "column": 42
+              }
+            }
+          }
+        },
+        "elapsed_us": 195
+      }
+    },
+    {
+      "step": 5,
+      "name": "lost collection mapping",
+      "subject": "Tutorial.Board.Actions.doubled",
+      "result": "detected",
+      "native_run": "86e3d66049f34bb6f60e4ef0543b41c39598ee5e2c82efc023019133b27cbf24",
+      "cases": 112,
+      "counterexample": {
+        "id": "Tutorial.Board.Actions.doubled:operation:2",
+        "subject": "Tutorial.Board.Actions.doubled",
+        "kind": "operation",
+        "bindings": {
+          "values": {
+            "kind": "list",
+            "value": [
+              {
+                "kind": "integer",
+                "value": "3"
+              }
+            ]
+          }
+        },
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "list",
+              "value": [
+                {
+                  "kind": "integer",
+                  "value": "3"
+                }
+              ]
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Actions.doubled",
+              "arguments": [
+                {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "integer",
+                      "value": "3"
+                    }
+                  ]
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "list",
+                "value": [
+                  {
+                    "kind": "integer",
+                    "value": "9"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Actions.doubled: Ensures",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 3538,
+                "line": 114,
+                "column": 17
+              },
+              "end": {
+                "offset": 3582,
+                "line": 114,
+                "column": 61
+              }
+            }
+          }
+        },
+        "elapsed_us": 138
+      }
+    },
+    {
+      "step": 6,
+      "name": "empty real read surface",
+      "subject": "Tutorial.Board.Tasks.list",
+      "result": "detected",
+      "native_run": "ccac2f4e243ee3d7d50aa3b523cb5b9d55dc1eeed22b7d11ccdf48ce3bf7f18c",
+      "cases": 267,
+      "counterexample": {
+        "id": "Tutorial.Board.Tasks.list:operation:0",
+        "subject": "Tutorial.Board.Tasks.list",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          []
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Tasks.list",
+              "arguments": []
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "list",
+                "value": []
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "STATE_RESULT_VIOLATED",
+            "message": "Actual result differs from the explicit modeled result projection",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 1927,
+                "line": 71,
+                "column": 9
+              },
+              "end": {
+                "offset": 1944,
+                "line": 72,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 693
+      }
+    },
+    {
+      "step": 7,
+      "name": "consumer ignores actual reader result",
+      "subject": "Tutorial.Board.Catalog.Public.find",
+      "result": "detected",
+      "native_run": "554cf56059166884618901f2601a444401d1cdaa660fde929e855ecdc46a07b3",
+      "cases": 300,
+      "counterexample": {
+        "id": "Tutorial.Board.Catalog.Public.find:reviewed:stored-key",
+        "subject": "Tutorial.Board.Catalog.Public.find",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Catalog.Public.find",
+              "arguments": [
+                {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "option",
+                "value": null
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "STATE_RESULT_VIOLATED",
+            "message": "Actual result differs from the explicit modeled result projection",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 3473,
+                "line": 109,
+                "column": 11
+              },
+              "end": {
+                "offset": 3499,
+                "line": 110,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 844
+      }
+    },
+    {
+      "step": 8,
+      "name": "consumer skips mock collaborator",
+      "subject": "Tutorial.Board.Catalog.Public.find",
+      "result": "detected",
+      "native_run": "94ad8d5669832c670c8cca1898f6924d8da7c129fbc1e181ae9a6b55991cdf42",
+      "cases": 302,
+      "counterexample": {
+        "id": "Tutorial.Board.Catalog.Public.find:reviewed:stored-key",
+        "subject": "Tutorial.Board.Catalog.Public.find",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "string",
+              "value": "00000000-0000-0000-0000-000000000000"
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Catalog.Public.find",
+              "arguments": [
+                {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "option",
+                "value": null
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "STATE_RESULT_VIOLATED",
+            "message": "Actual result differs from the explicit modeled result projection",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 3916,
+                "line": 119,
+                "column": 11
+              },
+              "end": {
+                "offset": 3942,
+                "line": 120,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 1015
+      }
+    },
+    {
+      "step": 9,
+      "name": "missing actual event",
+      "subject": "Tutorial.Board.Catalog.Public.requireTask",
+      "result": "detected",
+      "native_run": "fbc38e7f8328ba7d79c683591b5efcd089a84039dd72e5125d270afd725c718a",
+      "cases": 386,
+      "counterexample": {
+        "id": "Tutorial.Board.Catalog.require an existing task",
+        "subject": "Tutorial.Board.Catalog.require an existing task",
+        "kind": "example",
+        "bindings": {
+          "foundId": {
+            "kind": "string",
+            "value": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "setup": [],
+        "arguments": [],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Catalog.Public.requireTask",
+              "arguments": [
+                {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "record",
+                "value": {
+                  "id": {
+                    "kind": "string",
+                    "value": "00000000-0000-0000-0000-000000000000"
+                  },
+                  "title": {
+                    "kind": "string",
+                    "value": "Read"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "EXPECTED_EVENT",
+            "message": "Expected event/payload was not observed",
+            "span": null
+          }
+        },
+        "elapsed_us": 237
+      }
+    },
+    {
+      "step": 10,
+      "name": "invalid clock value",
+      "subject": "Tutorial.Board.Diagnostics.timestamp",
+      "result": "detected",
+      "native_run": "593af4acb20327f42be35bc72f566b58031be55513f0a2de622d1d15cafdf675",
+      "cases": 2,
+      "counterexample": {
+        "id": "Tutorial.Board.Diagnostics.timestamp:operation:0",
+        "subject": "Tutorial.Board.Diagnostics.timestamp",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          []
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Diagnostics.timestamp",
+              "arguments": []
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "string",
+                "value": "invalid-time"
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [
+          {
+            "operation": "Tutorial.Board.Diagnostics.timestamp",
+            "resource": "Tutorial.Board.Signals.Clock.now",
+            "access": "observe"
+          }
+        ],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_RESULT_CONTRACT",
+            "message": "Tutorial.Board.Diagnostics.timestamp: Value representation violates the declared type",
+            "span": null
+          }
+        },
+        "elapsed_us": 2357
+      }
+    },
+    {
+      "step": 11,
+      "name": "replacement without state change",
+      "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
+      "result": "detected",
+      "native_run": "b8e99f550dcdab41f51a026e9eadf31fe94f4dd97ea3cf7ce8f2a47b335beffd",
+      "cases": 295,
+      "counterexample": {
+        "id": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
+        "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "status": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "Tutorial.Board.Status",
+                    "name": "Done",
+                    "payload": null
+                  }
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Changed"
+                }
+              }
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
+              "arguments": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Changed"
+                    }
+                  }
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "record",
+                "value": {
+                  "id": {
+                    "kind": "string",
+                    "value": "00000000-0000-0000-0000-000000000000"
+                  },
+                  "status": {
+                    "kind": "variant",
+                    "value": {
+                      "declaration": "Tutorial.Board.Status",
+                      "name": "Done",
+                      "payload": null
+                    }
+                  },
+                  "title": {
+                    "kind": "string",
+                    "value": "Changed"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [
+          {
+            "operation": "Tutorial.Board.Catalog.TaskWriter.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Catalog.TaskWriter.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          }
+        ],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "STATE_EFFECT_VIOLATED",
+            "message": "Actual state differs from the complete modeled state effect",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 4331,
+                "line": 135,
+                "column": 11
+              },
+              "end": {
+                "offset": 4378,
+                "line": 136,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 2271
+      }
+    },
+    {
+      "step": 12,
+      "name": "lifecycle status remains Open",
+      "subject": "Tutorial.Board.TaskLifecycle",
+      "result": "detected",
+      "native_run": "bb992a09f60cce5c80b597af53904e5f57a7bf9b1b83352c13927711494e73b0",
+      "cases": 306,
+      "counterexample": {
+        "id": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
+        "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "status": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "Tutorial.Board.Status",
+                    "name": "Done",
+                    "payload": null
+                  }
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Changed"
+                }
+              }
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
+              "arguments": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Changed"
+                    }
+                  }
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "record",
+                "value": {
+                  "id": {
+                    "kind": "string",
+                    "value": "00000000-0000-0000-0000-000000000000"
+                  },
+                  "status": {
+                    "kind": "variant",
+                    "value": {
+                      "declaration": "Tutorial.Board.Status",
+                      "name": "Done",
+                      "payload": null
+                    }
+                  },
+                  "title": {
+                    "kind": "string",
+                    "value": "Changed"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [
+          {
+            "operation": "Tutorial.Board.Catalog.TaskWriter.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Catalog.TaskWriter.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Catalog.TaskWriter.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "write"
+          }
+        ],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Changed"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "STATE_EFFECT_VIOLATED",
+            "message": "Actual state differs from the complete modeled state effect",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 4342,
+                "line": 135,
+                "column": 11
+              },
+              "end": {
+                "offset": 4389,
+                "line": 136,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 2209
+      },
+      "replay": {
+        "failing": {
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "workspace.dctx0",
+                "start": {
+                  "offset": 4342,
+                  "line": 135,
+                  "column": 11
+                },
+                "end": {
+                  "offset": 4389,
+                  "line": 136,
+                  "column": 1
+                }
+              }
+            }
+          },
+          "case": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
+          "changes": [
+            {
+              "component": "harness",
+              "before": "3b4cfee6520fcde925f0a5f55da0f7293120e91faee93e5ff7d9c175fb83cc1e",
+              "after": "0109b8a582c310024b33bfef8cb47e902e13f022b4a6e8cbfd272e08290fc12d"
+            }
+          ]
+        },
+        "restored": {
+          "result": {
+            "status": "PASS"
+          },
+          "case": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
+          "changes": [
+            {
+              "component": "harness",
+              "before": "3b4cfee6520fcde925f0a5f55da0f7293120e91faee93e5ff7d9c175fb83cc1e",
+              "after": "0109b8a582c310024b33bfef8cb47e902e13f022b4a6e8cbfd272e08290fc12d"
+            },
+            {
+              "component": "implementation:src/entities.ts",
+              "before": "7e898c3368899fa193f3eb6a2afc6396d493eb2ab1dd32e915ece19b7c82b390",
+              "after": "10917b6732e55dabe97b457455613a64a6754da32da8d89f4c8ccedede997efb"
+            }
+          ]
+        },
+        "preserves_input": true
+      }
+    },
+    {
+      "step": 13,
+      "name": "external readiness ignored",
+      "subject": "Tutorial.Board.Connectivity.ready",
+      "result": "detected",
+      "native_run": "1c0a3368948fd8f50b329668b8b0fa7f2b707ac070fa694f0e904a7993d5b5ac",
+      "cases": 22,
+      "counterexample": {
+        "id": "Tutorial.Board.configured service is ready",
+        "subject": "Tutorial.Board.configured service is ready",
+        "kind": "example",
+        "bindings": {},
+        "setup": [],
+        "arguments": [],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Connectivity.ready",
+              "arguments": []
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "boolean",
+                "value": false
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [
+          {
+            "operation": "Tutorial.Board.Connectivity.ready",
+            "resource": "Tutorial.Board.Directory.HealthApi.status",
+            "access": "observe"
+          }
+        ],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "ASSERTION_FAILED",
+            "message": "Actual example result violates the assertion",
+            "span": null
+          }
+        },
+        "elapsed_us": 1510
+      }
+    },
+    {
+      "step": 14,
+      "name": "fragment result is constant",
+      "subject": "Tutorial.Board.Copy.title",
+      "result": "detected",
+      "native_run": "41a7c203d809367754ff8ff0263f7b82093f7cdeb5801a6f95162f5674e788d2",
+      "cases": 55,
+      "counterexample": {
+        "id": "Tutorial.Board.Copy.title:operation:0",
+        "subject": "Tutorial.Board.Copy.title",
+        "kind": "operation",
+        "bindings": {
+          "value": {
+            "kind": "string",
+            "value": "xxxxxxxxxxxxxxxx"
+          }
+        },
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "string",
+              "value": "xxxxxxxxxxxxxxxx"
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Copy.title",
+              "arguments": [
+                {
+                  "kind": "string",
+                  "value": "xxxxxxxxxxxxxxxx"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "string",
+                "value": "Changed"
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Copy.title: Ensures",
+            "span": {
+              "file": "copy.dctx0",
+              "start": {
+                "offset": 261,
+                "line": 7,
+                "column": 15
+              },
+              "end": {
+                "offset": 276,
+                "line": 7,
+                "column": 30
+              }
+            }
+          }
+        },
+        "elapsed_us": 1403
+      }
+    },
+    {
+      "step": 16,
+      "name": "HTTP insertion silently upserts",
+      "subject": "Tutorial.Board.Http.insert",
+      "result": "detected",
+      "native_run": "3fae907026b84afd4c3a06739effd5dc3c79399a232f6661299905b9844e4df8",
+      "cases": 304,
+      "counterexample": {
+        "id": "Tutorial.Board.Http.insert:reviewed:existing-key",
+        "subject": "Tutorial.Board.Http.insert",
+        "kind": "operation",
+        "bindings": {},
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-0000-0000-000000000000"
+                },
+                "status": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "Tutorial.Board.Status",
+                    "name": "Done",
+                    "payload": null
+                  }
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Changed"
+                }
+              }
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Http.insert",
+              "arguments": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Changed"
+                    }
+                  }
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "record",
+                "value": {
+                  "id": {
+                    "kind": "string",
+                    "value": "00000000-0000-0000-0000-000000000000"
+                  },
+                  "status": {
+                    "kind": "variant",
+                    "value": {
+                      "declaration": "Tutorial.Board.Status",
+                      "name": "Done",
+                      "payload": null
+                    }
+                  },
+                  "title": {
+                    "kind": "string",
+                    "value": "Changed"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [
+          {
+            "operation": "Tutorial.Board.Http.insert",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Http.insert",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Http.insert",
+            "resource": "Tutorial.Board.Task",
+            "access": "write"
+          }
+        ],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Changed"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "INSERT_IDENTITY_EXISTS",
+            "message": "Successful insertion reused an observed existing identity",
+            "span": {
+              "file": "http.dctx0",
+              "start": {
+                "offset": 605,
+                "line": 18,
+                "column": 7
+              },
+              "end": {
+                "offset": 637,
+                "line": 19,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 4771
+      },
+      "replay": {
+        "failing": {
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "INSERT_IDENTITY_EXISTS",
+              "message": "Successful insertion reused an observed existing identity",
+              "span": {
+                "file": "http.dctx0",
+                "start": {
+                  "offset": 605,
+                  "line": 18,
+                  "column": 7
+                },
+                "end": {
+                  "offset": 637,
+                  "line": 19,
+                  "column": 1
+                }
+              }
+            }
+          },
+          "case": "Tutorial.Board.Http.insert:reviewed:existing-key",
+          "changes": []
+        },
+        "restored": {
+          "result": {
+            "status": "PASS"
+          },
+          "case": "Tutorial.Board.Http.insert:reviewed:existing-key",
+          "changes": [
+            {
+              "component": "implementation:src/http.ts",
+              "before": "0a10e5142cb1322f692ae85d89771d053f2cb7192e05459bfb0dfc8b57dd5d0c",
+              "after": "0594b06c350623b3ae5f00b62593ddd2b4d89cd03947fba6f9dcb318d4c00ee7"
+            }
+          ]
+        },
+        "preserves_input": true
+      }
+    },
+    {
+      "step": 16,
+      "name": "HTTP replacement silently inserts",
+      "subject": "Tutorial.Board.Http.replace",
+      "result": "detected",
+      "native_run": "cae704068eafcb74090b30b594e085b35016d01b62577f22ed5f1c460b79ced4",
+      "cases": 304,
+      "counterexample": {
+        "id": "Tutorial.Board.Http.replace:operation:0",
+        "subject": "Tutorial.Board.Http.replace",
+        "kind": "operation",
+        "bindings": {
+          "request": {
+            "kind": "record",
+            "value": {
+              "id": {
+                "kind": "string",
+                "value": "00000000-0000-4000-8000-000000000001"
+              },
+              "status": {
+                "kind": "variant",
+                "value": {
+                  "declaration": "Tutorial.Board.Status",
+                  "name": "Open",
+                  "payload": null
+                }
+              },
+              "title": {
+                "kind": "string",
+                "value": "xxxxxxxxxxxxxxxx"
+              }
+            }
+          }
+        },
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000001"
+                },
+                "status": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "Tutorial.Board.Status",
+                    "name": "Open",
+                    "payload": null
+                  }
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "xxxxxxxxxxxxxxxx"
+                }
+              }
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Http.replace",
+              "arguments": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "xxxxxxxxxxxxxxxx"
+                    }
+                  }
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "record",
+                "value": {
+                  "id": {
+                    "kind": "string",
+                    "value": "00000000-0000-4000-8000-000000000001"
+                  },
+                  "status": {
+                    "kind": "variant",
+                    "value": {
+                      "declaration": "Tutorial.Board.Status",
+                      "name": "Open",
+                      "payload": null
+                    }
+                  },
+                  "title": {
+                    "kind": "string",
+                    "value": "xxxxxxxxxxxxxxxx"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "events": [],
+        "resources": [
+          {
+            "operation": "Tutorial.Board.Http.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Http.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Http.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Http.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "read"
+          },
+          {
+            "operation": "Tutorial.Board.Http.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "write"
+          },
+          {
+            "operation": "Tutorial.Board.Http.replace",
+            "resource": "Tutorial.Board.Task",
+            "access": "write"
+          }
+        ],
+        "states": [
+          {
+            "phase": "before",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "phase": "after",
+            "phase_recorded": true,
+            "entities": {
+              "Tutorial.Board.Task": [
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000000"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Read"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-0000-0000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Done",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "Write"
+                    }
+                  }
+                },
+                {
+                  "kind": "record",
+                  "value": {
+                    "id": {
+                      "kind": "string",
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "status": {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "Tutorial.Board.Status",
+                        "name": "Open",
+                        "payload": null
+                      }
+                    },
+                    "title": {
+                      "kind": "string",
+                      "value": "xxxxxxxxxxxxxxxx"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "STATE_REPLACEMENT_SELECTION_REQUIRED",
+            "message": "Successful replacement selected an observed absent identity",
+            "span": {
+              "file": "http.dctx0",
+              "start": {
+                "offset": 891,
+                "line": 27,
+                "column": 7
+              },
+              "end": {
+                "offset": 938,
+                "line": 28,
+                "column": 1
+              }
+            }
+          }
+        },
+        "elapsed_us": 1685
+      }
+    },
+    {
+      "step": 1,
+      "name": "adapter replays a golden answer",
+      "subject": "Tutorial.Board.Actions.increment",
+      "result": "detected",
+      "native_run": "869e515276ec0e133833c2e59be7ac4781d17ce42466413ff33d7b25764d95c5",
+      "cases": 28,
+      "counterexample": {
+        "id": "Tutorial.Board.Actions.increment:operation:1",
+        "subject": "Tutorial.Board.Actions.increment",
+        "kind": "operation",
+        "bindings": {
+          "count": {
+            "kind": "integer",
+            "value": "1"
+          }
+        },
+        "setup": [],
+        "arguments": [
+          [
+            {
+              "kind": "integer",
+              "value": "1"
+            }
+          ]
+        ],
+        "observations": [
+          {
+            "invocation": {
+              "subject": "Tutorial.Board.Actions.increment",
+              "arguments": [
+                {
+                  "kind": "integer",
+                  "value": "1"
+                }
+              ]
+            },
+            "observation": {
+              "kind": "returned",
+              "value": {
+                "kind": "integer",
+                "value": "1"
+              }
+            }
+          }
+        ],
+        "events": [],
+        "states": [],
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Actions.increment: Ensures",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 379,
+                "line": 12,
+                "column": 17
+              },
+              "end": {
+                "offset": 398,
+                "line": 12,
+                "column": 36
+              }
+            }
+          }
+        },
+        "elapsed_us": 165
+      }
+    },
+    {
+      "step": 15,
+      "name": "request-changes",
+      "result": "rejected",
+      "report": {
+        "exit_code": 1,
+        "error": "Memory guard: 14492000256 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run 06c98965f75c3980ea91b6d2497fed6a904ca895a9ac84dd45541c2464dd0cb5\n",
+        "effective_result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.BoundaryReview",
+            "span": null
+          }
+        },
+        "open_obligations": [
+          {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.BoundaryReview: Review has no automatically asserted meaning",
+            "span": null
+          },
+          {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.Release: Policy has no automatically asserted meaning",
+            "span": null
+          }
+        ]
+      }
+    },
+    {
+      "step": 15,
+      "name": "high-finding",
+      "result": "rejected",
+      "report": {
+        "exit_code": 1,
+        "error": "Memory guard: 14134880938 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run d6fa9e9382cce1115323516136d3072db0be1826f15a09636b902d841b4fbbe2\n",
+        "effective_result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "POLICY_REQUIREMENT_VIOLATED",
+            "message": "Tutorial.Board.BoundaryReview: observed HighFindings(1), expected == HighFindings(0)",
+            "span": null
+          }
+        },
+        "open_obligations": [
+          {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.Release: Policy has no automatically asserted meaning",
+            "span": null
+          }
+        ]
+      }
+    },
+    {
+      "step": 15,
+      "name": "missing-review",
+      "result": "rejected",
+      "report": {
+        "exit_code": 1,
+        "error": "Memory guard: 14145325738 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run 910cae659600209945d624646fc4d0b3b9e2a21677486a591e5fe7579294ae04\n",
+        "effective_result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.BoundaryReview",
+            "span": null
+          }
+        },
+        "open_obligations": [
+          {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.BoundaryReview: Review has no automatically asserted meaning",
+            "span": null
+          },
+          {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "Tutorial.Board.Release: Policy has no automatically asserted meaning",
+            "span": null
+          }
+        ]
+      }
+    },
+    {
+      "step": 15,
+      "name": "stale-source",
+      "result": "rejected",
+      "report": {
+        "exit_code": 1,
+        "error": "Memory guard: 14131273728 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nNew source inspection required: src/board.ts\n"
+      }
+    }
+  ]
+}

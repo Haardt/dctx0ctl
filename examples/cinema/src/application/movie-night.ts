@@ -1,24 +1,25 @@
 /** Application-owned boundary messages and services. No testing/runtime imports. */
+import {validateRuntimeContract,type ExactInteger} from '../domain/contracts.ts';
 export type Availability = 'Available' | 'Watched' | 'Wishlist' | 'Unavailable';
 export type Stars = 'OneStar' | 'TwoStars' | 'ThreeStars' | 'FourStars' | 'FiveStars';
 export type Genre = string;
 export interface FilmSearch { query: string | undefined; genre: Genre | undefined; minimumStars: Stars | undefined; availability: Availability | undefined; maximumRuntimeMinutes: number | undefined; releasedFrom: number | undefined; sort: string; offset: number; limit: number }
-export interface FilmSummary { id: string; title: string; releaseYear: number; genres: Genre[]; runtimeMinutes: number; availability: Availability; averageStars: number; ratingCount: number; currentVoteCount: number }
-export interface FilmOverview { items: FilmSummary[]; total: number; offset: number; limit: number }
+export interface FilmSummary { id: string; title: string; releaseYear: number; genres: Genre[]; runtimeMinutes: number; availability: Availability; averageStars: number; ratingCount: ExactInteger; currentVoteCount: ExactInteger }
+export interface FilmOverview { items: FilmSummary[]; total: ExactInteger; offset: ExactInteger; limit: ExactInteger }
 export interface FilmDetails { film: FilmSummary }
 export interface SaveFilm { id: string; title: string; releaseYear: number; genres: Genre[]; runtimeMinutes: number; availability: Availability }
 export interface ChangeAvailability { filmId: string; availability: Availability }
 export interface AddComment { filmId: string; authorId: string; text: string }
 export interface CommentView { id: string; filmId: string; authorId: string; text: string; createdAt: string }
-export interface CommentOverview { items: CommentView[]; total: number }
+export interface CommentOverview { items: CommentView[]; total: ExactInteger }
 export interface RateFilm { filmId: string; memberId: string; stars: Stars }
-export interface RatingSummary { filmId: string; averageStars: number; ratingCount: number; memberRating: Stars | undefined }
+export interface RatingSummary { filmId: string; averageStars: number; ratingCount: ExactInteger; memberRating: Stars | undefined }
 export interface OpenVoting { pollId: string; scheduledFor: string; candidateFilmIds: string[] }
 export interface CastVote { pollId: string; memberId: string; filmId: string }
-export interface VotingOverview { pollId: string; scheduledFor: string; status: 'Open' | 'Closed'; results: {filmId: string; votes: number}[]; winningFilmId: string | undefined }
+export interface VotingOverview { pollId: string; scheduledFor: string; status: 'Open' | 'Closed'; results: {filmId: string; votes: ExactInteger}[]; winningFilmId: string | undefined }
 
 export class ApplicationFailure extends Error {
- constructor(public readonly code: string, public readonly payload: Record<string,unknown>) { super(code); }
+ constructor(public readonly code: string, public readonly payload: Record<string,unknown>) { super(code);validateRuntimeContract(code,payload); }
 }
 export interface MovieNightPorts {
  catalog: {
@@ -43,7 +44,9 @@ export type ApplicationEvent =
 
 /** Existing dependency boundaries may supply real persistence or test doubles. */
 export class MovieNight {
- constructor(private readonly ports: MovieNightPorts, private readonly publish: (event: ApplicationEvent)=>void) {}
+ private readonly emit:(event:ApplicationEvent)=>void;
+ constructor(private readonly ports: MovieNightPorts, publish: (event: ApplicationEvent)=>void) {this.emit=publish;}
+ private publish(event:ApplicationEvent){validateRuntimeContract(event.name,event.payload);this.emit(event);}
  searchFilms(filter: FilmSearch) { return this.ports.catalog.search(filter); }
  async getFilm(id: string) {
   const details = await this.ports.catalog.find(id);

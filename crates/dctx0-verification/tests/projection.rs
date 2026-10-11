@@ -25,6 +25,24 @@ fn scope(subject: &str) -> VerificationScope {
         tasks: BTreeSet::new(),
     }
 }
+#[test]
+fn executable_capabilities_name_actual_adapter_observers_without_inventing_review_support() {
+    for (capability, expected) in [
+        (Capability::Values, "values"),
+        (Capability::PureCalls, "invocation"),
+        (Capability::Operations, "invocation"),
+        (Capability::Mocks, "mock-injection"),
+        (Capability::Events, "events"),
+        (Capability::CallObservation, "call-observation"),
+        (Capability::ResourceObservation, "resource-observation"),
+        (Capability::State, "state"),
+        (Capability::Lifecycles, "sessions"),
+    ] {
+        assert_eq!(capability.adapter_capability(), Some(expected));
+    }
+    assert_eq!(Capability::Inspection.adapter_capability(), None);
+    assert_eq!(Capability::Review.adapter_capability(), None);
+}
 fn plan(
     ir: &WorkspaceIr,
     selection: VerificationScope,
@@ -45,7 +63,7 @@ fn entire_cinema_projection_preserves_every_contract_operation_example_property_
     let original = serde_json::to_string(&ir).unwrap();
     let plan = plan(&ir, scope("HomeCinema.MovieNight"), &Default::default());
     assert!(plan.issues.is_empty(), "{:?}", plan.issues);
-    assert_eq!(plan.contracts.len(), 45);
+    assert_eq!(plan.contracts.len(), 46);
     assert_eq!(plan.operations.len(), 26);
     assert_eq!(plan.examples.len(), 12);
     assert_eq!(plan.properties.len(), 1);
@@ -101,6 +119,8 @@ fn entire_cinema_projection_preserves_every_contract_operation_example_property_
         Capability::Operations,
         Capability::Mocks,
         Capability::Events,
+        Capability::CallObservation,
+        Capability::ResourceObservation,
         Capability::State,
         Capability::Lifecycles,
         Capability::Inspection,
@@ -587,6 +607,7 @@ fn incompatible_symbolic_types_are_reported_in_each_example_phase_and_across_pha
     ir.nodes[1].expressions[0].ty = TypeRef::builtin("Duration");
     let fixtures = ProjectionFixtures {
         operations: Default::default(),
+        generated_preparations: Default::default(),
         examples: BTreeMap::from([(
             "W.Subject".into(),
             BTreeMap::from([("input".into(), VerificationValue::String("1h".into()))]),
@@ -676,7 +697,7 @@ fn central_case_manifest_preserves_all_cinema_obligations_and_requirement_links(
         manifest
             .open_obligations
             .iter()
-            .any(|i| i.code == "OPERATION_CLOSURE_INCOMPLETE")
+            .all(|i| i.code != "OPERATION_CLOSURE_INCOMPLETE")
     );
     assert!(
         manifest
@@ -706,6 +727,48 @@ fn central_case_manifest_preserves_all_cinema_obligations_and_requirement_links(
             }
         }
     }
+}
+
+#[test]
+fn explanatory_intents_remain_in_context_without_creating_mandatory_assertions() {
+    let ir = cinema();
+    let mut selected = plan(
+        &ir,
+        scope("HomeCinema.MovieNight.MemberId"),
+        &Default::default(),
+    );
+    assert_eq!(
+        selected
+            .manual_checks
+            .iter()
+            .filter(|check| check.kind == StatementKind::Intent)
+            .count(),
+        2
+    );
+    assert!(case_manifest(&selected).open_obligations.is_empty());
+    let whole = plan(&ir, scope("HomeCinema.MovieNight"), &Default::default());
+    let constraint = whole
+        .manual_checks
+        .into_iter()
+        .find(|check| check.kind == StatementKind::Constraint)
+        .unwrap();
+    let subject = constraint.subject.clone();
+    selected.manual_checks.push(constraint);
+    let manifest = case_manifest(&selected);
+    assert!(
+        manifest
+            .open_obligations
+            .iter()
+            .any(|issue| issue.code == "MANUAL_REQUIREMENT" && issue.message.starts_with(&subject))
+    );
+    assert_eq!(
+        selected
+            .manual_checks
+            .iter()
+            .filter(|check| check.kind == StatementKind::Intent)
+            .count(),
+        2
+    );
 }
 
 #[test]
@@ -749,6 +812,84 @@ fn central_case_manifest_never_drops_empty_or_duplicate_mandatory_cases() {
             .open_obligations
             .iter()
             .any(|i| i.code == "DUPLICATE_CASE_ID")
+    );
+}
+
+#[test]
+fn serialized_plans_with_unsupported_clauses_retain_an_incomplete_operation_obligation() {
+    let ir = dctx0_language::compile(&[Source {
+        file: "unsupported-plan.dctx0".into(),
+        text: "workspace W { surface Api { operation next() -> Int { ensures result == 1 } } }"
+            .into(),
+    }])
+    .ir
+    .unwrap();
+    let mut projected = plan(&ir, scope("W.Api.next"), &Default::default());
+    // Saved/external typed plans must not turn an unsupported clause into PASS.
+    projected.operations[0].clauses[0].kind = StatementKind::Decision;
+    let restored: ProgramPlan =
+        serde_json::from_slice(&serde_json::to_vec(&projected).unwrap()).unwrap();
+    assert!(!supports_generated_operation(&restored.operations[0]));
+    let manifest = case_manifest(&restored);
+    assert!(manifest.required_cases.contains("W.Api.next:operation"));
+    assert!(manifest.case_requirements["W.Api.next:operation"].contains("W.Api.next"));
+    assert!(
+        manifest.case_requirements["W.Api.next:operation"]
+            .contains(&restored.operations[0].clauses[0].id)
+    );
+    assert!(
+        manifest
+            .open_obligations
+            .iter()
+            .any(|issue| issue.code == "OPERATION_CLOSURE_INCOMPLETE")
+    );
+}
+
+#[test]
+fn empty_cinema_assertion_corpora_and_lifecycle_paths_are_explicit_open_obligations() {
+    let ir = cinema();
+    let mut projected = plan(&ir, scope("HomeCinema.MovieNight"), &Default::default());
+    let assertions = projected
+        .properties
+        .iter_mut()
+        .flat_map(|property| &mut property.assertions)
+        .map(|assertion| {
+            assert!(!assertion.cases.is_empty());
+            assertion.cases.clear();
+            assertion.source_id.clone()
+        })
+        .collect::<Vec<_>>();
+    assert!(!assertions.is_empty());
+    let lifecycles = projected
+        .lifecycles
+        .iter_mut()
+        .map(|lifecycle| {
+            assert!(!lifecycle.paths.is_empty());
+            lifecycle.paths.clear();
+            lifecycle.subject.clone()
+        })
+        .collect::<Vec<_>>();
+    assert!(!lifecycles.is_empty());
+    let manifest = case_manifest(&projected);
+    for assertion in assertions {
+        assert!(
+            manifest
+                .open_obligations
+                .iter()
+                .any(|issue| issue.code == "EMPTY_ASSERTION_CORPUS" && issue.message == assertion)
+        );
+    }
+    for lifecycle in lifecycles {
+        assert!(
+            manifest
+                .open_obligations
+                .iter()
+                .any(|issue| issue.code == "EMPTY_LIFECYCLE_PATHS" && issue.message == lifecycle)
+        );
+    }
+    assert_eq!(
+        manifest.required_cases,
+        manifest.case_requirements.keys().cloned().collect()
     );
 }
 
@@ -801,5 +942,331 @@ fn value_case_requirements_bind_modeled_refinements_without_asserting_free_text(
     assert!(historical.contracts[0].refinement_requirements.is_empty());
     for requirements in case_manifest(&historical).case_requirements.values() {
         assert_eq!(requirements, &["W.A".into()].into());
+    }
+}
+
+#[test]
+fn contract_cases_cover_checked_record_fields_without_inventing_entity_key_evidence() {
+    let sources = [Source { file: "records.dctx0".into(), text: "workspace W { value N = Int { range 1..2 } entity Item { id: String\namount: N\nkey id } }".into() }];
+    let compiled = dctx0_language::compile(&sources);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let projected = plan(&ir, scope("W.Item"), &Default::default());
+    let fields = ir
+        .nodes
+        .iter()
+        .filter(|node| node.owner == "W.Item" && node.kind == StatementKind::Field)
+        .map(|node| node.id.clone())
+        .collect::<BTreeSet<_>>();
+    let key = ir
+        .nodes
+        .iter()
+        .find(|node| node.owner == "W.Item" && node.kind == StatementKind::Key)
+        .unwrap();
+    assert_eq!(fields.len(), 2);
+    let manifest = case_manifest(&projected);
+    let requirements = manifest
+        .case_requirements
+        .iter()
+        .filter(|(id, _)| id.starts_with("W.Item:") && *id != "W.Item:identity")
+        .collect::<Vec<_>>();
+    assert!(!requirements.is_empty());
+    for (_, mapped) in requirements {
+        assert!(fields.is_subset(mapped));
+        assert!(!mapped.contains(&key.id));
+    }
+    let ty = TypeRef {
+        name: "Item".into(),
+        symbol_id: Some("W.Item".into()),
+        arguments: vec![],
+    };
+    let valid = VerificationValue::Record(
+        [
+            ("id".into(), VerificationValue::String("existing".into())),
+            ("amount".into(), VerificationValue::Integer("1".into())),
+        ]
+        .into(),
+    );
+    assert_eq!(
+        dctx0_interpreter::check_value(&ir, &ty, &valid, &Default::default()),
+        dctx0_interpreter::ValueContract::Accepted
+    );
+    for mutation in 0..3 {
+        let mut invalid = valid.clone();
+        let VerificationValue::Record(ref mut values) = invalid else {
+            unreachable!()
+        };
+        match mutation {
+            0 => {
+                values.remove("amount");
+            }
+            1 => {
+                values.insert(
+                    "amount".into(),
+                    VerificationValue::String("wrong type".into()),
+                );
+            }
+            _ => {
+                values.insert("amount".into(), VerificationValue::Integer("3".into()));
+            }
+        }
+        assert!(
+            matches!(
+                dctx0_interpreter::check_value(&ir, &ty, &invalid, &Default::default()),
+                dctx0_interpreter::ValueContract::Rejected { .. }
+            ),
+            "Mutation {mutation}"
+        );
+    }
+    let mut historical = serde_json::to_value(&projected).unwrap();
+    for contract in historical["contracts"].as_array_mut().unwrap() {
+        contract
+            .as_object_mut()
+            .unwrap()
+            .remove("structural_requirements");
+    }
+    let historical: ProgramPlan = serde_json::from_value(historical).unwrap();
+    assert!(
+        historical
+            .contracts
+            .iter()
+            .all(|contract| contract.structural_requirements.is_empty())
+    );
+    assert!(
+        case_manifest(&historical)
+            .case_requirements
+            .values()
+            .all(|mapped| mapped.is_disjoint(&fields))
+    );
+}
+
+#[test]
+fn generated_preconditions_classify_candidates_and_preserve_explicit_cases() {
+    let source = Source { file: "w.dctx0".into(), text: "workspace W { value A = Int { range 0..2 } surface Api { operation next(a:A) -> Int {\n pure\n requires a > 0\n ensures result == a + 1\n } } }".into() };
+    let compiled = dctx0_language::compile(&[source]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let explicit = OperationCaseInput {
+        mocks: vec![],
+        id: "explicit-invalid-precondition".into(),
+        invocation: Invocation {
+            subject: "W.Api.next".into(),
+            arguments: vec![VerificationValue::Integer("0".into())],
+        },
+        setup: vec![],
+    };
+    let fixtures = ProjectionFixtures {
+        operations: [("W.Api.next".into(), vec![explicit.clone()])].into(),
+        ..Default::default()
+    };
+    let projected = plan(&ir, scope("W.Api.next"), &fixtures);
+    let operation = &projected.operations[0];
+    let selection = operation.precondition_selection.as_ref().unwrap();
+    assert_eq!(selection.examined_candidates, 3);
+    assert_eq!(selection.accepted_candidates, 2);
+    assert_eq!(selection.rejected_candidates, 1);
+    assert_eq!(selection.unresolved_candidates, 0);
+    assert!(operation.inputs.exhaustive);
+    assert_eq!(
+        operation
+            .inputs
+            .bindings
+            .iter()
+            .map(|b| b["a"].clone())
+            .collect::<Vec<_>>(),
+        [
+            VerificationValue::Integer("1".into()),
+            VerificationValue::Integer("2".into())
+        ]
+    );
+    assert_eq!(operation.cases, [explicit]);
+    assert!(
+        case_manifest(&projected)
+            .required_cases
+            .contains("explicit-invalid-precondition")
+    );
+    assert_eq!(projected, plan(&ir, scope("W.Api.next"), &fixtures));
+    let mut clauses = operation.clauses.clone();
+    let precondition = clauses
+        .iter_mut()
+        .find(|n| n.kind == StatementKind::Requires)
+        .unwrap();
+    precondition.expressions.clear();
+    let candidates = generate_inputs(&ir, &operation.operation.parameters, &Default::default());
+    let (unresolved, selection) =
+        select_precondition_inputs(&ir, &clauses, candidates.clone(), &Default::default());
+    assert_eq!(unresolved.bindings, candidates.bindings);
+    assert!(!unresolved.exhaustive);
+    assert_eq!(selection.unwrap().unresolved_candidates, 3);
+    assert!(
+        unresolved
+            .issues
+            .iter()
+            .any(|i| i.code == "PRECONDITION_GENERATION_UNSUPPORTED" && i.span.is_some())
+    );
+    let (unchanged, selection) =
+        select_precondition_inputs(&ir, &[], candidates.clone(), &Default::default());
+    assert_eq!(unchanged, candidates);
+    assert!(selection.is_none());
+}
+
+#[test]
+fn invalid_preparation_calls_remain_mandatory_and_are_reported_before_execution() {
+    let compiled = dctx0_language::compile(&[Source { file: "setup.dctx0".into(), text: "workspace W { port Store { operation prepare(value:Int) -> Unit } surface Api { operation next() -> Int } }".into() }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let setups = [
+        Invocation {
+            subject: "W.Missing.prepare".into(),
+            arguments: vec![],
+        },
+        Invocation {
+            subject: "W.Store.prepare".into(),
+            arguments: vec![],
+        },
+        Invocation {
+            subject: "W.Store.prepare".into(),
+            arguments: vec![VerificationValue::String("wrong type".into())],
+        },
+    ];
+    let fixtures = ProjectionFixtures {
+        operations: [(
+            "W.Api.next".into(),
+            setups
+                .into_iter()
+                .enumerate()
+                .map(|(index, setup)| OperationCaseInput {
+                    id: format!("invalid-setup-{index}"),
+                    invocation: Invocation {
+                        subject: "W.Api.next".into(),
+                        arguments: vec![],
+                    },
+                    setup: vec![setup],
+                    mocks: vec![],
+                })
+                .collect(),
+        )]
+        .into(),
+        ..Default::default()
+    };
+    let projected = plan(&ir, scope("W.Api.next"), &fixtures);
+    assert_eq!(
+        projected
+            .issues
+            .iter()
+            .filter(|issue| issue.code == "INVALID_OPERATION_SETUP")
+            .count(),
+        3
+    );
+    let manifest = case_manifest(&projected);
+    for index in 0..3 {
+        assert!(
+            manifest
+                .required_cases
+                .contains(&format!("invalid-setup-{index}"))
+        );
+    }
+    assert_eq!(projected.operations[0].cases.len(), 3);
+}
+
+#[test]
+fn empty_valid_precondition_corpora_remain_explicitly_unknown() {
+    let compiled = dctx0_language::compile(&[Source { file: "w.dctx0".into(), text: "workspace W { surface Api { operation next(a:Int) -> Int {\n pure\n requires false\n } } }".into() }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let projected = plan(&ir, scope("W.Api.next"), &Default::default());
+    let operation = &projected.operations[0];
+    assert!(operation.inputs.bindings.is_empty());
+    assert_eq!(
+        operation
+            .precondition_selection
+            .as_ref()
+            .unwrap()
+            .accepted_candidates,
+        0
+    );
+    assert!(
+        operation
+            .inputs
+            .issues
+            .iter()
+            .any(|i| i.code == "EMPTY_PRECONDITION_CORPUS")
+    );
+    assert!(
+        case_manifest(&projected)
+            .open_obligations
+            .iter()
+            .any(|i| i.code == "EMPTY_OPERATION_CORPUS")
+    );
+}
+
+#[test]
+fn generated_preparations_are_pinned_exact_typed_unique_inputs() {
+    let ir = cinema();
+    let subject = "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.closeVoting";
+    let original = plan(&ir, scope(subject), &Default::default());
+    let operation = original
+        .operations
+        .iter()
+        .find(|operation| operation.operation.id == subject)
+        .unwrap();
+    let bindings = operation.inputs.bindings[0].clone();
+    let preparation = GeneratedPreparation {
+        bindings: bindings.clone(),
+        setup: vec![Invocation {
+            subject: subject.into(),
+            arguments: vec![bindings["pollId"].clone()],
+        }],
+    };
+    let mut fixtures = ProjectionFixtures::default();
+    fixtures
+        .generated_preparations
+        .insert(subject.into(), vec![preparation.clone()]);
+    let projected = plan(&ir, scope(subject), &fixtures);
+    assert!(projected.issues.is_empty(), "{:?}", projected.issues);
+    let operation = projected
+        .operations
+        .iter()
+        .find(|operation| operation.operation.id == subject)
+        .unwrap();
+    assert_eq!(operation.generated_setup(&bindings), preparation.setup);
+    assert!(operation.generated_setup(&BTreeMap::new()).is_empty());
+    assert_eq!(
+        case_manifest(&projected).required_cases,
+        case_manifest(&original).required_cases
+    );
+    fixtures
+        .generated_preparations
+        .get_mut(subject)
+        .unwrap()
+        .push(preparation.clone());
+    assert!(codes(&plan(&ir, scope(subject), &fixtures)).contains("INVALID_GENERATED_PREPARATION"));
+    for mutation in 0..3 {
+        let mut bad = preparation.clone();
+        match mutation {
+            0 => bad.bindings.clear(),
+            1 => bad.setup[0].subject = "undeclared".into(),
+            _ => bad.setup[0].arguments[0] = VerificationValue::Unit,
+        }
+        fixtures
+            .generated_preparations
+            .insert(subject.into(), vec![bad]);
+        assert!(!plan(&ir, scope(subject), &fixtures).issues.is_empty());
     }
 }

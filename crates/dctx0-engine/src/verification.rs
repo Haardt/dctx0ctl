@@ -12,6 +12,82 @@ pub struct VerificationSelection {
     pub historical_check: Option<i64>,
 }
 impl Project {
+    /// Inspect configured lifecycle inputs without executing an adapter.
+    pub fn verification_lifecycle_input_issues(
+        &self,
+        application: &std::path::Path,
+        adapter: &str,
+        plan: &ProgramPlan,
+    ) -> Result<Vec<dctx0_core::VerificationIssue>> {
+        if plan.lifecycles.is_empty() {
+            return Ok(vec![]);
+        }
+        let adapter = std::path::Path::new(adapter);
+        if adapter.is_absolute()
+            || adapter
+                .components()
+                .any(|part| !matches!(part, std::path::Component::Normal(_)))
+        {
+            return Err(Error::Invalid("Invalid lifecycle adapter path".into()));
+        }
+        let path = application
+            .join(adapter.parent().unwrap_or(std::path::Path::new("")))
+            .join("lifecycles.json");
+        let fixtures: crate::VerificationLifecycleFixtures = if path.try_exists()? {
+            if !path
+                .canonicalize()?
+                .starts_with(application.canonicalize()?)
+                || fs::metadata(&path)?.len() > 524_288
+            {
+                return Err(Error::Invalid(
+                    "Lifecycle inputs escape the application or exceed the size limit".into(),
+                ));
+            }
+            serde_json::from_slice(&fs::read(path)?)?
+        } else {
+            Default::default()
+        };
+        let snapshot = self
+            .store(AccessMode::ReadOnly)?
+            .load(&self.key(), &plan.snapshot)?;
+        let mut issues = vec![];
+        for lifecycle in &plan.lifecycles {
+            for path in &lifecycle.paths {
+                let message = match fixtures.paths.get(&path.id) {
+                    None => Some(
+                        "Lifecycle path needs explicitly reviewed keys, setup and transition arguments",
+                    ),
+                    Some(input) if input.arguments.len() != path.transitions.len() => {
+                        Some("Lifecycle arguments do not cover the complete mandatory path")
+                    }
+                    Some(input) => {
+                        if let dctx0_core::VerificationResult::Unknown { mut issue } =
+                            dctx0_verification::lifecycle_input_contract(
+                                &snapshot.ir,
+                                lifecycle,
+                                path,
+                                input,
+                                &plan.budgets,
+                            )
+                        {
+                            issue.message = format!("{}: {}", path.id, issue.message);
+                            issues.push(issue);
+                        }
+                        None
+                    }
+                };
+                if let Some(message) = message {
+                    issues.push(dctx0_core::VerificationIssue {
+                        code: "LIFECYCLE_INPUT_REQUIRED".into(),
+                        message: format!("{}: {message}", path.id),
+                        span: None,
+                    });
+                }
+            }
+        }
+        Ok(issues)
+    }
+
     pub fn saved_verification_run(&self, id: &str) -> Result<dctx0_store::StoredVerificationRun> {
         Ok(self
             .store(AccessMode::ReadOnly)?

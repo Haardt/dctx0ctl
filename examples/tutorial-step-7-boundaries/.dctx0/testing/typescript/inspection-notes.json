@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "actor": "tutorial-reference-reviewer",
+  "scope": "Tutorial.Board Step 7: cumulative production remains unchanged. Reviewed Catalog interface injection, real BoardReader execution, actual collaborator observation, module ownership, decision and architectural constraint against the full current sources.",
+  "reviewed_hashes": {
+    "package.json": "0e2bbfbd1c164df7fcbc534a3b6e3bedd030c9f73b67991d6096e0cb6b816805",
+    "bun.lock": "77f8f2dc8c9ba3c048066137850052077a6a80ee026b4da91b0c6ebb7782bc95",
+    "tsconfig.json": "2a0ce246bbbaac0c7ce9aa1cae73ae5c87e82dd5f0eed37de2b3d8b75c365d73",
+    ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
+    ".dctx0/testing/typescript/adapter.ts": "42bb06f7159fc36511342340496f6e5a5cc923ba451266a17a071da75c2d5761",
+    ".dctx0/testing/typescript/collection-codec.ts": "3d51f323949998e0f73b4a46a54efe51641005ddd5742593ab15e3b6230cd9d2",
+    ".dctx0/testing/typescript/collection-signatures.json": "e1ab6caf17e0db731606c6fb09e83949002211045ada035c754be5c7d81f6727",
+    ".dctx0/testing/typescript/data-codec.ts": "f668f3a0c00ed07b1f2b864c32b9272b859879fdacdc2adcfd99ea2688fa9a1f",
+    ".dctx0/testing/typescript/entity-codec.ts": "9db1699e75b8890ac0101f1a450ff8f973173dcb261549db7e5a63a02b22358f",
+    ".dctx0/testing/typescript/examples.json": "ec66b38a5e236b4088b27c78d8a409318a90ef4503b3c9f6ca49ce2bcf008256",
+    ".dctx0/testing/typescript/initial-state.json": "26eb754a4957a3105655f90d65c9d3643c06469855b79914873e7d9ceba68213",
+    "src/board.test.ts": "f0b810c0a3b23fc2c3692abdd6a97ee49a402baec5dcfc182b69db643a4bf14b",
+    "src/board.ts": "05611a5fc516c277b235ced37c1d855c8a2c7f54a34d6a2b25c87740a47d320d",
+    "src/catalog.test.ts": "0831a19b526c44761555df42a414b513e497fc49d217e5001c241d40689087a2",
+    "src/catalog.ts": "dd2e218114617fc958d969c7a95d8d971ae58f125825ae1f0c7e6131b4f4eddb",
+    "src/collections.test.ts": "1f8bcaf72fca2c51d02712ab71ad2ac700fc9bafdd566459ca83837ee4867dcf",
+    "src/collections.ts": "1cf530cd63f475b32a9d4dbaf71430d0e39d9e704a4d1e4044f9b850941eed9e",
+    "src/data.test.ts": "f87dfbea0f6d4ac3d46577f251109033fddd73d6a307ec0431ec23c7b96b00c7",
+    "src/data.ts": "c23670021566e3463c05c274a4946826e573c0d351fd3fb0babce038b9e4ff2a",
+    "src/decimal.test.ts": "4486f4aa0dda28ca63ec6e444f9cf268dcd3a6468ec5952a4ccc7911e2a2756e",
+    "src/decimal.ts": "205a70e04388938fbfba71d4c1b8b62b91ad38c8990633cf190991e2743468b4",
+    "src/entities.test.ts": "085c4141ed4c1104230c0537e622a582f4356b35c63cc0838dbfbf52bc3dec7c",
+    "src/entities.ts": "85cd7db1ecd4575ab26f8c7f6035f161438402fd9a5095974cab8a4ac5a90012",
+    "src/expressions.test.ts": "57babc8e5421230f7b8514d75110cddde8094ceef595a6286f44a4d7d628d5e1",
+    "src/expressions.ts": "43c7b951c7a056b646b2be990e92f8536ec7f769d86995f95903fe5abdbac05e",
+    "src/refinements.test.ts": "6394164bbcce350a3626cda1ed74f61c1b57831bf4d814159d355fb31c9ddd05",
+    "dctx0/workspace.dctx0": "362fada5c1ba78cb63495cc226f80f7b447577a00242a3a61a340c0c4b19f25c"
+  },
+  "subjects": {
+    "Tutorial.Board.Count": {
+      "report": "The unchanged bigint Count factory accepts exactly 0..3. Original boundary and increment tests still pass. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.RawLabel": {
+      "report": "The application-owned rawLabel factory requires an actual string; empty strings remain valid for this unrefined scalar. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Title": {
+      "report": "The actual title factory uses JS UTF-16 length 1..16 and nonempty trim(). Independent tests cover both length boundaries, astral text, BOM, NEL and wrong representations. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.DisplayTitle": {
+      "report": "displayTitle aliases the actual title factory. It adds no alternative validation or domain logic; the full inherited Title contract remains enforced. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Email": {
+      "report": "The email factory enforces length 3..254 and the declared reference email pattern. Tests reject repeated/missing @, missing dot and whitespace. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Identifier": {
+      "report": "The actual identifier factory checks the explicit UUID format, including version 1..5 and variant 8/9/a/b. This is narrower than the unrefined UUID builtin. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskId": {
+      "report": "The taskId factory accepts UUID structure without imposing the formatted Identifier version restriction. stableId identifies this data declaration only, not universal symbol history. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Link": {
+      "report": "link checks the actual string using the normal WHATWG URL constructor and preserves the original representation. Relative URLs and invalid hosts are rejected. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Day": {
+      "report": "day validates fixed-width calendar syntax and real month/day/leap-year bounds. Tests deliberately reject Date.parse rollover, including 1900-02-29 and 2026-02-30. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Instant": {
+      "report": "instant validates calendar, time, offset and fractional syntax while preserving the supplied offset/precision. It rejects impossible dates, out-of-range components and trailing newline. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ShortList": {
+      "report": "The production shortList factory requires one or two native bigint values and returns a copied array. Wrong element representations, empty/oversized arrays and aliasing are independently checked. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.increment": {
+      "report": "The original increment production code remains real and continues to enforce its prerequisite and exact result. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.echo": {
+      "report": "The pure echo operation delegates to the actual inherited displayTitle factory and returns its value; native parameter cases check the modeled equality. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Moment": {
+      "report": "The Timestamp contract uses the actual instant factory, preserving the RFC3339 string, calendar validity, offsets and precision. Its independent tests remain in refinements.test.ts.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Integer": {
+      "report": "The actual integer factory requires bigint and preserves integers beyond Number precision; ordinary numbers and strings are rejected.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Flag": {
+      "report": "The actual flag factory accepts only native booleans, including false, without truthiness coercion.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Measure": {
+      "report": "The measure factory checks finite IEEE numbers within 0..10. Independent tests include NaN, Infinity and both bounds.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Estimate": {
+      "report": "The estimate factory checks finite seconds within 0..3600. Negative and oversized values are rejected by production.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ExactAmount": {
+      "report": "The exactAmount factory validates signed decimal strings and returns them unchanged, retaining digits beyond Number precision. Renewed decimal-boundary inspection: the factory now accepts optional minus and decimal digits only, matching the neutral exact format; an explicit test rejects a leading plus while retaining arbitrary precision.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Attachment": {
+      "report": "The attachment factory validates byte integrality and 0..255 before Uint8Array conversion, and returns independent storage. Wrong types and 256 are independently rejected.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.NoValue": {
+      "report": "The noValue factory accepts undefined only; the testing bridge maps the wire Unit to undefined.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.MaybeTitle": {
+      "report": "The maybeTitle factory requires exact none/some object fields and applies the real Title factory to present values.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.CompatOption": {
+      "report": "Dctx0Option shares the actual maybeTitle factory and explicit native alternatives; no separate target semantics are introduced.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.PresentTitle": {
+      "report": "The presentTitle factory delegates payload validation to maybeTitle and rejects the absent alternative.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Absent": {
+      "report": "The absent factory requires exactly the none tag, rejecting some and extra fields.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Attempt": {
+      "report": "The actual attempt factory validates the exact ok/error object shape and delegates payloads to Count/Title. The testing bridge only maps builtin Success/Failure labels.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Status": {
+      "report": "The production status factory accepts exactly Open and Done. The adapter maps the declaration-qualified wire alternatives to these native labels.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Choice": {
+      "report": "The production choice factory requires exact empty/named fields and validates named payloads with Title. The adapter maps payload representations only.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Details": {
+      "report": "The details factory requires all twelve fields with no extras and calls the real factory for each field. keepDetails rebuilds a valid independent record without changing modeled values.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions": {
+      "report": "The real score operation validates both Count inputs and the nonzero second operand, then calculates a+2*b using exact bigint arithmetic. Independent tests exhaust all twelve valid pairs and rejected boundaries. eligible validates Count before classifying zero; describe validates Title before adding the prefix; named calls the actual Choice factory. The adapter dispatches the four real exports and only translates their returned representations. The cumulative earlier operations remain unchanged. New collection exports validate List<Count> through the actual counts factory. min/max reject empty lists, only rejects non-singletons, sorts and reverse operate on copied lists, and window translates the modeled offset/count to JS offset/end without dropping the fourth item. Boolean aggregates include empty-list behavior; head/average/optional retain explicit present/absent boxes. Actual string exports call ordinary native operations after rawLabel validation, with UTF-16 length. Production decimal functions use bigint coefficients, signed quotient/remainder rounding, all four declared modes, and preserve exact finite thirds. Independent tests include signed ties, large coefficients, nonterminating quotients and input ownership. The external bridge invokes these exports and encodes returned values; its JSON metadata specifies only return representations, never expected results.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Task": {
+      "report": "The actual task factory requires exactly id/title/status and applies the existing TaskId, Title and Status factories. Board construction rejects duplicate id values and copies every row.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Note": {
+      "report": "The actual note factory validates exact taskId/sequence/text fields through TaskId/Count/Title. Board construction enforces the composite taskId/sequence key while allowing different sequences for one task. Tests distinguish both situations.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskSummary": {
+      "report": "The actual taskSummary factory accepts exactly id/title and does not expose entity status. Board list/find construct actual validated boundary messages.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Tasks": {
+      "report": "Board.list maps actual stored entities to messages; find compares a validated key and returns an explicit present/absent box; notes filters actual notes by a validated task key. Board.snapshot returns fresh validated copies of real stored rows. The adapter uses these snapshots for before/after observation, never reconstructs expected state from the spec. Initial test records are explicit reviewed inputs passed through the real Board constructor; each session is a fresh instance. Independent tests cover hits, misses, duplicates, composite keys and snapshot isolation.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog": {
+      "report": "Catalog accepts the ordinary TaskReader interface and invokes lookup with a validated TaskId. It does not construct storage or branch on concrete reader types. BoardReader adapts an actual Board instance. Tests exercise real hit/miss paths and a different injected reader, validating replacement without changing Catalog code. Spec ownership explicitly assigns Task and TaskSummary to Catalog; existing declarations are retained.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.TaskReader": {
+      "report": "The actual BoardReader.lookup delegates to the real Board.find after TaskId validation, and is directly executed for independent port conformance cases. Its normal constructor receives the actual Board; native before/after observations read that same instance.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.Public": {
+      "report": "The actual Catalog.find delegates through its normal interface. The testing wrapper records each actual lookup invocation and returned result or exception, without inventing call counts. Native result clauses compare returned messages against observed Task state; the call effect is centrally assessed separately.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.PublicMessages": {
+      "report": "The reviewed production service and BoardReader return Option<TaskSummary>, with actual boundary construction by taskSummary. The message has exactly id/title; stored Task.status is not exposed. Independent factory tests reject a Task entity passed as a TaskSummary input. This satisfies the chosen public-message boundary for the reviewed code.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog#constraint:1": {
+      "report": "Reviewed Catalog constructor and find body: the service receives TaskReader and invokes its lookup method. It neither constructs Board nor reaches private storage. The concrete BoardReader lives alongside the service but receives its Board independently; the file import is not a claim that the Catalog class depends directly on storage. The independent replacement test injects a different ordinary reader and exercises the unchanged Catalog.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    }
+  }
+}

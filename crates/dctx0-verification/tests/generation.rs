@@ -204,9 +204,8 @@ fn empty_recursive_unsupported_and_resource_limited_domains_cannot_claim_complet
     for ty in [
         ty("W.Cycle"),
         ty("W.Sparse"),
-        ty("W.BoundedText"),
         ty("W.Missing"),
-        TypeRef::builtin("Duration"),
+        TypeRef::builtin("FutureBuiltin"),
         TypeRef::builtin("List"),
         TypeRef::builtin("Option"),
     ] {
@@ -255,7 +254,7 @@ fn empty_recursive_unsupported_and_resource_limited_domains_cannot_claim_complet
     assert!(corpus.issues.iter().any(|i| i.code == "GENERATION_BUDGET"));
 }
 #[test]
-fn all_forty_five_cinema_declarations_generate_valid_inputs_without_spec_changes() {
+fn all_current_cinema_declarations_generate_valid_inputs_including_visible_comment_text() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/cinema/dctx0");
     let sources = ["workspace.dctx0", "movie-night.dctx0"].map(|name| Source {
         file: name.into(),
@@ -268,7 +267,7 @@ fn all_forty_five_cinema_declarations_generate_valid_inputs_without_spec_changes
         compiled.diagnostics
     );
     let ir = compiled.ir.unwrap();
-    assert_eq!(ir.data.len(), 45);
+    assert_eq!(ir.data.len(), 46);
     for id in ir.data.keys() {
         let ty = ty(id);
         let budgets = VerificationBudgets::default();
@@ -276,6 +275,30 @@ fn all_forty_five_cinema_declarations_generate_valid_inputs_without_spec_changes
         assert!(!corpus.values.is_empty(), "{id}: {:?}", corpus.issues);
         assert!(corpus.issues.is_empty(), "{id}: {:?}", corpus.issues);
         valid(&ir, &ty, &corpus, &budgets);
+        if id == "HomeCinema.MovieNight.CommentText" {
+            // Independent ECMAScript reference: NEL is retained, BOM is trimmed.
+            assert!(
+                corpus
+                    .values
+                    .contains(&VerificationValue::String("\u{0085}".into()))
+            );
+            assert!(
+                !corpus
+                    .values
+                    .contains(&VerificationValue::String("\u{feff}".into()))
+            );
+            let rejected = dctx0_verification::generate_rejections(&ir, &ty, &budgets);
+            assert!(
+                rejected
+                    .values
+                    .contains(&VerificationValue::String("\u{feff}".into()))
+            );
+            assert!(
+                !rejected
+                    .values
+                    .contains(&VerificationValue::String("\u{0085}".into()))
+            );
+        }
     }
 }
 
@@ -296,6 +319,19 @@ fn malformed_ranges_alias_loops_and_composite_work_exhaustion_are_explicit() {
         let corpus = generate_values(&workspace, &ty("W.Small"), &Default::default());
         assert!(corpus.issues.iter().any(|issue| issue.code == code));
         assert!(!corpus.exhaustive);
+        if code == "UNSUPPORTED_RANGE" {
+            let rejected = dctx0_verification::generate_rejections(
+                &workspace,
+                &ty("W.Small"),
+                &Default::default(),
+            );
+            assert!(
+                rejected.issues.iter().any(
+                    |issue| issue.code == "REJECTION_RANGE_UNSUPPORTED" && issue.span.is_some()
+                )
+            );
+            assert!(!rejected.exhaustive);
+        }
     }
     workspace.nodes[range].terms = original;
     workspace.data.get_mut("W.Small").unwrap().alias = Some(TypeRef::builtin("String"));
@@ -306,6 +342,22 @@ fn malformed_ranges_alias_loops_and_composite_work_exhaustion_are_explicit() {
             .iter()
             .any(|i| i.code == "UNSUPPORTED_REFINEMENT")
     );
+    let rejected =
+        dctx0_verification::generate_rejections(&workspace, &ty("W.Small"), &Default::default());
+    assert!(
+        rejected
+            .issues
+            .iter()
+            .any(|issue| issue.code == "REJECTION_RANGE_UNSUPPORTED")
+    );
+    assert!(!rejected.exhaustive);
+    let mut absent = workspace.clone();
+    absent.data.remove("W.Small");
+    let rejected =
+        dctx0_verification::generate_rejections(&absent, &ty("W.Small"), &Default::default());
+    assert!(rejected.values.is_empty());
+    assert!(!rejected.issues.is_empty());
+    assert!(!rejected.exhaustive);
     workspace.data.get_mut("W.Small").unwrap().alias = Some(ty("W.Small"));
     let corpus = generate_values(&workspace, &ty("W.Small"), &Default::default());
     assert!(corpus.issues.iter().any(|i| i.code == "GENERATION_BUDGET"));
@@ -375,7 +427,7 @@ fn parameter_tuples_enumerate_small_spaces_and_keep_empty_or_partial_inputs_expl
     );
     let unsupported = [FieldIr {
         name: "unavailable".into(),
-        ty: TypeRef::builtin("Duration"),
+        ty: TypeRef::builtin("FutureBuiltin"),
     }];
     let corpus = generate_inputs(&ir, &unsupported, &budgets);
     assert!(corpus.bindings.is_empty());
@@ -406,4 +458,124 @@ fn parameter_tuples_enumerate_small_spaces_and_keep_empty_or_partial_inputs_expl
     );
     assert!(!limited.exhaustive);
     assert_eq!(limited.bindings.len(), 1);
+}
+
+#[test]
+fn text_refinement_corpora_include_valid_format_samples_and_length_boundaries() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "formats.dctx0".into(),
+        text: r#"workspace W {
+ value Name = String { length 2..4 }
+ value Email = String { format Email }
+ value Identifier = String { format UUID }
+ value Link = String { format Uri }
+ value Day = String { format Date }
+ value Instant = String { format DateTime }
+}"#
+        .into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    for name in ["Name", "Email", "Identifier", "Link", "Day", "Instant"] {
+        let ty = ty(&format!("W.{name}"));
+        let corpus = generate_values(&ir, &ty, &Default::default());
+        assert!(!corpus.values.is_empty(), "{name}: {corpus:?}");
+        assert!(corpus.issues.is_empty(), "{name}: {corpus:?}");
+        assert!(!corpus.exhaustive);
+        valid(&ir, &ty, &corpus, &Default::default());
+        assert_eq!(corpus, generate_values(&ir, &ty, &Default::default()));
+        if name == "Name" {
+            for length in [2, 4] {
+                assert!(corpus.values.iter().any(|value| matches!(value, VerificationValue::String(s) if s.encode_utf16().count() == length)));
+            }
+        }
+    }
+}
+
+#[test]
+fn refinement_rejections_cover_actual_length_and_format_violations_not_only_wrong_types() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "negative-formats.dctx0".into(),
+        text: r#"workspace W {
+ value Text = String { length 1..4 }
+ value Entries = List<Int> { length 1..2 }
+ value Day = String { format Date }
+ value Identifier = String { format UUID }
+}"#
+        .into(),
+    }]);
+    assert!(compiled.diagnostics.is_empty());
+    let ir = compiled.ir.unwrap();
+    let budgets = VerificationBudgets::default();
+    for (name, expected) in [
+        ("Text", VerificationValue::String("xxxxx".into())),
+        ("Day", VerificationValue::String("2026-02-30".into())),
+        (
+            "Identifier",
+            VerificationValue::String("00000000-0000-0000-0000-000000000001".into()),
+        ),
+    ] {
+        let result =
+            dctx0_verification::generate_rejections(&ir, &ty(&format!("W.{name}")), &budgets);
+        assert!(result.issues.is_empty(), "{result:?}");
+        assert!(result.values.contains(&expected), "{name}: {result:?}");
+    }
+    let result = dctx0_verification::generate_rejections(&ir, &ty("W.Entries"), &budgets);
+    assert!(result.values.iter().any(|value| matches!(value, VerificationValue::List(items) if items.len() == 3 && items.iter().all(|item| matches!(item,VerificationValue::Integer(_))))));
+}
+
+#[test]
+fn all_compatibility_builtins_generate_actual_valid_values_without_target_semantics() {
+    let ir = ir();
+    let budgets = VerificationBudgets::default();
+    for ty in [
+        TypeRef::builtin("Duration"),
+        TypeRef::builtin("Bytes"),
+        TypeRef::builtin("None"),
+        generic("Some", TypeRef::builtin("Boolean")),
+        generic("Dctx0Option", TypeRef::builtin("Boolean")),
+        TypeRef {
+            name: "Dctx0Result".into(),
+            symbol_id: None,
+            arguments: vec![TypeRef::builtin("Boolean"), TypeRef::builtin("String")],
+        },
+    ] {
+        let corpus = generate_values(&ir, &ty, &budgets);
+        assert!(corpus.issues.is_empty(), "{ty:?}: {corpus:?}");
+        assert!(!corpus.values.is_empty());
+        valid(&ir, &ty, &corpus, &budgets);
+        assert_eq!(corpus, generate_values(&ir, &ty, &budgets));
+    }
+}
+
+#[test]
+fn finite_float_ranges_generate_endpoints_and_adjacent_outside_values() {
+    let result = dctx0_language::compile(&[Source { file: "float-range.dctx0".into(), text: "workspace W { value Weight = Float { range 2.1..2.2 } value Estimate = Duration { range 0..3600 } }".into() }]);
+    assert!(result.diagnostics.is_empty());
+    let ir = result.ir.unwrap();
+    for name in ["Weight", "Estimate"] {
+        let ty = ty(&format!("W.{name}"));
+        let values = generate_values(&ir, &ty, &Default::default());
+        assert!(values.issues.is_empty(), "{values:?}");
+        assert!(values.values.len() >= 2);
+        valid(&ir, &ty, &values, &Default::default());
+        let rejected = dctx0_verification::generate_rejections(&ir, &ty, &Default::default());
+        assert!(rejected.issues.is_empty(), "{rejected:?}");
+        assert!(
+            rejected
+                .values
+                .iter()
+                .filter(|value| matches!(value, VerificationValue::Float(_)))
+                .count()
+                >= 2
+        );
+        assert!(rejected.values.iter().all(|value| matches!(
+            check_value(&ir, &ty, value, &Default::default()),
+            ValueContract::Rejected { .. }
+        )));
+    }
 }

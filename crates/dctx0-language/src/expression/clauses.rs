@@ -53,7 +53,10 @@ pub(crate) fn compile_clauses(ir: &mut WorkspaceIr, diagnostics: &mut Vec<Diagno
             owner: &node.owner,
             variables,
             samples,
-            allow_after: node.kind != StatementKind::Requires,
+            allow_after: !matches!(
+                node.kind,
+                StatementKind::Requires | StatementKind::Transition
+            ),
             refs: &mut refs,
             diagnostics,
         };

@@ -6,3 +6,19 @@ __pycache__/
 
 node_modules/
 /.runatron/
+
+# Rebuildable coverage output and execution logs.
+coverage/
+coverage-*/
+*.lcov
+!/docs/evidence/*.lcov
+*.log
+
+# Local coordination locks; dependency lockfiles remain versioned.
+**/.dctx0/testing/setup.lock
+**/.dctx0/profiles/profiles.lock
+
+# Generated application-side transport copies. Keep target-owned sources,
+# project adapters, contracts, configuration and reviewed evidence versioned.
+**/.dctx0/testing/typescript/worker.ts
+**/.dctx0/testing/typescript/module-observer.ts

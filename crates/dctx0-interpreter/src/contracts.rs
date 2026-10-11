@@ -4,6 +4,7 @@ use dctx0_core::{
     StatementKind as K, TypeRef, VerificationBudgets, VerificationIssue, VerificationValue as V,
     WorkspaceIr,
 };
+use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -126,11 +127,43 @@ impl Checker<'_> {
             ("Float", V::Float(text)) => text.parse::<f64>().is_ok_and(f64::is_finite),
             ("UUID", V::String(text)) => uuid(text),
             ("Timestamp", V::String(text)) => chrono::DateTime::parse_from_rfc3339(text).is_ok(),
-            ("Duration", _) => {
-                return unknown(
-                    "UNSUPPORTED_TYPE",
-                    "Duration representation is not yet supported",
-                );
+            ("Duration", V::Float(text)) => text.parse::<f64>().is_ok_and(f64::is_finite),
+            ("Bytes", V::List(values)) => values.iter().all(|value| match value {
+                V::Integer(text) => number::parse(text, true).is_some_and(|number| {
+                    number.to_integer() >= num_bigint::BigInt::from(0)
+                        && number.to_integer() <= num_bigint::BigInt::from(255)
+                }),
+                _ => false,
+            }),
+            ("None", V::Option(None)) => true,
+            ("Some", V::Option(Some(value))) => {
+                return match ty.arguments.as_slice() {
+                    [element] => self.check(element, value, depth + 1),
+                    _ => unknown("TYPE_ARGUMENTS", "Some needs one element type"),
+                };
+            }
+            (
+                "Dctx0Result",
+                V::Variant {
+                    declaration,
+                    name,
+                    payload: Some(payload),
+                },
+            ) => {
+                let [success, failure] = ty.arguments.as_slice() else {
+                    return unknown(
+                        "TYPE_ARGUMENTS",
+                        "Dctx0Result needs success and failure types",
+                    );
+                };
+                if declaration != "builtin:Dctx0Result" {
+                    return rejected("Wrong builtin result declaration");
+                }
+                return match name.as_str() {
+                    "Success" => self.check(success, payload, depth + 1),
+                    "Failure" => self.check(failure, payload, depth + 1),
+                    _ => rejected("Unknown builtin result alternative"),
+                };
             }
             ("List", V::List(values)) => {
                 let Some(element) = ty.arguments.first().filter(|_| ty.arguments.len() == 1) else {
@@ -142,7 +175,7 @@ impl Checker<'_> {
                 }
                 return verdict;
             }
-            ("Option", V::Option(value)) => {
+            ("Option" | "Dctx0Option", V::Option(value)) => {
                 let Some(element) = ty.arguments.first().filter(|_| ty.arguments.len() == 1) else {
                     return unknown("TYPE_ARGUMENTS", "Option needs one element type");
                 };
@@ -172,7 +205,8 @@ impl Checker<'_> {
             ("Failure", V::Unit) => true,
             (
                 "Unit" | "Boolean" | "String" | "Int" | "Decimal" | "Float" | "UUID" | "Timestamp"
-                | "List" | "Option" | "Failure",
+                | "List" | "Option" | "Failure" | "Duration" | "Bytes" | "Some" | "None"
+                | "Dctx0Option" | "Dctx0Result",
                 _,
             ) => false,
             _ => {
@@ -194,6 +228,22 @@ impl Checker<'_> {
             node.owner == id && matches!(node.kind, K::Range | K::Length | K::Format | K::Where)
         }) {
             let current = match node.kind {
+                K::Length => crate::refinements::length(
+                    &node
+                        .terms
+                        .iter()
+                        .map(|token| token.text.as_str())
+                        .collect::<Vec<_>>(),
+                    value,
+                ),
+                K::Format => crate::refinements::format(
+                    &node
+                        .terms
+                        .iter()
+                        .map(|token| token.text.as_str())
+                        .collect::<Vec<_>>(),
+                    value,
+                ),
                 K::Range => range(
                     &node
                         .terms
@@ -279,6 +329,23 @@ fn range(terms: &[&str], value: &V) -> ValueContract {
     };
     if min > max {
         return unknown("INVALID_REFINEMENT", "Range bounds are descending");
+    }
+    if let V::Float(text) = value {
+        let (Ok(value), Ok(low), Ok(high)) = (
+            text.parse::<f64>(),
+            min.to_f64().ok_or(()),
+            max.to_f64().ok_or(()),
+        ) else {
+            return unknown("INVALID_REFINEMENT", "Float bounds cannot be represented");
+        };
+        if !low.is_finite() || !high.is_finite() {
+            return unknown("INVALID_REFINEMENT", "Float bounds must be finite");
+        }
+        return if value.is_finite() && value >= low && value <= high {
+            ValueContract::Accepted
+        } else {
+            rejected("Float is outside its declared range")
+        };
     }
     let number = match value {
         V::Integer(text) => number::parse(text, true),

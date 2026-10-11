@@ -1,0 +1,350 @@
+// Step 9 adds declared failures and actual emitted events.
+workspace Tutorial {
+  intent """Learn the specification language by growing one small task board."""
+  domain Board {
+    value Count = Int {
+      range 0..3
+    }
+    scalar RawLabel = String
+    value Title = String {
+      length 1..16
+      where length(trim(value)) > 0
+    }
+    value DisplayTitle = Title
+    value Email = String {
+      length 3..254
+      format Email
+    }
+    value Identifier = String { format UUID }
+    value TaskId = UUID { stableId "tutorial.task-id.v1" }
+    value Link = String { format Uri }
+    value Day = String { format Date }
+    value Instant = String { format DateTime }
+    value ShortList = List<Int> { length 1..2 }
+    type Status = Open | Done
+    type Choice = Empty | Named(Title)
+    value Moment = Timestamp
+    value Integer = Int
+    value Flag = Boolean
+    value Measure = Float { range 0..10 }
+    value Estimate = Duration { range 0..3600 }
+    value ExactAmount = Decimal
+    value Attachment = Bytes
+    value NoValue = Unit
+    value MaybeTitle = Option<Title>
+    value CompatOption = Dctx0Option<Title>
+    value PresentTitle = Some<Title>
+    value Absent = None
+    value Attempt = Dctx0Result<Count, Title>
+    type Details {
+      id: TaskId
+      title: Title
+      status: Status
+      choice: Choice
+      active: Flag
+      progress: Measure
+      estimate: Estimate
+      amount: ExactAmount
+      attachment: Attachment
+      note: MaybeTitle
+      labels: List<Title>
+      attempt: Attempt
+    }
+    entity Task {
+      id: TaskId
+      title: Title
+      status: Status
+      key id
+    }
+    entity Note {
+      taskId: TaskId
+      sequence: Count
+      text: Title
+      key taskId, sequence
+    }
+    message TaskSummary {
+      id: TaskId
+      title: Title
+    }
+    surface Tasks exposes requestReply {
+      operation list() -> List<TaskSummary> {
+        state lists Task
+        ensures result == map(TaskSummary { id = task.id title = task.title } for task in before.Task)
+      }
+      operation find(id: TaskId) -> Option<TaskSummary> {
+        state observes Task by id
+        ensures result == first(map(TaskSummary { id = task.id title = task.title } for task in filter(task in before.Task where task.id == id)))
+      }
+      operation notes(id: TaskId) -> List<Note> {
+        state lists Note
+        ensures result == filter(note in before.Note where note.taskId == id)
+      }
+    }
+    failure MissingTask { taskId: TaskId }
+    event TaskViewed { taskId: TaskId }
+    module Catalog {
+      intent """Expose task summaries through a replaceable reader."""
+      owns {
+        entity Task
+        message TaskSummary
+        event TaskViewed
+      }
+      requires {
+        TaskReader
+      }
+      decision PublicMessages {
+        choose """Return TaskSummary at the catalog boundary."""
+        because """Internal status belongs to the task entity."""
+        avoid """Do not expose stored entities as public messages."""
+      }
+      constraint """The Catalog service depends on TaskReader rather than concrete storage."""
+      port TaskReader {
+        operation lookup(id: TaskId) -> Option<TaskSummary> {
+          state observes Task by id
+          ensures result == first(map(TaskSummary { id = task.id title = task.title } for task in filter(task in before.Task where task.id == id)))
+        }
+      }
+      example "reader returns a summary" {
+        given TaskReader.lookup(foundId) returns Some(TaskSummary { id = foundId title = "Read" })
+        when result = Public.find(foundId)
+        expect result == Some(TaskSummary { id = foundId title = "Read" })
+      }
+      example "reader returns no task" {
+        given TaskReader.lookup(missingId) returns None
+        when result = Public.find(missingId)
+        expect result == None
+      }
+      example "require an existing task" {
+        given TaskReader.lookup(foundId) returns Some(TaskSummary { id = foundId title = "Read" })
+        when result = Public.requireTask(foundId)
+        expect Success
+        expect result == TaskSummary { id = foundId title = "Read" }
+        expect emits TaskViewed { taskId = foundId }
+      }
+      example "require a missing task" {
+        given TaskReader.lookup(missingId) returns None
+        when result = Public.requireTask(missingId)
+        expect result fails MissingTask
+      }
+      surface Public exposes requestReply {
+        operation requireTask(id: TaskId) -> TaskSummary ! MissingTask {
+          state observes Task by id
+          effects {
+            call TaskReader.lookup
+            emit TaskViewed(taskId: id)
+          }
+          ensures success implies result == single(map(TaskSummary { id = task.id title = task.title } for task in filter(task in before.Task where task.id == id)))
+          ensures failure is MissingTask implies first(filter(task in before.Task where task.id == id)) == None
+          ensures calls TaskReader.lookup(id) exactly 1
+          ensures success implies emits TaskViewed(TaskViewed { taskId = id }) exactly 1
+          ensures failure is MissingTask implies emits TaskViewed() exactly 0
+        }
+        operation find(id: TaskId) -> Option<TaskSummary> {
+          effects {
+            call TaskReader.lookup
+          }
+          state observes Task by id
+          ensures result == first(map(TaskSummary { id = task.id title = task.title } for task in filter(task in before.Task where task.id == id)))
+          ensures calls TaskReader.lookup(id) exactly 1
+        }
+      }
+    }
+    surface Actions exposes requestReply {
+      operation down(amount: ExactAmount) -> ExactAmount {
+        pure
+        ensures result == round(amount, 2, Down)
+      }
+      operation up(amount: ExactAmount) -> ExactAmount {
+        pure
+        ensures result == round(amount, 2, Up)
+      }
+      operation halfUp(amount: ExactAmount) -> ExactAmount {
+        pure
+        ensures result == round(amount, 2, HalfUp)
+      }
+      operation halfEven(amount: ExactAmount) -> ExactAmount {
+        pure
+        ensures result == round(amount, 2, HalfEven)
+      }
+      operation third(amount: ExactAmount) -> ExactAmount {
+        pure
+        ensures result == divide(amount, 3.0, 2, HalfEven)
+      }
+      operation size(values: List<Count>) -> Int {
+        pure
+        ensures result == count(values)
+      }
+      operation total(values: List<Count>) -> Int {
+        pure
+        ensures result == sum(values)
+      }
+      operation allPositive(values: List<Count>) -> Boolean {
+        pure
+        ensures result == all(value in values where value > 0)
+      }
+      operation anyPositive(values: List<Count>) -> Boolean {
+        pure
+        ensures result == any(value in values where value > 0)
+      }
+      operation containsZero(values: List<Count>) -> Boolean {
+        pure
+        ensures result == contains(values, 0)
+      }
+      operation unique(values: List<Count>) -> List<Count> {
+        pure
+        ensures result == distinct(values)
+      }
+      operation minimum(values: List<Count>) -> Count {
+        pure
+        requires count(values) > 0
+        ensures result == min(values)
+      }
+      operation maximum(values: List<Count>) -> Count {
+        pure
+        requires count(values) > 0
+        ensures result == max(values)
+      }
+      operation positive(values: List<Count>) -> List<Count> {
+        pure
+        ensures result == filter(value in values where value > 0)
+      }
+      operation doubled(values: List<Count>) -> List<Int> {
+        pure
+        ensures result == map(value * 2 for value in values)
+      }
+      operation ascending(values: List<Count>) -> List<Count> {
+        pure
+        ensures result == sortBy(value for value in values)
+      }
+      operation descending(values: List<Count>) -> List<Count> {
+        pure
+        ensures result == sortDescBy(value for value in values)
+      }
+      operation head(values: List<Count>) -> Option<Count> {
+        pure
+        ensures result == first(values)
+      }
+      operation only(values: List<Count>) -> Count {
+        pure
+        requires count(values) == 1
+        ensures result == single(values)
+      }
+      operation average(values: List<Count>) -> Option<Float> {
+        pure
+        ensures result == mean(values)
+      }
+      operation zeroIndex(values: List<Count>) -> Int {
+        pure
+        ensures result == indexOf(values, 0)
+      }
+      operation fallback(values: List<Count>) -> Int {
+        pure
+        ensures result == getOrElse(first(values), -1)
+      }
+      operation backwards(values: List<Count>) -> List<Count> {
+        pure
+        ensures result == reverse(values)
+      }
+      operation window(values: List<Count>) -> List<Count> {
+        pure
+        ensures result == slice(values, 1, 3)
+      }
+      operation lower(text: String) -> String {
+        pure
+        ensures result == lowercase(text)
+      }
+      operation upper(text: String) -> String {
+        pure
+        ensures result == uppercase(text)
+      }
+      operation clean(text: String) -> String {
+        pure
+        ensures result == trim(text)
+      }
+      operation textSize(text: String) -> Int {
+        pure
+        ensures result == length(text)
+      }
+      operation starts(text: String) -> Boolean {
+        pure
+        ensures result == startsWith(text, "Task")
+      }
+      operation ends(text: String) -> Boolean {
+        pure
+        ensures result == endsWith(text, "done")
+      }
+      operation includes(text: String) -> Boolean {
+        pure
+        ensures result == includesText(text, "Read")
+      }
+      operation optional(value: Count, present: Boolean) -> Option<Count> {
+        pure
+        ensures result == ifElse(present, Some(value), None())
+      }
+      operation score(a: Count, b: Count) -> Int {
+        pure
+        requires b > 0
+        ensures result == (a + b) * 2 - a
+        ensures result > 0 and result / result == 1
+        ensures result % 2 == a % 2
+        ensures -result < 0
+      }
+      operation eligible(count: Count) -> Boolean {
+        pure
+        ensures result == (not (count == 0) and (count <= 2 or count >= 3))
+        ensures result == (count in 1..3)
+        ensures result == (count in [1, 2, 3])
+        ensures result implies count != 0
+      }
+      operation describe(title: Title) -> String {
+        pure
+        ensures result == "Task: " + title
+      }
+      operation named(title: Title) -> Choice {
+        pure
+        ensures result == Named { value = title }
+      }
+      operation keepDetails(details: Details) -> Details {
+        pure
+        ensures result == details
+      }
+      operation keepAttempt(attempt: Attempt) -> Attempt {
+        pure
+        ensures result == attempt
+      }
+      operation echo(title: DisplayTitle) -> DisplayTitle {
+        pure
+        ensures result == title
+      }
+      operation increment(count: Count) -> Count {
+        pure
+        requires count < 3
+        ensures result == count + 1
+      }
+    }
+    example "increment one" {
+      when result = Actions.increment(1)
+      expect result == 2
+    }
+    example "arithmetic and construction" {
+      when score = Actions.score(2, 3)
+      when label = Actions.describe("Read")
+      when choice = Actions.named("Read")
+      expect score == 8
+      expect label == "Task: Read"
+      expect choice is Named { value = "Read" }
+    }
+    example "signed decimal ties remain exact" {
+      when even = Actions.halfEven(2.345)
+      when away = Actions.halfUp(-2.345)
+      when third = Actions.third(1.0)
+      expect even == 2.34
+      expect away == -2.35
+      expect third == 0.33
+    }
+    invariant IncrementIsMonotone {
+      forall count: Count
+      assert count < 3 implies Actions.increment(count) > count
+    }
+  }
+}

@@ -3,6 +3,8 @@ import {ApplicationFailure,type MovieNightPorts,type FilmSummary,type FilmDetail
 import {candidateOrderWinner} from '../domain/candidate-order-winner.ts';
 import {filmId} from '../domain/film-id.ts';
 import {releaseYear} from '../domain/release-year.ts';
+import {timestamp} from '../domain/timestamp.ts';
+import {validateRuntimeContract} from '../domain/contracts.ts';
 
 export interface Sources { now():string; id():string }
 const defaults:Sources={now:()=>new Date().toISOString(),id:()=>crypto.randomUUID()};
@@ -41,6 +43,30 @@ export class CinemaStore {
     const poll=this.requireOpenPoll(id);const closed:Poll={...poll,status:'Closed'};this.putPoll(closed);return this.overview(closed);
    })())},
   };
+  const outputContracts:Record<string,Record<string,string>>={
+   catalog:{search:'FilmOverview',find:'FilmDetails',save:'FilmDetails',changeAvailability:'FilmDetails'},
+   presence:{exists:'FilmId'},comments:{listByFilm:'CommentOverview',append:'CommentView'},
+   ratings:{summary:'RatingSummary',upsert:'RatingSummary'},
+   voting:{open:'VotingOverview',current:'VotingOverview',cast:'VotingOverview',close:'VotingOverview'},
+  };
+  const groups=this.ports as unknown as Record<string,Record<string,(...args:unknown[])=>Promise<unknown>>>;
+  const inputContracts:Record<string,Record<string,string[]>>={
+   catalog:{search:['FilmSearch'],find:['FilmId'],save:['SaveFilm'],changeAvailability:['ChangeAvailability']},
+   presence:{exists:['FilmId']},comments:{listByFilm:['FilmId'],append:['AddComment']},
+   ratings:{summary:['FilmId','MemberId'],upsert:['RateFilm']},
+   voting:{open:['OpenVoting'],current:[],cast:['CastVote'],close:['PollId']},
+  };
+  for(const [group,methods] of Object.entries(outputContracts))for(const [method,contract] of Object.entries(methods)){
+   const original=groups[group][method];
+   groups[group][method]=async(...args)=>{
+    const inputs=inputContracts[group][method];
+    if(args.length!==inputs.length)throw new TypeError('Incorrect argument count');
+    inputs.forEach((name,index)=>validateRuntimeContract(name,args[index]));
+    const result=await original(...args);
+    if(result===undefined&&(method==='find'||method==='exists'||method==='current'))return result;
+    return validateRuntimeContract(contract,result);
+   };
+  }
  }
  private guard<T>(operation:()=>T):T {
   try{return operation();}catch(error){if(error instanceof ApplicationFailure||error instanceof TypeError)throw error;throw new ApplicationFailure('PersistenceUnavailable',{reason:error instanceof Error?error.message:String(error)});}
@@ -53,7 +79,7 @@ export class CinemaStore {
  private year(value:number){try{return releaseYear(value);}catch(error){throw new TypeError(error instanceof Error?error.message:String(error));}}
  private star(value:Stars){if(!stars.includes(value))throw new TypeError('Unknown star rating');}
  private availability(value:string){if(!['Available','Watched','Wishlist','Unavailable'].includes(value))throw new TypeError('Unknown availability');}
- private timestamp(value:string){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value)||!Number.isFinite(Date.parse(value)))throw new TypeError('Expected RFC3339 timestamp');return value;}
+ private timestamp(value:string){return timestamp(value);}
  private save(request:SaveFilm):FilmDetails {
   filmId(request.id);this.year(request.releaseYear);this.availability(request.availability);
   if(typeof request.title!=='string'||!Array.isArray(request.genres)||request.genres.some(genre=>!['Action','Adventure','Animation','Comedy','Crime','Documentary','Drama','Fantasy','Horror','Mystery','Romance','ScienceFiction','Thriller','Western'].includes(genre))||!Number.isInteger(request.runtimeMinutes)||request.runtimeMinutes<1||request.runtimeMinutes>600)throw new TypeError('Invalid film details');
@@ -80,7 +106,7 @@ export class CinemaStore {
    (filter.maximumRuntimeMinutes===undefined||film.runtimeMinutes<=filter.maximumRuntimeMinutes)&&
    (filter.releasedFrom===undefined||film.releaseYear>=filter.releasedFrom));
   items.sort((a,b)=>{
-   const primary=filter.sort==='NewestFirst'?b.releaseYear-a.releaseYear:filter.sort==='HighestRated'?b.averageStars-a.averageStars:filter.sort==='MostVoted'?b.currentVoteCount-a.currentVoteCount:(a.title<b.title?-1:a.title>b.title?1:0);
+   const primary=filter.sort==='NewestFirst'?b.releaseYear-a.releaseYear:filter.sort==='HighestRated'?b.averageStars-a.averageStars:filter.sort==='MostVoted'?(b.currentVoteCount>a.currentVoteCount?1:b.currentVoteCount<a.currentVoteCount?-1:0):(a.title<b.title?-1:a.title>b.title?1:0);
    return primary||(a.id<b.id?-1:a.id>b.id?1:0);
   });
   return {items:items.slice(filter.offset,filter.offset+filter.limit),total:items.length,offset:filter.offset,limit:filter.limit};

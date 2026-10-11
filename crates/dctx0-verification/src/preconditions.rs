@@ -118,3 +118,83 @@ pub fn select_precondition_inputs(
     corpus.issues.dedup();
     (corpus, Some(selection))
 }
+
+/// Discharge only planning-time missing-state hints after independently checking
+/// every exact generated input against recorded actual before-state evidence.
+/// Manual requirements and other unsupported-expression issues are untouched.
+pub fn resolved_state_preconditions(
+    ir: &WorkspaceIr,
+    plan: &crate::ProgramPlan,
+    cases: &[dctx0_core::VerificationCaseRecord],
+) -> Vec<VerificationIssue> {
+    use dctx0_core::{Invocation, StatePhase, VerificationCaseKind, VerificationResult};
+    let mut resolved = Vec::new();
+    for operation in &plan.operations {
+        if operation.inputs.bindings.is_empty() {
+            continue;
+        }
+        let complete = operation
+            .inputs
+            .bindings
+            .iter()
+            .enumerate()
+            .all(|(index, bindings)| {
+                let id = format!("{}:operation:{index}", operation.operation.id);
+                let matching = cases
+                    .iter()
+                    .filter(|case| case.id == id)
+                    .collect::<Vec<_>>();
+                let [case] = matching.as_slice() else {
+                    return false;
+                };
+                let arguments = operation
+                    .operation
+                    .parameters
+                    .iter()
+                    .filter_map(|parameter| bindings.get(&parameter.name).cloned())
+                    .collect::<Vec<_>>();
+                let invocation = Invocation {
+                    subject: operation.operation.id.clone(),
+                    arguments: arguments.clone(),
+                };
+                if case.kind != VerificationCaseKind::Operation
+                    || case.subject != operation.operation.id
+                    || case.bindings != *bindings
+                    || case.arguments != vec![arguments]
+                    || case.setup != operation.generated_setup(bindings)
+                    || case.result != VerificationResult::Pass
+                    || !case
+                        .observations
+                        .iter()
+                        .any(|observed| observed.invocation == invocation)
+                {
+                    return false;
+                }
+                let Some(before) = case.states.iter().rev().find(|state| {
+                    state.phase == StatePhase::Before && state.phase_recorded == Some(true)
+                }) else {
+                    return false;
+                };
+                let context = dctx0_interpreter::ObservationContext {
+                    before: Some(before.entities.clone()),
+                    calls: Some(case.observations.clone()),
+                    ..Default::default()
+                };
+                crate::operation_ready(ir, operation, &invocation, &context, &plan.budgets)
+                    == VerificationResult::Pass
+            });
+        if complete {
+            resolved.extend(
+                operation
+                    .inputs
+                    .issues
+                    .iter()
+                    .filter(|issue| issue.code == "STATE_OBSERVER_REQUIRED")
+                    .cloned(),
+            );
+        }
+    }
+    resolved.sort_by(|left, right| (&left.code, &left.message).cmp(&(&right.code, &right.message)));
+    resolved.dedup();
+    resolved
+}

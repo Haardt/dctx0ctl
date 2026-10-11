@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "actor": "tutorial-reference-reviewer",
+  "scope": "Tutorial.Board Step 2: unchanged previous requirements plus all five formats, UTF-16 string/list length, inherited where and data-owned stable identity. Fresh adapter inspection: invalid wire representations are translated to ordinary unknown native values and passed to real factories; the adapter does not decide domain acceptance.",
+  "reviewed_hashes": {
+    "package.json": "47c2b2d3c3af64d4705293eede5c9f9fa2c526172924bfbdc5f41214cb00705c",
+    "bun.lock": "3d1a88339270d93f7a59d1e6548d6bce2166b9de637aa693a3472ed85e242311",
+    "tsconfig.json": "2a0ce246bbbaac0c7ce9aa1cae73ae5c87e82dd5f0eed37de2b3d8b75c365d73",
+    ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
+    ".dctx0/testing/typescript/adapter.ts": "53f73c5eef5167e6318ca893bfdb84025606bc0edb4cc2b6eb871e044c619b54",
+    ".dctx0/testing/typescript/examples.json": "4aa68366aca1087f5a2be007f87eba7522774ca8cf4ae07f97c13d8705880898",
+    "src/board.test.ts": "f0b810c0a3b23fc2c3692abdd6a97ee49a402baec5dcfc182b69db643a4bf14b",
+    "src/board.ts": "05611a5fc516c277b235ced37c1d855c8a2c7f54a34d6a2b25c87740a47d320d",
+    "src/refinements.test.ts": "6394164bbcce350a3626cda1ed74f61c1b57831bf4d814159d355fb31c9ddd05",
+    "dctx0/workspace.dctx0": "afcce12b8732bb128837f4f4da4ee920ad796a1f637f6a3c0d32c3a0f115c816"
+  },
+  "subjects": {
+    "Tutorial.Board.Count": {
+      "report": "The unchanged bigint Count factory accepts exactly 0..3. Original boundary and increment tests still pass. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.RawLabel": {
+      "report": "The application-owned rawLabel factory requires an actual string; empty strings remain valid for this unrefined scalar. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Title": {
+      "report": "The actual title factory uses JS UTF-16 length 1..16 and nonempty trim(). Independent tests cover both length boundaries, astral text, BOM, NEL and wrong representations. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.DisplayTitle": {
+      "report": "displayTitle aliases the actual title factory. It adds no alternative validation or domain logic; the full inherited Title contract remains enforced. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Email": {
+      "report": "The email factory enforces length 3..254 and the declared reference email pattern. Tests reject repeated/missing @, missing dot and whitespace. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Identifier": {
+      "report": "The actual identifier factory checks the explicit UUID format, including version 1..5 and variant 8/9/a/b. This is narrower than the unrefined UUID builtin. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskId": {
+      "report": "The taskId factory accepts UUID structure without imposing the formatted Identifier version restriction. stableId identifies this data declaration only, not universal symbol history. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Link": {
+      "report": "link checks the actual string using the normal WHATWG URL constructor and preserves the original representation. Relative URLs and invalid hosts are rejected. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Day": {
+      "report": "day validates fixed-width calendar syntax and real month/day/leap-year bounds. Tests deliberately reject Date.parse rollover, including 1900-02-29 and 2026-02-30. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Instant": {
+      "report": "instant validates calendar, time, offset and fractional syntax while preserving the supplied offset/precision. It rejects impossible dates, out-of-range components and trailing newline. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ShortList": {
+      "report": "The production shortList factory requires one or two native bigint values and returns a copied array. Wrong element representations, empty/oversized arrays and aliasing are independently checked. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.increment": {
+      "report": "The original increment production code remains real and continues to enforce its prerequisite and exact result. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.echo": {
+      "report": "The pure echo operation delegates to the actual inherited displayTitle factory and returns its value; native parameter cases check the modeled equality. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    }
+  }
+}

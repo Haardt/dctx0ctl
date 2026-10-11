@@ -35,6 +35,77 @@ fn selected() -> VerificationSelection {
         ..Default::default()
     }
 }
+
+#[test]
+fn planning_reports_missing_lifecycle_inputs_without_execution_or_history_writes() {
+    let temp = Temp::new();
+    temp.write("workspace W { type Status = Open | Closed\nentity Item { id:Int\nstatus:Status\nkey id } surface Api { operation finish(id:Int) -> Unit } lifecycle Flow for Item using status { state Open initial\nstate Closed terminal\ntransition Api.finish from Open to Closed when true } }");
+    let project = temp.project();
+    assert!(project.check().unwrap().ok);
+    let plan = project
+        .verification_plan(
+            VerificationSelection {
+                subjects: ["W.Flow".into()].into(),
+                ..Default::default()
+            },
+            &Default::default(),
+            Default::default(),
+        )
+        .unwrap();
+    let before = fs::read(&project.database).unwrap();
+    let adapter = ".dctx0/testing/typescript/adapter.ts";
+    let missing = project
+        .verification_lifecycle_input_issues(&temp.0, adapter, &plan)
+        .unwrap();
+    assert_eq!(missing.len(), 1);
+    assert_eq!(missing[0].code, "LIFECYCLE_INPUT_REQUIRED");
+    let path = temp.0.join(".dctx0/testing/typescript/lifecycles.json");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut fixtures = dctx0_engine::VerificationLifecycleFixtures::default();
+    fixtures.paths.insert(
+        plan.lifecycles[0].paths[0].id.clone(),
+        dctx0_verification::LifecycleCaseInput {
+            keys: vec![dctx0_core::VerificationValue::Integer("1".into())],
+            setup: vec![],
+            arguments: vec![],
+        },
+    );
+    fs::write(&path, serde_json::to_vec(&fixtures).unwrap()).unwrap();
+    assert_eq!(
+        project
+            .verification_lifecycle_input_issues(&temp.0, adapter, &plan)
+            .unwrap()
+            .len(),
+        1
+    );
+    fixtures
+        .paths
+        .values_mut()
+        .next()
+        .unwrap()
+        .arguments
+        .push(vec![dctx0_core::VerificationValue::Integer("1".into())]);
+    fs::write(&path, serde_json::to_vec(&fixtures).unwrap()).unwrap();
+    assert!(
+        project
+            .verification_lifecycle_input_issues(&temp.0, adapter, &plan)
+            .unwrap()
+            .is_empty()
+    );
+    fixtures.paths.values_mut().next().unwrap().keys[0] =
+        dctx0_core::VerificationValue::String("wrong key type".into());
+    fs::write(&path, serde_json::to_vec(&fixtures).unwrap()).unwrap();
+    let invalid = project
+        .verification_lifecycle_input_issues(&temp.0, adapter, &plan)
+        .unwrap();
+    assert_eq!(invalid[0].code, "LIFECYCLE_INPUT_CONTRACT");
+    assert!(
+        project
+            .verification_lifecycle_input_issues(&temp.0, "../adapter.ts", &plan)
+            .is_err()
+    );
+    assert_eq!(fs::read(&project.database).unwrap(), before);
+}
 #[test]
 fn planning_pins_published_occurrences_rejects_stale_sources_and_never_writes_history() {
     let temp = Temp::new();

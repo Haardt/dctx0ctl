@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "FAIL",
+  "retained_measurement": "benchmarks/history/20261011T165707.636547Z-271195.json",
+  "source_hash": "9f88c221b9bff1f9120f9fc22a82a6cf3964704c39a1dbe587c75edd45d84cb4",
+  "failed_stages": [
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 101
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--workspace",
+        "--all-features",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 101
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/coverage.py",
+        "--skip-performance"
+      ],
+      "returncode": 1
+    }
+  ],
+  "diagnosis": [
+    "Two float neighbor APIs exceeded the declared Rust 1.85 MSRV",
+    "Eight legacy unsupported-type tests still used now-supported Duration"
+  ],
+  "corrections": [
+    "Portable IEEE-754 neighbors with independent bit-pattern references",
+    "Unknown future IR types preserve the original unsupported checks; Duration positive coverage remains"
+  ],
+  "targeted_regressions": {
+    "clippy": "PASS",
+    "float_neighbors": 1,
+    "observed": 5,
+    "native": 21,
+    "operation_mocks": 9,
+    "scenarios": 7
+  },
+  "release_measurements": 58,
+  "baseline_changed": false,
+  "follow_up": "Full coupled validation rerun on corrected current sources"
+}

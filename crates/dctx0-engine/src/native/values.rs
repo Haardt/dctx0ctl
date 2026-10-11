@@ -8,7 +8,7 @@ impl NativeWorker {
         value: &dctx0_core::VerificationValue,
         cancel: &NativeCancellation,
     ) -> Result<ValueCheck, NativeFailure> {
-        self.session_evidence.clear();
+        self.clear_evidence();
         let deadline = self.limits.case;
         let action = async {
             self.begin_case(id, cancel).await?;
@@ -29,12 +29,12 @@ impl NativeWorker {
                     "Value check response has the wrong kind",
                 ));
             };
-            self.session_evidence
-                .push(NativeSessionEvidence::ValueChecked {
-                    subject: subject.into(),
-                    value: value.clone(),
-                    outcome: outcome.clone(),
-                });
+            self.retain_evidence(NativeSessionEvidence::ValueChecked {
+                subject: subject.into(),
+                value: value.clone(),
+                outcome: outcome.clone(),
+            })
+            .await?;
             self.end_case(cancel).await?;
             Ok(outcome)
         };

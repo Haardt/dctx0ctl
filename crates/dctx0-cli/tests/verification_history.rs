@@ -18,15 +18,53 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
     let occurrence = dctx0_changes::HistoryReader::history(&store, &p.key()).unwrap()[0].run_id;
     let plan = VerificationArtifact::new(
         "application/json",
-        b"{\"required_cases\":[\"C1\"]}".to_vec(),
+        b"{\"required_cases\":[\"C1\",\"C2\",\"C3\"]}".to_vec(),
     );
     let issue = serde_json::json!({"code":"IMPORTED_UNEXECUTED","message":"This report has no native execution authority","span":null});
     let unknown = serde_json::json!({"status":"UNKNOWN","issue":issue});
-    let run:VerificationRun=serde_json::from_value(serde_json::json!({"schema_version":1,"origin":"imported","started_at_unix_ns":"1234567890000000000","elapsed_us":0,"provenance":{"snapshot":snapshot.id,"check_occurrence":occurrence,"plan_hash":plan.reference.hash,"implementation":{},"dependencies":{},"adapter_hash":"","configuration_hash":"","harness_hash":"","interpreter_version":"1","generator_version":"import","protocol_version":1,"target":"typescript","runtime_version":"not-executed","build_configuration":{},"task_pin":null,"incomplete":[issue]},"budgets":VerificationBudgets::default(),"selected_subjects":["W.Number"],"required_subjects":["W.Number"],"not_selected":[],"required_cases":["C1"],"cases":[{"id":"C1","subject":"W.Number","kind":"contract","bindings":{},"setup":[],"arguments":[],"observations":[],"events":null,"states":[],"result":unknown,"elapsed_us":0}],"open_obligations":[issue],"bounded_obligations":[],"artifacts":[plan.reference],"result":unknown})).unwrap();
+    let mut run:VerificationRun=serde_json::from_value(serde_json::json!({"schema_version":1,"origin":"imported","started_at_unix_ns":"1234567890000000000","elapsed_us":0,"provenance":{"snapshot":snapshot.id,"check_occurrence":occurrence,"plan_hash":plan.reference.hash,"implementation":{},"dependencies":{},"adapter_hash":"","configuration_hash":"","harness_hash":"","interpreter_version":"1","generator_version":"import","protocol_version":1,"target":"typescript","runtime_version":"not-executed","build_configuration":{},"task_pin":null,"incomplete":[issue]},"budgets":VerificationBudgets::default(),"selected_subjects":["W.Number"],"required_subjects":["W.Number"],"not_selected":[],"required_cases":["C1"],"cases":[{"id":"C1","subject":"W.Number","kind":"contract","bindings":{},"setup":[],"arguments":[],"observations":[],"events":null,"states":[],"result":unknown,"elapsed_us":0}],"open_obligations":[issue],"bounded_obligations":[],"artifacts":[plan.reference],"result":unknown})).unwrap();
+    run.cases[0]
+        .states
+        .push(serde_json::from_value(serde_json::json!({"phase":"before","entities":{}})).unwrap());
+    let mut passed = run.cases[0].clone();
+    passed.states[0].phase_recorded = Some(true);
+    passed.id = "C2".into();
+    passed.result = VerificationResult::Pass;
+    passed.observations.push(InvocationObservation {
+        invocation: Invocation {
+            subject: "W.Number".into(),
+            arguments: vec![],
+        },
+        observation: Observation::Returned {
+            value: VerificationValue::Integer("1".into()),
+        },
+    });
+    let mut failed = passed.clone();
+    failed.id = "C3".into();
+    failed.result = VerificationResult::Fail {
+        issue: VerificationIssue {
+            code: "CONTRACT_VIOLATED".into(),
+            message: "Actual result violated its contract".into(),
+            span: None,
+        },
+    };
+    failed.observations[0].observation = Observation::Threw {
+        message: "Actual exception".into(),
+    };
+    failed.observations.push(InvocationObservation {
+        invocation: failed.observations[0].invocation.clone(),
+        observation: Observation::Unavailable {
+            reason: "Observer missing".into(),
+        },
+    });
+    run.result = failed.result.clone();
+    run.required_cases.extend(["C2".into(), "C3".into()]);
+    run.cases.extend([passed, failed]);
     let saved = store
         .record_verification_run(&p.key(), &run, &[plan])
         .unwrap();
     drop(store);
+    let database_before_show = fs::read(&p.database).unwrap();
     fs::write(root.join("w.dctx0"), "invalid now").unwrap();
     for json in [false, true] {
         let mut args = vec!["verify", "show", root.to_str().unwrap(), saved.id.as_str()];
@@ -50,6 +88,21 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
             let text = String::from_utf8(output.stdout).unwrap();
             assert!(text.contains("no working-tree freshness"));
             assert!(text.contains("IMPORTED_UNEXECUTED"));
+            assert!(text.contains("Recorded outcomes: 1 PASS, 1 FAIL, 1 UNKNOWN"));
+            assert!(text.contains(
+                "Recorded invocation observations: 1 returned, 1 exceptions, 1 unavailable"
+            ));
+            assert!(text.contains("Cases without invocation observations: 1"));
+            assert!(text.contains(
+                "State phase provenance: 2 recorded at observation, 1 without recorded timing"
+            ));
+            assert!(text.contains("| UNKNOWN | `IMPORTED_UNEXECUTED` | 1 |"));
+            assert!(text.contains("| FAIL | `CONTRACT_VIOLATED` | 1 |"));
+            assert!(text.contains("| `W.Number` | 1 | 1 | 1 |"));
+            assert!(text.contains("Case counts do not establish complete subject verification"));
+            assert!(text.contains("Incomplete provenance: 1"));
+            assert!(text.contains("Seed: 42"));
+            assert!(text.contains("`C1` / `W.Number`"));
         }
     }
     assert!(
@@ -59,5 +112,6 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
             .unwrap()
             .success()
     );
+    assert_eq!(database_before_show, fs::read(&p.database).unwrap());
     fs::remove_dir_all(root).unwrap();
 }

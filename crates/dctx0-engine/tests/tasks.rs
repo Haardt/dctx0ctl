@@ -1164,3 +1164,41 @@ fn restored_operation_identity_requires_new_integration_even_with_identical_cont
     assert_eq!(s.states[&replacement].check, CheckStatus::Unverified);
     assert_eq!(p.task_plan("latest").unwrap().id, current.id);
 }
+
+#[test]
+fn unchanged_requirements_rebind_to_new_check_without_rewriting_tasks_or_history() {
+    let temp = Temp::new();
+    temp.write(SPEC);
+    let project = temp.project();
+    assert!(project.check().unwrap().ok);
+    let first = project.task_plan("latest").unwrap();
+    let before = project.task_session(None, None).unwrap();
+    assert!(project.check().unwrap().ok);
+    let second = project.task_plan("latest").unwrap();
+    assert_ne!(first.id, second.id);
+    assert_eq!(second.parent, Some(first.id));
+    assert_ne!(first.check_run_id, second.check_run_id);
+    assert_eq!(first.hash, second.hash);
+    assert_eq!(
+        serde_json::to_value(&first.members).unwrap(),
+        serde_json::to_value(&second.members).unwrap()
+    );
+    let after = project.task_session(None, None).unwrap();
+    assert_eq!(
+        serde_json::to_value(&before.states).unwrap(),
+        serde_json::to_value(&after.states).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_value(&before.definitions).unwrap(),
+        serde_json::to_value(&after.definitions).unwrap()
+    );
+    assert_eq!(
+        project
+            .task_session(Some(first.id), None)
+            .unwrap()
+            .plan
+            .check_run_id,
+        first.check_run_id
+    );
+    assert_eq!(project.task_plan("latest").unwrap().id, second.id);
+}

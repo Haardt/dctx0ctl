@@ -1,0 +1,496 @@
+{
+  "schema_version": 1,
+  "actor": "tutorial-reference-reviewer",
+  "scope": "Tutorial.Board Step 15: substantive review of current production, external adapter, explicit state/resource/HTTP inputs, three composed Spec files, declared suite scope and Release policy. Native outcomes remain separate from authored judgements. Renewed Spec inspection for explicit modeled call/event traces and state predicates: clauses express existing behavior; actual consumer, observer and storage implementations are retained. Native assertions remain centrally evaluated and final current-source execution is required.",
+  "reviewed_hashes": {
+    "package.json": "c96ccf70c87cd22490278c1861111716f2f6e8e3b00b27c0564bd56a74ce6b19",
+    "bun.lock": "cf77c769fb77a29325de71951c28a6d21ea76cecb758399c8ed6efd2b71a7b1f",
+    "tsconfig.json": "2a0ce246bbbaac0c7ce9aa1cae73ae5c87e82dd5f0eed37de2b3d8b75c365d73",
+    ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
+    ".dctx0/testing/typescript/adapter.ts": "2cef005f1d22aed11f3ab49c8dced271d60b49d6c842f4e559c23528baa9668c",
+    ".dctx0/testing/typescript/collection-codec.ts": "3d51f323949998e0f73b4a46a54efe51641005ddd5742593ab15e3b6230cd9d2",
+    ".dctx0/testing/typescript/collection-signatures.json": "e1ab6caf17e0db731606c6fb09e83949002211045ada035c754be5c7d81f6727",
+    ".dctx0/testing/typescript/data-codec.ts": "f668f3a0c00ed07b1f2b864c32b9272b859879fdacdc2adcfd99ea2688fa9a1f",
+    ".dctx0/testing/typescript/entity-codec.ts": "9db1699e75b8890ac0101f1a450ff8f973173dcb261549db7e5a63a02b22358f",
+    ".dctx0/testing/typescript/examples.json": "90f0b46d40bd161856f425e456154ee7a51c1a5ed3ea4f3d9cdd5c41c0347153",
+    ".dctx0/testing/typescript/http-configuration.json": "c56209f5bf41c775176129cddfa3d6bb2930b01ce2e3e498f663a2b87227ccef",
+    ".dctx0/testing/typescript/initial-state.json": "26eb754a4957a3105655f90d65c9d3643c06469855b79914873e7d9ceba68213",
+    ".dctx0/testing/typescript/lifecycles.json": "b24e37231774207351c1c7ea0548d46046cae24ddca41589af4c5d63b62d6865",
+    ".dctx0/testing/typescript/mock-cases.json": "ff22a3f02b3fdf9debea5a9c2775e9b88caa7fd063214f72c3986c1ffec8db78",
+    ".dctx0/testing/typescript/resource-observer.test.ts": "64d5ba06dc2c21be5020b62ad5184a4e4d885b6dddf3a940d64253e272aa5c2b",
+    ".dctx0/testing/typescript/resource-observer.ts": "50edf2e132b6b5de2fe373b752d23c3a0fd69663c96f104e3cb26abc12baaf66",
+    "src/board.test.ts": "f0b810c0a3b23fc2c3692abdd6a97ee49a402baec5dcfc182b69db643a4bf14b",
+    "src/board.ts": "05611a5fc516c277b235ced37c1d855c8a2c7f54a34d6a2b25c87740a47d320d",
+    "src/catalog.test.ts": "6c686af55cfdea015cebfd1332baa51ce2ba4fe7b1c280d8c9230b2b34e910f4",
+    "src/catalog.ts": "1560d772581736593b1b4ea13c5c8d51db3f299e9ce6cfe7ebb43af08e9736b1",
+    "src/collections.test.ts": "1f8bcaf72fca2c51d02712ab71ad2ac700fc9bafdd566459ca83837ee4867dcf",
+    "src/collections.ts": "1cf530cd63f475b32a9d4dbaf71430d0e39d9e704a4d1e4044f9b850941eed9e",
+    "src/copy.test.ts": "1eeee993c4b50db9542e85368e06484e8d852f48e305b880cca41871158f4e1e",
+    "src/copy.ts": "18d4c900116fb78c1faab8140929a995c66fcfb3ed193f02d435afb66b0b6de8",
+    "src/data.test.ts": "f87dfbea0f6d4ac3d46577f251109033fddd73d6a307ec0431ec23c7b96b00c7",
+    "src/data.ts": "4888b08948af23a8ad4ae48f5761ebc8c03b6e78ec11ae9ddd38487c15d46c87",
+    "src/decimal.test.ts": "4486f4aa0dda28ca63ec6e444f9cf268dcd3a6468ec5952a4ccc7911e2a2756e",
+    "src/decimal.ts": "205a70e04388938fbfba71d4c1b8b62b91ad38c8990633cf190991e2743468b4",
+    "src/diagnostics.test.ts": "ae4c56a4f17af3c841b60310abf4787247f537ab08d766393d4124e7e12b7082",
+    "src/diagnostics.ts": "f8cd1d5eebc933aaaffc13a905d56c4020dcaa24b03de4ce2801cd42ee3fe4fe",
+    "src/entities.test.ts": "085c4141ed4c1104230c0537e622a582f4356b35c63cc0838dbfbf52bc3dec7c",
+    "src/entities.ts": "10917b6732e55dabe97b457455613a64a6754da32da8d89f4c8ccedede997efb",
+    "src/events.test.ts": "17b868c073ee75d9115be2a276b8b5614ff8344352a4b59295e6371a5c9e7835",
+    "src/events.ts": "a8d9a573422cf300ac6888af730e7d34b71811239d8b85d07c5d5123c11033c0",
+    "src/expressions.test.ts": "57babc8e5421230f7b8514d75110cddde8094ceef595a6286f44a4d7d628d5e1",
+    "src/expressions.ts": "43c7b951c7a056b646b2be990e92f8536ec7f769d86995f95903fe5abdbac05e",
+    "src/external.test.ts": "19e610494e657e4b7bdfe0cbde3d9de26dee9cc90137d51cbf71a8c243746500",
+    "src/external.ts": "998cd3bb226750c160ba97a524c56906663ea94f55150216b7e66929462f1c15",
+    "src/lifecycle.test.ts": "822ef6d20436c9c1db9b3fe08b75a5c992950dfabc7dbd05325ef94c3b64dfa4",
+    "src/refinements.test.ts": "6394164bbcce350a3626cda1ed74f61c1b57831bf4d814159d355fb31c9ddd05",
+    "src/state.test.ts": "66d24d0784de5bda2c17d841bf5268718b3539864831fad8b16b4118b278526e",
+    "dctx0/copy.dctx0": "8d057da278cb08c2702631769d01509665d00f5efb0547b9120c425cfedead3a",
+    "dctx0/verification.dctx0": "36bf9062447ede11e128d94b3277e2039ce3324cffce41ac6fc45ace6900256a",
+    "dctx0/workspace.dctx0": "deec1fcc112de9b2b9426ff1e7e03f39f3fe92ebfb197c1f477edee8199c34f5"
+  },
+  "subjects": {
+    "Tutorial.Board.Count": {
+      "report": "The unchanged bigint Count factory accepts exactly 0..3. Original boundary and increment tests still pass. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.RawLabel": {
+      "report": "The application-owned rawLabel factory requires an actual string; empty strings remain valid for this unrefined scalar. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Title": {
+      "report": "The actual title factory uses JS UTF-16 length 1..16 and nonempty trim(). Independent tests cover both length boundaries, astral text, BOM, NEL and wrong representations. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.DisplayTitle": {
+      "report": "displayTitle aliases the actual title factory. It adds no alternative validation or domain logic; the full inherited Title contract remains enforced. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Email": {
+      "report": "The email factory enforces length 3..254 and the declared reference email pattern. Tests reject repeated/missing @, missing dot and whitespace. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Identifier": {
+      "report": "The actual identifier factory checks the explicit UUID format, including version 1..5 and variant 8/9/a/b. This is narrower than the unrefined UUID builtin. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskId": {
+      "report": "The taskId factory accepts UUID structure without imposing the formatted Identifier version restriction. stableId identifies this data declaration only, not universal symbol history. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Link": {
+      "report": "link checks the actual string using the normal WHATWG URL constructor and preserves the original representation. Relative URLs and invalid hosts are rejected. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Day": {
+      "report": "day validates fixed-width calendar syntax and real month/day/leap-year bounds. Tests deliberately reject Date.parse rollover, including 1900-02-29 and 2026-02-30. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Instant": {
+      "report": "instant validates calendar, time, offset and fractional syntax while preserving the supplied offset/precision. It rejects impossible dates, out-of-range components and trailing newline. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ShortList": {
+      "report": "The production shortList factory requires one or two native bigint values and returns a copied array. Wrong element representations, empty/oversized arrays and aliasing are independently checked. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.increment": {
+      "report": "The original increment production code remains real and continues to enforce its prerequisite and exact result. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.echo": {
+      "report": "The pure echo operation delegates to the actual inherited displayTitle factory and returns its value; native parameter cases check the modeled equality. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
+      "limitations": [
+        "The full declared finite plan and independent production tests support this inspection; bounded generated corpora are not an all-input proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Moment": {
+      "report": "The Timestamp contract uses the actual instant factory, preserving the RFC3339 string, calendar validity, offsets and precision. Its independent tests remain in refinements.test.ts.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Integer": {
+      "report": "The actual integer factory requires bigint and preserves integers beyond Number precision; ordinary numbers and strings are rejected.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Flag": {
+      "report": "The actual flag factory accepts only native booleans, including false, without truthiness coercion.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Measure": {
+      "report": "The measure factory checks finite IEEE numbers within 0..10. Independent tests include NaN, Infinity and both bounds.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Estimate": {
+      "report": "The estimate factory checks finite seconds within 0..3600. Negative and oversized values are rejected by production.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ExactAmount": {
+      "report": "The exactAmount factory validates signed decimal strings and returns them unchanged, retaining digits beyond Number precision. Renewed decimal-boundary inspection: the factory now accepts optional minus and decimal digits only, matching the neutral exact format; an explicit test rejects a leading plus while retaining arbitrary precision.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Attachment": {
+      "report": "The attachment factory validates byte integrality and 0..255 before Uint8Array conversion, and returns independent storage. Wrong types and 256 are independently rejected.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.NoValue": {
+      "report": "The noValue factory accepts undefined only; the testing bridge maps the wire Unit to undefined.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.MaybeTitle": {
+      "report": "The maybeTitle factory requires exact none/some object fields and applies the real Title factory to present values.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.CompatOption": {
+      "report": "Dctx0Option shares the actual maybeTitle factory and explicit native alternatives; no separate target semantics are introduced.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.PresentTitle": {
+      "report": "The presentTitle factory delegates payload validation to maybeTitle and rejects the absent alternative.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Absent": {
+      "report": "The absent factory requires exactly the none tag, rejecting some and extra fields.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Attempt": {
+      "report": "The actual attempt factory validates the exact ok/error object shape and delegates payloads to Count/Title. The testing bridge only maps builtin Success/Failure labels.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Status": {
+      "report": "The reviewed actual status factory now accepts exactly Open, Done and Archived. Existing alternatives remain valid; unknown labels still reject. The independent lifecycle test passes actual Task records through replace to Done and Archived and verifies stored snapshots, while a new Board starts Open. The wire bridge retains declaration-qualified Status labels.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Choice": {
+      "report": "The production choice factory requires exact empty/named fields and validates named payloads with Title. The adapter maps payload representations only.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Details": {
+      "report": "The details factory requires all twelve fields with no extras and calls the real factory for each field. keepDetails rebuilds a valid independent record without changing modeled values.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions": {
+      "report": "The real score operation validates both Count inputs and the nonzero second operand, then calculates a+2*b using exact bigint arithmetic. Independent tests exhaust all twelve valid pairs and rejected boundaries. eligible validates Count before classifying zero; describe validates Title before adding the prefix; named calls the actual Choice factory. The adapter dispatches the four real exports and only translates their returned representations. The cumulative earlier operations remain unchanged. New collection exports validate List<Count> through the actual counts factory. min/max reject empty lists, only rejects non-singletons, sorts and reverse operate on copied lists, and window translates the modeled offset/count to JS offset/end without dropping the fourth item. Boolean aggregates include empty-list behavior; head/average/optional retain explicit present/absent boxes. Actual string exports call ordinary native operations after rawLabel validation, with UTF-16 length. Production decimal functions use bigint coefficients, signed quotient/remainder rounding, all four declared modes, and preserve exact finite thirds. Independent tests include signed ties, large coefficients, nonterminating quotients and input ownership. The external bridge invokes these exports and encodes returned values; its JSON metadata specifies only return representations, never expected results.",
+      "limitations": [
+        "The finite declared plan and independent production tests are evidence for the reviewed source revision, not an all-input mathematical proof."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Task": {
+      "report": "The actual task factory requires exactly id/title/status and applies the existing TaskId, Title and Status factories. Board construction rejects duplicate id values and copies every row. Fresh Step 11 inspection: additional actual Board methods use the same validated records and arrays. Keyed mutation is separately modeled and observed; existing read and snapshot bodies remain unchanged. Returned mutation records are fresh copies. Fresh Step 12 inspection: write and read bodies are unchanged. The Status factory adds the explicitly modeled Archived alternative. All transitions still call actual ordinary Board methods; lifecycle inputs and setup do not replace domain behavior.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Note": {
+      "report": "The actual note factory validates exact taskId/sequence/text fields through TaskId/Count/Title. Board construction enforces the composite taskId/sequence key while allowing different sequences for one task. Tests distinguish both situations. Fresh Step 11 inspection: additional actual Board methods use the same validated records and arrays. Keyed mutation is separately modeled and observed; existing read and snapshot bodies remain unchanged. Returned mutation records are fresh copies. Fresh Step 12 inspection: write and read bodies are unchanged. The Status factory adds the explicitly modeled Archived alternative. All transitions still call actual ordinary Board methods; lifecycle inputs and setup do not replace domain behavior.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskSummary": {
+      "report": "The actual taskSummary factory accepts exactly id/title and does not expose entity status. Board list/find construct actual validated boundary messages.",
+      "limitations": [
+        "Read-state evidence applies to actual in-memory Board instances and the declared finite test plan; persistence, write effects and external integrations are introduced later."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Tasks": {
+      "report": "The unchanged actual Board list/find/notes methods operate on their stored arrays. The testing-only observer proxies actual array accesses and records read/write operations within AsyncLocalStorage scopes. It maps the reviewed tasks and entries fields to Task and Note, refuses missing arrays, excludes harness snapshots outside the application invocation, and restores original descriptors on close. Dedicated tests verify actual accesses, async scope propagation, failed observation attempts and refusal without partial proxy installation. Fresh Step 11 inspection: additional actual Board methods use the same validated records and arrays. Keyed mutation is separately modeled and observed; existing read and snapshot bodies remain unchanged. Returned mutation records are fresh copies. Fresh Step 12 inspection: write and read bodies are unchanged. The Status factory adds the explicitly modeled Archived alternative. All transitions still call actual ordinary Board methods; lifecycle inputs and setup do not replace domain behavior.",
+      "limitations": [
+        "Observation covers the two actual reviewed Board arrays and explicit Clock callback, not arbitrary hidden I/O. Resource declarations are permissions; exact call counts require separate executable trace requirements."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog": {
+      "report": "Catalog accepts the ordinary TaskReader interface and invokes lookup with a validated TaskId. It does not construct storage or branch on concrete reader types. BoardReader adapts an actual Board instance. Tests exercise real hit/miss paths and a different injected reader, validating replacement without changing Catalog code. Spec ownership explicitly assigns Task and TaskSummary to Catalog; existing declarations are retained. Fresh Step 8 inspection: Catalog now awaits the normal reader result, retaining the same constructor dependency and boundary. Tests exercise both a real synchronous BoardReader and an asynchronous replacement, including identity-preserving rejection propagation. Mock scenarios select only the declared example sessions; the bridge obtains replies through context.collaborator and records actual invocations. It never supplies domain answers. Other generated operations and direct port conformance keep the real reader. The explicit scenario inputs match the independently observed initial test state, so the existing state contract is retained. Fresh Step 9 inspection: the requireTask addition uses the same ordinary Reader interface. Its new publisher callback is independently provided; it does not introduce concrete storage dependencies. Returned values remain TaskSummary boundaries. Domain failures and event payloads are constructed by production factories. Fresh Step 10 inspection: production Catalog/BoardReader logic is unchanged. Testing-only runtime array proxies observe actual storage reads within the invoked operation, and corresponding read permissions are declared. No access is invented from a static method name or expected result. Fresh Step 11 inspection: TaskWriter is an explicit port in the owning Catalog module and is tested directly against ordinary Board methods. Catalog consumer code still depends only on TaskReader and its publisher; no concrete storage dependency was introduced into the service.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.TaskReader": {
+      "report": "The actual BoardReader.lookup delegates to the real Board.find after TaskId validation, and is directly executed for independent port conformance cases. Its normal constructor receives the actual Board; native before/after observations read that same instance. Fresh Step 10 inspection: production Catalog/BoardReader logic is unchanged. Testing-only runtime array proxies observe actual storage reads within the invoked operation, and corresponding read permissions are declared. No access is invented from a static method name or expected result.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.Public": {
+      "report": "The new actual requireTask method validates the key, awaits the unchanged find path, throws MissingTask for an absent reply and publishes the validated TaskViewed payload for a present reply before returning the real summary. Native generated cases and explicit given scenarios check the declared success/failure clauses, calls and emitted payload. Independent tests verify exception class/payload and emission cardinality. Fresh Step 10 inspection: production Catalog/BoardReader logic is unchanged. Testing-only runtime array proxies observe actual storage reads within the invoked operation, and corresponding read permissions are declared. No access is invented from a static method name or expected result.",
+      "limitations": [
+        "Finite native plans and independent production tests support the reviewed revision. Event evidence comes from a real callback; no delivery to external infrastructure or all-input mathematical proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.PublicMessages": {
+      "report": "The reviewed production service and BoardReader return Option<TaskSummary>, with actual boundary construction by taskSummary. The message has exactly id/title; stored Task.status is not exposed. Independent factory tests reject a Task entity passed as a TaskSummary input. This satisfies the chosen public-message boundary for the reviewed code. Fresh Step 8 inspection: Catalog now awaits the normal reader result, retaining the same constructor dependency and boundary. Tests exercise both a real synchronous BoardReader and an asynchronous replacement, including identity-preserving rejection propagation. Mock scenarios select only the declared example sessions; the bridge obtains replies through context.collaborator and records actual invocations. It never supplies domain answers. Other generated operations and direct port conformance keep the real reader. The explicit scenario inputs match the independently observed initial test state, so the existing state contract is retained. Fresh Step 9 inspection: the requireTask addition uses the same ordinary Reader interface. Its new publisher callback is independently provided; it does not introduce concrete storage dependencies. Returned values remain TaskSummary boundaries. Domain failures and event payloads are constructed by production factories. Fresh Step 10 inspection: production Catalog/BoardReader logic is unchanged. Testing-only runtime array proxies observe actual storage reads within the invoked operation, and corresponding read permissions are declared. No access is invented from a static method name or expected result. Fresh Step 11 inspection: TaskWriter is an explicit port in the owning Catalog module and is tested directly against ordinary Board methods. Catalog consumer code still depends only on TaskReader and its publisher; no concrete storage dependency was introduced into the service.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog#constraint:1": {
+      "report": "Reviewed Catalog constructor and find body: the service receives TaskReader and invokes its lookup method. It neither constructs Board nor reaches private storage. The concrete BoardReader lives alongside the service but receives its Board independently; the file import is not a claim that the Catalog class depends directly on storage. The independent replacement test injects a different ordinary reader and exercises the unchanged Catalog. Fresh Step 8 inspection: Catalog now awaits the normal reader result, retaining the same constructor dependency and boundary. Tests exercise both a real synchronous BoardReader and an asynchronous replacement, including identity-preserving rejection propagation. Mock scenarios select only the declared example sessions; the bridge obtains replies through context.collaborator and records actual invocations. It never supplies domain answers. Other generated operations and direct port conformance keep the real reader. The explicit scenario inputs match the independently observed initial test state, so the existing state contract is retained. Fresh Step 9 inspection: the requireTask addition uses the same ordinary Reader interface. Its new publisher callback is independently provided; it does not introduce concrete storage dependencies. Returned values remain TaskSummary boundaries. Domain failures and event payloads are constructed by production factories. Fresh Step 10 inspection: production Catalog/BoardReader logic is unchanged. Testing-only runtime array proxies observe actual storage reads within the invoked operation, and corresponding read permissions are declared. No access is invented from a static method name or expected result. Fresh Step 11 inspection: TaskWriter is an explicit port in the owning Catalog module and is tested directly against ordinary Board methods. Catalog consumer code still depends only on TaskReader and its publisher; no concrete storage dependency was introduced into the service.",
+      "limitations": [
+        "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.MissingTask": {
+      "report": "The actual MissingTask Error constructs its payload via missingTask, which requires exactly taskId and validates it using TaskId. Native contract cases exercise payload records; application outcomes transport the actually thrown error in the distinct Failure envelope. No expected failure is synthesized by the bridge.",
+      "limitations": [
+        "Finite native plans and independent production tests support the reviewed revision. Event evidence comes from a real callback; no delivery to external infrastructure or all-input mathematical proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskViewed": {
+      "report": "The production taskViewed factory validates the exact event payload. Catalog.requireTask publishes through a normal callback only after receiving a present TaskSummary. The testing callback forwards the actual emitted event to context.emit. Independent tests observe one success event and no additional event after a failed lookup.",
+      "limitations": [
+        "Finite native plans and independent production tests support the reviewed revision. Event evidence comes from a real callback; no delivery to external infrastructure or all-input mathematical proof is claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Signals": {
+      "report": "Signals is an explicitly declared local boundary for the system clock. It is implemented by the ordinary SystemClock class; this does not claim integration with a remote service or URL discovery.",
+      "limitations": [
+        "Observation covers the two actual reviewed Board arrays and explicit Clock callback, not arbitrary hidden I/O. Resource declarations are permissions; exact call counts require separate executable trace requirements."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Signals.Clock": {
+      "report": "Reviewed the explicit ordinary SystemClock constructor and now body: the default source samples a real Date, while an explicitly injected Date source permits deterministic independent tests and invalid-sample rejection. Native adapter construction uses the default actual clock. Timestamp rendering preserves the sampled instant; invalid Date samples throw rather than fabricate a valid result. Independent tests bracket the default sample in real time, check a fixed injected Date and verify the invalid sample path.",
+      "limitations": [
+        "Observation covers the two actual reviewed Board arrays and explicit Clock callback, not arbitrary hidden I/O. Resource declarations are permissions; exact call counts require separate executable trace requirements."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Diagnostics": {
+      "report": "The actual Diagnostics class invokes an injected ordinary clock callback and returns its value. The adapter wraps that actual callback invocation in resource observation; it never supplies a timestamp from expected spec values.",
+      "limitations": [
+        "Observation covers the two actual reviewed Board arrays and explicit Clock callback, not arbitrary hidden I/O. Resource declarations are permissions; exact call counts require separate executable trace requirements."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskConflict": {
+      "report": "The actual TaskConflict Error uses the existing exact taskId payload factory. Board.insert validates a Task first, compares actual stored ids and throws this error without mutation when the key already exists. Native duplicate inputs and independent tests exercise the constructor and unchanged-state contract.",
+      "limitations": [
+        "Finite reviewed scenarios do not prove all possible failures or persistent transaction isolation."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Catalog.TaskWriter": {
+      "report": "Actual Board.insert adds only absent keys; replace requires an existing key; save updates exactly the matching row or appends a new one; remove deletes at most the matching Task and is idempotent for an absent id. saveNote compares both taskId and sequence and preserves unrelated keys. All paths validate input with production factories and return copied validated records. Existing array proxies capture actual sets, deletes and reads within these invoked methods. Native before/after observations read the same mutated Board. Independent tests exercise each success/rejection path, unchanged failed state, unrelated rows and return-value isolation. Fresh Step 12 inspection: write and read bodies are unchanged. The Status factory adds the explicitly modeled Archived alternative. All transitions still call actual ordinary Board methods; lifecycle inputs and setup do not replace domain behavior. Reviewed explicit operation inputs now also exercise existing Task keys, existing composite Note keys and a new Note sequence beside existing sequences. These are actual request values against the real initial state, not expected replies; Rust derives their state expectations from the Spec.",
+      "limitations": [
+        "The production adapter is the explicit in-memory Board; this is not a claim about a database or distributed concurrency. Native bounded corpora are not all-input proofs."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskLifecycle": {
+      "report": "Reviewed lifecycle inputs create a Task through the actual insert port, then replace it with Done and Archived records using the same key and Board instance. The two mandatory paths include the connected two-transition path. Guards refer to actual typed request.status values. Native before/after snapshots establish actual reached states and continuity; independent production tests verify the same stored chain and fresh-session reset.",
+      "limitations": [
+        "Mandatory finite paths are covered; this is not exhaustive exploration of arbitrarily long histories. Fresh sessions and reviewed explicit inputs apply to the in-memory Board."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TaskPresence": {
+      "report": "Reviewed presence input creates a Task through the actual insert port, then removes the same key through the actual remove port. Rust uses actual keyed-state existence, with Present initial and Removed terminal. An absent return value alone is insufficient. The native path contains before/after observations proving that the selected row disappeared.",
+      "limitations": [
+        "Mandatory finite paths are covered; this is not exhaustive exploration of arbitrarily long histories. Fresh sessions and reviewed explicit inputs apply to the in-memory Board."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Health": {
+      "report": "The actual health factory requires exactly the ready field and delegates to the production Boolean factory, accepting both true and false and rejecting extra fields/wrong representations. The actual client validates received JSON using this factory.",
+      "limitations": [
+        "Evidence covers the actual local HTTP fixture, configured URL and client, not third-party deployment, TLS or arbitrary networks. Corpus and HTTP branch tests are finite."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Directory": {
+      "report": "Directory is an explicit local HTTP boundary. Test configuration selects loopback, an ephemeral port and an initial ready value. A real Bun server runs the ordinary production healthHandler, and the actual HealthClient uses its explicitly supplied URL. No URL is inferred from the Spec and no external third-party deployment is claimed.",
+      "limitations": [
+        "Evidence covers the actual local HTTP fixture, configured URL and client, not third-party deployment, TLS or arbitrary networks. Corpus and HTTP branch tests are finite."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Directory.HealthApi": {
+      "report": "The actual HealthClient constructs /health from its explicit base URL, makes a real GET request, rejects unsuccessful HTTP statuses and validates the real response JSON. Independent tests exercise healthy/unhealthy results, HTTP 503 and an invalid payload through real local servers. Native conformance calls the actual client directly.",
+      "limitations": [
+        "Evidence covers the actual local HTTP fixture, configured URL and client, not third-party deployment, TLS or arbitrary networks. Corpus and HTTP branch tests are finite."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Connectivity": {
+      "report": "The actual Connectivity class awaits its supplied real client query and returns the received ready value. The testing bridge wraps the actual HTTP query attempt in resource observation and invokes this unchanged consumer. Explicit configured healthy input establishes the example; independent tests demonstrate that an unhealthy response is not replaced by a constant true. Each required HTTP session creates and stops its actual local server, while unrelated sessions do not open a server.",
+      "limitations": [
+        "Evidence covers the actual local HTTP fixture, configured URL and client, not third-party deployment, TLS or arbitrary networks. Corpus and HTTP branch tests are finite."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.CopyTitle": {
+      "report": "CopyTitle references the existing Tutorial.Board.Title by its fully qualified declaration name. Its runtime adapter uses the actual unchanged Title factory, retaining UTF-16 bounds and executable nonempty-trim refinement. Native contract cases validate both normal values and rejections.",
+      "limitations": [
+        "Alias inheritance is exercised in the finite plan and independent tests; no new identity continuity or rename is inferred."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Copy": {
+      "report": "The fragment adds Copy.title to the existing Board domain. The real copyTitle export calls the ordinary production Title factory and preserves its returned string. Independent tests cover normal/astral input, empty/blank/oversized text and wrong representations. The adapter only translates input/output and calls the actual export.",
+      "limitations": [
+        "Multi-file compilation and native checks apply to the reviewed two-file Spec; completeness of arbitrary fragment workspaces is not claimed."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.TypeConformance": {
+      "report": "Reviewed every declared data entry point against its actual production factory and adapter representation. Native valid/rejected corpora cover the complete selected closure. Bigints retain integer precision; exact decimal strings now reject leading plus explicitly; byte arrays validate before Uint8Array conversion; options and results use explicit native alternatives. Records require exact fields and variants validate their actual alternatives. This is finite runtime conformance plus source inspection, not a compiler-API nominal type proof.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.SurfaceConformance": {
+      "report": "Reviewed every selected operation mapping to actual exports or class methods. Public TaskSummary excludes entity status, DTO factories validate fields, pure operations enforce modeled results, domain errors are translated only after the actual production throw, and callbacks capture actual events. Native cases execute the selected surface closure, including HTTP and stateful ports.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ArchitectureConformance": {
+      "report": "Reviewed production imports and Catalog class bodies: production imports only ordinary application modules and platform facilities, with no dctx0/spec/testing imports. Catalog receives TaskReader and a publisher; storage implementation is supplied separately. The explicit root Tasks read surface and Catalog writer port are different reviewed access paths. Tree-sitter discovery is structural evidence only; the authored review judges these actual boundaries without claiming a complete semantic graph.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.OwnershipConformance": {
+      "report": "Reviewed ownership assignments and actual artifact mappings: Catalog owns Task, TaskSummary, TaskViewed and now Note, and its TaskReader/TaskWriter contracts map to the real Board adapter. Shared value factories stay application-owned common types. Root Tasks is an expressly declared administrative read surface with modeled read permissions, not an inferred hidden owner. Native state checks use actual keyed Task/Note observations and preserve unrelated identities.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.EffectConformance": {
+      "report": "Actual consumer calls, production publication callbacks, Board-array accesses and explicit Clock/HTTP observations provide native events. Permissions are centrally checked; they do not imply minimum counts. The observer scope covers the two reviewed arrays and explicit callbacks, excludes harness snapshots and restores original descriptors. Production writes and failure paths are independently tested. No arbitrary hidden I/O is claimed observable.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.AdapterConformance": {
+      "report": "Reviewed bridge code: it translates declared value representations, invokes actual application code, chooses only explicitly listed mock scenarios and obtains their replies from the central collaborator protocol. Generated cases use real ports; mocks never attest their production adapters alone. Sessions construct real Board instances, preserve connected lifecycle state, and stop actual local HTTP servers on close. Independent bridge tests check scope, actual accesses and cleanup.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.ExternalConformance": {
+      "report": "Actual HealthClient executes GET /health against an explicitly configured loopback server running the real healthHandler. Received JSON is checked by the actual Health factory. Independent real HTTP tests cover both readiness values, 503, bad payloads and route/method errors. The Clock boundary samples actual native Date by default. This proves the reviewed local boundary/client behavior, not remote deployment, TLS or external infrastructure.",
+      "limitations": [
+        "Finite native execution and source-bound inspection are distinct evidence. No all-input proof, full semantic call graph or undocumented platform/deployment capability is asserted."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.BoundaryReview": {
+      "report": "Reviewed all four explicit criteria and BoundaryIntegrity: Catalog depends on its normal reader interface and returns validated public messages; scenario mocks replace only collaborators while invoking the real consumer; state/effect records come from actual Board sessions and callbacks; HTTP endpoints are explicit and servers/array descriptors are cleaned up. Production import inspection found no spec, dctx0 runtime or generated testing dependencies. Independent tests and full native case evidence support the reviewed source revision. The decimal leading-plus mismatch found during this review was corrected in production and its independent rejection tests before approval.",
+      "limitations": [
+        "Corpora are bounded and the observer covers explicitly modeled resources only. Final series mutation and replay acceptance remain separate checks."
+      ],
+      "review": {
+        "approved": true,
+        "findings": [
+          {
+            "id": "bounded-evidence",
+            "severity": "low",
+            "description": "The finite generated corpora and local fixtures are not universal input, network or deployment proofs; reports and tutorial documentation state those limits."
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+fragment Tutorial.Board.Catalog {
+  owns { entity Note }
+}
+fragment Tutorial.Board {
+  review BoundaryReview {
+    intent """Review actual boundaries alongside executable behavior evidence."""
+    inspect {
+      implementation
+      dependencyGraph
+      decisions
+      surfaces
+      ownership
+      contracts
+    }
+    criteria {
+      "Catalog depends on the normal reader interface and returns public messages."
+      "Mocks replace collaborators while the actual consumer remains under test."
+      "State and effect observations come from actual application sessions."
+      "External endpoints are explicitly configured and test resources are cleaned up."
+    }
+    question BoundaryIntegrity {
+      """Do any production modules import spec files, dctx0 runtime or generated testing artifacts?"""
+    }
+  }
+  proof TypeConformance
+  proof SurfaceConformance
+  proof ArchitectureConformance
+  proof OwnershipConformance
+  proof EffectConformance
+  test Examples
+  test Properties
+  test AdapterConformance
+  test ExternalConformance
+  policy Release {
+    require TypeConformance == PASS
+    require SurfaceConformance == PASS
+    require ArchitectureConformance == PASS
+    require OwnershipConformance == PASS
+    require EffectConformance == PASS
+    require Examples == PASS
+    require Properties == PASS
+    require AdapterConformance == PASS
+    require ExternalConformance == PASS
+    require BoundaryReview != REQUEST_CHANGES
+    require BoundaryReview.highFindings == 0
+  }
+}

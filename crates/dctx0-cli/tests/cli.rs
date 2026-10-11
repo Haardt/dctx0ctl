@@ -271,7 +271,11 @@ fn verification_setup_and_configured_scope_preserve_files_and_never_execute_or_a
     let app = t.0.join("app");
     fs::create_dir(&spec).unwrap();
     fs::create_dir(&app).unwrap();
-    fs::write(spec.join("w.dctx0"), "workspace W { type Number = Int }").unwrap();
+    fs::write(
+        spec.join("w.dctx0"),
+        "workspace W {\n intent \"Explain the number\"\n type Number = Int\n }",
+    )
+    .unwrap();
     let input = spec.to_str().unwrap();
     let project = app.to_str().unwrap();
     let unsupported = cli(&[
@@ -305,7 +309,10 @@ fn verification_setup_and_configured_scope_preserve_files_and_never_execute_or_a
         );
         let report: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(report["executed"], false);
-        assert_eq!(report["created"].as_array().unwrap().len(), 5);
+        assert_eq!(report["created"].as_array().unwrap().len(), 6);
+        let observer = app.join(".dctx0/testing/typescript/module-observer.ts");
+        let observer_text = fs::read_to_string(&observer).unwrap();
+        assert!(observer_text.contains("installModuleObserver"));
         let empty = cli(&["verify", "plan", input]);
         assert!(!empty.status.success());
         assert!(String::from_utf8_lossy(&empty.stderr).contains("empty scope"));
@@ -322,6 +329,12 @@ fn verification_setup_and_configured_scope_preserve_files_and_never_execute_or_a
         );
         let plan: serde_json::Value = serde_json::from_slice(&plan.stdout).unwrap();
         assert_eq!(plan["scope"]["subjects"], serde_json::json!(["W.Number"]));
+        let rendered = cli(&["verify", "plan", input]);
+        assert!(rendered.status.success());
+        assert!(
+            String::from_utf8_lossy(&rendered.stdout)
+                .contains("0 manual requirements, 1 explanatory intents")
+        );
         let explicit = cli(&[
             "verify",
             "plan",
@@ -343,6 +356,7 @@ fn verification_setup_and_configured_scope_preserve_files_and_never_execute_or_a
         ]);
         assert!(repeated.status.success());
         assert!(String::from_utf8_lossy(&repeated.stdout).contains("0 created"));
+        assert_eq!(fs::read_to_string(observer).unwrap(), observer_text);
     }
     #[cfg(not(feature = "typescript"))]
     {

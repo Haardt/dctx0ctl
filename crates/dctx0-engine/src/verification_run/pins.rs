@@ -8,13 +8,44 @@ pub(super) fn capture(
     plan: &ProgramPlan,
     snapshot: &dctx0_changes::Snapshot,
 ) -> Result<(Option<VerificationTaskPin>, Vec<VerificationIssue>)> {
-    if plan.scope.tasks.is_empty() {
+    let session = match project.task_session(None, None) {
+        Ok(session) => session,
+        Err(_) if plan.scope.tasks.is_empty() => return Ok((None, vec![])),
+        Err(error) => return Err(error),
+    };
+    let selected_tasks = if plan.scope.tasks.is_empty() {
+        session
+            .plan
+            .members
+            .iter()
+            .filter(|member| {
+                !member.candidate.subjects.is_empty()
+                    && member.candidate.subjects.iter().all(|subject| {
+                        plan.scope.subjects.iter().any(|selected| {
+                            subject == selected || subject.starts_with(&format!("{selected}."))
+                        })
+                    })
+            })
+            .map(|member| format!("T{}", member.task_id))
+            .collect::<BTreeSet<_>>()
+    } else {
+        plan.scope.tasks.clone()
+    };
+    if selected_tasks.is_empty() {
         return Ok((None, vec![]));
     }
-    let session = project.task_session(None, None)?;
     if session.plan.snapshot_id != plan.snapshot
         || session.plan.check_run_id as u64 != plan.check_occurrence
     {
+        if plan.scope.tasks.is_empty() {
+            return Ok((
+                None,
+                vec![issue(
+                    "ADOPTION_HISTORICAL_SCOPE",
+                    "The active task plan does not match this historical verification occurrence",
+                )],
+            ));
+        }
         return Err(Error::Invalid(
             "Task requirements changed before native execution; plan verification again".into(),
         ));
@@ -33,7 +64,7 @@ pub(super) fn capture(
             None
         }
     };
-    for task in &plan.scope.tasks {
+    for task in &selected_tasks {
         let id = task
             .strip_prefix('T')
             .and_then(|value| value.parse::<i64>().ok())

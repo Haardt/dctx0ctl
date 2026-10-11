@@ -46,6 +46,118 @@ fn limits() -> NativeLimits {
 fn no_mock(_: &Invocation) -> Result<Observation, NativeFailure> {
     panic!("Unexpected mock in transport fixture")
 }
+
+#[tokio::test]
+async fn evidence_limits_keep_the_acknowledged_prefix_reap_workers_and_reset_for_new_cases() {
+    let code = r#"import sys,json
+for line in sys.stdin:
+ p=json.loads(line);r=p['request'];k=r['kind']
+ if k=='begin': reply={'kind':'begun','case_id':r['case_id']}
+ elif k=='validate': reply={'kind':'value-checked','outcome':{'kind':'accepted','value':r['value']}}
+ elif k=='end': reply={'kind':'ended'}
+ else: reply={'kind':'bye'}
+ print(json.dumps({'protocol_version':1,'message':{'kind':'reply','id':p['id'],'reply':reply}}),flush=True)
+ if k=='shutdown':break
+"#;
+    let t = Temp::new();
+    let cancel = NativeCancellation::default();
+    for constrained in [
+        NativeLimits {
+            evidence_entries: 1,
+            ..limits()
+        },
+        NativeLimits {
+            evidence_bytes: 100,
+            ..limits()
+        },
+    ] {
+        let mut worker = NativeWorker::spawn(&recipe(code), &t.0, constrained)
+            .await
+            .unwrap();
+        let pid = worker.pid();
+        let failure = worker
+            .execute_value_case(
+                "limited",
+                "W.Value",
+                &VerificationValue::String("payload".repeat(20)),
+                &cancel,
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(failure.kind, NativeFailureKind::MessageLimit);
+        assert!(failure.detail.contains("retained prefix is incomplete"));
+        assert!(matches!(
+            worker.session_evidence(),
+            [NativeSessionEvidence::Begun { .. }]
+        ));
+        assert!(!PathBuf::from(format!("/proc/{pid}")).exists());
+        worker.abort().await.unwrap();
+    }
+    let mut worker = NativeWorker::spawn(
+        &recipe(code),
+        &t.0,
+        NativeLimits {
+            evidence_entries: 3,
+            evidence_bytes: 512,
+            ..limits()
+        },
+    )
+    .await
+    .unwrap();
+    for id in ["first", "second"] {
+        let outcome = worker
+            .execute_value_case(
+                id,
+                "W.Value",
+                &VerificationValue::Integer("1".into()),
+                &cancel,
+            )
+            .await
+            .unwrap();
+        assert!(matches!(outcome, ValueCheck::Accepted { .. }));
+        assert_eq!(worker.session_evidence().len(), 3);
+    }
+    worker
+        .request(WorkerRequest::Shutdown, &cancel, &mut no_mock)
+        .await
+        .unwrap();
+    worker.finish().await.unwrap();
+}
+
+#[tokio::test]
+async fn runtime_identity_binds_the_managed_executable_and_initial_environment() {
+    let temporary = Temp::new();
+    let mut worker = NativeWorker::spawn(&recipe(ECHO), &temporary.0, NativeLimits::default())
+        .await
+        .unwrap();
+    assert_eq!(
+        worker.runtime_identity().unwrap_err().kind,
+        NativeFailureKind::Technical
+    );
+    assert_eq!(
+        worker
+            .request(
+                WorkerRequest::Shutdown,
+                &NativeCancellation::default(),
+                &mut no_mock
+            )
+            .await
+            .unwrap(),
+        WorkerReply::Bye
+    );
+    let identity = worker.runtime_identity().unwrap();
+    assert_eq!(identity.schema_version, 1);
+    assert_eq!(identity.executable_hash.len(), 64);
+    assert_eq!(identity.initial_environment_hash.len(), 64);
+    assert!(identity.executable_bytes > 0);
+    assert_eq!(identity, worker.runtime_identity().unwrap());
+    assert!(identity.still_current().unwrap());
+    worker.abort().await.unwrap();
+    assert_eq!(
+        worker.runtime_identity().unwrap_err().kind,
+        NativeFailureKind::WorkerExit
+    );
+}
 const ECHO: &str = r#"
 import sys,json
 print('native application log',file=sys.stderr,flush=True)
@@ -90,6 +202,7 @@ async fn real_process_callbacks_logs_graceful_exit_and_repeated_abort_are_manage
     assert!(matches!(
         result,
         WorkerReply::Invoked {
+            resources: None,
             observation: Observation::Returned { .. },
             ..
         }
@@ -166,6 +279,14 @@ async fn missing_runtime_invalid_limits_timeouts_and_cancellation_never_return_a
         },
         NativeLimits {
             message_bytes: MAX_MESSAGE_BYTES + 1,
+            ..limits()
+        },
+        NativeLimits {
+            evidence_bytes: 0,
+            ..limits()
+        },
+        NativeLimits {
+            evidence_entries: 0,
             ..limits()
         },
     ] {
@@ -519,6 +640,9 @@ async fn all_cinema_examples_invoke_real_services_with_central_mocks_and_observe
     for file in [
         "application/movie-night.ts",
         "domain/film-id.ts",
+        "domain/release-year.ts",
+        "domain/contracts.ts",
+        "domain/timestamp.ts",
         "domain/voting-rules.ts",
         "domain/candidate-order-winner.ts",
     ] {
@@ -528,6 +652,18 @@ async fn all_cinema_examples_invoke_real_services_with_central_mocks_and_observe
         .unwrap()
         .replace("../../../src/", "./src/");
     fs::write(temp.0.join("adapter.ts"), adapter).unwrap();
+    fs::copy(
+        root.join(".dctx0/testing/typescript/resource-observer.ts"),
+        temp.0.join("resource-observer.ts"),
+    )
+    .unwrap();
+    fs::write(
+        temp.0.join("http-invocation.ts"),
+        fs::read_to_string(root.join(".dctx0/testing/typescript/http-invocation.ts"))
+            .unwrap()
+            .replace("../../../src/", "./src/"),
+    )
+    .unwrap();
     fs::write(
         temp.0.join("model.json"),
         serde_json::to_vec(&serde_json::json!({"data":ir.data,"operations":ir.operations}))
@@ -637,6 +773,224 @@ async fn all_cinema_examples_invoke_real_services_with_central_mocks_and_observe
 }
 
 #[tokio::test]
+async fn cinema_existing_validators_and_boundaries_are_real_and_mutations_are_detected() {
+    use dctx0_verification::*;
+    let temp = Temp::new();
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/cinema");
+    let sources = ["workspace.dctx0", "movie-night.dctx0"].map(|file| Source {
+        file: file.into(),
+        text: fs::read_to_string(root.join("dctx0").join(file)).unwrap(),
+    });
+    let ir = dctx0_language::compile(&sources).ir.unwrap();
+    let names = [
+        "MemberId",
+        "CommentId",
+        "PollId",
+        "StarRating",
+        "FilmAvailability",
+        "RuntimeMinutes",
+        "Genre",
+        "PageOffset",
+        "PageLimit",
+        "FilmSort",
+        "Film",
+        "SaveFilm",
+        "FilmSearch",
+        "ChangeAvailability",
+        "RateFilm",
+        "Rating",
+        "OpenVoting",
+        "CastVote",
+        "AddComment",
+        "CommentText",
+        "Comment",
+        "CommentAdded",
+        "CommentNotFound",
+        "CommentOverview",
+        "CommentView",
+        "FilmAvailabilityChanged",
+        "FilmDetails",
+        "FilmNotFound",
+        "FilmOverview",
+        "FilmRated",
+        "FilmSaved",
+        "FilmSummary",
+        "FilmVote",
+        "FilmVoteResult",
+        "PersistenceUnavailable",
+        "PollNotFound",
+        "PollStatus",
+        "RatingSummary",
+        "ScreeningPoll",
+        "VoteCast",
+        "VotingClosed",
+        "VotingCompleted",
+        "VotingOpened",
+        "VotingOverview",
+    ];
+    let plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: names
+                .iter()
+                .map(|name| format!("HomeCinema.MovieNight.{name}"))
+                .collect(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    let bundle = dctx0_target_typescript::BunHarness
+        .generate(&HarnessRequest {
+            adapter_import: "./adapter.ts".into(),
+            subjects: plan.closure.clone(),
+        })
+        .unwrap();
+    for artifact in &bundle.artifacts {
+        fs::write(temp.0.join(&artifact.path), &artifact.contents).unwrap();
+    }
+    for file in [
+        "application/movie-night.ts",
+        "persistence/sqlite.ts",
+        "domain/film-id.ts",
+        "domain/release-year.ts",
+        "domain/contracts.ts",
+        "domain/timestamp.ts",
+        "domain/candidate-order-winner.ts",
+        "domain/voting-rules.ts",
+    ] {
+        let destination = temp.0.join("src").join(file);
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::copy(root.join("src").join(file), destination).unwrap();
+    }
+    let adapter = fs::read_to_string(root.join(".dctx0/testing/typescript/adapter.ts"))
+        .unwrap()
+        .replace("../../../src/", "./src/");
+    fs::write(temp.0.join("adapter.ts"), adapter).unwrap();
+    fs::copy(
+        root.join(".dctx0/testing/typescript/resource-observer.ts"),
+        temp.0.join("resource-observer.ts"),
+    )
+    .unwrap();
+    fs::write(
+        temp.0.join("http-invocation.ts"),
+        fs::read_to_string(root.join(".dctx0/testing/typescript/http-invocation.ts"))
+            .unwrap()
+            .replace("../../../src/", "./src/"),
+    )
+    .unwrap();
+    fs::write(
+        temp.0.join("model.json"),
+        serde_json::to_vec(&serde_json::json!({"data":ir.data,"operations":ir.operations}))
+            .unwrap(),
+    )
+    .unwrap();
+    let cancel = NativeCancellation::default();
+    for mutated in [false, true] {
+        if mutated {
+            fs::write(temp.0.join("src/domain/film-id.ts"), "export type FilmId=string; export function filmId(input:unknown):FilmId {if(typeof input!=='string')throw new TypeError('Expected text');return input;}").unwrap();
+            let path = temp.0.join("src/persistence/sqlite.ts");
+            let source = fs::read_to_string(&path).unwrap();
+            let changed = source.replace("private star(value:Stars){if(!stars.includes(value))throw new TypeError('Unknown star rating');}", "private star(value:Stars){void value;}").replace("private availability(value:string){if(!['Available','Watched','Wishlist','Unavailable'].includes(value))throw new TypeError('Unknown availability');}", "private availability(value:string){void value;}");
+            let changed = changed.replace("request.runtimeMinutes<1", "request.runtimeMinutes<0").replace("request.runtimeMinutes>600", "request.runtimeMinutes>601")
+                .replace("filter.offset<0", "filter.offset<-1").replace("filter.offset>100000", "filter.offset>100001")
+                .replace("filter.limit<1", "filter.limit<0").replace("filter.limit>100", "filter.limit>101")
+                .replace("request.genres.some(genre=>!['Action','Adventure','Animation','Comedy','Crime','Documentary','Drama','Fantasy','Horror','Mystery','Romance','ScienceFiction','Thriller','Western'].includes(genre))", "request.genres.some(genre=>typeof genre!=='string')")
+                .replace("if(!['TitleAscending','NewestFirst','HighestRated','MostVoted'].includes(filter.sort))throw new TypeError('Unknown film sort');", "if(typeof filter.sort!=='string')throw new TypeError('Expected text');");
+            assert_ne!(source, changed);
+            fs::write(path, changed).unwrap();
+            // Disable the newly added independent output guard as well:
+            // otherwise a second production validator catches this mutation.
+            let path = temp.0.join("src/domain/contracts.ts");
+            let source = fs::read_to_string(&path).unwrap();
+            let changed = source.replace("validate(value);return value;", "return value;");
+            assert_ne!(source, changed);
+            fs::write(path, changed).unwrap();
+        }
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let mut violated = std::collections::BTreeSet::new();
+        let mut known_record_failures = 0;
+        for contract in &plan.contracts {
+            for (negative, corpus) in [
+                (false, &contract.corpus),
+                (true, &contract.rejection_corpus),
+            ] {
+                for (index, value) in corpus.values.iter().enumerate() {
+                    let reply = worker
+                        .execute_value_case(
+                            &format!("{}:{negative}:{index}", contract.subject),
+                            &contract.subject,
+                            value,
+                            &cancel,
+                        )
+                        .await;
+                    if !mutated {
+                        if negative
+                            && matches!(reply, Ok(ValueCheck::Accepted { .. }))
+                            && [
+                                "HomeCinema.MovieNight.Film",
+                                "HomeCinema.MovieNight.SaveFilm",
+                                "HomeCinema.MovieNight.FilmSearch",
+                                "HomeCinema.MovieNight.ChangeAvailability",
+                                "HomeCinema.MovieNight.RateFilm",
+                                "HomeCinema.MovieNight.Rating",
+                                "HomeCinema.MovieNight.OpenVoting",
+                                "HomeCinema.MovieNight.CastVote",
+                            ]
+                            .contains(&contract.subject.as_str())
+                        {
+                            let VerificationValue::Record(fields) = value else {
+                                panic!("Known record violation must preserve its record input");
+                            };
+                            assert!(
+                                fields.contains_key("__unexpected_field__")
+                                    || (contract.subject == "HomeCinema.MovieNight.FilmSearch"
+                                        && !fields.contains_key("availability")),
+                                "Unexpected production record violation: {value:?}"
+                            );
+                            known_record_failures += 1;
+                        } else {
+                            assert!(
+                                matches!(
+                                    (&reply, negative),
+                                    (Ok(ValueCheck::Accepted { .. }), false)
+                                        | (Ok(ValueCheck::Rejected { .. }), true)
+                                ),
+                                "{}: {reply:?}",
+                                contract.subject
+                            );
+                        }
+                    } else if negative && matches!(reply, Ok(ValueCheck::Accepted { .. })) {
+                        violated.insert(contract.subject.clone());
+                    }
+                }
+            }
+        }
+        worker.finish().await.unwrap();
+        if !mutated {
+            assert_eq!(
+                known_record_failures, 0,
+                "Actual boundaries now reject missing/extra-field violations"
+            );
+        }
+        if mutated {
+            assert_eq!(
+                violated,
+                names
+                    .iter()
+                    .map(|name| format!("HomeCinema.MovieNight.{name}"))
+                    .chain(std::iter::once("HomeCinema.MovieNight.FilmId".into()))
+                    .collect()
+            );
+        }
+    }
+}
+
+#[tokio::test]
 async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services() {
     use dctx0_target_typescript::BunHarness;
     use dctx0_verification::*;
@@ -660,7 +1014,14 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
             tasks: Default::default(),
         },
         &fixtures,
-        Default::default(),
+        serde_json::from_value::<VerificationBudgets>(
+            serde_json::from_slice::<serde_json::Value>(
+                &fs::read(root.join(".dctx0/testing/verification.json")).unwrap(),
+            )
+            .unwrap()["budgets"]
+                .clone(),
+        )
+        .unwrap(),
     );
     let bundle = BunHarness
         .generate(&HarnessRequest {
@@ -678,6 +1039,8 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
         "http/app.ts",
         "domain/film-id.ts",
         "domain/release-year.ts",
+        "domain/contracts.ts",
+        "domain/timestamp.ts",
         "domain/candidate-order-winner.ts",
         "domain/voting-rules.ts",
     ] {
@@ -689,6 +1052,18 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
     fs::write(
         temp.0.join("adapter.ts"),
         fs::read_to_string(root.join(".dctx0/testing/typescript/adapter.ts"))
+            .unwrap()
+            .replace("../../../src/", "./src/"),
+    )
+    .unwrap();
+    fs::copy(
+        root.join(".dctx0/testing/typescript/resource-observer.ts"),
+        temp.0.join("resource-observer.ts"),
+    )
+    .unwrap();
+    fs::write(
+        temp.0.join("http-invocation.ts"),
+        fs::read_to_string(root.join(".dctx0/testing/typescript/http-invocation.ts"))
             .unwrap()
             .replace("../../../src/", "./src/"),
     )
@@ -820,6 +1195,892 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
         matches!(result.assessment.result,VerificationResult::Fail {issue} if issue.code=="LIFECYCLE_STATE_MISMATCH")
     );
     worker.abort().await.unwrap();
+    // The overview expectation comes from two actual persisted comments,
+    // independently filtered and projected by the Rust evaluator.
+    let save = fixtures.examples["HomeCinema.MovieNight.Catalog.save a film in the collection"]["saveFilm"].clone();
+    let comment =
+        fixtures.examples["HomeCinema.MovieNight.Community.add a comment"]["addComment"].clone();
+    let VerificationValue::Record(comment_fields) = &comment else {
+        panic!("Expected comment request");
+    };
+    let film = comment_fields["filmId"].clone();
+    let other_id = VerificationValue::String("00000000-0000-4000-8000-000000000002".into());
+    let mut other_film = save.clone();
+    let mut other_comment = comment.clone();
+    if let VerificationValue::Record(fields) = &mut other_film {
+        fields.insert("id".into(), other_id.clone());
+    }
+    if let VerificationValue::Record(fields) = &mut other_comment {
+        fields.insert("filmId".into(), other_id);
+    }
+    fs::write(temp.0.join("config.json"),r#"{"mode":"real","database":":memory:","time":"2026-10-10T18:00:00Z","ids":["00000000-0000-4000-8000-000000000030","00000000-0000-4000-8000-000000000031"]}"#).unwrap();
+    let input = OperationCaseInput {
+        id: "cinema-comment-projection".into(),
+        invocation: Invocation {
+            subject: "HomeCinema.MovieNight.Community.CommentStore.listByFilm".into(),
+            arguments: vec![film],
+        },
+        setup: vec![
+            Invocation {
+                subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                arguments: vec![save],
+            },
+            Invocation {
+                subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                arguments: vec![other_film],
+            },
+            Invocation {
+                subject: "HomeCinema.MovieNight.Community.FilmCommunityApi.addComment".into(),
+                arguments: vec![comment],
+            },
+            Invocation {
+                subject: "HomeCinema.MovieNight.Community.FilmCommunityApi.addComment".into(),
+                arguments: vec![other_comment],
+            },
+        ],
+        mocks: vec![],
+    };
+    let operation = plan
+        .operations
+        .iter()
+        .find(|operation| operation.operation.id == input.invocation.subject)
+        .unwrap();
+    let mut projection_results = Vec::new();
+    for replacement in [
+        None,
+        Some("total:items.length+1"),
+        Some("total:items.length"),
+    ] {
+        let changed = match replacement {
+            None => original.clone(),
+            Some("total:items.length+1") => original.replace(
+                "return {items,total:items.length};",
+                "return {items,total:items.length+1};",
+            ),
+            Some(_) => {
+                original.replace(".filter(comment=>comment.filmId===id)", ".filter(()=>true)")
+            }
+        };
+        if replacement.is_some() {
+            assert_ne!(changed, original);
+        }
+        fs::write(&production, changed).unwrap();
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                operation,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if replacement.is_none() {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        } else {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"mutation":replacement,"evidence":assessed}));
+    }
+    let presence = plan
+        .operations
+        .iter()
+        .find(|operation| {
+            operation.operation.id == "HomeCinema.MovieNight.Community.FilmPresence.exists"
+        })
+        .unwrap();
+    let film = fixtures.examples["HomeCinema.MovieNight.Community.add a comment"]["filmId"].clone();
+    for (exists, mutated) in [(true, false), (false, false), (true, true), (false, true)] {
+        let source = if mutated {
+            if exists {
+                original.replace("this.getFilm(id)?.id", "undefined")
+            } else {
+                original.replace("this.getFilm(id)?.id", "id")
+            }
+        } else {
+            original.clone()
+        };
+        if mutated {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let input = OperationCaseInput {
+            id: format!("cinema-presence-{exists}-{mutated}"),
+            invocation: Invocation {
+                subject: presence.operation.id.clone(),
+                arguments: vec![film.clone()],
+            },
+            setup: if exists {
+                vec![Invocation {subject:"HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),arguments:vec![fixtures.examples["HomeCinema.MovieNight.Catalog.save a film in the collection"]["saveFilm"].clone()]}]
+            } else {
+                vec![]
+            },
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                presence,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if mutated {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        } else {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"subject":"FilmPresence.exists","exists":exists,"mutated":mutated,"evidence":assessed}));
+    }
+    let rating_plan = plan
+        .operations
+        .iter()
+        .find(|operation| {
+            operation.operation.id == "HomeCinema.MovieNight.Community.RatingStore.summary"
+        })
+        .unwrap();
+    let film_id =
+        fixtures.examples["HomeCinema.MovieNight.Community.add a comment"]["filmId"].clone();
+    let member_id =
+        fixtures.examples["HomeCinema.MovieNight.Community.add a comment"]["memberId"].clone();
+    let save=fixtures.examples["HomeCinema.MovieNight.Catalog.save a film in the collection"]["saveFilm"].clone();
+    let mut other_film = save.clone();
+    let other_id = VerificationValue::String("00000000-0000-4000-8000-000000000002".into());
+    if let VerificationValue::Record(fields) = &mut other_film {
+        fields.insert("id".into(), other_id.clone());
+    }
+    let rated = |film: VerificationValue, member: VerificationValue, stars: &str| Invocation {
+        subject: "HomeCinema.MovieNight.Community.RatingStore.upsert".into(),
+        arguments: vec![VerificationValue::Record(std::collections::BTreeMap::from(
+            [
+                ("filmId".into(), film),
+                ("memberId".into(), member),
+                (
+                    "stars".into(),
+                    VerificationValue::Variant {
+                        declaration: "HomeCinema.MovieNight.StarRating".into(),
+                        name: stars.into(),
+                        payload: None,
+                    },
+                ),
+            ],
+        ))],
+    };
+    for mutation in ["empty", "none", "average", "member", "filter"] {
+        let source=match mutation {
+            "average"=>original.replace("ratings.reduce((sum,rating)=>sum+stars.indexOf(rating.stars)+1,0)/ratings.length","ratings.reduce((sum,rating)=>sum+stars.indexOf(rating.stars)+1,0)/ratings.length+1"),
+            "member"=>original.replace("ratings.find(rating=>rating.memberId===memberId)?.stars","undefined"),
+            "filter"=>original.replace(".filter(rating=>rating.filmId===filmIdValue)",".filter(()=>true)"),
+            _=>original.clone(),
+        };
+        let mutated = !matches!(mutation, "empty" | "none");
+        if mutated {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let setup = if mutation == "empty" {
+            vec![]
+        } else {
+            vec![
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                    arguments: vec![save.clone()],
+                },
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                    arguments: vec![other_film.clone()],
+                },
+                rated(film_id.clone(), member_id.clone(), "FourStars"),
+                rated(
+                    film_id.clone(),
+                    VerificationValue::String("00000000-0000-4000-8000-000000000011".into()),
+                    "FiveStars",
+                ),
+                rated(other_id.clone(), member_id.clone(), "OneStar"),
+            ]
+        };
+        let input = OperationCaseInput {
+            id: format!("cinema-rating-{mutation}"),
+            invocation: Invocation {
+                subject: rating_plan.operation.id.clone(),
+                arguments: vec![film_id.clone(), member_id.clone()],
+            },
+            setup,
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                rating_plan,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if mutated {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        } else {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"subject":"RatingStore.summary","mutation":mutation,"evidence":assessed}));
+    }
+    let upsert_plan = plan
+        .operations
+        .iter()
+        .find(|operation| {
+            operation.operation.id == "HomeCinema.MovieNight.Community.RatingStore.upsert"
+        })
+        .unwrap();
+    for mutation in ["none", "count", "write"] {
+        let source = match mutation {
+            "count" => original.replace(
+                "ratingCount:ratings.length,memberRating:",
+                "ratingCount:ratings.length+1,memberRating:",
+            ),
+            "write" => original.replace(
+                "ON CONFLICT(film_id,member_id) DO UPDATE SET document=excluded.document",
+                "ON CONFLICT(film_id,member_id) DO NOTHING",
+            ),
+            _ => original.clone(),
+        };
+        if mutation != "none" {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let input = OperationCaseInput {
+            id: format!("cinema-upsert-{mutation}"),
+            invocation: rated(film_id.clone(), member_id.clone(), "FiveStars"),
+            setup: vec![
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                    arguments: vec![save.clone()],
+                },
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                    arguments: vec![other_film.clone()],
+                },
+                rated(film_id.clone(), member_id.clone(), "FourStars"),
+                rated(
+                    film_id.clone(),
+                    VerificationValue::String("00000000-0000-4000-8000-000000000011".into()),
+                    "FiveStars",
+                ),
+                rated(other_id.clone(), member_id.clone(), "OneStar"),
+            ],
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                upsert_plan,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if mutation == "none" {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        } else {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"subject":"RatingStore.upsert","mutation":mutation,"evidence":assessed}));
+    }
+    let append_plan = plan
+        .operations
+        .iter()
+        .find(|operation| {
+            operation.operation.id == "HomeCinema.MovieNight.Community.CommentStore.append"
+        })
+        .unwrap();
+    let comment =
+        fixtures.examples["HomeCinema.MovieNight.Community.add a comment"]["addComment"].clone();
+    let mut other_comment = comment.clone();
+    if let VerificationValue::Record(fields) = &mut other_comment {
+        fields.insert("filmId".into(), other_id.clone());
+    }
+    for mutation in ["none", "content", "returned"] {
+        let source = match mutation {
+            "content" => original.replace(
+                "...request,createdAt:",
+                "...request,text:'Incorrect',createdAt:",
+            ),
+            "returned" => original.replace(
+                "JSON.stringify(comment));return comment;",
+                "JSON.stringify(comment));return {...comment,text:'Incorrect'};",
+            ),
+            _ => original.clone(),
+        };
+        if mutation != "none" {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let input = OperationCaseInput {
+            id: format!("cinema-append-{mutation}"),
+            invocation: Invocation {
+                subject: append_plan.operation.id.clone(),
+                arguments: vec![comment.clone()],
+            },
+            setup: vec![
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                    arguments: vec![save.clone()],
+                },
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+                    arguments: vec![other_film.clone()],
+                },
+                Invocation {
+                    subject: "HomeCinema.MovieNight.Community.CommentStore.append".into(),
+                    arguments: vec![other_comment.clone()],
+                },
+            ],
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                append_plan,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if mutation == "none" {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        } else {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"subject":"CommentStore.append","mutation":mutation,"evidence":assessed}));
+    }
+    let open=fixtures.examples["HomeCinema.MovieNight.ScreeningPlanning.open voting for the next appointment"]["openVoting"].clone();
+    let cast=fixtures.examples["HomeCinema.MovieNight.ScreeningPlanning.cast or replace a film vote"]["castVote"].clone();
+    let catalog_setup = vec![
+        Invocation {
+            subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+            arguments: vec![save.clone()],
+        },
+        Invocation {
+            subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+            arguments: vec![other_film.clone()],
+        },
+        rated(film_id.clone(), member_id.clone(), "FourStars"),
+        rated(
+            film_id.clone(),
+            VerificationValue::String("00000000-0000-4000-8000-000000000011".into()),
+            "FiveStars",
+        ),
+        rated(other_id.clone(), member_id.clone(), "OneStar"),
+        Invocation {
+            subject: "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.open".into(),
+            arguments: vec![open],
+        },
+        Invocation {
+            subject: "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.cast".into(),
+            arguments: vec![cast],
+        },
+    ];
+    let mut edited = save.clone();
+    if let VerificationValue::Record(fields) = &mut edited {
+        fields.insert(
+            "title".into(),
+            VerificationValue::String("Edited film".into()),
+        );
+    }
+    let availability = VerificationValue::Record(std::collections::BTreeMap::from([
+        ("filmId".into(), film_id.clone()),
+        (
+            "availability".into(),
+            VerificationValue::Variant {
+                declaration: "HomeCinema.MovieNight.FilmAvailability".into(),
+                name: "Watched".into(),
+                payload: None,
+            },
+        ),
+    ]));
+    for (method, mutation, argument) in [
+        ("find", "none", film_id.clone()),
+        (
+            "find",
+            "missing",
+            VerificationValue::String("00000000-0000-4000-8000-000000000099".into()),
+        ),
+        ("save", "none", edited.clone()),
+        ("changeAvailability", "none", availability.clone()),
+        ("find", "average", film_id.clone()),
+        ("find", "votes", other_id.clone()),
+        ("save", "content", edited),
+        ("changeAvailability", "availability", availability),
+    ] {
+        let source=match mutation {
+            "average"=>original.replace("ratings.reduce((sum,rating)=>sum+stars.indexOf(rating.stars)+1,0)/ratings.length","ratings.reduce((sum,rating)=>sum+stars.indexOf(rating.stars)+1,0)/ratings.length+1"),
+            "votes"=>original.replace("vote.pollId===current.id&&vote.filmId===film.id","vote.pollId===current.id"),
+            "content"=>original.replace("const film={...request,genres:[...request.genres]}","const film={...request,title:'Incorrect',genres:[...request.genres]}"),
+            "availability"=>original.replace("const changed={...film,availability:request.availability}","const changed={...film,availability:'Available' as const}"),
+            _=>original.clone(),
+        };
+        let mutated = !matches!(mutation, "none" | "missing");
+        if mutated {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let subject = format!("HomeCinema.MovieNight.Catalog.FilmCatalogStore.{method}");
+        let operation = plan
+            .operations
+            .iter()
+            .find(|operation| operation.operation.id == subject)
+            .unwrap();
+        let input = OperationCaseInput {
+            id: format!("cinema-catalog-{method}-{mutation}"),
+            invocation: Invocation {
+                subject,
+                arguments: vec![argument],
+            },
+            setup: catalog_setup.clone(),
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                operation,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if mutated {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        } else {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results
+            .push(serde_json::json!({"subject":method,"mutation":mutation,"evidence":assessed}));
+    }
+    // Poll DTOs and persisted updates are checked against independent state projections.
+    let voting_request = fixtures.examples["HomeCinema.MovieNight.ScreeningPlanning.cast or replace a film vote"]["castVote"].clone();
+    let poll_id = match &voting_request {
+        VerificationValue::Record(fields) => fields["pollId"].clone(),
+        _ => panic!("Expected cast request"),
+    };
+    let mut replacement_vote = voting_request.clone();
+    if let VerificationValue::Record(fields) = &mut replacement_vote {
+        fields.insert("filmId".into(), other_id.clone());
+    }
+    for (method, mutation) in [
+        ("cast", "none"),
+        ("close", "none"),
+        ("open", "none"),
+        ("current", "none"),
+        ("current", "closed"),
+        ("current", "empty"),
+        ("open", "retained_votes"),
+        ("open", "schedule"),
+        ("current", "vote_count"),
+        ("cast", "vote_count"),
+        ("cast", "ignored_update"),
+        ("close", "status"),
+        ("close", "winner"),
+    ] {
+        let source = match mutation {
+            "retained_votes" => original.replace(
+                "this.db.query('DELETE FROM votes WHERE poll_id=?').run(poll.id);",
+                "",
+            ),
+            "schedule" => original.replace(
+                "scheduledFor:request.scheduledFor,candidateFilmIds",
+                "scheduledFor:'2030-01-01T00:00:00Z',candidateFilmIds",
+            ),
+            "vote_count" => original.replace(
+                "votes:votes.filter(vote=>vote===filmId).length",
+                "votes:votes.filter(vote=>vote===filmId).length+1",
+            ),
+            "ignored_update" => original.replace(
+                "DO UPDATE SET film_id=excluded.film_id,document=excluded.document",
+                "DO UPDATE SET film_id=film_id,document=document",
+            ),
+            "status" => original.replace(
+                "const closed:Poll={...poll,status:'Closed'}",
+                "const closed:Poll={...poll,status:'Open'}",
+            ),
+            "winner" => original.replace(
+                "winningFilmId:candidateOrderWinner(votes,poll.candidateFilmIds)",
+                "winningFilmId:undefined",
+            ),
+            _ => original.clone(),
+        };
+        let mutated = !matches!(mutation, "none" | "closed" | "empty");
+        if mutated {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let subject = format!("HomeCinema.MovieNight.ScreeningPlanning.VotingStore.{method}");
+        let operation = plan
+            .operations
+            .iter()
+            .find(|operation| operation.operation.id == subject)
+            .unwrap();
+        let input = OperationCaseInput {
+            id: format!("cinema-voting-{method}-{mutation}"),
+            invocation: Invocation {
+                subject,
+                arguments: match method {
+                    "current" => vec![],
+                    "open" => catalog_setup
+                        .iter()
+                        .find(|call| call.subject.ends_with("VotingStore.open"))
+                        .unwrap()
+                        .arguments
+                        .clone(),
+                    "cast" => vec![replacement_vote.clone()],
+                    _ => vec![poll_id.clone()],
+                },
+            },
+            setup: {
+                let mut setup = if mutation == "empty" {
+                    vec![]
+                } else {
+                    catalog_setup.clone()
+                };
+                if mutation == "closed" {
+                    setup.push(Invocation {
+                        subject: "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close".into(),
+                        arguments: vec![poll_id.clone()],
+                    });
+                }
+                setup
+            },
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                operation,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if !mutated {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{assessed:?}"
+            );
+        } else {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"subject":format!("VotingStore.{method}"),"mutation":mutation,"evidence":assessed}));
+    }
+    let search_plan = plan
+        .operations
+        .iter()
+        .find(|operation| {
+            operation.operation.id == "HomeCinema.MovieNight.Catalog.FilmCatalogStore.search"
+        })
+        .unwrap();
+    let mut search_setup = catalog_setup.clone();
+    if let VerificationValue::Record(fields) = &mut search_setup[1].arguments[0] {
+        fields.insert(
+            "title".into(),
+            VerificationValue::String("AAA Other".into()),
+        );
+        fields.insert(
+            "releaseYear".into(),
+            VerificationValue::Integer("2010".into()),
+        );
+        fields.insert(
+            "runtimeMinutes".into(),
+            VerificationValue::Integer("180".into()),
+        );
+        fields.insert(
+            "genres".into(),
+            VerificationValue::List(vec![VerificationValue::Variant {
+                declaration: "HomeCinema.MovieNight.Genre".into(),
+                name: "Action".into(),
+                payload: None,
+            }]),
+        );
+        fields.insert(
+            "availability".into(),
+            VerificationValue::Variant {
+                declaration: "HomeCinema.MovieNight.FilmAvailability".into(),
+                name: "Wishlist".into(),
+                payload: None,
+            },
+        );
+    }
+    let mut third = save.clone();
+    if let VerificationValue::Record(fields) = &mut third {
+        fields.insert(
+            "id".into(),
+            VerificationValue::String("00000000-0000-4000-8000-000000000003".into()),
+        );
+    }
+    search_setup.push(Invocation {
+        subject: "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm".into(),
+        arguments: vec![third],
+    });
+    let variant = |declaration: &str, name: &str| VerificationValue::Variant {
+        declaration: format!("HomeCinema.MovieNight.{declaration}"),
+        name: name.into(),
+        payload: None,
+    };
+    for (scenario, sort, mutation) in [
+        ("all", "TitleAscending", "none"),
+        ("all", "NewestFirst", "none"),
+        ("all", "HighestRated", "none"),
+        ("all", "MostVoted", "none"),
+        ("combined", "TitleAscending", "none"),
+        ("page", "TitleAscending", "none"),
+        ("missing", "TitleAscending", "none"),
+        ("missing", "TitleAscending", "query"),
+        ("genre", "TitleAscending", "genre"),
+        ("all", "NewestFirst", "sort"),
+        ("all", "TitleAscending", "tie"),
+        ("page", "TitleAscending", "page"),
+        ("page", "TitleAscending", "total"),
+    ] {
+        let source=match mutation {
+            "query"=>original.replace("(filter.query===undefined||film.title.toLowerCase().includes(filter.query.toLowerCase()))","true"),
+            "genre"=>original.replace("(filter.genre===undefined||film.genres.includes(filter.genre))","true"),
+            "sort"=>original.replace("b.releaseYear-a.releaseYear","a.releaseYear-b.releaseYear"),
+            "tie"=>original.replace("return primary||(a.id<b.id?-1:a.id>b.id?1:0);","return primary||(a.id<b.id?1:a.id>b.id?-1:0);"),
+            "page"=>original.replace("items.slice(filter.offset,filter.offset+filter.limit)","items.slice(0,filter.limit)"),
+            "total"=>original.replace("total:items.length,offset:filter.offset","total:items.slice(filter.offset,filter.offset+filter.limit).length,offset:filter.offset"),
+            _=>original.clone(),
+        };
+        if mutation != "none" {
+            assert_ne!(source, original);
+        }
+        fs::write(&production, source).unwrap();
+        let mut fields = std::collections::BTreeMap::from([
+            ("query".into(), VerificationValue::Option(None)),
+            ("genre".into(), VerificationValue::Option(None)),
+            ("minimumStars".into(), VerificationValue::Option(None)),
+            ("availability".into(), VerificationValue::Option(None)),
+            (
+                "maximumRuntimeMinutes".into(),
+                VerificationValue::Option(None),
+            ),
+            ("releasedFrom".into(), VerificationValue::Option(None)),
+            ("sort".into(), variant("FilmSort", sort)),
+            ("offset".into(), VerificationValue::Integer("0".into())),
+            ("limit".into(), VerificationValue::Integer("10".into())),
+        ]);
+        if scenario == "combined" {
+            fields.insert(
+                "query".into(),
+                VerificationValue::Option(Some(Box::new(VerificationValue::String(
+                    "mOvIe".into(),
+                )))),
+            );
+            for (field, value) in [
+                ("genre", variant("Genre", "Comedy")),
+                ("minimumStars", variant("StarRating", "FourStars")),
+                ("availability", variant("FilmAvailability", "Available")),
+                (
+                    "maximumRuntimeMinutes",
+                    VerificationValue::Integer("120".into()),
+                ),
+                ("releasedFrom", VerificationValue::Integer("2000".into())),
+            ] {
+                fields.insert(
+                    field.into(),
+                    VerificationValue::Option(Some(Box::new(value))),
+                );
+            }
+        }
+        if scenario == "missing" {
+            fields.insert(
+                "query".into(),
+                VerificationValue::Option(Some(Box::new(VerificationValue::String(
+                    "Not present".into(),
+                )))),
+            );
+        }
+        if scenario == "genre" {
+            fields.insert(
+                "genre".into(),
+                VerificationValue::Option(Some(Box::new(variant("Genre", "Comedy")))),
+            );
+        }
+        if scenario == "page" {
+            fields.insert("offset".into(), VerificationValue::Integer("1".into()));
+            fields.insert("limit".into(), VerificationValue::Integer("1".into()));
+        }
+        let input = OperationCaseInput {
+            id: format!("cinema-search-{scenario}-{sort}-{mutation}"),
+            invocation: Invocation {
+                subject: search_plan.operation.id.clone(),
+                arguments: vec![VerificationValue::Record(fields)],
+            },
+            setup: search_setup.clone(),
+            mocks: vec![],
+        };
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+            .await
+            .unwrap();
+        let assessed = worker
+            .execute_operation_contract(
+                &ir,
+                search_plan,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers {
+                        states: true,
+                        calls: true,
+                        events: true,
+                    },
+                    &cancel,
+                ),
+            )
+            .await
+            .unwrap();
+        if mutation == "none" {
+            assert_eq!(
+                assessed.assessment.result,
+                VerificationResult::Pass,
+                "{scenario}/{sort}: {assessed:?}"
+            );
+        } else {
+            assert!(
+                matches!(assessed.assessment.result, VerificationResult::Fail { .. }),
+                "{scenario}/{mutation}: {assessed:?}"
+            );
+        }
+        worker.finish().await.unwrap();
+        projection_results.push(serde_json::json!({"subject":"search","scenario":scenario,"sort":sort,"mutation":mutation,"evidence":assessed}));
+    }
+    fs::write(output.join("cinema-comment-projection.json"),serde_json::to_vec_pretty(&serde_json::json!({"schema_version":1,"test_status":"pass","scope":"Actual Cinema comment overview with two persisted films/comments; independent Rust state projection; incorrect count and cross-film selection mutations","results":projection_results,"performance_status":"deferred"})).unwrap()).unwrap();
 }
 
 #[tokio::test]
@@ -835,6 +2096,8 @@ async fn real_cinema_native_suite_typechecks_measures_storage_http_and_di_and_de
         "http/app.ts",
         "domain/film-id.ts",
         "domain/release-year.ts",
+        "domain/contracts.ts",
+        "domain/timestamp.ts",
         "domain/release-year.test.ts",
         "domain/candidate-order-winner.ts",
         "domain/voting-rules.ts",
@@ -1069,7 +2332,11 @@ fn pure_input(
         "{:?}",
         compiled.diagnostics
     );
-    let ir = compiled.ir.unwrap();
+    let mut ir = compiled.ir.unwrap();
+    if result == "Duration" {
+        // Unsupported-result coverage must not depend on a now-supported builtin.
+        ir.operations.get_mut("W.Api.f").unwrap().result = TypeRef::builtin("FutureBuiltin");
+    }
     let case = VerificationCase {
         id: "case".into(),
         variables: Default::default(),
@@ -1586,7 +2853,7 @@ async fn lifecycle_inputs_setup_failures_observer_protocol_and_deadlines_remain_
  entity Item { id: String
  status: Status
  key id }
- port Store { operation setup() -> Int }
+ port Store { operation setup() -> Int { requires true } }
  surface Api { operation finish(id: String) -> Int }
  lifecycle Flow for Item using status {
  state Open initial
@@ -1638,6 +2905,64 @@ for line in sys.stdin:
     let t = Temp::new();
     let cancel = NativeCancellation::default();
     let spawn = |observation: &str| recipe(&code.replace("OBSERVATION", observation));
+    let mut bad_keys = input.clone();
+    bad_keys.keys[0] = VerificationValue::Integer("1".into());
+    let mut worker = NativeWorker::spawn(
+        &spawn("{'kind':'returned','value':{'kind':'integer','value':'1'}}"),
+        &t.0,
+        limits(),
+    )
+    .await
+    .unwrap();
+    let invalid = worker
+        .execute_lifecycle(&ir, lifecycle, path, &bad_keys, &plan.budgets, &cancel)
+        .await
+        .unwrap();
+    assert!(
+        matches!(invalid.assessment.result, VerificationResult::Unknown { issue } if issue.code == "LIFECYCLE_INPUT_CONTRACT")
+    );
+    assert!(invalid.setup.is_empty());
+    assert!(invalid.observations.is_empty());
+    assert!(worker.session_evidence().is_empty());
+    worker
+        .request(WorkerRequest::Shutdown, &cancel, &mut no_mock)
+        .await
+        .unwrap();
+    worker.finish().await.unwrap();
+    let mut denied = ir.clone();
+    let guard = denied
+        .nodes
+        .iter_mut()
+        .find(|node| node.owner == "W.Store.setup" && node.kind == StatementKind::Requires)
+        .unwrap();
+    let ExpressionKind::Literal { text, .. } = &mut guard.expressions[0].value else {
+        panic!("Compiled literal guard expected")
+    };
+    *text = "false".into();
+    let mut worker = NativeWorker::spawn(
+        &spawn("{'kind':'returned','value':{'kind':'integer','value':'1'}}"),
+        &t.0,
+        limits(),
+    )
+    .await
+    .unwrap();
+    let blocked = worker
+        .execute_lifecycle(&denied, lifecycle, path, &input, &plan.budgets, &cancel)
+        .await
+        .unwrap();
+    assert!(
+        matches!(&blocked.assessment.result, VerificationResult::Unknown { issue } if issue.code == "OPERATION_PRECONDITION_UNMET"),
+        "{:?}",
+        blocked.assessment.result
+    );
+    assert!(blocked.setup.is_empty());
+    assert!(blocked.observations.is_empty());
+    assert!(blocked.blocked_context.is_some());
+    worker
+        .request(WorkerRequest::Shutdown, &cancel, &mut no_mock)
+        .await
+        .unwrap();
+    worker.finish().await.unwrap();
     for outcome in [
         "{'kind':'returned','value':{'kind':'boolean','value':True}}",
         "{'kind':'returned','value':{'kind':'failure','value':{'declaration':'W.SetupRejected','payload':None}}}",
@@ -1666,7 +2991,7 @@ for line in sys.stdin:
         .operations
         .get_mut("W.Store.setup")
         .unwrap()
-        .result = TypeRef::builtin("Duration");
+        .result = TypeRef::builtin("FutureBuiltin");
     let mut worker = NativeWorker::spawn(&spawn(accepted), &t.0, limits())
         .await
         .unwrap();
@@ -1732,7 +3057,7 @@ for line in sys.stdin:
     );
     assert!(blocked.blocked_context.is_some());
     assert!(blocked.observations.is_empty());
-    assert!(worker.session_evidence().iter().any(|entry| matches!(entry, NativeSessionEvidence::Observed { states } if states.contains_key("W.Item"))));
+    assert!(worker.session_evidence().iter().any(|entry| matches!(entry, NativeSessionEvidence::Observed { states, .. } if states.contains_key("W.Item"))));
     worker
         .request(WorkerRequest::Shutdown, &cancel, &mut no_mock)
         .await

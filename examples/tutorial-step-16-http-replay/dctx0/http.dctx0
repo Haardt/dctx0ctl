@@ -1,0 +1,42 @@
+fragment Tutorial.Board {
+  example "HTTP finds an actual stored task" {
+    when result = Http.find(httpId)
+    expect result == Some(TaskSummary { id = httpId title = "Read" })
+  }
+  surface Http exposes requestReply {
+    intent """Explicit administrative board access includes status; Catalog continues to expose only its public summaries."""
+    operation rows() -> List<Task> {
+      effects { read Task }
+      state lists Task
+      ensures result == before.Task
+    }
+    operation insert(request: Task) -> Task ! TaskConflict {
+      effects {
+        read Task
+        write Task
+      }
+      state inserts Task from request
+      ensures success implies result == request
+      ensures failure is TaskConflict implies after.Task == before.Task
+    }
+    operation replace(request: Task) -> Task ! MissingTask {
+      effects {
+        read Task
+        write Task
+      }
+      state replaces Task by request.id from request
+      ensures success implies result == request
+      ensures failure is MissingTask implies after.Task == before.Task
+    }
+    operation list() -> List<TaskSummary> {
+      effects { read Task }
+      state lists Task
+      ensures result == map(TaskSummary { id = task.id title = task.title } for task in before.Task)
+    }
+    operation find(id: TaskId) -> Option<TaskSummary> {
+      effects { read Task }
+      state observes Task by id
+      ensures result == first(map(TaskSummary { id = task.id title = task.title } for task in filter(task in before.Task where task.id == id)))
+    }
+  }
+}

@@ -12,7 +12,33 @@ jobs:
         with:
           components: rustfmt, clippy, llvm-tools-preview
       - run: cargo install cargo-llvm-cov --locked
-      - run: python3 scripts/validate.py --coverage
+      - name: Enable bounded user scopes
+        run: |
+          uid=$(id -u)
+          sudo loginctl enable-linger "$USER"
+          sudo systemctl start "user@$uid.service"
+          echo "XDG_RUNTIME_DIR=/run/user/$uid" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus" >> "$GITHUB_ENV"
+      - name: Browser acceptance
+        run: |
+          mkdir -p target
+          google-chrome --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --remote-debugging-port=9228 --user-data-dir="$RUNNER_TEMP/tutorial-browser" about:blank > "$RUNNER_TEMP/browser.log" 2>&1 &
+          browser_pid=$!
+          trap 'kill "$browser_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 50); do
+            if curl --fail --silent http://127.0.0.1:9228/json/version > /dev/null; then break; fi
+            sleep 0.2
+          done
+          UI_SCREENSHOT=target/tutorial-ui.png bun examples/tutorial/ui-browser-check.ts > examples/tutorial/validation/browser.json
+      - run: python3 scripts/validate.py --coverage --example cinema --tutorial
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tutorial-acceptance
+          path: |
+            examples/tutorial/validation/
+            target/tutorial-ui.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

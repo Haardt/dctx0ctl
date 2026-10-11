@@ -1,5 +1,7 @@
 //! Embedded editable defaults for typescript.
+mod dependencies;
 mod execution;
+pub use dependencies::TypeScriptDependencies;
 mod inspection;
 use dctx0_core::{ProfileTemplate, TargetManifest, TargetProfileProvider};
 pub use execution::BunHarness;

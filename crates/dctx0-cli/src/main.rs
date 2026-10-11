@@ -10,6 +10,8 @@ mod sources;
 mod tasks;
 mod verification;
 mod verification_benchmark;
+#[cfg(feature = "typescript")]
+mod verification_complete;
 mod verification_discovery_benchmark;
 mod verification_history_benchmark;
 mod verification_setup_benchmark;

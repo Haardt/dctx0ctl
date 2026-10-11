@@ -72,6 +72,7 @@ fn fixture(store: &mut Store) -> (VerificationRun, Vec<VerificationArtifact>) {
         not_selected: vec![],
         required_cases: BTreeSet::from(["C1".into()]),
         cases: vec![VerificationCaseRecord {
+            resources: None,
             id: "C1".into(),
             subject: "W.Number".into(),
             kind: VerificationCaseKind::Contract,

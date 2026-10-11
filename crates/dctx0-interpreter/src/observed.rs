@@ -10,6 +10,8 @@ pub struct ObservationContext {
     pub after: Option<BTreeMap<String, Vec<V>>>,
     pub calls: Option<Vec<InvocationObservation>>,
     pub events: Option<Vec<VerificationEvent>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resources: Option<Vec<dctx0_core::ResourceObservation>>,
 }
 impl Default for ObservationContext {
     fn default() -> Self {
@@ -19,6 +21,7 @@ impl Default for ObservationContext {
             after: None,
             calls: None,
             events: None,
+            resources: None,
         }
     }
 }

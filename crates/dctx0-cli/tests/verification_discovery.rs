@@ -12,6 +12,12 @@ fn discovery_cli_reports_unconfirmed_candidates_without_executing_or_writing_app
         "throw new Error('never execute'); export type Item = number;",
     )
     .unwrap();
+    fs::write(
+        app.join("two.ts"),
+        "throw new Error('never execute either candidate'); export type Item = string;",
+    )
+    .unwrap();
+    fs::write(app.join("broken.ts"), "export type Item = {").unwrap();
     let binary = env!("CARGO_BIN_EXE_dctx0");
     assert!(
         Command::new(binary)
@@ -48,10 +54,28 @@ fn discovery_cli_reports_unconfirmed_candidates_without_executing_or_writing_app
                     report
                         .subjects
                         .iter()
-                        .any(|s| s.subject == "W.Item" && s.candidates.len() == 1)
+                        .any(|s| s.subject == "W.Item" && s.candidates.len() == 2 && s.ambiguous)
+                );
+                assert!(
+                    report
+                        .inspection
+                        .sources
+                        .iter()
+                        .any(|source| source.path == "broken.ts" && source.syntax_errors)
+                );
+                assert!(
+                    report
+                        .subjects
+                        .iter()
+                        .flat_map(|subject| &subject.candidates)
+                        .all(|candidate| candidate.path != "broken.ts")
                 );
             } else {
-                assert!(String::from_utf8_lossy(&result.stdout).contains("unconfirmed candidates"));
+                let text = String::from_utf8_lossy(&result.stdout);
+                assert!(text.contains("2 unconfirmed candidates (ambiguous)"));
+                assert!(text.contains("`one.ts`"));
+                assert!(text.contains("`two.ts`"));
+                assert!(text.contains("Syntax errors in `broken.ts`; excluded from suggestions."));
             }
         }
         #[cfg(not(feature = "typescript"))]

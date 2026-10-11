@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "status": "implemented",
+  "language_sources": [
+    "crates/dctx0-core/src/lib.rs",
+    "crates/dctx0-language/src/parser.rs",
+    "crates/dctx0-language/src/expression.rs",
+    "crates/dctx0-language/src/expression/calls.rs",
+    "crates/dctx0-language/src/resolution.rs",
+    "crates/dctx0-core/src/semantic.rs",
+    "crates/dctx0-language/src/compiler/relations.rs",
+    "crates/dctx0-language/src/expression/state.rs",
+    "crates/dctx0-interpreter/src/observed.rs"
+  ],
+  "public_statement_keywords": [
+    "workspace",
+    "domain",
+    "scalar",
+    "value",
+    "type",
+    "failure",
+    "entity",
+    "message",
+    "event",
+    "module",
+    "surface",
+    "port",
+    "external",
+    "owns",
+    "requires",
+    "operation",
+    "effects",
+    "read",
+    "write",
+    "call",
+    "emit",
+    "observe",
+    "intent",
+    "decision",
+    "choose",
+    "because",
+    "avoid",
+    "constraint",
+    "example",
+    "given",
+    "when",
+    "expect",
+    "fails",
+    "emits",
+    "invariant",
+    "forall",
+    "proof",
+    "test",
+    "review",
+    "inspect",
+    "criteria",
+    "question",
+    "policy",
+    "require",
+    "range",
+    "length",
+    "format",
+    "where",
+    "key",
+    "ensures",
+    "state",
+    "lifecycle",
+    "transition",
+    "assert",
+    "fragment",
+    "stableId",
+    "pure"
+  ],
+  "context_generated_ast_kinds": [
+    "field",
+    "own",
+    "dependency",
+    "artifact",
+    "criterion",
+    "narrative",
+    "assertion"
+  ],
+  "builtin_types": [
+    "String",
+    "Boolean",
+    "Int",
+    "Float",
+    "Decimal",
+    "UUID",
+    "Timestamp",
+    "Duration",
+    "Bytes",
+    "Unit",
+    "Option",
+    "List",
+    "Some",
+    "None",
+    "Dctx0Option",
+    "Dctx0Result"
+  ],
+  "operators": [
+    "implies",
+    "or",
+    "and",
+    "==",
+    "!=",
+    "is",
+    "<",
+    "<=",
+    ">",
+    ">=",
+    "in",
+    "..",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "not"
+  ],
+  "functions": [
+    "count",
+    "sum",
+    "all",
+    "any",
+    "contains",
+    "distinct",
+    "min",
+    "max",
+    "filter",
+    "map",
+    "sortBy",
+    "sortDescBy",
+    "Some",
+    "first",
+    "single",
+    "ifElse",
+    "mean",
+    "indexOf",
+    "getOrElse",
+    "None",
+    "lowercase",
+    "uppercase",
+    "trim",
+    "length",
+    "startsWith",
+    "endsWith",
+    "includesText",
+    "slice",
+    "reverse",
+    "divide",
+    "round"
+  ],
+  "formats": [
+    "Email",
+    "UUID",
+    "Uri",
+    "Date",
+    "DateTime"
+  ],
+  "steps": [
+    {
+      "number": 1,
+      "directory": "tutorial-step-1-values",
+      "introduces": "Workspace, domain, intent, exact values, range, pure operations, requires/ensures, examples and forall.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 2,
+      "directory": "tutorial-step-2-refinements",
+      "introduces": "Alias chains, length, all five formats, executable where, scalar and stableId.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 3,
+      "directory": "tutorial-step-3-data",
+      "introduces": "Records, variants and payloads, lists/options, UUID/Timestamp/Duration/Bytes, Float/Decimal/Unit/Boolean.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 4,
+      "directory": "tutorial-step-4-expressions",
+      "introduces": "Arithmetic, comparisons, Boolean logic, range membership, constructors and operation calls.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 5,
+      "directory": "tutorial-step-5-collections",
+      "introduces": "All collection/string/exact-decimal functions and rounding modes.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 6,
+      "directory": "tutorial-step-6-entities",
+      "introduces": "Entities, composite keys, messages and read-state selectors.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 7,
+      "directory": "tutorial-step-7-boundaries",
+      "introduces": "Modules, owns/requires, ports, surfaces and read-only architectural constraints/decisions.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 8,
+      "directory": "tutorial-step-8-mocks",
+      "introduces": "Given replies, real consumers, exact call traces and collaborator failures.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 9,
+      "directory": "tutorial-step-9-failures-events",
+      "introduces": "Declared failures, success/fails expectations and event payloads.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 10,
+      "directory": "tutorial-step-10-effects",
+      "introduces": "Actual read permissions and scoped resource observation, plus a local external Clock boundary using observe; call/emit evidence is retained, production writes follow in step 11.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 11,
+      "directory": "tutorial-step-11-state",
+      "introduces": "Real mutations, observes/lists/inserts/upserts/replaces/removes and before/after assertions.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 12,
+      "directory": "tutorial-step-12-lifecycle",
+      "introduces": "Connected status transitions, typed operation-parameter guards, fresh sessions and actual presence lifecycle; replay is verified at final acceptance.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 13,
+      "directory": "tutorial-step-13-external",
+      "introduces": "Explicit local external boundary and real external conformance.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 14,
+      "directory": "tutorial-step-14-fragments",
+      "introduces": "Multi-file composition, fragments and qualified/scoped resolution.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 15,
+      "directory": "tutorial-step-15-reviews-policy",
+      "introduces": "All named proof/test suites, substantive reviews, criteria/questions and Release policy.",
+      "status": "checkpoint-pass"
+    },
+    {
+      "number": 16,
+      "directory": "tutorial-step-16-http-replay",
+      "introduces": "Real HTTP wiring, mutation detection, evidence history and replay; complete final application.",
+      "status": "checkpoint-pass"
+    }
+  ],
+  "state_modes": [
+    "observes",
+    "lists",
+    "inserts",
+    "upserts",
+    "replaces",
+    "removes"
+  ],
+  "intentional_semantic_differences": [
+    "Date and DateTime reject impossible calendar rollover and require the reviewed ISO/RFC3339 shape.",
+    "Decimal divide validates scale and mode even when the quotient is exact; exact finite quotients remain unrounded as in the reference property evaluator."
+  ],
+  "expression_kinds": [
+    "literal",
+    "variable",
+    "variant",
+    "field",
+    "variant-record",
+    "trace",
+    "record",
+    "list",
+    "unary",
+    "binary",
+    "call",
+    "collection",
+    "state"
+  ],
+  "state_predicates": [
+    "exists",
+    "preserves",
+    "creates",
+    "removes",
+    "updates"
+  ]
+}
