@@ -57,6 +57,62 @@ The script creates a new temporary exercise directory. It supplies the current s
 
 The printed directory contains AGENTS.md and TASK.md with implementation and verification requirements. The agent must implement real application behavior, run the provided checks and review manual requirements against the new sources. Step 16 also requires the actual server entry point and interactive page. `DCTX0_BIN` selects a different Rust binary. An optional agent command runs in the exercise directory and receives the task as a separate argument.
 
+## Reset code and databases for repeated agent experiments
+
+Use the reset helper to create or reset all sixteen exercises in a stable location:
+
+```sh
+# From the repository root:
+bun examples/tutorial/reset-agent.ts all
+# Reset only step 8 back to the previous step's production code:
+bun examples/tutorial/reset-agent.ts 8
+# Start every step with no production solution at all:
+bun examples/tutorial/reset-agent.ts all --empty
+# Reset an existing temporary exercise created by agent-step.sh:
+bun examples/tutorial/reset-agent.ts 8 --directory /tmp/dctx0-tutorial-step-8-YOUR-ID
+```
+
+By default, exercises live under `target/tutorial-exercises/step-N`, outside the versioned reference examples. For `all`, `--directory` selects a collection directory; for an individual step, it selects that exercise directory. Only marked exercises matching the selected step can be replaced. The script refuses reference examples, unmarked existing directories and symlinked exercise roots. Stop any agent/application using an exercise before resetting it.
+
+Reset replaces production code with the clean previous-step baseline, restores the current spec/tests/adapter and removes the local databases in both `.dctx0ctl/` and `dctx0/.dctx0ctl/`. This clears snapshots, tasks, claims and saved verification history for the exercise. It also removes stale inspection approvals, generated transport files and dependencies; run `bun install --frozen-lockfile` afterward. `--empty` removes inherited production code too, while retaining the current acceptance tests. The Git references and their databases are untouched.
+
+Existing exercise `AGENTS.md` and `.dctx0/profiles/` edits are preserved so you can repeat an agent experiment with the same architecture guidance. Specifications and acceptance tests are restored from the reference. Changes to TASK.md or application files are discarded. The newly generated TASK.md records whether production starts empty. If you want to discard guidance edits too, create a new exercise with `agent-step.sh` rather than resetting the old one.
+
+## Agent guidance and editable profiles
+
+`AGENTS.md` tells a compatible coding agent how to work: which architecture to follow, which checks to run and which files are requirements rather than generated output. The exercise script creates a local file with these instructions. Tools differ in automatic discovery; explicitly tell your agent to read it and the named profiles if it does not load AGENTS.md itself. Repository/parent instructions may also apply when an exercise is placed inside the checkout. A default temporary exercise lives outside it and receives its own instructions.
+
+These instructions influence the agent's implementation choices. They do not change the dctx0 spec, execute tests, alter task state or automatically establish PASS. A request to use classes, Hono or a DI container is implementation guidance unless an explicit test or reviewed requirement enforces it. The classes variant includes both source inspection and concrete architecture checks.
+
+Profiles provide reusable target-specific guidance. From an application or exercise directory:
+
+```sh
+# Use the absolute path to your built Rust CLI in a temporary exercise:
+/absolute/path/to/dctx0ctl/target/release/dctx0 profile typescript create --project . --agents
+```
+
+The command creates missing defaults and preserves existing Markdown edits. `--agents` adds or updates only the managed profile-reference block in AGENTS.md, leaving other instructions intact. Edit these files as ordinary Markdown:
+
+- `.dctx0/profiles/typescript/common.md`: shared architecture, libraries and representation choices.
+- `.dctx0/profiles/typescript/implement/operation.md`: guidance for implementing operations; similarly use surface.md, entity.md and other semantic roles.
+- `.dctx0/profiles/typescript/use/operation.md`: guidance when consuming an existing operation; other use files cover required contracts.
+
+For example, a Hono/Awilix class-based profile can say:
+
+```markdown
+Use Hono for HTTP and Awilix with strict CLASSIC injection.
+Register dependencies before resolving them. Use one scope per request and
+dispose scopes in finally. Put production behavior in classes and methods.
+Do not use standalone functions, function expressions or arrow functions.
+Use bound methods for callbacks. Keep integers exact as bigint.
+```
+
+Align the relevant implement/use files as well as common.md so an inherited preference for ordinary functions does not conflict with your choice. Keep behavioral contracts intact. Existing adapters/tests may need explicit, reviewable changes when public implementation entry points change; editing a profile does not transform code automatically.
+
+Profile text appears in selected task context and is frozen when work is claimed/reserved. Editing profiles alone changes no task's work/check status and does not rewrite historical results. Existing claims retain their captured guidance. The [profile guide](../../docs/profiles.md) describes selective adaptations for completed work and the relevant commands.
+
+The [two complete architecture variants](../tutorial-variants/README.md) show these choices against the same small spec: direct Bun and Hono with Awilix using classes. Their AGENTS.md and editable profiles are included so you can compare actual instructions with actual production code.
+
 ## Verify the series
 
 From the repository root, after building the CLI:

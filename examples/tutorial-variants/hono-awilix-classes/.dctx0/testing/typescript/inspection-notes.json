@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "actor": "tutorial-variant-reviewer",
+  "scope": "Same finite Tutorial.Board spec; actual loopback POST /increment implementation, lossless bigint/string boundaries, executable entry point and cleanup. Reviewed class-only production, Awilix CLASSIC registration before resolution, scoped controller/service and request-scope disposal in finally; the application root is disposed after stopping the server.",
+  "reviewed_hashes": {
+    "src/board.ts": "253e4f089bbfd5a7c93dec5bb81a91b1a7d03d177fb138a1deb416b66e40acde",
+    "src/app.ts": "6209c51c84c6d97edf3138e3166049461b42dc83075069947080de248888e958",
+    "src/server.ts": "629c4747aea24cd74f6479432d37d99f2b3674083a0b38cd948bc5afec1c2eb9",
+    "src/app.test.ts": "b70cce04a4874116a4b6c5a78a07e24edcf3f4bddd84804aa1aa941e87e5b4f7",
+    "dctx0/workspace.dctx0": "5fb5bc3d1dfe4d368e49f7765086ae1b7d9cdc0327b1d190e58c358c1a2f1747",
+    "package.json": "d5d1c3e6c17b5594fe2b0faf4cad98e8dcf7bf4f93b3f8f51b1868fe0f999e2b",
+    "bun.lock": "263c1c72d5ca3dc2b81f379e67fb910798e131fc7ed313f275ae819cadfa4f2e",
+    "tsconfig.json": "2a0ce246bbbaac0c7ce9aa1cae73ae5c87e82dd5f0eed37de2b3d8b75c365d73",
+    ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
+    ".dctx0/testing/typescript/adapter.ts": "9197a6ed0d6ec819ed499891bfa8895399798ec0063f30439e281b9657ef759b",
+    ".dctx0/testing/typescript/examples.json": "4aa68366aca1087f5a2be007f87eba7522774ca8cf4ae07f97c13d8705880898",
+    "AGENTS.md": "57d33d8b1d194da685ee1c5b0a4fdf3356a22977f2c0d266ec388a29866b1352",
+    ".dctx0/profiles/typescript/common.md": "28c3ac2af0e2c5b07d8c1fe48098f42002f036b34cce171820f2f63d486a4ad6"
+  },
+  "subjects": {
+    "Tutorial.Board.Count": {
+      "report": "Inspected the actual CounterService.count method: it accepts only bigint 0n through 3n and rejects wrong native types and out-of-range values. Independent tests cover all four values and both invalid boundaries. The external adapter translates integer wire values to bigint and calls this production validator, including invalid-type candidates; it implements no Count acceptance rules.",
+      "limitations": [
+        "This factory checks the finite Count contract, not arbitrary new data types."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.increment": {
+      "report": "Inspected the real increment method: it validates the finite Count domain, rejects 3n and adds 1n. The external adapter sends an actual HTTP POST with an exact integer string and decodes the real response. The route invokes an Awilix-resolved CounterController and its scoped CounterService. Independent HTTP tests exercise valid calls, malformed JSON, wrong representations, invalid bounds, paths and method handling; unexpected application exceptions are rethrown. Server startup is tested through the actual executable entry point. Independent scope tests verify per-request creation, disposal and within-scope identity; production files contain classes, methods, types and bound callbacks, with no function declarations/expressions or arrows.",
+      "limitations": [
+        "The native plan checks the finite spec through actual HTTP. Detailed HTTP status behavior and architecture choices are additional explicit application tests and this source review, not inferred spec requirements."
+      ],
+      "review": null
+    }
+  }
+}

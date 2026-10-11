@@ -2,14 +2,14 @@
   "schema_version": 1,
   "status": "PASS",
   "basis": "Isolated mutations of actual production/adapter code and source-bound review evidence; central Rust assessment and saved-input replay",
-  "isolated_workspaces": "/tmp/dctx0-tutorial-mutations-SpemI7",
+  "isolated_workspaces": "/tmp/dctx0-tutorial-mutations-MC2ZVN",
   "results": [
     {
       "step": 1,
       "name": "wrong increment",
       "subject": "Tutorial.Board.Actions.increment",
       "result": "detected",
-      "native_run": "e0615f322a4f059f26f7e67f9838c504891c38d02683cf9762c41799e52b6da9",
+      "native_run": "8c1e0151070db17b2d96fae45f6fc536c7917871720950df2dfd993a02acb2df",
       "cases": 28,
       "counterexample": {
         "id": "Tutorial.Board.Actions.increment:operation:0",
@@ -72,7 +72,7 @@
             }
           }
         },
-        "elapsed_us": 295
+        "elapsed_us": 452
       }
     },
     {
@@ -80,7 +80,7 @@
       "name": "loosened title boundary",
       "subject": "Tutorial.Board.Title",
       "result": "detected",
-      "native_run": "1b410b6505fb8011e0ce07da4a128207df94dcbcf282534e004626e422b1fe17",
+      "native_run": "51c30eb6aa72505140029ac3a5e173c19e615ba9ebe588260ea26f5f266c4f32",
       "cases": 23,
       "counterexample": {
         "id": "Tutorial.Board.Title:rejection:14",
@@ -109,7 +109,7 @@
             "span": null
           }
         },
-        "elapsed_us": 49
+        "elapsed_us": 121
       }
     },
     {
@@ -117,7 +117,7 @@
       "name": "loosened float boundary",
       "subject": "Tutorial.Board.Measure",
       "result": "detected",
-      "native_run": "75523e98b1e89466f14d7879a40584b50a5c344b7352d62913c11581021e1599",
+      "native_run": "bd8896094240d07f4e9caa5c785c811ac2378024916d98cbbb105e9e2b70b1e8",
       "cases": 23,
       "counterexample": {
         "id": "Tutorial.Board.Measure:rejection:16",
@@ -146,7 +146,7 @@
             "span": null
           }
         },
-        "elapsed_us": 140
+        "elapsed_us": 154
       }
     },
     {
@@ -154,7 +154,7 @@
       "name": "wrong arithmetic",
       "subject": "Tutorial.Board.Actions.score",
       "result": "detected",
-      "native_run": "ae16e338f8d7aee4b0b3f005e44bd3a9ca679d713a7fa050a0a4acf664a921bf",
+      "native_run": "77d16098f88fe1b58a682891c8f72560ca5881bdcb810c69c1a0aa97b6172a6e",
       "cases": 98,
       "counterexample": {
         "id": "Tutorial.Board.Actions.score:operation:0",
@@ -229,7 +229,7 @@
             }
           }
         },
-        "elapsed_us": 195
+        "elapsed_us": 283
       }
     },
     {
@@ -237,7 +237,7 @@
       "name": "lost collection mapping",
       "subject": "Tutorial.Board.Actions.doubled",
       "result": "detected",
-      "native_run": "86e3d66049f34bb6f60e4ef0543b41c39598ee5e2c82efc023019133b27cbf24",
+      "native_run": "f576fd47c0e67520d32ab49d2753a253c1fcbae414795f9e157f6860dd2cba65",
       "cases": 112,
       "counterexample": {
         "id": "Tutorial.Board.Actions.doubled:operation:2",
@@ -320,7 +320,7 @@
             }
           }
         },
-        "elapsed_us": 138
+        "elapsed_us": 127
       }
     },
     {
@@ -328,7 +328,7 @@
       "name": "empty real read surface",
       "subject": "Tutorial.Board.Tasks.list",
       "result": "detected",
-      "native_run": "ccac2f4e243ee3d7d50aa3b523cb5b9d55dc1eeed22b7d11ccdf48ce3bf7f18c",
+      "native_run": "948f5c52ea982fac8be6a15f56e4ae6e73538cb4b7e9b3b6e2a52f39a0311d44",
       "cases": 267,
       "counterexample": {
         "id": "Tutorial.Board.Tasks.list:operation:0",
@@ -477,7 +477,7 @@
             }
           }
         },
-        "elapsed_us": 693
+        "elapsed_us": 1469
       }
     },
     {
@@ -485,7 +485,7 @@
       "name": "consumer ignores actual reader result",
       "subject": "Tutorial.Board.Catalog.Public.find",
       "result": "detected",
-      "native_run": "554cf56059166884618901f2601a444401d1cdaa660fde929e855ecdc46a07b3",
+      "native_run": "7d9e52ca502d8433df77ae235af8e0e02f8554e3ace809a4d95cb917ec2cc032",
       "cases": 300,
       "counterexample": {
         "id": "Tutorial.Board.Catalog.Public.find:reviewed:stored-key",
@@ -644,7 +644,7 @@
             }
           }
         },
-        "elapsed_us": 844
+        "elapsed_us": 713
       }
     },
     {
@@ -652,7 +652,7 @@
       "name": "consumer skips mock collaborator",
       "subject": "Tutorial.Board.Catalog.Public.find",
       "result": "detected",
-      "native_run": "94ad8d5669832c670c8cca1898f6924d8da7c129fbc1e181ae9a6b55991cdf42",
+      "native_run": "0331a2656e67f85c3f5402c07b67ad8b0a6c10629a2b1163c4a9e3d1b0c6fbc3",
       "cases": 302,
       "counterexample": {
         "id": "Tutorial.Board.Catalog.Public.find:reviewed:stored-key",
@@ -811,7 +811,7 @@
             }
           }
         },
-        "elapsed_us": 1015
+        "elapsed_us": 937
       }
     },
     {
@@ -819,7 +819,7 @@
       "name": "missing actual event",
       "subject": "Tutorial.Board.Catalog.Public.requireTask",
       "result": "detected",
-      "native_run": "fbc38e7f8328ba7d79c683591b5efcd089a84039dd72e5125d270afd725c718a",
+      "native_run": "b7cd15d53ad6271c500e9a2fb1f1ae5749f787c9e1155f8df939150e9d4eb7d5",
       "cases": 386,
       "counterexample": {
         "id": "Tutorial.Board.Catalog.require an existing task",
@@ -872,7 +872,7 @@
             "span": null
           }
         },
-        "elapsed_us": 237
+        "elapsed_us": 137
       }
     },
     {
@@ -880,7 +880,7 @@
       "name": "invalid clock value",
       "subject": "Tutorial.Board.Diagnostics.timestamp",
       "result": "detected",
-      "native_run": "593af4acb20327f42be35bc72f566b58031be55513f0a2de622d1d15cafdf675",
+      "native_run": "1da340732de559df795bafdad4c814bab9db8c168762d8691ab60daed99fb3e3",
       "cases": 2,
       "counterexample": {
         "id": "Tutorial.Board.Diagnostics.timestamp:operation:0",
@@ -923,7 +923,7 @@
             "span": null
           }
         },
-        "elapsed_us": 2357
+        "elapsed_us": 2457
       }
     },
     {
@@ -931,7 +931,7 @@
       "name": "replacement without state change",
       "subject": "Tutorial.Board.Catalog.TaskWriter.replace",
       "result": "detected",
-      "native_run": "b8e99f550dcdab41f51a026e9eadf31fe94f4dd97ea3cf7ce8f2a47b335beffd",
+      "native_run": "33fcab102dd46d039db9e70a127245251b940031b44eca224c9ec20c086ee197",
       "cases": 295,
       "counterexample": {
         "id": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
@@ -1153,7 +1153,7 @@
             }
           }
         },
-        "elapsed_us": 2271
+        "elapsed_us": 1556
       }
     },
     {
@@ -1161,7 +1161,7 @@
       "name": "lifecycle status remains Open",
       "subject": "Tutorial.Board.TaskLifecycle",
       "result": "detected",
-      "native_run": "bb992a09f60cce5c80b597af53904e5f57a7bf9b1b83352c13927711494e73b0",
+      "native_run": "4ca950a61a2fb49103a90710bf0ab9b601bf07308ffa0394545684f818e5b873",
       "cases": 306,
       "counterexample": {
         "id": "Tutorial.Board.Catalog.TaskWriter.replace:reviewed:existing-key",
@@ -1388,7 +1388,7 @@
             }
           }
         },
-        "elapsed_us": 2209
+        "elapsed_us": 1659
       },
       "replay": {
         "failing": {
@@ -1447,7 +1447,7 @@
       "name": "external readiness ignored",
       "subject": "Tutorial.Board.Connectivity.ready",
       "result": "detected",
-      "native_run": "1c0a3368948fd8f50b329668b8b0fa7f2b707ac070fa694f0e904a7993d5b5ac",
+      "native_run": "a914780e8410290b31dab42ddfdeeaecdcce07edae45dd260e6f7bdb5450405d",
       "cases": 22,
       "counterexample": {
         "id": "Tutorial.Board.configured service is ready",
@@ -1488,7 +1488,7 @@
             "span": null
           }
         },
-        "elapsed_us": 1510
+        "elapsed_us": 1340
       }
     },
     {
@@ -1496,7 +1496,7 @@
       "name": "fragment result is constant",
       "subject": "Tutorial.Board.Copy.title",
       "result": "detected",
-      "native_run": "41a7c203d809367754ff8ff0263f7b82093f7cdeb5801a6f95162f5674e788d2",
+      "native_run": "1c6a2cc6f497cdb67ae2dd6184ec4fda51f22cf8d37b1ddcdd3ce24897e485dc",
       "cases": 55,
       "counterexample": {
         "id": "Tutorial.Board.Copy.title:operation:0",
@@ -1560,7 +1560,7 @@
             }
           }
         },
-        "elapsed_us": 1403
+        "elapsed_us": 969
       }
     },
     {
@@ -1568,7 +1568,7 @@
       "name": "HTTP insertion silently upserts",
       "subject": "Tutorial.Board.Http.insert",
       "result": "detected",
-      "native_run": "3fae907026b84afd4c3a06739effd5dc3c79399a232f6661299905b9844e4df8",
+      "native_run": "277999b13aec9d22b95a8a6e916f55e7aef34ff49e458a0f8f01dcdecd4976ba",
       "cases": 304,
       "counterexample": {
         "id": "Tutorial.Board.Http.insert:reviewed:existing-key",
@@ -1795,7 +1795,7 @@
             }
           }
         },
-        "elapsed_us": 4771
+        "elapsed_us": 3769
       },
       "replay": {
         "failing": {
@@ -1843,7 +1843,7 @@
       "name": "HTTP replacement silently inserts",
       "subject": "Tutorial.Board.Http.replace",
       "result": "detected",
-      "native_run": "cae704068eafcb74090b30b594e085b35016d01b62577f22ed5f1c460b79ced4",
+      "native_run": "ab8e5a87e6b64c3afb787acebb1ca875ba0d551c51058ac4d4972c2456543b28",
       "cases": 304,
       "counterexample": {
         "id": "Tutorial.Board.Http.replace:operation:0",
@@ -2128,7 +2128,7 @@
             }
           }
         },
-        "elapsed_us": 1685
+        "elapsed_us": 1740
       }
     },
     {
@@ -2136,7 +2136,7 @@
       "name": "adapter replays a golden answer",
       "subject": "Tutorial.Board.Actions.increment",
       "result": "detected",
-      "native_run": "869e515276ec0e133833c2e59be7ac4781d17ce42466413ff33d7b25764d95c5",
+      "native_run": "d2b7385d6fc8860191adb7b22c3af81e68689f947d5a8a49588b5818ef3425d4",
       "cases": 28,
       "counterexample": {
         "id": "Tutorial.Board.Actions.increment:operation:1",
@@ -2199,7 +2199,7 @@
             }
           }
         },
-        "elapsed_us": 165
+        "elapsed_us": 77
       }
     },
     {
@@ -2208,7 +2208,7 @@
       "result": "rejected",
       "report": {
         "exit_code": 1,
-        "error": "Memory guard: 14492000256 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run 06c98965f75c3980ea91b6d2497fed6a904ca895a9ac84dd45541c2464dd0cb5\n",
+        "error": "Memory guard: 13807001600 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run e103161aedb1b9979ed988d757ae561c1d78db0b1700020f48ece040c0f90b62\n",
         "effective_result": {
           "status": "UNKNOWN",
           "issue": {
@@ -2237,7 +2237,7 @@
       "result": "rejected",
       "report": {
         "exit_code": 1,
-        "error": "Memory guard: 14134880938 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run d6fa9e9382cce1115323516136d3072db0be1826f15a09636b902d841b4fbbe2\n",
+        "error": "Memory guard: 13748281344 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run aad5e1870d169ac67fcb8642b5ffa3bd7a2cc587c6dd45c1c3e3926838f11387\n",
         "effective_result": {
           "status": "FAIL",
           "issue": {
@@ -2261,7 +2261,7 @@
       "result": "rejected",
       "report": {
         "exit_code": 1,
-        "error": "Memory guard: 14145325738 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run 910cae659600209945d624646fc4d0b3b9e2a21677486a591e5fe7579294ae04\n",
+        "error": "Memory guard: 13735567360 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nEffective assessment incomplete; inspect run cc9b4334af0b97987b2bd3a1795b5b6b9b8a32fca4476139191468397d0b08df\n",
         "effective_result": {
           "status": "UNKNOWN",
           "issue": {
@@ -2290,7 +2290,7 @@
       "result": "rejected",
       "report": {
         "exit_code": 1,
-        "error": "Memory guard: 14131273728 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nNew source inspection required: src/board.ts\n"
+        "error": "Memory guard: 13700197034 bytes for complete verification and descendants; swap disabled.\nComplete verification: checking sources, executing configured native cases, then binding authored inspections.\nNew source inspection required: src/board.ts\n"
       }
     }
   ]

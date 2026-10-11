@@ -14,6 +14,7 @@ if [[ ${#matches[@]} != 1 ]]; then
 fi
 reference=${matches[0]}
 exercise=$(mktemp -d "${TMPDIR:-/tmp}/dctx0-tutorial-step-$step-XXXXXXXX")
+printf '{"schema_version":1,"step":%s}\n' "$step" > "$exercise/.tutorial-exercise.json"
 # The complete reference is retained in Git. Only the exercise copy is reset.
 mkdir -p "$exercise/dctx0"
 while IFS= read -r -d '' file; do
@@ -23,6 +24,10 @@ while IFS= read -r -d '' file; do
 done < <(find "$reference/dctx0" -type f -name '*.dctx0' -print0)
 cp "$reference/package.json" "$reference/bun.lock" "$reference/tsconfig.json" "$exercise/"
 mkdir -p "$exercise/.dctx0/testing/typescript" "$exercise/src"
+if [[ -d "$reference/.dctx0/profiles" ]]; then
+  cp -R "$reference/.dctx0/profiles" "$exercise/.dctx0/profiles"
+  rm -f -- "$exercise/.dctx0/profiles/profiles.lock"
+fi
 cp "$reference/.dctx0/testing/verification.json" "$exercise/.dctx0/testing/"
 while IFS= read -r -d '' file; do
   cp "$file" "$exercise/.dctx0/testing/typescript/"
@@ -58,6 +63,9 @@ Do not import testing or spec artifacts from production. Do not copy answers
 or approve an inspection merely because the examples pass.
 
 The starting production code is the previous step (empty at step 1).
+Read .dctx0/profiles/typescript/common.md and relevant implement/use profiles
+for architecture guidance. These editable notes guide your implementation;
+they do not change the spec or constitute executed testing evidence.
 Complete this step, install the frozen dependencies, run strict type checking,
 run every provided test with 100% production line/function coverage, and run:
 

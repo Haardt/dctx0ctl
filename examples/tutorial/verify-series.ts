@@ -59,6 +59,6 @@ for(const step of inventory.steps.filter((step:any)=>!requested.length||requeste
   const temporary=prefix+'.json.tmp';await Bun.write(temporary,JSON.stringify(report,null,2)+'\n');await rename(temporary,prefix+'.json');
   results.push({step:step.number,cases:run.cases.length,tasks:complete.tasks});console.log('Step '+step.number+': PASS ('+run.cases.length+' cases, '+complete.tasks+' tasks)');
 }
-await execute(['bun','test','examples/tutorial/agent-step.test.ts','examples/tutorial/check-features.test.ts'],root,resolve(import.meta.dir,'validation','scripts-tests.log'));
+await execute(['bun','test','examples/tutorial/agent-step.test.ts','examples/tutorial/reset-agent.test.ts','examples/tutorial/check-features.test.ts'],root,resolve(import.meta.dir,'validation','scripts-tests.log'));
 await execute(['bun','examples/tutorial/check-features.ts'],root,resolve(import.meta.dir,'validation','features.log'));
 console.log(JSON.stringify({status:'PASS',steps:results,scope:requested.length?'selected steps':'complete series',performance:'Final release/performance acceptance is separate and remains required'},null,2));

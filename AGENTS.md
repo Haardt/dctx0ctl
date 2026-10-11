@@ -681,3 +681,24 @@ All 16 steps have individual checkpoints, not final current-source series
 acceptance. Feature inventory, mutations/replay, aggregate validation, final
 performance and authorized commit/push remain pending. See examples/tutorial/
 validation/step-16.json and the step 16 README for evidence and local startup.
+
+Tutorial reset and architecture variants (2026-10-11):
+`bun examples/tutorial/reset-agent.ts all` creates/resets marked exercises under
+`target/tutorial-exercises/step-N`; individual steps and explicit exercise paths
+are supported. Default production starts at the previous step; `--empty` removes
+all production solutions. Reset removes both local history/database locations and
+old inspections, restores current specs/tests/adapters, and preserves custom
+AGENTS.md and profiles. Reference examples are never reset. Ten helper tests cover
+all sixteen exercises, empty mode, preserved guidance and rejected unsafe paths.
+The English tutorial guide explains agent instructions, editable implement/use
+profiles and their separation from behavioral PASS.
+
+`examples/tutorial-variants/` adds direct Bun and Hono/Awilix class-based HTTP
+implementations of the same finite step-1 specification. Their shared runner
+checks identical semantic plans (independent check occurrences stay distinct),
+strict types, 100% production line/function coverage, 28 native cases per variant,
+real-production mutation rejection through HTTP and final speed/RSS measurements.
+Classes-only production uses methods and bound callbacks, with no standalone
+functions or arrow functions; request scopes and the root container are disposed.
+See `examples/tutorial-variants/validation.json`. These are architecture examples,
+not a second complete sixteen-step series or a whole-workspace acceptance claim.

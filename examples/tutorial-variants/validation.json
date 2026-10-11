@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "created_at": "2026-10-11T17:35:31.255Z",
+  "variants": [
+    {
+      "name": "bun-direct",
+      "complete": {
+        "schema_version": 1,
+        "result": {
+          "status": "PASS"
+        },
+        "native_result": {
+          "status": "PASS"
+        },
+        "native_run": "d59a8a52f15f32d76ccc07c91412c8a908bbef89b92d38bebdaa498a3bd449bd",
+        "inspected_run": "a833020a8e1e3bb6daa3b74d6d8bcbb8fd1b8a72b69dbab659baeefbad2f9c93",
+        "mandatory_cases": 28,
+        "tasks": 3,
+        "open_tasks": 0,
+        "non_pass_tasks": 0,
+        "adopted_tasks": [],
+        "inspected_tasks": [],
+        "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+      },
+      "semantic_plan_hash": "8c4b5974f769a13a9b4ac00cb708f1a66c3c2c35d3d3ce8d35d942213cc0f556",
+      "production_coverage_lcov": "TN:\nSF:src/app.ts\nFNF:5\nFNH:5\nDA:1,77\nDA:4,1\nDA:5,43\nDA:6,189\nDA:8,36\nDA:9,220\nDA:10,196\nDA:11,22\nDA:12,80\nDA:13,258\nDA:14,150\nDA:15,42\nDA:16,207\nDA:17,133\nDA:18,13\nDA:19,40\nDA:22,87\nDA:23,2\nLF:18\nLH:18\nend_of_record\nTN:\nSF:src/board.ts\nFNF:2\nFNH:2\nDA:2,16\nDA:3,63\nDA:4,71\nDA:5,2\nDA:6,13\nDA:9,16\nDA:10,15\nDA:11,80\nDA:12,17\nLF:9\nLH:9\nend_of_record\nTN:\nSF:src/server.ts\nFNF:1\nFNH:1\nDA:1,39\nDA:2,79\nDA:3,53\nLF:3\nLH:3\nend_of_record\n",
+      "source_hashes": {},
+      "production_mutation": {
+        "change": "Actual increment adds two instead of one",
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Actions.increment: Ensures",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 379,
+                "line": 12,
+                "column": 17
+              },
+              "end": {
+                "offset": 398,
+                "line": 12,
+                "column": 36
+              }
+            }
+          }
+        },
+        "counterexample": {
+          "id": "Tutorial.Board.Actions.increment:operation:0",
+          "subject": "Tutorial.Board.Actions.increment",
+          "kind": "operation",
+          "bindings": {
+            "count": {
+              "kind": "integer",
+              "value": "0"
+            }
+          },
+          "setup": [],
+          "arguments": [
+            [
+              {
+                "kind": "integer",
+                "value": "0"
+              }
+            ]
+          ],
+          "observations": [
+            {
+              "invocation": {
+                "subject": "Tutorial.Board.Actions.increment",
+                "arguments": [
+                  {
+                    "kind": "integer",
+                    "value": "0"
+                  }
+                ]
+              },
+              "observation": {
+                "kind": "returned",
+                "value": {
+                  "kind": "integer",
+                  "value": "2"
+                }
+              }
+            }
+          ],
+          "events": [],
+          "states": [],
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "OPERATION_CLAUSE_VIOLATED",
+              "message": "Tutorial.Board.Actions.increment: Ensures",
+              "span": {
+                "file": "workspace.dctx0",
+                "start": {
+                  "offset": 379,
+                  "line": 12,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 398,
+                  "line": 12,
+                  "column": 36
+                }
+              }
+            }
+          },
+          "elapsed_us": 1549
+        }
+      },
+      "performance": {
+        "elapsed_ms": 3910.8672960000004,
+        "peak_rss_bytes": 285646848,
+        "scope": "Elapsed whole Rust command; Linux Rust-process VmHWM sampled every 2 ms, excludes child memory and may miss the final peak; null means unavailable",
+        "native_elapsed_us": 86819,
+        "native_worker_metrics": {
+          "kind": "measured",
+          "peak_rss_bytes": 43462656,
+          "runtime_version": "1.4.2",
+          "platform": "linux"
+        },
+        "baseline": "new workload; unassessed; accepted baseline unchanged"
+      },
+      "native": {
+        "run_id": "29a06174a38f6e56757112316e670fb92ae57d93621c69a1fa3286a7e32f9e76",
+        "plan_hash": "f736d1c852191107f30195694c8a9e180e7b7e6fd3a68d4d4b348117e72469d6",
+        "snapshot": "03f1bfa66c0b19e0c63e38fa7ca339d5809d0189f053a1febab40f89b694f047",
+        "mandatory_cases": 28,
+        "recorded_cases": 28,
+        "result": {
+          "status": "PASS"
+        }
+      }
+    },
+    {
+      "name": "hono-awilix-classes",
+      "complete": {
+        "schema_version": 1,
+        "result": {
+          "status": "PASS"
+        },
+        "native_result": {
+          "status": "PASS"
+        },
+        "native_run": "c3dfdd631c2c9e5c2bac1f619b51e144c7ac84e82f95ec2fd7cbfba5913ee452",
+        "inspected_run": "a79ee9676c2236a5fa57fa901fede637cc7914a26548223ff95c6c56df82ff19",
+        "mandatory_cases": 28,
+        "tasks": 3,
+        "open_tasks": 0,
+        "non_pass_tasks": 0,
+        "adopted_tasks": [],
+        "inspected_tasks": [],
+        "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+      },
+      "semantic_plan_hash": "8c4b5974f769a13a9b4ac00cb708f1a66c3c2c35d3d3ce8d35d942213cc0f556",
+      "production_coverage_lcov": "TN:\nSF:src/app.ts\nFNF:8\nFNH:8\nDA:1,150\nDA:2,56\nDA:3,87\nDA:6,101\nDA:7,39\nDA:8,22\nDA:9,88\nDA:10,258\nDA:11,174\nDA:12,42\nDA:13,207\nDA:14,107\nDA:15,13\nDA:16,34\nDA:19,2\nDA:21,54\nDA:22,24\nDA:23,12\nDA:24,17\nDA:25,43\nDA:26,186\nDA:27,62\nDA:28,206\nDA:29,146\nDA:30,14\nDA:31,48\nDA:32,118\nDA:33,203\nDA:35,39\nDA:36,94\nDA:37,164\nDA:38,79\nDA:40,21\nDA:41,107\nDA:42,93\nDA:44,2\nLF:36\nLH:36\nend_of_record\nTN:\nSF:src/board.ts\nFNF:4\nFNH:4\nDA:3,1\nDA:4,85\nDA:5,31\nDA:6,131\nDA:7,147\nDA:8,9\nDA:9,31\nDA:11,35\nDA:12,44\nDA:13,170\nDA:14,55\nDA:16,98\nDA:17,1\nLF:13\nLH:13\nend_of_record\nTN:\nSF:src/server.ts\nFNF:1\nFNH:1\nDA:1,39\nDA:2,79\nDA:3,53\nLF:3\nLH:3\nend_of_record\n",
+      "source_hashes": {},
+      "production_mutation": {
+        "change": "Actual increment adds two instead of one",
+        "result": {
+          "status": "FAIL",
+          "issue": {
+            "code": "OPERATION_CLAUSE_VIOLATED",
+            "message": "Tutorial.Board.Actions.increment: Ensures",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 379,
+                "line": 12,
+                "column": 17
+              },
+              "end": {
+                "offset": 398,
+                "line": 12,
+                "column": 36
+              }
+            }
+          }
+        },
+        "counterexample": {
+          "id": "Tutorial.Board.Actions.increment:operation:0",
+          "subject": "Tutorial.Board.Actions.increment",
+          "kind": "operation",
+          "bindings": {
+            "count": {
+              "kind": "integer",
+              "value": "0"
+            }
+          },
+          "setup": [],
+          "arguments": [
+            [
+              {
+                "kind": "integer",
+                "value": "0"
+              }
+            ]
+          ],
+          "observations": [
+            {
+              "invocation": {
+                "subject": "Tutorial.Board.Actions.increment",
+                "arguments": [
+                  {
+                    "kind": "integer",
+                    "value": "0"
+                  }
+                ]
+              },
+              "observation": {
+                "kind": "returned",
+                "value": {
+                  "kind": "integer",
+                  "value": "2"
+                }
+              }
+            }
+          ],
+          "events": [],
+          "states": [],
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "OPERATION_CLAUSE_VIOLATED",
+              "message": "Tutorial.Board.Actions.increment: Ensures",
+              "span": {
+                "file": "workspace.dctx0",
+                "start": {
+                  "offset": 379,
+                  "line": 12,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 398,
+                  "line": 12,
+                  "column": 36
+                }
+              }
+            }
+          },
+          "elapsed_us": 4496
+        }
+      },
+      "performance": {
+        "elapsed_ms": 4301.862383,
+        "peak_rss_bytes": 290537472,
+        "scope": "Elapsed whole Rust command; Linux Rust-process VmHWM sampled every 2 ms, excludes child memory and may miss the final peak; null means unavailable",
+        "native_elapsed_us": 108968,
+        "native_worker_metrics": {
+          "kind": "measured",
+          "peak_rss_bytes": 51097600,
+          "runtime_version": "1.4.2",
+          "platform": "linux"
+        },
+        "baseline": "new workload; unassessed; accepted baseline unchanged"
+      },
+      "native": {
+        "run_id": "795308fb4492679297a60351183ef1db4e439527bab6e08d3a2030d5630c0c1a",
+        "plan_hash": "2a73bd1354dd313bc9b52ab97fd8d99f9418357df1625357c0f1f1d60156b0a3",
+        "snapshot": "03f1bfa66c0b19e0c63e38fa7ca339d5809d0189f053a1febab40f89b694f047",
+        "mandatory_cases": 28,
+        "recorded_cases": 28,
+        "result": {
+          "status": "PASS"
+        }
+      }
+    }
+  ],
+  "reset_tests": "10 tests passed; includes all sixteen exercises, both database locations, empty mode and guidance retention"
+}

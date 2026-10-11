@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "actor": "tutorial-variant-reviewer",
+  "scope": "Same finite Tutorial.Board spec; actual loopback POST /increment implementation, lossless bigint/string boundaries, executable entry point and cleanup. Reviewed direct Bun Request/Response handler and ordinary count/increment functions; no framework or DI dependency.",
+  "reviewed_hashes": {
+    "src/board.ts": "234690c8aac2431dab8d3292ed4e27012154bfc03440edc8f5d66209ff3c1b15",
+    "src/app.ts": "bd20ec20b8243e14a32123eb6b5d061f3840c2159a2c7c3fcba840067d220892",
+    "src/server.ts": "629c4747aea24cd74f6479432d37d99f2b3674083a0b38cd948bc5afec1c2eb9",
+    "src/app.test.ts": "e1f4ff107abeaf335620f85d8ba02935a6b3ea868951df7a7f47216c07150089",
+    "dctx0/workspace.dctx0": "5fb5bc3d1dfe4d368e49f7765086ae1b7d9cdc0327b1d190e58c358c1a2f1747",
+    "package.json": "bca3d91fd92a5cb742ab6908032ee531c5b4decd506477571e15fad82ad39b1c",
+    "bun.lock": "c37eede3fa5db88fffd3d1e6b4a735aa2f3b5c5cf9d9a5231449858b82fd8abe",
+    "tsconfig.json": "2a0ce246bbbaac0c7ce9aa1cae73ae5c87e82dd5f0eed37de2b3d8b75c365d73",
+    ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
+    ".dctx0/testing/typescript/adapter.ts": "e1e545ad477353da013ad13941479a4186fbfb469e3e78ba47e301687874fe42",
+    ".dctx0/testing/typescript/examples.json": "4aa68366aca1087f5a2be007f87eba7522774ca8cf4ae07f97c13d8705880898",
+    "AGENTS.md": "aeee2df2c6e03c78aa45c608c78c1beb8fc0bdb52cc98a30ba3ffbfa34e82d77",
+    ".dctx0/profiles/typescript/common.md": "2d894d0545796d23fb99abe80eafe431bd8aaf4321dcece73eb45b202d973d96"
+  },
+  "subjects": {
+    "Tutorial.Board.Count": {
+      "report": "Inspected the actual count function: it accepts only bigint 0n through 3n and rejects wrong native types and out-of-range values. Independent tests cover all four values and both invalid boundaries. The external adapter translates integer wire values to bigint and calls this production validator, including invalid-type candidates; it implements no Count acceptance rules.",
+      "limitations": [
+        "This factory checks the finite Count contract, not arbitrary new data types."
+      ],
+      "review": null
+    },
+    "Tutorial.Board.Actions.increment": {
+      "report": "Inspected the real increment function: it validates the finite Count domain, rejects 3n and adds 1n. The external adapter sends an actual HTTP POST with an exact integer string and decodes the real response. The route invokes the direct Bun handler and increment function. Independent HTTP tests exercise valid calls, malformed JSON, wrong representations, invalid bounds, paths and method handling; unexpected application exceptions are rethrown. Server startup is tested through the actual executable entry point. Production has no imports from dctx0 or test artifacts.",
+      "limitations": [
+        "The native plan checks the finite spec through actual HTTP. Detailed HTTP status behavior and architecture choices are additional explicit application tests and this source review, not inferred spec requirements."
+      ],
+      "review": null
+    }
+  }
+}
