@@ -32,8 +32,35 @@ async function measured(command: string[], cwd: string) {
   return {output, elapsed_ms: performance.now() - start, peak_rss_bytes: peak,
     scope: 'Elapsed whole Rust command; Linux Rust-process VmHWM sampled every 2 ms, excludes child memory and may miss the final peak; null means unavailable'};
 }
+const mode = process.argv.slice(2);
+assert.ok(mode.length <= 1 && mode.every(value => ['--skip-performance', '--performance-only'].includes(value)), 'Use --skip-performance or --performance-only');
+const performanceOnly = mode[0] === '--performance-only';
+const skipPerformance = mode[0] === '--skip-performance';
+const destination = join(root, 'examples/tutorial-variants/validation.json');
+const binaryHash = createHash('sha256').update(await readFile(binary)).digest('hex');
 const variants = ['bun-direct', 'hono-awilix-classes'];
-const reports: any[] = [];
+async function sourceHashes(project: string) {
+  const hashes: Record<string, string> = {};
+  const paths = await Array.fromAsync(new Bun.Glob('{src/**/*.ts,dctx0/*.dctx0,.dctx0/testing/**/*.ts,.dctx0/testing/**/*.json,.dctx0/profiles/**/*.md,AGENTS.md,package.json,bun.lock,tsconfig.json}').scan({cwd: project, dot: true}));
+  for (const file of paths.sort()) {
+    if (/\/(worker|module-observer)\.ts$/.test(file)) continue;
+    hashes[file] = createHash('sha256').update(await readFile(join(project, file))).digest('hex');
+  }
+  return hashes;
+}
+let reports: any[] = [];
+if (performanceOnly) {
+  const previous = await Bun.file(destination).json();
+  assert.equal(previous.status, 'PASS');
+  assert.equal(previous.functional_binary_sha256, binaryHash, 'Re-run functional acceptance for a changed Rust binary');
+  reports = previous.variants;
+  assert.deepEqual(reports.map(report => report.name), variants);
+  for (const report of reports) {
+    const project = join(root, 'examples/tutorial-variants', report.name);
+    assert.deepEqual(await sourceHashes(project), report.source_hashes, 'Re-run functional acceptance after source additions, removals or edits');
+  }
+}
+if (!performanceOnly) {
 for (const name of variants) {
   const project = join(root, 'examples/tutorial-variants', name);
   await execute(['bun', 'install', '--frozen-lockfile'], project);
@@ -53,11 +80,7 @@ for (const name of variants) {
   const plan = JSON.parse(await execute([binary, 'verify', 'plan', 'dctx0', '--subject', 'Tutorial.Board', '--json'], project));
   // Publication occurrence is independent history, not executable meaning.
   const {check_occurrence: _occurrence, ...semanticPlan} = plan;
-  const hashes: Record<string, string> = {};
-  for await (const file of new Bun.Glob('{src/*.ts,dctx0/*.dctx0,.dctx0/testing/**/*.ts,.dctx0/testing/**/*.json,.dctx0/profiles/**/*.md,AGENTS.md,package.json,bun.lock,tsconfig.json}').scan({cwd: project, dot: true})) {
-    if (/\/(worker|module-observer)\.ts$/.test(file)) continue;
-    hashes[file] = createHash('sha256').update(await readFile(join(project, file))).digest('hex');
-  }
+  const hashes = await sourceHashes(project);
   reports.push({name, complete, semantic_plan_hash: createHash('sha256').update(JSON.stringify(semanticPlan)).digest('hex'), production_coverage_lcov: coverage, source_hashes: hashes});
   console.log(name + ': strict types, independent tests, 100% production lines/functions, native PASS');
 }
@@ -81,7 +104,9 @@ for (const report of reports) {
     report.production_mutation = {change: 'Actual increment adds two instead of one', result: run.result, counterexample: failure};
   } finally {await rm(project, {recursive: true, force: true});}
 }
+}
 // Performance is measured after functional acceptance, without coverage instrumentation.
+if (!skipPerformance) {
 for (const report of reports) {
   const project = join(root, 'examples/tutorial-variants', report.name);
   const measurement = await measured([binary, 'verify', 'run', 'dctx0', '--project', '.', '--no-adopt', '--json'], project);
@@ -103,6 +128,10 @@ for (const report of reports) {
   report.native = {run_id: saved.evidence.id, plan_hash: run.provenance.plan_hash, snapshot: run.provenance.snapshot, mandatory_cases: run.required_cases.length, recorded_cases: run.cases.length, result: run.result};
 }
 assert.equal(reports[0].native.snapshot, reports[1].native.snapshot, 'Variants must use the same spec');
+}
+assert.equal(reports[0].complete.native_result.status, 'PASS');
+assert.equal(reports[1].complete.native_result.status, 'PASS');
 assert.equal(reports[0].semantic_plan_hash, reports[1].semantic_plan_hash, 'Variants must use the same complete semantic plan; independent check occurrences remain separately pinned');
-await Bun.write(join(root, 'examples/tutorial-variants/validation.json'), JSON.stringify({schema_version: 1, status: 'PASS', created_at: new Date().toISOString(), variants: reports, reset_tests: '10 tests passed; includes all sixteen exercises, both database locations, empty mode and guidance retention'}, null, 2) + '\n');
-console.log('Both variants: same spec and plan; functional checks and final speed/RSS measurements PASS.');
+await Bun.write(destination, JSON.stringify({schema_version: 1, status: 'PASS', scope: skipPerformance ? 'functional-only; performance deferred' : 'functional-and-performance', functional_binary_sha256: binaryHash, created_at: new Date().toISOString(), variants: reports, reset_tests: '10 tests passed; includes all sixteen exercises, both database locations, empty mode and guidance retention'}, null, 2) + '\n');
+console.log(skipPerformance ? 'Both variants: functional acceptance PASS; performance deferred.' : 'Both variants: same spec and plan; functional checks and final speed/RSS measurements PASS.');
+await rm(scratch, {recursive: true, force: true});

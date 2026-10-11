@@ -629,3 +629,46 @@ fn duration_bytes_option_aliases_and_result_have_central_lossless_contracts() {
         &variant("other", "Success", Some(Box::new(int("1")))),
     ));
 }
+
+#[test]
+fn unsupported_or_malformed_text_refinements_keep_source_bound_unknown_results() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "refinements.dctx0".into(),
+        text: "workspace W { value Text = String { length 1..4 } value Email = String { format Email } }".into(),
+    }]);
+    assert!(compiled.diagnostics.is_empty());
+    let original = compiled.ir.unwrap();
+    for (owner, terms) in [
+        ("W.Text", vec!["1"]),
+        ("W.Text", vec!["-1", "..", "4"]),
+        ("W.Text", vec!["4", "..", "1"]),
+        ("W.Email", vec!["FutureFormat"]),
+        ("W.Email", vec![]),
+    ] {
+        // Exercise the library boundary for an unsupported future/invalid
+        // persisted refinement, not an accepted new source-language feature.
+        let mut workspace = original.clone();
+        let node = workspace
+            .nodes
+            .iter_mut()
+            .find(|node| {
+                node.owner == owner
+                    && matches!(node.kind, StatementKind::Length | StatementKind::Format)
+            })
+            .unwrap();
+        let token = node.terms[0].clone();
+        node.terms = terms
+            .into_iter()
+            .map(|text| Token {
+                text: text.into(),
+                ..token.clone()
+            })
+            .collect();
+        let expected_span = node.span.clone();
+        let C::Unknown { issue } = check(&workspace, &ty(owner), &string("a@b.c")) else {
+            panic!("Unsupported refinement was accepted or rejected as known");
+        };
+        assert_eq!(issue.code, "INVALID_REFINEMENT");
+        assert_eq!(issue.span, Some(expected_span));
+    }
+}

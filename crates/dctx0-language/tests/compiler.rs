@@ -675,3 +675,20 @@ fn lifecycle_guards_bind_the_selected_operations_parameters_and_require_boolean_
         "DCTX0_AFTER_STATE_CONTEXT",
     );
 }
+
+#[test]
+fn tutorial_collection_and_conditional_builtins_reject_missing_arguments_without_publishing_ir() {
+    for function in ["ifElse", "slice", "single", "getOrElse"] {
+        let source = format!("workspace W {{ invariant I {{ assert {function}() == 0 }} }}");
+        let result = compile(&sources(&source));
+        assert!(result.ir.is_none(), "{function}");
+        let diagnostic = result
+            .diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.code == "DCTX0_EXPRESSION_ARITY")
+            .unwrap();
+        assert_eq!(diagnostic.span.file, "workspace.dctx0");
+        assert!(diagnostic.span.start.offset < diagnostic.span.end.offset);
+        assert!(diagnostic.span.end.offset <= source.len());
+    }
+}

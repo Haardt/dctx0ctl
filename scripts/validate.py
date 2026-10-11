@@ -51,6 +51,14 @@ def validation_sources():
         paths.extend(project.glob('.dctx0/testing/typescript/*.ts'))
         paths.extend(project.glob('.dctx0/testing/**/*.json'))
         paths.extend(project / name for name in ('package.json', 'bun.lock', 'tsconfig.json'))
+    for project in ROOT.glob('examples/tutorial-variants/*'):
+        if not project.is_dir():
+            continue
+        paths.extend(project.glob('src/**/*.ts'))
+        paths.extend(project.glob('.dctx0/testing/**/*.ts'))
+        paths.extend(project.glob('.dctx0/testing/**/*.json'))
+        paths.extend(project.glob('.dctx0/profiles/**/*.md'))
+        paths.extend(project / name for name in ('package.json', 'bun.lock', 'tsconfig.json', 'AGENTS.md'))
     paths.extend((ROOT / 'examples/tutorial').glob('*.ts'))
     paths.extend((ROOT / 'examples/tutorial').glob('*.sh'))
     paths.append(ROOT / 'examples/tutorial/features.json')
@@ -319,6 +327,7 @@ def main():
             ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'],
             ['bun', 'examples/tutorial/verify-series.ts'],
             ['bun', 'examples/tutorial/mutation-acceptance.ts'],
+            ['bun', 'examples/tutorial/verify-variants.ts', '--skip-performance'],
         ])
     validation_source_hash = digest(validation_sources())
     validation_started_ns = time.time_ns()
@@ -326,15 +335,21 @@ def main():
         commands.append([sys.executable, 'scripts/coverage.py', '--skip-performance'])
     passed = True
     validation_steps = []
-    for command in commands:
-        print('+ ' + ' '.join(command), flush=True)
-        returncode = subprocess.run(command, cwd=ROOT).returncode
-        validation_steps.append({'command': command, 'returncode': returncode})
-        if returncode:
-            passed = False
-            # Independent validation stages still report their failures. Cargo
-            # compiles its own inputs, so failed checks do not authorize stale
-            # binary execution; release measurements build separately below.
+    # Native evidence and instrumented verifier images can temporarily exceed
+    # a small RAM-backed /tmp. Use an owned on-disk cache for functional stages;
+    # leave the parent's environment unchanged for established release workloads.
+    temporary_base = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'dctx0ctl'
+    temporary_base.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='validation-', dir=temporary_base) as temporary:
+        functional_environment = {**os.environ, 'TMPDIR': temporary}
+        for command in commands:
+            print('+ ' + ' '.join(command), flush=True)
+            returncode = subprocess.run(command, cwd=ROOT, env=functional_environment).returncode
+            validation_steps.append({'command': command, 'returncode': returncode})
+            if returncode:
+                passed = False
+                # Independent stages retain their failures; measurements build
+                # separately and cannot certify a stale executable.
     validation_source_hash_after = digest(validation_sources())
     if validation_source_hash_after != validation_source_hash:
         passed = False
@@ -360,6 +375,11 @@ def main():
         conformance_code = subprocess.run(conformance, cwd=ROOT).returncode
         validation_steps.append({'command': conformance, 'returncode': conformance_code})
     passed = passed and conformance_code == 0
+    if args.tutorial:
+        command = ['bun', 'examples/tutorial/verify-variants.ts', '--performance-only']
+        returncode = subprocess.run(command, cwd=ROOT).returncode
+        validation_steps.append({'command': command, 'returncode': returncode})
+        passed = passed and returncode == 0
     record = benchmark(args)
     record['validation_source_hash'] = validation_source_hash
     record['validation_source_hash_after'] = validation_source_hash_after

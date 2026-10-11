@@ -702,3 +702,25 @@ Classes-only production uses methods and bound callbacks, with no standalone
 functions or arrow functions; request scopes and the root container are disposed.
 See `examples/tutorial-variants/validation.json`. These are architecture examples,
 not a second complete sixteen-step series or a whole-workspace acceptance claim.
+
+Complete progressive tutorial acceptance (2026-10-11): all sixteen current
+TypeScript examples pass 43,490 mandatory native cases and 100% measured production
+line/function coverage per file. All 158 audited language features occur in actual
+AST/type/execution nodes. Twenty-one negative checks include genuine production
+failures, source/review protection and lifecycle/HTTP replay; fifteen Chromium
+checks separately cover all seven UI functions and 58 executable line starts.
+The actual step-16 server startup is included in production coverage. Ten exercise/
+reset helper tests and both additional Bun/Hono-Awilix variants pass. Reference
+solutions and English feature/spec/test guides are committed.
+
+The final coupled workspace validation passes every recorded command and 451
+instrumented Rust test executions: merged lines 26,149/26,784 (97.63%), LLVM
+functions 2,091/2,150 (97.26%). This uses the explicit user-approved 97% Rust gate;
+100% tutorial production coverage is separate and no full branch proof is claimed.
+All validation/release input hashes match. Fifty-eight release workloads and
+separate native variant speed/RSS records completed last. Baseline comparison is
+unassessed/incompatible; the accepted baseline and compiler goldens are unchanged.
+Functional test scratch uses an owned on-disk cache with cleanup, avoiding large
+instrumented SQLite writes in capacity-limited RAM-backed /tmp; release benchmark
+scratch behavior stays unchanged and the 2/3 available-memory/no-swap guard remains.
+See docs/tutorial-acceptance.md and examples/tutorial/validation/complete.json.

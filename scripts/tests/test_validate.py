@@ -152,6 +152,26 @@ class PerformanceTests(unittest.TestCase):
             self.assertEqual(reports[0]['validation_status'], 'fail' if failed else 'pass')
             self.assertTrue(reports[0]['validation_steps'])
 
+    def test_functional_checks_use_owned_disk_temporary_space_without_changing_release_environment(self):
+        environments = []
+        cache = Path(self.temporary.name) / 'cache'
+        def run(command, **kwargs):
+            environment = kwargs.get('env')
+            if environment is not None:
+                temporary = Path(environment['TMPDIR'])
+                self.assertTrue(temporary.is_dir())
+                self.assertTrue(temporary.is_relative_to(cache / 'dctx0ctl'))
+                environments.append(temporary)
+            return argparse.Namespace(returncode=0)
+        measured = record() | {'source_hash': 'checked'}
+        with patch.dict(validate.os.environ, {'XDG_CACHE_HOME': str(cache), 'TMPDIR': '/original-temporary-root'}), patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification']), patch.object(validate.subprocess, 'run', side_effect=run), patch.object(validate, 'digest', return_value='checked'), patch.object(validate, 'validation_sources', return_value=[]), patch.object(validate, 'benchmark', return_value=measured) as benchmark, patch.object(validate, 'save', return_value=True):
+            self.assertEqual(validate.main(), 0)
+            self.assertEqual(validate.os.environ['TMPDIR'], '/original-temporary-root')
+        benchmark.assert_called_once()
+        self.assertTrue(environments)
+        self.assertTrue(all(not temporary.exists() for temporary in environments))
+
+
     def test_validation_rejects_source_changes_between_checks_and_release_measurements(self):
         for hashes, measured_hash, expected in [(('before', 'changed'), 'changed', 1), (('checked', 'checked'), 'changed', 1), (('checked', 'checked'), 'checked', 0)]:
             saved = []

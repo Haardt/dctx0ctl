@@ -194,3 +194,49 @@ fn esm_observer_manifests_pin_only_supported_actual_argument_ranges() {
             .is_empty()
     );
 }
+
+#[test]
+fn observer_manifests_cover_multiple_modules_in_canonical_order_without_static_import_sites() {
+    let sources = [
+        InspectionSource {
+            path: "z.mjs".into(),
+            language: InspectionLanguage::TypeScript,
+            text: "import('./static.mjs'); import(second); import(first);".into(),
+        },
+        InspectionSource {
+            path: "a.mjs".into(),
+            language: InspectionLanguage::TypeScript,
+            text: "export function load(name) { return import(name); }".into(),
+        },
+    ];
+    let artifacts = dctx0_target_typescript::BunHarness
+        .module_observer_artifacts(&sources, "./")
+        .unwrap();
+    let manifest: ModuleObserverManifest = serde_json::from_str(&artifacts[0].contents).unwrap();
+    assert_eq!(
+        manifest
+            .sources
+            .iter()
+            .map(|source| source.source.as_str())
+            .collect::<Vec<_>>(),
+        ["a.mjs", "z.mjs"]
+    );
+    assert_eq!(manifest.sources[0].sites.len(), 1);
+    assert_eq!(manifest.sources[1].sites.len(), 2);
+    assert_eq!(
+        manifest.sources[1]
+            .sites
+            .iter()
+            .map(|site| &sources[0].text[site.argument_start..site.argument_end])
+            .collect::<Vec<_>>(),
+        ["second", "first"]
+    );
+    let mut reversed = sources.clone();
+    reversed.reverse();
+    assert_eq!(
+        artifacts,
+        dctx0_target_typescript::BunHarness
+            .module_observer_artifacts(&reversed, "./")
+            .unwrap()
+    );
+}

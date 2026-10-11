@@ -4,6 +4,8 @@ This tutorial grows a small TypeScript task board through 16 complete examples. 
 
 Each step’s README explains what was added, shows the actual specification extension, identifies its TypeScript implementation and describes the tests. Start at step 1 and compare adjacent directories, or use a complete later step as a reference.
 
+The [complete acceptance report](validation/complete.json) records all sixteen current projects and 158 feature occurrences. The final coupled workspace gate passed, including the user-approved 97% Rust coverage threshold. [Acceptance notes](../../docs/tutorial-acceptance.md) explain the exact scope, measurements and evidence limits.
+
 ## The learning path
 
 | Step | New features | What the new checks establish |

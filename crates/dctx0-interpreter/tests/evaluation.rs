@@ -1071,3 +1071,27 @@ fn decimal_rounding_uses_exact_signed_ties_and_all_four_modes() {
         "EVALUATION_BUDGET",
     );
 }
+
+#[test]
+fn exact_division_does_not_bypass_rounding_mode_validation() {
+    for expression in [
+        call(
+            "round",
+            vec![
+                lit("Decimal", "2.345"),
+                int("2"),
+                rounding_mode("FutureMode"),
+            ],
+        ),
+        call(
+            "divide",
+            vec![int("1"), int("8"), int("2"), rounding_mode("FutureMode")],
+        ),
+        call(
+            "round",
+            vec![lit("Decimal", "2.345"), int("2"), lit("String", "HalfEven")],
+        ),
+    ] {
+        unknown(expression, "INVALID_VALUE");
+    }
+}
