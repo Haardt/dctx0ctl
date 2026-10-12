@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "20261012T154056.075770Z-1370508",
+  "timestamp": "2026-10-12T15:40:56.075770+00:00",
+  "workload": "documentation-site",
+  "status": "failed",
+  "metadata": {
+    "revision": "2b67dd013fd8aa23c7e5293455eee43b888c717b",
+    "dirty_worktree": true,
+    "content_hash": "5ea6da0304bd912f1efda2ac71540230a2d55c5502736b96e7d6805a128b75eb",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 11167744000
+    },
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "mdbook": "mdbook v0.5.4",
+  "dctx0_sha256": "dfc00c5859b042755e9caf189e35398c43d209e129a8de82578efc49fbe91940",
+  "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
+  "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
+  "seed": null,
+  "features": "mdBook official release HTML/search renderer",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted documentation baseline; core baseline unchanged."
+  },
+  "measurements": {
+    "build-validation": [
+      {
+        "elapsed_ms": 10.906638999585994,
+        "peak_rss_bytes": 55377920,
+        "exit_code": 101
+      }
+    ],
+    "build-warmup": [
+      {
+        "elapsed_ms": 10.3955130034592,
+        "peak_rss_bytes": 55377920,
+        "exit_code": 101
+      }
+    ]
+  },
+  "failure": "build-validation failed:\nERROR failed to read chapter `docs/site/src/reference/releases.md`\n\tCaused by: No such file or directory (os error 2)\n\nbuild-warmup failed:\nERROR failed to read chapter `docs/site/src/reference/releases.md`\n\tCaused by: No such file or directory (os error 2)\n"
+}

@@ -71,8 +71,8 @@ The site runner builds HTML, validates internal links/anchors/assets and complet
 target/docs-tools/mdbook serve docs/site --hostname 127.0.0.1 --port 4180
 ```
 
-The generated site is `target/docs-site`. Navigation, search, themes, and code copying are bundled locally. Authored chapters are under `docs/site/src`; generated output stays ignored. See the [publishing guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/documentation-site.md) for GitHub Pages setup and content maintenance.
+The generated site is `target/docs-site`. Navigation, search, themes, and code copying are bundled locally. Authored chapters are under `docs/site/src`; generated output stays ignored. See the [publishing guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/documentation-site.md) for GitHub Pages setup and content maintenance.
 
 ## Further developer references
 
-[Task API](https://github.com/Haardt/dctx0ctl/blob/main/docs/tasks.md), [conformance reviews](https://github.com/Haardt/dctx0ctl/blob/main/docs/conformance-reviews.md), [coverage](https://github.com/Haardt/dctx0ctl/blob/main/docs/coverage.md), and [architecture boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/refactoring.md) retain detailed contracts and checkpoint evidence.
+[Task API](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/tasks.md), [conformance reviews](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/conformance-reviews.md), [coverage](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/coverage.md), and [architecture boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/refactoring.md) retain detailed contracts and checkpoint evidence.

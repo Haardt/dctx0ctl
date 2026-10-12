@@ -31,7 +31,7 @@ go -C examples/cinema-go mod download
 dctx0 verify run examples/cinema-go/dctx0 --project examples/cinema-go --no-adopt
 ```
 
-A managed build compiles the worker once, records selected packages and compiler inputs, and captures the actual executable. Central Rust assessment supplies the verdicts. [Go target boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/go-target.md) document supported module/dependency capture.
+A managed build compiles the worker once, records selected packages and compiler inputs, and captures the actual executable. Central Rust assessment supplies the verdicts. [Go target boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/go-target.md) document supported module/dependency capture.
 
 ## Rust
 
@@ -42,7 +42,7 @@ cargo fetch --manifest-path examples/cinema-rust/.dctx0/testing/rust/Cargo.toml 
 dctx0 verify run examples/cinema-rust/dctx0 --project examples/cinema-rust --no-adopt
 ```
 
-Managed Cargo builds are offline/locked. Captured package/toolchain inputs and the archived worker executable receive separate provenance. A guarded cache avoids recompiling unchanged dependencies. [Rust target boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/rust-target.md) document C toolchain capture and unsupported overrides.
+Managed Cargo builds are offline/locked. Captured package/toolchain inputs and the archived worker executable receive separate provenance. A guarded cache avoids recompiling unchanged dependencies. [Rust target boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/rust-target.md) document C toolchain capture and unsupported overrides.
 
 ## Editable profiles
 

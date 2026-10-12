@@ -34,7 +34,7 @@ dctx0 tasks context <spec-root> T42 --section implementation
 
 `next` is read-only; `claim-next` is atomic. Explicit start, release, and complete transitions require actor, claim, and version guards. Use `tasks slice` / `claim-slice` for dependency-closed work bundles. Reserving a later task does not mark its prerequisites delivered.
 
-Work (`Open`, `Progress`, `Done`) and testing (`Unverified`, `PASS`, `FAIL`) are separate. Manual completion and review approval do not manufacture testing PASS. See the [task API guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/tasks.md) for exact transition arguments.
+Work (`Open`, `Progress`, `Done`) and testing (`Unverified`, `PASS`, `FAIL`) are separate. Manual completion and review approval do not manufacture testing PASS. See the [task API guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/tasks.md) for exact transition arguments.
 
 ## 4. Prepare testing artifacts
 

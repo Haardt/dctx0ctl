@@ -54,4 +54,4 @@ dctx0 verify attest <spec-root> <run-id> --project <app-root> --file <task-repor
 
 Authored inspection notes can also be supplied explicitly. Hashes establish which inputs were reviewed, not whether the review was substantive. Meaningful tests and genuine inspection remain necessary.
 
-See the [complete conformance-review contract](https://github.com/Haardt/dctx0ctl/blob/main/docs/conformance-reviews.md).
+See the [complete conformance-review contract](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/conformance-reviews.md).

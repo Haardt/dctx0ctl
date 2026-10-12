@@ -35,4 +35,4 @@ dctx0 editor install zed --output "$HOME/dctx0-editors"
 
 VS Code receives a local VSIX with client, syntax assets, and native server. `--activate` invokes `code --install-extension`. Zed uses its **install dev extension** UI with the generated directory; bundle preparation additionally uses Git. These are local packages, not a claim of marketplace publication.
 
-Read the [skill installation guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/skills.md) and [editor acceptance/setup](https://github.com/Haardt/dctx0ctl/blob/main/docs/editors.md).
+Read the [skill installation guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/skills.md) and [editor acceptance/setup](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/editors.md).

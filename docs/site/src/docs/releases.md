@@ -48,4 +48,4 @@ git push origin v0.1.0
 
 Tag the reviewed, committed version and matching lockfile. The installer URLs become available after the first successful release. CI uses GitHub's native runners; systemd memory limits apply only on Linux. Local distribution validation records test results and packaging/startup speed/RAM in the latest 20 measurement reports.
 
-See the repository's [release maintainer guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/releases.md) for commands, provenance and platform boundaries.
+See the repository's [release maintainer guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/releases.md) for commands, provenance and platform boundaries.

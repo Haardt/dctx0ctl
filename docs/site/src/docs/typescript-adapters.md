@@ -51,4 +51,4 @@ dctx0 verify run <spec-root> --project <app-root> --no-adopt
 
 The configuration selects explicit subjects/tasks and deterministic budgets. An empty scope is not whole-application verification. Prepare Bun dependencies before execution.
 
-For real storage and transport assurance, include persistence/HTTP checks. Mock replies establish consumer behavior under those replies, not the production provider's correctness. See [evidence](evidence.md), [workflow](workflow.md), and the [SDK/harness guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/bun-harness.md).
+For real storage and transport assurance, include persistence/HTTP checks. Mock replies establish consumer behavior under those replies, not the production provider's correctness. See [evidence](evidence.md), [workflow](workflow.md), and the [SDK/harness guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/bun-harness.md).

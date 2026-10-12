@@ -47,4 +47,4 @@ separately in final release measurements.
 
 ## Additional Gin HTTP variant
 
-The existing HTTP implementation remains the default. The additional Gin router reuses this application and its unchanged Cinema spec. See [framework setup](../../docs/http-frameworks.md) for production selection, adapter configuration, optional profiles, tests and limits.
+The existing HTTP implementation remains the default. The additional Gin router reuses this application and its unchanged Cinema spec. See [framework setup](../../docs/site/src/reference/http-frameworks.md) for production selection, adapter configuration, optional profiles, tests and limits.

@@ -1,7 +1,7 @@
 # Home Cinema DCTX0
 
 The Rust consumer acceptance exercise is documented in
-[cinema-acceptance.md](../../docs/cinema-acceptance.md). Run it from the repository
+[cinema-acceptance.md](../../docs/site/src/reference/cinema-acceptance.md). Run it from the repository
 root with `PATH=/home/held/.cargo/bin:$PATH python3 scripts/cinema_acceptance.py`.
 It uses a fresh Cinema copy, records speed/RAM and exercises editable profiles,
 task claims, native checks and selective adaptations. The small `src/domain`
@@ -10,7 +10,7 @@ yet contain the complete application described by the historical guide below.
 
 A second bounded exercise covers exactly FilmId, the VotingRules contract and
 the pure candidateOrderWinner operation. See
-[cinema-chain.md](../../docs/cinema-chain.md), or run
+[cinema-chain.md](../../docs/site/src/reference/cinema-chain.md), or run
 `PATH=/home/held/.cargo/bin:$PATH python3 scripts/cinema_chain_acceptance.py`
 from the repository root. It leaves all other tasks, including full module
 integration, Open.

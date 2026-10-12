@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "id": "20261012T154218.433828Z-1375430",
+  "timestamp": "2026-10-12T15:42:18.433828+00:00",
+  "workload": "documentation-site",
+  "status": "failed",
+  "metadata": {
+    "revision": "2b67dd013fd8aa23c7e5293455eee43b888c717b",
+    "dirty_worktree": true,
+    "content_hash": "d405f4861dfab80da117cff8bb934b6b925aeaefd8ba18b7567cd2948b0a4244",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 11195736064
+    },
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "mdbook": "mdbook v0.5.4",
+  "dctx0_sha256": "dfc00c5859b042755e9caf189e35398c43d209e129a8de82578efc49fbe91940",
+  "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
+  "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
+  "seed": null,
+  "features": "mdBook official release HTML/search renderer",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted documentation baseline; core baseline unchanged."
+  },
+  "measurements": {
+    "build-validation": [
+      {
+        "elapsed_ms": 224.47834799822886,
+        "peak_rss_bytes": 117891072,
+        "exit_code": 0
+      }
+    ],
+    "build-warmup": [
+      {
+        "elapsed_ms": 203.95188400289044,
+        "peak_rss_bytes": 118022144,
+        "exit_code": 0
+      }
+    ],
+    "release-build": [
+      {
+        "elapsed_ms": 203.24324100511149,
+        "peak_rss_bytes": 117989376,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 193.88444599462673,
+        "peak_rss_bytes": 118136832,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 193.73704500321764,
+        "peak_rss_bytes": 117927936,
+        "exit_code": 0
+      }
+    ]
+  },
+  "summary": {
+    "samples": 3,
+    "median_elapsed_ms": 193.88444599462673,
+    "peak_rss_bytes": 118136832
+  },
+  "failure": "Site link validation failed:\nreference/cinema-acceptance.html: missing evidence/cinema-acceptance-20261009.json\nreference/cinema-chain.html: missing evidence/cinema-chain-20261009.json\nreference/tasks-validation.html: missing ../benchmarks/history/20261009T181143.296099Z-266218.json\nreference/tasks-validation.html: missing ../benchmarks/history/20261009T204355.303593Z-387911.json\nreference/verification-run.html: missing ../benchmarks/history/20261010T081157.183186Z-871771.json\nreference/verification-run.html: missing ../benchmarks/history/20261010T082313.972831Z-882559.json"
+}

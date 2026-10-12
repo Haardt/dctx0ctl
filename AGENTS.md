@@ -14,7 +14,7 @@ Diff facets distinguish contracts (declarations/signatures), behavior (modeled e
 
 Compilation validates modeled rules; it does not execute examples, invariants, properties, or lifecycles. The pure expression interpreter, deterministic input generation, validated-IR plan projection and explicit finite-plan assessment are implemented foundations. A separate target SDK and generated Bun transport are implemented. Managed native verification, automatic adoption, agent execution and UI remain future work. Opaque trace labels retain an unmodeled status; never present them as resolved dependencies or execution evidence. Explicit rename currently covers declarations and scoped descendants; fields, parameters, and enum alternatives need dedicated operations.
 
-The Cinema scenario increment (2026-10-10) passes 202 Rust tests and 8 Python tests, plus 4 Bun conformance tests, with 100% merged source-line (14,526 lines) and LLVM function coverage (1,232 functions). Preserve raw LLVM metrics separately; this is not a claim of complete branch coverage. Current task validation is recorded in `docs/tasks-validation.md` and `docs/coverage.md`; earlier refactoring evidence remains in `docs/refactoring.md` and `benchmarks/refactoring-comparison.json`. Update this dated status when capabilities change.
+The Cinema scenario increment (2026-10-10) passes 202 Rust tests and 8 Python tests, plus 4 Bun conformance tests, with 100% merged source-line (14,526 lines) and LLVM function coverage (1,232 functions). Preserve raw LLVM metrics separately; this is not a claim of complete branch coverage. Current task validation is recorded in `docs/site/src/reference/tasks-validation.md` and `docs/site/src/reference/coverage.md`; earlier refactoring evidence remains in `docs/site/src/reference/refactoring.md` and `benchmarks/refactoring-comparison.json`. Update this dated status when capabilities change.
 
 ## Project Structure & Architecture
 
@@ -38,7 +38,7 @@ Dependencies point toward the core; the core must never import targets. Keep AST
 
 ## Task Planning Direction
 
-Task planning and administration are implemented in `dctx0-tasks`, with SQLite schema version 3 and `dctx0 tasks` Markdown/JSON commands. See `docs/tasks.md` for the implemented API. Task creation, waves and understandable task inspection remain established workflows. Pure interpreter work resumes for the adaptive verification stages documented in `docs/verification-architecture.md`. See `docs/tasks-analysis.md` for original-code findings, confirmed requirements, and the proposed increment.
+Task planning and administration are implemented in `dctx0-tasks`, with SQLite schema version 3 and `dctx0 tasks` Markdown/JSON commands. See `docs/site/src/reference/tasks.md` for the implemented API. Task creation, waves and understandable task inspection remain established workflows. Pure interpreter work resumes for the adaptive verification stages documented in `docs/site/src/reference/verification-architecture.md`. See `docs/site/src/reference/tasks-analysis.md` for original-code findings, confirmed requirements, and the proposed increment.
 
 Task creation is target-neutral: derive work from a valid snapshot, intents, constraints, decisions, and examples. Language/framework choice, file projections, native checks, and agent execution belong to later stages. Use a pure core-owned planner, a separate task DAG, versioned SQLite plans, and read-only list/show queries. Every hard prerequisite needs an explainable reason; semantic calls and write-resource conflicts are separate relationships. The first wave has no open prerequisites; tasks within each wave are independent. Release later work after its prerequisite results are delivered. Provide on-demand task context and predecessor results with pinned snapshot provenance.
 
@@ -48,9 +48,9 @@ A relevant specification change creates new change tasks with new IDs; never aut
 
 Historical PASS tasks are implementation context for their old requirements, not proof of the current spec. Produce delta-oriented tasks explaining existing results, changed requirements, and requested adaptations. Generate context on demand; listing saved tasks must not claim working-tree freshness.
 
-The implemented task guide supersedes the earlier API drafts in `docs/tasks-api.md`. Use one filtered list query for wave/state/kind/subject combinations. Keep read-only `next` separate from atomic `claim_next`; parallel workers must not receive the same task. Read-only `show` and `next` include the actual assignment, contract-specific acceptance and required paginated context. Include complete original declarations for entities/messages/events and required types; avoid duplicate own-type excerpts and initial change noise. Derive presentation from pinned snapshots without rewriting saved definitions. Show/context/history queries expose pinned requirements, predecessor results, changes, and blocker reasons. Work transitions use explicit start/release/complete actions rather than a generic status setter. Review may be a normal task when explicitly required, but LLM review is separate from testing PASS and review execution is deferred.
+The implemented task guide supersedes the earlier API drafts in `docs/site/src/reference/tasks-api.md`. Use one filtered list query for wave/state/kind/subject combinations. Keep read-only `next` separate from atomic `claim_next`; parallel workers must not receive the same task. Read-only `show` and `next` include the actual assignment, contract-specific acceptance and required paginated context. Include complete original declarations for entities/messages/events and required types; avoid duplicate own-type excerpts and initial change noise. Derive presentation from pinned snapshots without rewriting saved definitions. Show/context/history queries expose pinned requirements, predecessor results, changes, and blocker reasons. Work transitions use explicit start/release/complete actions rather than a generic status setter. Review may be a normal task when explicitly required, but LLM review is separate from testing PASS and review execution is deferred.
 
-Context delivery and atomic slice reservation are implemented; actual agent execution remains deferred. Historical sizing evidence remains in `docs/tasks-context.md`. Default context should contain the current task's essential requirements and compact prerequisite/history overviews; full predecessor tasks and historical bodies are loaded explicitly by ID/section. Do not silently truncate mandatory constraints, examples, or type contracts. Report incomplete sections and pinned cursors; token counts must name their tokenizer and serialization. `docs/task-context-sizing.json` measures historical artifacts with a reference tokenizer, not new Rust tasks or whole agent-run consumption.
+Context delivery and atomic slice reservation are implemented; actual agent execution remains deferred. Historical sizing evidence remains in `docs/site/src/reference/tasks-context.md`. Default context should contain the current task's essential requirements and compact prerequisite/history overviews; full predecessor tasks and historical bodies are loaded explicitly by ID/section. Do not silently truncate mandatory constraints, examples, or type contracts. Report incomplete sections and pinned cursors; token counts must name their tokenizer and serialization. `docs/task-context-sizing.json` measures historical artifacts with a reference tokenizer, not new Rust tasks or whole agent-run consumption.
 
 A later-wave task may anchor a dependency-closed work slice. Traverse its actual prerequisites, not every task in earlier waves; historical links stay separate. Show all ancestor overviews, delivered boundary results, open work, external blockers, and tasks owned by other workers. A slice is independently actionable only when every prerequisite is included or supplied by an appropriate existing result. Bundle reservation must be atomic; preserve individual task IDs, work states, wave order, history, and testing evidence. Reserve later tasks without claiming their prerequisites have already been delivered. Viewing context alone never authorizes or reserves execution.
 
@@ -96,7 +96,7 @@ cargo test --workspace --all-features
 python3 scripts/coverage.py # 97% merged source lines and LLVM functions
 ```
 
-The coverage stage preserves raw LLVM metrics and strictly enforces every merged LCOV source line; see `docs/coverage.md` for the instrumented-instance reporting limitation. It requires `cargo-llvm-cov` and the toolchain's `llvm-tools-preview` component. Document CLI usage and native target toolchain setup in `README.md`. Test supported feature combinations separately when all-features testing cannot represent them.
+The coverage stage preserves raw LLVM metrics and strictly enforces every merged LCOV source line; see `docs/site/src/reference/coverage.md` for the instrumented-instance reporting limitation. It requires `cargo-llvm-cov` and the toolchain's `llvm-tools-preview` component. Document CLI usage and native target toolchain setup in `README.md`. Test supported feature combinations separately when all-features testing cannot represent them.
 
 ## Coding Style & Naming Conventions
 
@@ -117,7 +117,7 @@ Target **97% line and function coverage of first-party Rust production code**, e
 
 Cover success, rejection, boundary, timeout, cancellation, and unavailable-toolchain paths. Use unit tests near implementation, integration tests under each crate's `tests/`, and descriptive behavior-based names. Run doctests separately where coverage instrumentation does not support them. Compare parser, IR, interpreter, and target behavior against shared reference fixtures; document intentional deviations. Exercise real native compilers and harnesses in integration CI, not only mocks.
 
-Merge coverage across required platform/feature jobs where necessary. Any technically unreachable or unmeasurable code needs a narrowly scoped, documented exclusion explaining the limitation and alternative validation. Record exclusions and tooling limitations in `docs/coverage.md` when introduced. Never exclude ordinary error paths, lower the user-approved 97% thresholds, or add meaningless tests just to obtain 100%. Report coverage of non-Rust target helpers separately; Rust instrumentation does not measure them.
+Merge coverage across required platform/feature jobs where necessary. Any technically unreachable or unmeasurable code needs a narrowly scoped, documented exclusion explaining the limitation and alternative validation. Record exclusions and tooling limitations in `docs/site/src/reference/coverage.md` when introduced. Never exclude ordinary error paths, lower the user-approved 97% thresholds, or add meaningless tests just to obtain 100%. Report coverage of non-Rust target helpers separately; Rust instrumentation does not measure them.
 
 Coverage tooling reference: https://github.com/taiki-e/cargo-llvm-cov
 
@@ -170,7 +170,7 @@ Explicit previews and selections create new Open/Unverified adaptation IDs for
 completed work, retain old results and revise affected integration/review tasks.
 Other implementation tasks are not automatically recreated. Typed adaptations
 survive replanning; legacy follow-up reasons retain read fallback. PASS never
-asserts automated verification of free-form profile notes. See `docs/profiles.md`.
+asserts automated verification of free-form profile notes. See `docs/site/src/reference/profiles.md`.
 
 Release measurement provenance includes target crates and embedded defaults.
 The runner includes 40 profile workloads in addition to the accepted 34; new
@@ -182,19 +182,19 @@ It passes 27 workflow assertions and 18 native TypeScript/Bun tests for the
 ReleaseYear contract, including meaningful mutation checks, and records 37
 Cinema-only release workloads. It uses isolated profile/task history and leaves
 the reference spec untouched; it does not execute runatron-next. See
-`docs/cinema-acceptance.md` and its retained evidence for scope and memory limits.
+`docs/site/src/reference/cinema-acceptance.md` and its retained evidence for scope and memory limits.
 
 A bounded three-task Cinema follow-up is available through
 `PATH=/home/held/.cargo/bin:$PATH python3 scripts/cinema_chain_acceptance.py`.
 It passes 15 workflow assertions and 12 focused native tests for FilmId,
 the VotingRules contract and candidateOrderWinner, with strict TypeScript
 checking and three representative release phases. All other tasks stay Open.
-`docs/cinema-chain.md` records the result handoff, bounded invariant checks and
+`docs/site/src/reference/cinema-chain.md` records the result handoff, bounded invariant checks and
 the unmodeled empty-vote decision; this does not build the complete application.
 
 ## Adaptive verification decision (2026-10-10)
 
-See `docs/verification-architecture.md` for the accepted external-harness and
+See `docs/site/src/reference/verification-architecture.md` for the accepted external-harness and
 adaptive-adapter direction, stage boundaries and evidence invariants. Production
 code remains independent of dctx0. Default generation creates testing artifacts
 only; production generation is optional future work. Interpreter work resumes
@@ -212,8 +212,8 @@ Verification foundation validation (2026-10-10): 142 all-feature Rust tests and
 native verification. Four new release workloads measure unbound evaluation and
 assessment for both complete example IRs; they do not execute applications and
 remain unassessed against the accepted baseline. See
-`docs/verification-foundation.md` for implemented scope and remaining stages, and
-`docs/verification-validation.md` for retained validation/performance evidence.
+`docs/site/src/reference/verification-foundation.md` for implemented scope and remaining stages, and
+`docs/site/src/reference/verification-validation.md` for retained validation/performance evidence.
 
 Cinema goal continuation (2026-10-10): runtime contract checking now covers aliases,
 records, variants, lists/options, UUID, RFC3339 Timestamp, finite Float wire values,
@@ -221,7 +221,7 @@ modeled ranges and executable where clauses. Pure returns must satisfy their IR
 result contract. The checkpoint passes 148 Rust/8 Python tests, 11,590 merged source
 lines and 977 LLVM functions at 100%. Development speed/RSS evidence uses reduced
 samples and is explicitly unassessed against the accepted baseline. The complete
-Cinema objective remains active; see `docs/cinema-verification-progress.md` and
+Cinema objective remains active; see `docs/site/src/reference/cinema-verification-progress.md` and
 `docs/cinema-contract-validation.json`. No harness/adoption completion is claimed.
 
 Cinema generation checkpoint (2026-10-10): deterministic target-neutral corpora
@@ -230,7 +230,7 @@ contract-valid values; finite spaces and bounded selection remain distinct.
 Validation passes 155 Rust/8 Python tests and 100% of 12,065 merged source lines
 and 1,016 LLVM functions. Two generation workloads bring the runner to 80. Reduced
 development measurements are incompatible/unassessed against the accepted
-baseline. See `docs/verification-generation.md`; full native Cinema verification,
+baseline. See `docs/site/src/reference/verification-generation.md`; full native Cinema verification,
 plan projection, CLI/history/adoption, mocks and lifecycle execution remain open.
 
 Cinema projection continuation (2026-10-10): target-neutral plans now retain all
@@ -241,7 +241,7 @@ remain open. `verify plan` supports explicit subjects/tasks and historical check
 occurrences, reading published snapshots without task changes or implicit checks.
 Current spec source drift and mismatched task/check occurrences are rejected.
 The runner adds two projection phases (82 workloads); accepted baseline remains
-unchanged. See `docs/verification-planning.md`. Native harness execution, run
+unchanged. See `docs/site/src/reference/verification-planning.md`. Native harness execution, run
 history, adoption, mocks and actual lifecycle execution remain outstanding.
 
 Cinema projection validation (2026-10-10): 173 Rust/8 Python tests pass; merged
@@ -263,7 +263,7 @@ separate native transport costs; development settings remain unassessed. Embedde
 TS helpers participate in release provenance. CI installs Bun 1.4.2 and retains
 native reports. `--focus native-transport` is partial development validation only;
 coverage acceptance still requires workspace focus. No full Cinema verification
-or adoption is claimed. See `docs/bun-harness.md` for missing managed limits,
+or adoption is claimed. See `docs/site/src/reference/bun-harness.md` for missing managed limits,
 exception classification, central scenario evaluation and helper coverage.
 
 
@@ -277,7 +277,7 @@ or lifecycles and supplies no authenticated adoption authority. The coupled
 workspace check passes 192 Rust/8 Python/4 Bun tests, 13,979 merged lines and 1,183
 LLVM functions at 100%, with 84 release speed/RSS workloads and separate native
 process samples. No coverage exclusion, threshold or baseline change was made.
-See `docs/native-executor.md` and retained `docs/native-executor-validation.json`.
+See `docs/site/src/reference/native-executor.md` and retained `docs/native-executor-validation.json`.
 Complete native scenario orchestration, application implementation, verification
 CLI/history/provenance/adoption and helper line coverage remain required.
 
@@ -297,7 +297,7 @@ are never repaired by it. The regular Cinema TypeScript check passes with separa
 compiler speed/RSS evidence. The coupled workspace check passes 202 Rust/8 Python/
 4 Bun tests and 14,526 merged lines/1,232 LLVM functions at 100%, with 84 release
 workloads. Baseline, coverage thresholds and exclusions remain unchanged.
-See `docs/cinema-scenarios.md` and `docs/cinema-scenarios-validation.json`.
+See `docs/site/src/reference/cinema-scenarios.md` and `docs/cinema-scenarios-validation.json`.
 Actual production ports, Hono/Awilix/HTTP wiring, operation requires/ensures/call
 counts, state/lifecycles, whole-plan execution, verification CLI/history/provenance/
 adoption and native helper line coverage remain required. Transport errors need
@@ -316,7 +316,7 @@ functions, separately from Rust and generic worker/adapter coverage. The complet
 and 36 native Cinema tests, with 15,332 merged Rust lines and 1,298 LLVM functions
 at 100%. All 84 paired release workloads complete in
 `20261010T042938.796798Z-712215.json`; development settings remain unassessed and
-the accepted baseline is unchanged. Intermediate failures are retained. See `docs/cinema-state-lifecycles.md`
+the accepted baseline is unchanged. Intermediate failures are retained. See `docs/site/src/reference/cinema-state-lifecycles.md`
 and the checkpoint evidence in `docs/cinema-real-validation.json`. Whole-plan
 operation obligations, CLI run/history/replay, safe adoption and partial transport
 evidence remain required. Do not silently resolve the entity-key scope ambiguity
@@ -334,7 +334,7 @@ publication are covered. 224 Rust/8 Python/4 Bun transport/36 native Cinema test
 pass, with 15,619 merged Rust lines and 1,313 LLVM functions at 100%. The runner
 now records 86 release workloads, including two fresh setup phases; development
 settings remain unassessed and the baseline is unchanged. See
-`docs/verification-setup.md` and retained `docs/verification-setup-validation.json`.
+`docs/site/src/reference/verification-setup.md` and retained `docs/verification-setup-validation.json`.
 The next priority remains whole-plan native execution and run/show/replay,
 immutable schema-4 history, guarded adoption and structural discovery. Do not
 replace that missing workflow with more isolated library acceptance claims.
@@ -350,7 +350,7 @@ a report never changes task progress/testing/adoption; self-declared native orig
 is not authority. 229 Rust/8 Python/4 Bun transport/36 native Cinema tests pass,
 with 15,894 merged lines and 1,343 LLVM functions at 100%. All 90 paired release
 workloads complete; development sampling remains unassessed and the baseline is
-unchanged. See `docs/verification-history.md` and retained
+unchanged. See `docs/site/src/reference/verification-history.md` and retained
 `docs/verification-history-validation.json`. Native run publication, complete
 operation/contract/lifecycle orchestration, guarded adoption, replay/shrink and
 structural discovery remain required; do not mark the full Cinema goal complete.
@@ -378,7 +378,7 @@ explicitly incomplete. Both full spec compiler gates remain unchanged.
 The first full workspace validation passed functional tests but failed 100%
 coverage (99.41% merged lines, 99.28% functions). Additional resource/protocol
 tests are in development; do not claim this preserves current 100% coverage.
-See `docs/verification-run.md`. Finish the missing obligations, restore full
+See `docs/site/src/reference/verification-run.md`. Finish the missing obligations, restore full
 coverage, implement guarded adoption/discovery/replay and complete the full
 Cinema objective; this is not final acceptance.
 
@@ -456,7 +456,7 @@ discovery workloads (92 total), with application-source hashes and process RSS;
 new workloads have no accepted baseline. The first development run is incomplete
 because sources changed during measurement. A fresh full workspace/coverage run
 is pending; do not claim current 100% coverage or full Cinema acceptance. See
-`docs/verification-run.md`. Guarded adoption, complete operations/effect boundaries,
+`docs/site/src/reference/verification-run.md`. Guarded adoption, complete operations/effect boundaries,
 resource observations, shrinking and final acceptance remain required.
 
 Discovery validation (2026-10-10): full workspace/feature functional tests pass,
@@ -491,7 +491,7 @@ never mutates history or authenticates supplied evidence. An explicit store resu
 batch reuses start/complete/check rules in one guarded transaction; it is not
 native execution authority. Automatic adoption remains disabled pending native
 provenance/freshness validation, run/task links and idempotent receipts. See
-`docs/verification-run.md`. The task-pin checkpoint passed focused validation
+`docs/site/src/reference/verification-run.md`. The task-pin checkpoint passed focused validation
 and 92 paired release workloads; full coverage and full Cinema acceptance remain
 incomplete. Do not infer automatic adoption from an imported PASS or Native flag.
 
@@ -540,8 +540,8 @@ suites. Do not invent executable assertions from these names or prose, mark
 reviews/integrations complete or claim a Release-policy PASS. The final aggregate
 and mandatory Rust coverage gate remain outstanding; release performance remains
 deferred and the accepted baseline is unchanged. See
-`docs/cinema-field-mapping-adoption-validation.json`, `docs/cinema-verification-progress.md`
-and `docs/verification-run.md` for scope and evidence.
+`docs/cinema-field-mapping-adoption-validation.json`, `docs/site/src/reference/cinema-verification-progress.md`
+and `docs/site/src/reference/verification-run.md` for scope and evidence.
 
 ### Validation scheduling decision (2026-10-10)
 
@@ -552,7 +552,7 @@ report marks performance deferred and does not update benchmark history or the
 accepted baseline. Coverage remains required. Functional conformance tests for
 benchmark commands remain ordinary tests; release performance measurements and
 regression assessment are deferred to final acceptance. See
-`docs/verification-run.md` for the commands and evidence limits.
+`docs/site/src/reference/verification-run.md` for the commands and evidence limits.
 
 ## Memory and validation decision (2026-10-11)
 
@@ -598,7 +598,7 @@ bound task inspections through guarded start/complete/check transactions, with
 structured review events for review tasks. Original native runs remain immutable;
 agent evidence is visibly separate from automatic adoption. Current production
 Cinema completion and fresh whole-workspace acceptance are still pending. See
-`docs/verification-suite-attestation-progress.md`.
+`docs/site/src/reference/verification-suite-attestation-progress.md`.
 
 Stored inspection continuation (2026-10-11): `verify inspect` retains an effective
 assessment as imported inspection evidence referencing unchanged native cases;
@@ -644,7 +644,7 @@ Actual release Cinema acceptance passes 5,674 mandatory cases with 104 tasks
 Done/PASS and zero unfinished tasks. The aggregate validation passes at the
 user-authorized 97% gate (97.7200% merged lines, 97.0071% LLVM functions), with
 46 Cinema-only release workloads. Baseline comparison is unassessed and the
-accepted baseline is unchanged. See `docs/verification-complete.md` and
+accepted baseline is unchanged. See `docs/site/src/reference/verification-complete.md` and
 `docs/verification-complete-validation.json`.
 
 ## Progressive tutorial checkpoint (2026-10-11)
@@ -662,7 +662,7 @@ external adapters translate representations and invoke actual application code.
 Interpreter version 5 now executes exact `round`/`divide` with bounded scales
 and all four rounding modes; exact finite quotients preserve reference behavior.
 Text refinements and Duration/Bytes/compatibility-option/result builtins have
-central semantics and generator version 3. See `docs/tutorial-language-semantics.md`.
+central semantics and generator version 3. See `docs/site/src/reference/tutorial-language-semantics.md`.
 The fresh-exercise Bash script retains reference solutions and does not copy
 historical approvals. Four independent script tests verify this behavior.
 
@@ -721,7 +721,7 @@ unassessed/incompatible; the accepted baseline and compiler goldens are unchange
 Functional test scratch uses an owned on-disk cache with cleanup, avoiding large
 instrumented SQLite writes in capacity-limited RAM-backed /tmp; release benchmark
 scratch behavior stays unchanged and the 2/3 available-memory/no-swap guard remains.
-See docs/tutorial-acceptance.md and examples/tutorial/validation/complete.json.
+See docs/site/src/reference/tutorial-acceptance.md and examples/tutorial/validation/complete.json.
 
 ## Go target continuation (2026-10-12)
 
@@ -745,7 +745,7 @@ obligations retain UNKNOWN and require authored review. Rust merged source-line
 coverage is 98.13%, LLVM functions 97.39%, meeting the user-approved 97% gate.
 The final release suite records 56 Cinema workloads with performance at the end;
 new workloads/reduced sampling remain unassessed and the baseline is unchanged.
-See docs/go-target.md and docs/go-target-validation.json for evidence and limits.
+See docs/site/src/reference/go-target.md and docs/go-target-validation.json for evidence and limits.
 
 
 Rust target continuation (2026-10-12): Tree-sitter Rust, testing-only native
@@ -755,7 +755,7 @@ SQLite transactions and real HTTP. The first native run passed all 5,674 mandato
 cases without incomplete provenance. Manual review remains separate, and final
 workspace/feature/coverage acceptance is pending. Group checks at the end and
 performance last; preserve the approved 97% gate and accepted baseline. See
-docs/rust-target.md and docs/rust-target-progress.md.
+docs/site/src/reference/rust-target.md and docs/site/src/reference/rust-target-progress.md.
 
 
 Rust target acceptance (2026-10-12): the final frozen-source grouped workspace run
@@ -766,7 +766,7 @@ suite UNKNOWN remains distinct from authored approval. Coverage is 97.94% merged
 source lines and 97.19% LLVM functions; no full branch/native-helper claim follows.
 The final 66 release workloads ran last, source hashes matched and the baseline
 was unchanged. Rust finite verification took about 8.8 seconds, worker RSS about
-7 MB with existing caches. See docs/rust-target.md and docs/rust-target-validation.json.
+7 MB with existing caches. See docs/site/src/reference/rust-target.md and docs/rust-target-validation.json.
 
 Bundled skill installation (2026-10-12): the Rust CLI embeds dctx0,
 dctx0-language and dctx0-implementation with their references. `skills list`,
@@ -777,7 +777,7 @@ errors. Six focused engine/CLI tests, workspace Clippy and formatting pass. A co
 binary installs without repository assets; its repeated six-destination installation
 was unchanged (3.526 ms, child peak RSS 16,445,440 bytes). The shipped language
 example compiles. These checks supplement the historical target acceptance; they
-are not a new full-workspace coverage run. See docs/skills.md.
+are not a new full-workspace coverage run. See docs/site/src/reference/skills.md.
 
 Editor integration continuation (2026-10-12): dctx0-lsp provides a read-only
 compiler-backed stdio language service via `dctx0 lsp`. The Rust CLI prepares
@@ -788,7 +788,7 @@ access. Server tests cover unsaved/versioned UTF-16 edits, project isolation,
 resolved navigation, semantic tokens, cancellation and shutdown. Packaged VS Code
 client/server acceptance and prepared Zed Rust launcher compilation are implemented;
 GUI/store publication is not claimed. Grouped final validation is pending; run
-performance last and retain the approved 97% coverage gate. See docs/editors.md.
+performance last and retain the approved 97% coverage gate. See docs/site/src/reference/editors.md.
 
 Editor error-path follow-up (2026-10-12): full functional/application acceptance
 passed, but the first coverage run measured 97.33% lines and 95.24% LLVM functions.
@@ -823,7 +823,7 @@ complete` consumes current reports without setting testing PASS on review
 completion. `tasks renew-review` creates an idempotent successor bound to changed
 sources and preserves historical reviews. Inspection-note imports remain
 compatible but cannot overrule current bound task reports. See
-`docs/conformance-reviews.md`; validation evidence is recorded after acceptance.
+`docs/site/src/reference/conformance-reviews.md`; validation evidence is recorded after acceptance.
 
 Agent conformance acceptance (2026-10-12): TypeScript, Go and Rust Cinema each pass
 5,674 native cases and the persisted task-review workflow, with 25 obligations,
@@ -860,7 +860,7 @@ exercise the unsupported boundary and must never invent native PASS/adoption.
 Local x64 Linux acceptance is implemented; actual macOS/Windows execution and
 GitHub publication occur only on configured CI runners. PowerShell syntax and
 truncated-input rejection can be checked locally without claiming Windows
-execution. See `docs/releases.md` and retained `docs/release-validation.json`.
+execution. See `docs/site/src/reference/releases.md` and retained `docs/release-validation.json`.
 
 ## Gin and Axum reference integrations (2026-10-12)
 
@@ -896,4 +896,4 @@ client with chunked-response/status/header checks. Review approval remains
 Done/Unverified; it does not convert the 25 native manual/suite UNKNOWN points
 into native PASS. Acceptance scratch/build files use the disk-backed project
 `target/frameworks/tmp`, avoiding RAM-backed `/tmp` pressure. Optional Linux/
-systemd memory guards remain in force. See `docs/http-frameworks.md`.
+systemd memory guards remain in force. See `docs/site/src/reference/http-frameworks.md`.

@@ -47,8 +47,8 @@ Independent application checks are `cargo test --locked` and
 `cargo clippy --all-targets --locked -- -D warnings`. Repository-wide validation
 also exercises all targets, coverage, real production mutations and replay;
 release speed/RSS measurements run last. Final retained acceptance is documented
-in `docs/rust-target.md` at the repository root.
+in `docs/site/src/reference/rust-target.md` at the repository root.
 
 ## Additional Axum HTTP variant
 
-The existing HTTP implementation remains the default. The additional Axum router reuses this application and its unchanged Cinema spec. See [framework setup](../../docs/http-frameworks.md) for production selection, adapter configuration, optional profiles, tests and limits.
+The existing HTTP implementation remains the default. The additional Axum router reuses this application and its unchanged Cinema spec. See [framework setup](../../docs/site/src/reference/http-frameworks.md) for production selection, adapter configuration, optional profiles, tests and limits.
