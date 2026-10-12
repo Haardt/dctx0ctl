@@ -36,6 +36,8 @@ The shell installer needs Bash, curl, tar, and `sha256sum` or `shasum`. It detec
 
 **Managed native verification and automatic adoption currently require Linux.** The macOS/Windows checks establish CLI/LSP/installation and testing SDK transport behavior, plus cancellation of owned test processes. They explicitly verify that unsupported managed execution cannot return PASS or adopt tasks. This does not claim a Windows/macOS port of the Linux process-group and `/proc` provenance machinery.
 
+Local artifact publication syncs file contents before publishing. Unix also syncs parent-directory metadata; Windows has no equivalent directory sync through Rust's portable file API, so that additional crash-durability guarantee is not claimed there.
+
 ## Pin a version or destination
 
 ```sh

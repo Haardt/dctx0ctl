@@ -2,7 +2,7 @@
 use crate::{Error, Project, RenameError, Result};
 use dctx0_core::Source;
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::Write,
     path::{Component, Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
@@ -135,6 +135,9 @@ fn publish_file(path: &Path, bytes: &[u8], replace: bool) -> Result<bool> {
         fs::remove_file(&temporary)?;
     }
     let published = publication?;
-    File::open(parent)?.sync_all()?;
+    // Unix supports syncing directory metadata. Windows does not permit
+    // opening directories through File::open; the file itself was synced above.
+    #[cfg(unix)]
+    fs::File::open(parent)?.sync_all()?;
     Ok(published)
 }
