@@ -40,6 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_BUILD_JOBS: 2
+      CHROMIUM_BIN: /usr/bin/google-chrome
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

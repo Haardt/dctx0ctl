@@ -4,7 +4,9 @@ import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 
 const root = resolve(import.meta.dir, '../target/docs-site');
-const binary = process.env.CHROMIUM_BIN ?? Bun.which('chromium') ?? Bun.which('google-chrome');
+// GitHub's Ubuntu image can expose a Snap Chromium shim that cannot launch
+// in its job environment; prefer the installed native Chrome executable.
+const binary = process.env.CHROMIUM_BIN ?? Bun.which('google-chrome') ?? Bun.which('chromium');
 if (!binary) throw new Error('Chromium is required for --browser; no browser is downloaded.');
 const profile = await mkdtemp(resolve(import.meta.dir, '../target/docs-browser-'));
 const server = Bun.serve({hostname: '127.0.0.1', port: 0, fetch: async request => {
