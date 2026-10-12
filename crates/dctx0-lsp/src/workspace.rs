@@ -88,6 +88,10 @@ impl Workspace {
             }
         }
         for (uri, document) in &self.documents {
+            // Keep the editor's URI, replacing the same disk file even when
+            // macOS symlinks or Windows verbatim paths spell it differently.
+            let path = file_path(uri);
+            sources.retain(|disk_uri, _| file_path(disk_uri) != path);
             sources.insert(uri.clone(), document.text.clone());
         }
         // Each workspace declaration anchors a distinct project, including nested examples.
@@ -191,10 +195,15 @@ impl Snapshot {
     }
 }
 pub(crate) fn file_path(uri: &str) -> Option<PathBuf> {
-    Url::parse(uri).ok()?.to_file_path().ok().filter(|p| {
-        !p.components()
-            .any(|c| matches!(c, std::path::Component::ParentDir))
-    })
+    let path = Url::parse(uri).ok()?.to_file_path().ok()?;
+    if path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return None;
+    }
+    // Open editor documents may not exist on disk yet.
+    Some(fs::canonicalize(&path).unwrap_or(path))
 }
 pub(crate) fn file_uri(path: &Path) -> Result<String, String> {
     Url::from_file_path(path)
@@ -275,6 +284,40 @@ fn discover(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn editor_alias_replaces_canonical_disk_source() {
+        let directory =
+            std::env::temp_dir().join(format!("dctx0-lsp-alias-{}", std::process::id()));
+        let root = directory.join("spec");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join("a.dctx0"),
+            "workspace Platform { type Year = Int }",
+        )
+        .unwrap();
+        let alias = directory.join("alias");
+        std::os::unix::fs::symlink(&root, &alias).unwrap();
+        let uri = file_uri(&alias.join("a.dctx0")).unwrap();
+        let mut workspace = Workspace {
+            roots: vec![fs::canonicalize(root).unwrap()],
+            documents: BTreeMap::new(),
+        };
+        workspace
+            .open(
+                uri.clone(),
+                1,
+                "workspace Platform { type Year = Missing }".into(),
+            )
+            .unwrap();
+        let snapshot = workspace.analyze();
+        assert_eq!(snapshot.projects.len(), 1);
+        assert_eq!(snapshot.versions.get(&uri), Some(&1));
+        let project = snapshot.project(&uri).unwrap();
+        assert_eq!(project.files().count(), 1);
+        assert!(!project.diagnostics(&uri).as_array().unwrap().is_empty());
+        fs::remove_dir_all(directory).unwrap();
+    }
     #[test]
     fn edits_are_atomic_versioned_and_use_utf16() {
         let mut workspace = Workspace {
