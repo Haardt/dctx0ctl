@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "20261012T165357.185431Z-1396173",
+  "timestamp": "2026-10-12T16:53:57.185431+00:00",
+  "workload": "documentation-site",
+  "status": "complete",
+  "metadata": {
+    "revision": "51fb39a73d1a4c5a1d090bf62dfb8f9815a11247",
+    "dirty_worktree": true,
+    "content_hash": "2d0c17425890dd9f0bfa11caa0178b5d16c59b7ac184653c2bc20c40c0118643",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 10839348565
+    },
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "mdbook": "mdbook v0.5.4",
+  "dctx0_sha256": "a3aa7503eca930ddccba3d21a4957156fddf09f2ec7af407a05cd53fcfd16a84",
+  "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
+  "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
+  "seed": null,
+  "features": "mdBook official release HTML/search renderer",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted documentation baseline; core baseline unchanged."
+  },
+  "measurements": {
+    "build-validation": [
+      {
+        "elapsed_ms": 193.70929399156012,
+        "peak_rss_bytes": 118169600,
+        "exit_code": 0
+      }
+    ],
+    "specification-check": [
+      {
+        "elapsed_ms": 30.74084200488869,
+        "peak_rss_bytes": 55554048,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.55277899489738,
+        "peak_rss_bytes": 55554048,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.476476987823844,
+        "peak_rss_bytes": 55554048,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.585145000950433,
+        "peak_rss_bytes": 55554048,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 41.41162199084647,
+        "peak_rss_bytes": 55554048,
+        "exit_code": 0
+      }
+    ],
+    "browser-ui": [
+      {
+        "elapsed_ms": 1327.123536990257,
+        "peak_rss_bytes": 254656512,
+        "exit_code": 0
+      }
+    ],
+    "build-warmup": [
+      {
+        "elapsed_ms": 173.19001200667117,
+        "peak_rss_bytes": 118018048,
+        "exit_code": 0
+      }
+    ],
+    "release-build": [
+      {
+        "elapsed_ms": 173.56900399317965,
+        "peak_rss_bytes": 118390784,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 173.59547900559846,
+        "peak_rss_bytes": 118087680,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 172.94101699371822,
+        "peak_rss_bytes": 118419456,
+        "exit_code": 0
+      }
+    ]
+  },
+  "validation": {
+    "html_pages": 70,
+    "local_links_and_assets": 2153,
+    "external_links": "not fetched; repository/source references are authored URLs",
+    "complete_specs": [
+      "src/docs/getting-started.md:1",
+      "src/docs/language/functional-core.md:1",
+      "src/docs/language/structure.md:1",
+      "src/docs/overview.md:1",
+      "src/docs/tutorial/complete-workshophub.md:1"
+    ],
+    "browser": {
+      "status": "PASS",
+      "checks": [
+        "Desktop landing renders without horizontal overflow under project subpath",
+        "Landing has one navigation bar and readable primary actions",
+        "DCTX0 syntax highlighting is active",
+        "Landing CTA opens the guide with documentation navigation",
+        "Local full-text search returns lifecycle documentation",
+        "Nested complete specification and local font/assets load correctly",
+        "Mobile landing fits a 390px viewport",
+        "Mobile documentation sidebar opens",
+        "Mobile documentation sidebar closes",
+        "Mobile guide fits without page overflow",
+        "Code blocks expose copy controls",
+        "No runtime exceptions or failed asset requests"
+      ],
+      "screenshots": [
+        "target/docs-site-desktop.png",
+        "target/docs-site-mobile.png"
+      ],
+      "memory_scope": "Coupled runner wait4 peak of the child process/reaped descendants; not collective simultaneous RSS"
+    }
+  },
+  "summary": {
+    "samples": 3,
+    "median_elapsed_ms": 173.56900399317965,
+    "peak_rss_bytes": 118419456
+  }
+}

@@ -31,14 +31,17 @@ jobs:
       - name: Browser acceptance
         run: |
           mkdir -p target
-          google-chrome --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+          google-chrome --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-default-browser-check \
             --remote-debugging-port=9228 --user-data-dir="$RUNNER_TEMP/tutorial-browser" about:blank > "$RUNNER_TEMP/browser.log" 2>&1 &
           browser_pid=$!
           trap 'kill "$browser_pid" 2>/dev/null || true' EXIT
-          for attempt in $(seq 1 50); do
-            if curl --fail --silent http://127.0.0.1:9228/json/version > /dev/null; then break; fi
+          browser_ready=0
+          for attempt in $(seq 1 150); do
+            if curl --fail --silent http://127.0.0.1:9228/json/version > /dev/null; then browser_ready=1; break; fi
+            if ! kill -0 "$browser_pid" 2>/dev/null; then cat "$RUNNER_TEMP/browser.log"; exit 1; fi
             sleep 0.2
           done
+          if [[ "$browser_ready" != 1 ]]; then cat "$RUNNER_TEMP/browser.log"; exit 1; fi
           UI_SCREENSHOT=target/tutorial-ui.png bun examples/tutorial/ui-browser-check.ts > examples/tutorial/validation/browser.json
       - name: Prepare locked Cinema application dependencies
         run: |

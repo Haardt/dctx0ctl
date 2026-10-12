@@ -18,9 +18,9 @@ const server = Bun.serve({hostname: '127.0.0.1', port: 0, fetch: async request =
     const file = Bun.file(path);
     return await file.exists() ? new Response(file) : new Response('Not found', {status: 404});
 }});
-const processHandle = Bun.spawn([binary, '--headless', '--no-sandbox', '--disable-gpu',
+const processHandle = Bun.spawn([binary, '--headless', '--no-sandbox', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--disable-dev-shm-usage', '--remote-debugging-port=0', '--user-data-dir=' + profile,
-    'about:blank'], {stdout: 'ignore', stderr: 'ignore'});
+    'about:blank'], {stdout: 'ignore', stderr: 'inherit'});
 let socket: WebSocket | undefined;
 let sequence = 0;
 const pending = new Map<number, {resolve: (value: any) => void, reject: (error: Error) => void, timer: Timer}>();
@@ -67,7 +67,8 @@ try {
             const [port, endpoint] = (await readFile(profile + '/DevToolsActivePort', 'utf8')).trim().split('\n');
             debuggerUrl = `ws://127.0.0.1:${port}${endpoint}`;
         } catch {
-            if (Date.now() - start > 10000) throw new Error('Chromium failed to start.');
+            if (processHandle.exitCode !== null) throw new Error(`Browser exited during startup (${binary}, code ${processHandle.exitCode}).`);
+            if (Date.now() - start > 30000) throw new Error(`Browser startup timed out (${binary}).`);
             await Bun.sleep(25);
         }
     }
