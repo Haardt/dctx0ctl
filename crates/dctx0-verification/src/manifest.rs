@@ -1,5 +1,5 @@
 //! Mandatory case inventory shared by execution, replay and task evidence mapping.
-use crate::{OperationPlan, ProgramPlan};
+use crate::{Expectation, OperationPlan, ProgramPlan};
 use dctx0_core::{StatementKind, VerificationIssue};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -164,6 +164,7 @@ pub fn case_manifest(plan: &ProgramPlan) -> CaseManifest {
             .into_iter()
             .collect::<BTreeSet<_>>();
         requirements.extend(operation.clauses.iter().map(|n| n.id.clone()));
+        requirements.extend(operation.purity_requirements.iter().cloned());
         for case in &operation.cases {
             manifest
                 .case_requirements
@@ -194,9 +195,28 @@ pub fn case_manifest(plan: &ProgramPlan) -> CaseManifest {
         }
     }
     for example in &plan.examples {
+        let mut requirements = BTreeSet::from([example.subject.clone()]);
+        requirements.extend(example.mocks.iter().map(|step| step.source_id.clone()));
+        requirements.extend(
+            example
+                .invocations
+                .iter()
+                .map(|step| step.source_id.clone()),
+        );
+        requirements.extend(
+            example
+                .expectations
+                .iter()
+                .map(|expectation| match expectation {
+                    Expectation::Success { source_id }
+                    | Expectation::Failure { source_id, .. }
+                    | Expectation::Emitted { source_id, .. }
+                    | Expectation::Assertion { source_id, .. } => source_id.clone(),
+                }),
+        );
         manifest
             .case_requirements
-            .insert(example.subject.clone(), [example.subject.clone()].into());
+            .insert(example.subject.clone(), requirements);
     }
     for lifecycle in &plan.lifecycles {
         for path in &lifecycle.paths {

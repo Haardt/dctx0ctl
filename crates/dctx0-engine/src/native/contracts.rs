@@ -61,6 +61,7 @@ impl NativeWorker {
                     )
                 })?;
                 let setup_plan = OperationPlan {
+                    purity_requirements: vec![],
                     precondition_selection: None,
                     operation: operation.clone(),
                     inputs: plan.inputs.clone(),

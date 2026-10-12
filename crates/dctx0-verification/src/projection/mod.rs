@@ -222,6 +222,11 @@ pub fn project_program(
             );
             plan.operations.push(OperationPlan {
                 operation: operation.clone(),
+                purity_requirements: owned(ir, &id)
+                    .into_iter()
+                    .filter(|node| node.kind == StatementKind::Pure)
+                    .map(|node| node.id.clone())
+                    .collect(),
                 inputs,
                 precondition_selection,
                 clauses,

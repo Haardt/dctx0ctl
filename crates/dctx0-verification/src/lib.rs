@@ -267,4 +267,4 @@ mod operation_mocks;
 pub use operation_mocks::{OperationMock, OperationMockSession};
 
 /// Version of central observation and contract assessment, distinct from generation.
-pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-15";
+pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-16";

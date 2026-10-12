@@ -38,6 +38,7 @@ impl NativeWorker {
             }
         }
         let plan = OperationPlan {
+            purity_requirements: vec![],
             precondition_selection: None,
             operation: operation.clone(),
             inputs: InputCorpus {

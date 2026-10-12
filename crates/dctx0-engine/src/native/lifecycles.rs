@@ -118,6 +118,7 @@ impl NativeWorker {
         for invocation in &input.setup {
             let operation = &ir.operations[&invocation.subject];
             let setup_plan = dctx0_verification::OperationPlan {
+                purity_requirements: vec![],
                 precondition_selection: None,
                 operation: operation.clone(),
                 inputs: dctx0_verification::InputCorpus {

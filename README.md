@@ -129,7 +129,7 @@ dctx0 --version
 
 Supports **Linux x86_64/ARM64 (glibc 2.35+) and macOS Intel/Apple Silicon (14+)**. The installer verifies SHA-256 and the binary version, then installs atomically without sudo. It leaves shell profiles untouched. Run the script with **Bash**.
 
-Pin a published release or choose another destination with `bash -s -- --version v0.1.0 --bin-dir /path/to/bin`. See [releases and installation](docs/site/src/docs/releases.md) for exact pinned URLs and manual downloads.
+Pin a published release or choose another destination with `bash -s -- --version v0.1.1 --bin-dir /path/to/bin`. See [releases and installation](docs/site/src/docs/releases.md) for exact pinned URLs and manual downloads.
 
 On **Windows x64**, run in PowerShell:
 
@@ -418,11 +418,11 @@ Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are deve
 
 ## Releases
 
-Pushing a version tag such as `v0.1.0` creates a GitHub Release after full validation and all five native distribution jobs pass. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
+Pushing a version tag such as `v0.1.1` creates a GitHub Release after full validation and all five native distribution jobs pass. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
 
 ```sh
-git tag -a v0.1.0 -m "DCTX0 v0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "DCTX0 v0.1.1"
+git push origin v0.1.1
 ```
 
 The [release workflow](.github/workflows/release.yml) publishes Linux x86_64/ARM64 and macOS Intel/Apple Silicon archives, a Windows x64 ZIP, `install.sh`, `install.ps1`, and `SHA256SUMS`. [The maintainer guide](docs/site/src/docs/releases.md) documents release provenance and coupled installer/performance validation.

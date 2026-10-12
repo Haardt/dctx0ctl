@@ -1,0 +1,30 @@
+workspace CaseCli {
+  surface Text {
+    operation upper(text: String) -> String { pure }
+    operation lower(text: String) -> String { pure }
+  }
+  example "upper mixed" {
+    when result = Text.upper("Hello World")
+    expect result == "HELLO WORLD" }
+  example "lower mixed" {
+    when result = Text.lower("Hello World")
+    expect result == "hello world" }
+  example "upper empty" {
+    when result = Text.upper("")
+    expect result == "" }
+  example "lower empty" {
+    when result = Text.lower("")
+    expect result == "" }
+  example "upper punctuation" {
+    when result = Text.upper("a-B 123!")
+    expect result == "A-B 123!" }
+  example "lower punctuation" {
+    when result = Text.lower("a-B 123!")
+    expect result == "a-b 123!" }
+  example "upper unicode" {
+    when result = Text.upper("Grüße café")
+    expect result == "GRÜßE CAFÉ" }
+  example "lower unicode" {
+    when result = Text.lower("GRÜßE CAFÉ")
+    expect result == "grüße café" }
+}

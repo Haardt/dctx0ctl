@@ -60,6 +60,9 @@ pub struct ContractPlan {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OperationPlan {
     pub operation: OperationIr,
+    /// Source requirements checked by the native pure-operation boundary.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub purity_requirements: Vec<String>,
     pub inputs: InputCorpus,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub precondition_selection: Option<crate::PreconditionSelection>,

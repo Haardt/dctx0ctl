@@ -3790,3 +3790,59 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         original.evidence
     );
 }
+
+#[tokio::test]
+async fn pure_and_example_clause_evidence_adopts_only_after_actual_examples_pass() {
+    let f = Fixture::new(
+        "workspace W { surface Api { operation upper(text:String) -> String { pure } }\nexample \"upper\" { when result = Api.upper(\"Hello\")\nexpect result == \"HELLO\" } }",
+        "W.Api.upper",
+    );
+    fs::write(
+        f.app.join("app.ts"),
+        "export function upper(text:string){return text;}",
+    )
+    .unwrap();
+    f.adapter(r#"import {upper} from '../../../app.ts';
+export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.Api.upper',role:'operation',artifact:'app.ts',entry_point:'upper'}],artifacts:['app.ts'],capabilities:['sessions','invocation','events'],representations:{String:'native string'}};},async begin(){return {async invoke(i){return {kind:'returned',value:{kind:'string',value:upper(i.arguments[0].value)}};},async close(){}};}};"#);
+    create_profiles(
+        &f.app,
+        &dctx0_target_typescript::Provider,
+        true,
+        false,
+        false,
+    )
+    .unwrap();
+    let plan = f.project.task_plan("latest").unwrap();
+    let id = plan
+        .members
+        .iter()
+        .find(|member| member.candidate.subjects == ["W.Api.upper"])
+        .unwrap()
+        .task_id;
+    let before = f.project.task_session(None, None).unwrap().event_seq;
+    let broken = f.run(false).await;
+    assert!(matches!(
+        broken.evidence.run.result,
+        VerificationResult::Fail { .. }
+    ));
+    assert!(broken.adopted_tasks.is_empty());
+    assert_eq!(
+        f.project.task_session(None, None).unwrap().event_seq,
+        before
+    );
+    fs::write(
+        f.app.join("app.ts"),
+        "export function upper(text:string){return text.toUpperCase();}",
+    )
+    .unwrap();
+    let good = f.run(false).await;
+    assert_eq!(good.evidence.run.result, VerificationResult::Pass);
+    assert!(
+        good.adopted_tasks.contains(&id),
+        "{:?}",
+        good.adoption_issues
+    );
+    assert!(good.adoption_issues.is_empty());
+    let repeated = f.run(false).await;
+    assert!(repeated.adopted_tasks.is_empty());
+}

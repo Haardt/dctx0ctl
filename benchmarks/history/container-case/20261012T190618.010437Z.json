@@ -1,0 +1,869 @@
+{
+  "timestamp": "2026-10-12T19:06:18.008859+00:00",
+  "status": "complete",
+  "metadata": {
+    "base_image": "golang:1.25.5",
+    "image_id": "sha256:3e08bd36a50979e7b09561e4b804b1f112c9d6509c0a12b15bd7b1b410e8a34a",
+    "go": "go version go1.25.5 linux/amd64",
+    "binary_sha256": "1dcfce19b832e69b0c59e61a3b5154d23c4db03017f34ea78e12bdf456e1ddae",
+    "revision": "f8ef0481c663d053847b55f266d0f9eeb6876751",
+    "dirty_worktree": true,
+    "fixture_hash": "c2f8b72cb413d130943614ec46cd6d2b924ad29ce9b37c75b8c55282e8ccbebc",
+    "container_memory_limit_bytes": 3221225472,
+    "container_cpus": 2,
+    "cache": "fresh container Go cache; subsequent verification uses warm cache; real network installer"
+  },
+  "baseline_comparison": "unassessed: isolated release consumer workload; core baseline unchanged",
+  "acceptance": {
+    "release": "v0.1.0",
+    "container": "dctx0-case-acceptance",
+    "base_image": "golang:1.25.5",
+    "cases": 24,
+    "examples": 8,
+    "baseline": "PASS",
+    "mutation": "FAIL",
+    "failed_case": "CaseCli.upper mixed",
+    "failed_run": "9c214e2dd4158a868035f644c21ddede06dda09dc7400f0cd16e2d4dea1c71fa",
+    "broken_replay_exit": 1,
+    "repaired_replay_exit": 0,
+    "repaired": "PASS",
+    "agents": "Codex/Claude skill installation and agent guidance; no external LLM sessions started",
+    "spec_scope": "8 explicit casing examples plus generated String result-contract checks; no general all-Unicode casing proof",
+    "memory_limit_bytes": 3221225472,
+    "cpus": 2,
+    "measurements": [
+      {
+        "name": "installer-real",
+        "command": [
+          "bash",
+          "-o",
+          "pipefail",
+          "-c",
+          "curl -fsSL https://github.com/Haardt/dctx0ctl/releases/latest/download/install.sh | bash"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 771.7094370018458,
+        "peak_rss_bytes": 16949248,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "installed-version",
+        "command": [
+          "dctx0",
+          "--version"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 1.723697001580149,
+        "peak_rss_bytes": 12410880,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "profile-preserve",
+        "command": [
+          "dctx0",
+          "profile",
+          "go",
+          "create",
+          "--project",
+          "/work/casecli",
+          "--agents"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 2.703352991375141,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "skills-preserve",
+        "command": [
+          "dctx0",
+          "install",
+          "--project",
+          "/work/casecli",
+          "--agent",
+          "codex,claude"
+        ],
+        "exit_code": 1,
+        "elapsed_ms": 2.1196009911363944,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "task-context",
+        "command": [
+          "dctx0",
+          "tasks",
+          "next",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 8.241256000474095,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "native-go-test",
+        "command": [
+          "go",
+          "test",
+          "./textcase"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 3309.0298530005384,
+        "peak_rss_bytes": 99966976,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "cli-empty",
+        "command": [
+          "./casecli",
+          "upper",
+          ""
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 2.2560840006917715,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "cli-unicode",
+        "command": [
+          "./casecli",
+          "upper",
+          "Gr\u00fc\u00dfe caf\u00e9"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 1.5246629918692634,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "cli-missing",
+        "command": [
+          "./casecli"
+        ],
+        "exit_code": 2,
+        "elapsed_ms": 1.4464180130744353,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "cli-unknown",
+        "command": [
+          "./casecli",
+          "typo",
+          "hello"
+        ],
+        "exit_code": 2,
+        "elapsed_ms": 1.3984499964863062,
+        "peak_rss_bytes": 12673024,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "verify-baseline",
+        "command": [
+          "dctx0",
+          "verify",
+          "run",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--no-adopt",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 765.0092580006458,
+        "peak_rss_bytes": 70307840,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "verify-mutated",
+        "command": [
+          "dctx0",
+          "verify",
+          "run",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--no-adopt",
+          "--json"
+        ],
+        "exit_code": 1,
+        "elapsed_ms": 822.7544049877906,
+        "peak_rss_bytes": 72495104,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "replay-mutated",
+        "command": [
+          "dctx0",
+          "verify",
+          "replay",
+          "dctx0",
+          "9c214e2dd4158a868035f644c21ddede06dda09dc7400f0cd16e2d4dea1c71fa",
+          "--case",
+          "CaseCli.upper mixed",
+          "--project",
+          "/work/casecli",
+          "--json"
+        ],
+        "exit_code": 1,
+        "elapsed_ms": 736.1149630014552,
+        "peak_rss_bytes": 71774208,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "replay-repaired",
+        "command": [
+          "dctx0",
+          "verify",
+          "replay",
+          "dctx0",
+          "9c214e2dd4158a868035f644c21ddede06dda09dc7400f0cd16e2d4dea1c71fa",
+          "--case",
+          "CaseCli.upper mixed",
+          "--project",
+          "/work/casecli",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 773.4388209937606,
+        "peak_rss_bytes": 72736768,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "verify-repaired",
+        "command": [
+          "dctx0",
+          "verify",
+          "run",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--no-adopt",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 765.8253050030908,
+        "peak_rss_bytes": 70156288,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "verify-adopt",
+        "command": [
+          "dctx0",
+          "verify",
+          "run",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 767.5403900066158,
+        "peak_rss_bytes": 72286208,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "tasks-final",
+        "command": [
+          "dctx0",
+          "tasks",
+          "list",
+          "dctx0",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 4.0515820001019165,
+        "peak_rss_bytes": 13328384,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      }
+    ],
+    "distinct_claimed_tasks": [
+      1,
+      2
+    ],
+    "profile_note_frozen_in_claim": true,
+    "task_adoption": "Blocked: published v0.1.0 reports INCOMPLETE_REQUIREMENTS/REQUIREMENT_MAPPING for pure/example facts despite finite-plan PASS; no tasks falsely delivered"
+  },
+  "measurement_sets": {
+    "acceptance-measurements.json": [
+      {
+        "name": "claim-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-a",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 27.29903199360706,
+        "peak_rss_bytes": 11735040,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "claim-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-b",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.606674997485243,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "1",
+          "--actor",
+          "container-agent-a",
+          "--claim",
+          "6",
+          "--version",
+          "1",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 12.578744004713371,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "2",
+          "--actor",
+          "container-agent-b",
+          "--claim",
+          "7",
+          "--version",
+          "1",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.314953989814967,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "claim-measured-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-a",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.401150004123338,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "claim-measured-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-b",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 7.567913009552285,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-measured-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "1",
+          "--actor",
+          "container-agent-a",
+          "--claim",
+          "10",
+          "--version",
+          "3",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.159020002698526,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-measured-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "2",
+          "--actor",
+          "container-agent-b",
+          "--claim",
+          "11",
+          "--version",
+          "3",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.89387699519284,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "final-waves",
+        "command": [
+          "dctx0",
+          "tasks",
+          "waves",
+          "dctx0",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 3.8882920052856207,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      }
+    ],
+    "claim-measurements.json": [
+      {
+        "name": "claim-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-a",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 27.29903199360706,
+        "peak_rss_bytes": 11735040,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "claim-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-b",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.606674997485243,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "1",
+          "--actor",
+          "container-agent-a",
+          "--claim",
+          "6",
+          "--version",
+          "1",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 12.578744004713371,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "2",
+          "--actor",
+          "container-agent-b",
+          "--claim",
+          "7",
+          "--version",
+          "1",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.314953989814967,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "claim-measured-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-a",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.401150004123338,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "claim-measured-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "claim-next",
+          "dctx0",
+          "--actor",
+          "container-agent-b",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 7.567913009552285,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-measured-a",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "1",
+          "--actor",
+          "container-agent-a",
+          "--claim",
+          "10",
+          "--version",
+          "3",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.159020002698526,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "release-measured-b",
+        "command": [
+          "dctx0",
+          "tasks",
+          "release",
+          "dctx0",
+          "2",
+          "--actor",
+          "container-agent-b",
+          "--claim",
+          "11",
+          "--version",
+          "3",
+          "--reason",
+          "Container ownership test complete",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 9.89387699519284,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      },
+      {
+        "name": "final-waves",
+        "command": [
+          "dctx0",
+          "tasks",
+          "waves",
+          "dctx0",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 3.8882920052856207,
+        "peak_rss_bytes": 12255232,
+        "memory_scope": "wait4 child/reaped descendants peak, not collective RAM"
+      }
+    ],
+    "implementation-measurements.json": [
+      {
+        "name": "format",
+        "command": [
+          "gofmt",
+          "-w",
+          "textcase",
+          "cmd",
+          ".dctx0/testing/go/adapter.go"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 3.107288997853175,
+        "peak_rss_bytes": 11706368,
+        "memory_scope": "wait4 child/reaped descendant peak RSS, not collective simultaneous RAM"
+      },
+      {
+        "name": "profile-agents",
+        "command": [
+          "dctx0",
+          "profile",
+          "go",
+          "create",
+          "--project",
+          "/work/casecli",
+          "--agents"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 51.08825799834449,
+        "peak_rss_bytes": 12177408,
+        "memory_scope": "wait4 child/reaped descendant peak RSS, not collective simultaneous RAM"
+      },
+      {
+        "name": "build-cli",
+        "command": [
+          "go",
+          "build",
+          "-o",
+          "casecli",
+          "./cmd/casecli"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 6103.125630994327,
+        "peak_rss_bytes": 250892288,
+        "memory_scope": "wait4 child/reaped descendant peak RSS, not collective simultaneous RAM"
+      },
+      {
+        "name": "upper-cli",
+        "command": [
+          "./casecli",
+          "upper",
+          "Hello World"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 2.4462159926770255,
+        "peak_rss_bytes": 12177408,
+        "memory_scope": "wait4 child/reaped descendant peak RSS, not collective simultaneous RAM"
+      },
+      {
+        "name": "lower-cli",
+        "command": [
+          "./casecli",
+          "lower",
+          "Hello World"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 2.3423730017384514,
+        "peak_rss_bytes": 12177408,
+        "memory_scope": "wait4 child/reaped descendant peak RSS, not collective simultaneous RAM"
+      },
+      {
+        "name": "verify-good",
+        "command": [
+          "dctx0",
+          "verify",
+          "run",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--no-adopt",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 8245.840763993328,
+        "peak_rss_bytes": 253964288,
+        "memory_scope": "wait4 child/reaped descendant peak RSS, not collective simultaneous RAM"
+      }
+    ],
+    "setup-measurements.json": [
+      {
+        "name": "skills",
+        "command": [
+          "dctx0",
+          "install",
+          "--project",
+          "/work/casecli",
+          "--agent",
+          "codex,claude"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 20.874127993010916,
+        "peak_rss_bytes": 11698176,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      },
+      {
+        "name": "profile-help",
+        "command": [
+          "dctx0",
+          "profile",
+          "go",
+          "create",
+          "--help"
+        ],
+        "exit_code": 1,
+        "elapsed_ms": 2.1467670012498274,
+        "peak_rss_bytes": 11829248,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      },
+      {
+        "name": "check",
+        "command": [
+          "dctx0",
+          "check",
+          "dctx0"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 20.016209993627854,
+        "peak_rss_bytes": 11829248,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      },
+      {
+        "name": "profile-create",
+        "command": [
+          "dctx0",
+          "profile",
+          "go",
+          "create",
+          "--project",
+          "/work/casecli"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 60.61752699315548,
+        "peak_rss_bytes": 11829248,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      },
+      {
+        "name": "tasks-plan",
+        "command": [
+          "dctx0",
+          "tasks",
+          "plan",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 21.848677002708428,
+        "peak_rss_bytes": 11829248,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      },
+      {
+        "name": "tasks-waves",
+        "command": [
+          "dctx0",
+          "tasks",
+          "waves",
+          "dctx0",
+          "--json"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 5.326774000423029,
+        "peak_rss_bytes": 11829248,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      },
+      {
+        "name": "verify-init",
+        "command": [
+          "dctx0",
+          "verify",
+          "init",
+          "dctx0",
+          "--project",
+          "/work/casecli",
+          "--target",
+          "go",
+          "--subject",
+          "CaseCli.Text.upper",
+          "--subject",
+          "CaseCli.Text.lower"
+        ],
+        "exit_code": 0,
+        "elapsed_ms": 15.95487300073728,
+        "peak_rss_bytes": 11829248,
+        "memory_scope": "cumulative child high-water RSS for this runner; not incremental or aggregate RAM"
+      }
+    ]
+  }
+}

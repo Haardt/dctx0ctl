@@ -1270,3 +1270,42 @@ fn generated_preparations_are_pinned_exact_typed_unique_inputs() {
         assert!(!plan(&ir, scope(subject), &fixtures).issues.is_empty());
     }
 }
+
+#[test]
+fn mandatory_cases_map_actual_purity_and_example_steps_without_asserting_manual_facts() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "casecli.dctx0".into(),
+        text: "workspace W { surface Text { operation upper(text:String) -> String { pure } }\nexample \"upper\" { when result = Text.upper(\"Hi\")\nexpect result == \"HI\" }\nconstraint \"Review the implementation\" }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let projected = plan(&ir, scope("W"), &Default::default());
+    let manifest = case_manifest(&projected);
+    for node in &ir.nodes {
+        if matches!(
+            node.kind,
+            StatementKind::Pure | StatementKind::When | StatementKind::Expect
+        ) {
+            assert!(
+                manifest
+                    .case_requirements
+                    .values()
+                    .any(|requirements| requirements.contains(&node.id)),
+                "{}",
+                node.id
+            );
+        }
+        if node.kind == StatementKind::Constraint {
+            assert!(
+                manifest
+                    .case_requirements
+                    .values()
+                    .all(|requirements| !requirements.contains(&node.id))
+            );
+        }
+    }
+}
