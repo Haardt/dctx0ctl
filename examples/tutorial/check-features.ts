@@ -81,7 +81,7 @@ if(import.meta.main){
   for(const step of inventory.steps){
     const spec='examples/'+step.directory+'/dctx0';
     const ast=(await command(['parse',spec,'--json'])).trim().split('\n').map(line=>JSON.parse(line));
-    const plan=JSON.parse(await command(['verify','plan',spec,'--json']));
+    const plan=JSON.parse(await command(['verify','plan',spec,'--project','examples/'+step.directory,'--json']));
     const sources=Object.fromEntries(await Promise.all(ast.map(async file=>[file.file,await Bun.file(resolve(root,file.file)).text()])));
     const seen=collectFeatures(ast,plan,sources);
     for(const category of categories)for(const feature of catalog[category])if(seen[category].has(feature)&&!introductions[category].has(feature))introductions[category].set(feature,{step:step.number,span:seen[category].get(feature)});

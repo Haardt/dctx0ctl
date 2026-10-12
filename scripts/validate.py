@@ -369,6 +369,8 @@ def main():
         commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
         commands.insert(1, ['bun', 'run', '--cwd', 'examples/cinema', 'typecheck'])
         commands.insert(2, ['bun', 'test', 'examples/cinema/src', './examples/cinema/.dctx0/testing/typescript/http-integration.test.ts', './examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts'])
+        for index, variant in enumerate(('direct', 'service'), start=3):
+            commands.insert(index, ['bun', 'install', '--frozen-lockfile', '--cwd', f'fixtures/conformance/adaptive-typescript/{variant}'])
         commands.extend([
             ['go', 'mod', 'download', '-C', 'examples/cinema-go'],
             ['go', 'test', '-C', 'examples/cinema-go', '-coverprofile=' + str(ROOT / 'target/go-cinema.coverage'), './...'],

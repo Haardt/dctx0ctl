@@ -127,24 +127,32 @@ for line in sys.stdin:
 #[tokio::test]
 async fn runtime_identity_binds_the_managed_executable_and_initial_environment() {
     let temporary = Temp::new();
-    let mut worker = NativeWorker::spawn(&recipe(ECHO), &temporary.0, NativeLimits::default())
+    // Identity capture requires a live worker, not a process that races its
+    // shutdown acknowledgement against reads of /proc/<pid>.
+    let handshake = r#"
+import sys,json
+for line in sys.stdin:
+ p=json.loads(line)
+ print(json.dumps({'protocol_version':1,'message':{'kind':'reply','id':p['id'],'reply':{'kind':'described','description':{'protocol_version':1,'subjects':[],'artifacts':[],'capabilities':[],'representations':{}}}}}),flush=True)
+"#;
+    let mut worker = NativeWorker::spawn(&recipe(handshake), &temporary.0, NativeLimits::default())
         .await
         .unwrap();
     assert_eq!(
         worker.runtime_identity().unwrap_err().kind,
         NativeFailureKind::Technical
     );
-    assert_eq!(
+    assert!(matches!(
         worker
             .request(
-                WorkerRequest::Shutdown,
+                WorkerRequest::Describe,
                 &NativeCancellation::default(),
                 &mut no_mock
             )
             .await
             .unwrap(),
-        WorkerReply::Bye
-    );
+        WorkerReply::Described { .. }
+    ));
     let identity = worker.runtime_identity().unwrap();
     assert_eq!(identity.schema_version, 1);
     assert_eq!(identity.executable_hash.len(), 64);
