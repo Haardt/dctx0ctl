@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "id": "20261012T111816.499612Z-1116298",
+  "timestamp": "2026-10-12T11:18:16.499612+00:00",
+  "workload": "documentation-site",
+  "status": "failed",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "content_hash": "92888506fbd23a3bcb901247df7841c3a915ea2d22370a1cd9c307f2d452a8aa",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "mdbook": "mdbook v0.5.4",
+  "dctx0_sha256": "34a75b9fa8e78478b9e124aa950ac0d8172fe26b2153136ed9213210a1ebcd02",
+  "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
+  "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
+  "seed": null,
+  "features": "mdBook official release HTML/search renderer",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted documentation baseline; core baseline unchanged."
+  },
+  "measurements": {
+    "build-validation": [
+      {
+        "elapsed_ms": 155.3270029980922,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      }
+    ],
+    "specification-check": [
+      {
+        "elapsed_ms": 31.91306699591223,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 21.240073008812033,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 31.43825700681191,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.725166003103368,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 51.63282800640445,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      }
+    ],
+    "browser-ui": [
+      {
+        "elapsed_ms": 1618.1449110008543,
+        "peak_rss_bytes": 230076416,
+        "exit_code": 1
+      }
+    ],
+    "build-warmup": [
+      {
+        "elapsed_ms": 135.16061900008935,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      }
+    ],
+    "release-build": [
+      {
+        "elapsed_ms": 145.49643399368506,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 137.67041999381036,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 153.37285998975858,
+        "peak_rss_bytes": 55275520,
+        "exit_code": 0
+      }
+    ]
+  },
+  "validation": {
+    "html_pages": 28,
+    "local_links_and_assets": 900,
+    "external_links": "not fetched; repository/source references are authored URLs",
+    "complete_specs": [
+      "src/docs/getting-started.md:1",
+      "src/docs/language/functional-core.md:1",
+      "src/docs/language/structure.md:1",
+      "src/docs/overview.md:1",
+      "src/docs/tutorial/complete-workshophub.md:1"
+    ]
+  },
+  "summary": {
+    "samples": 3,
+    "median_elapsed_ms": 145.49643399368506,
+    "peak_rss_bytes": 55275520
+  },
+  "failure": "browser-ui failed:\n76 |     await send('Page.enable', {}, sessionId);\n77 |     await send('Runtime.enable', {}, sessionId);\n78 |     await send('Network.enable', {}, sessionId);\n79 |     await send('Emulation.setDeviceMetricsOverride', {width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false}, sessionId);\n80 |     await navigate('index.html');\n81 |     assert.match(await evaluate('document.querySelector(\"h1\").textContent'), /Make intent.*executable/s);\n                ^\nAssertionError: The input did not match the regular expression /Make intent.*executable/s. Input:\n\n'DCTX0'\n\n generatedMessage: true,\n     actual: \"DCTX0\",\n   expected: /Make intent.*executable/s,\n   operator: \"match\",\n       diff: \"simple\",\n       code: \"ERR_ASSERTION\"\n\n      at /home/held/workspaces/conpinion/dctx0ctl/scripts/docs_site_browser.ts:81:12\n\nBun v1.4.2 (Linux x64)\n"
+}

@@ -1,5 +1,3 @@
 # Use event
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Consume the delivered event contract without redefining its requirements. Publish the complete event payload and delivery contract without adding unmodeled guarantees.
+Consume the declared payload and delivery semantics. Handle only guarantees actually provided; do not assume ordering, exactly-once delivery or retries. Reuse the owning module's event contract.

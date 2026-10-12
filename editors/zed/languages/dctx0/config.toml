@@ -1,0 +1,14 @@
+name = "DCTX0"
+grammar = "dctx0"
+path_suffixes = ["dctx0"]
+line_comments = ["// "]
+block_comment = ["/* ", " */"]
+tab_size = 2
+hard_tabs = false
+autoclose_before = ";,}])>"
+brackets = [
+  { start = "{", end = "}", close = true, newline = true },
+  { start = "[", end = "]", close = true, newline = false },
+  { start = "(", end = ")", close = true, newline = false },
+  { start = "\"", end = "\"", close = true, newline = false }
+]

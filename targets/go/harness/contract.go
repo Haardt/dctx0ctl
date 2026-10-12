@@ -1,7 +1,10 @@
 // Testing-only wire contract. Production code imports none of these declarations.
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // Value is one language-neutral testing value carried as exact JSON wire text.
 // Kind selects the variant; Value holds the adjacent wire payload, if any.
@@ -106,7 +109,7 @@ type ProjectAdapter interface {
 // InvokeApplication captures only the actual application call; translation
 // failures stay technical and application errors become threw observations.
 func InvokeApplication[T any](operation func() (T, error), encode func(T) Value) Observation {
-	result, err := operation()
+	result, err := CallApplication(operation)
 	if err != nil {
 		return Observation{Kind: "threw", Message: pointerTo(err.Error())}
 	}
@@ -116,4 +119,15 @@ func InvokeApplication[T any](operation func() (T, error), encode func(T) Value)
 
 func pointerTo[T any](value T) *T {
 	return &value
+}
+
+// CallApplication recovers panics only around actual application code. Translation
+// and adapter errors remain technical failures outside this boundary.
+func CallApplication[T any](operation func() (T, error)) (result T, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("Application panic: %v", recovered)
+		}
+	}()
+	return operation()
 }

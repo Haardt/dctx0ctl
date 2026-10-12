@@ -1,5 +1,3 @@
 # Use entity
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered entity contract without redefining its requirements. Publish the complete field, key and state contract; preserve identity and modeled transitions.
+Use the delivered identity and state-change API. Preserve transition rules and avoid direct mutation that bypasses them. Do not rebuild the entity contract or assume a persistence representation.

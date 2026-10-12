@@ -1,5 +1,3 @@
 # Use scalar
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Consume the delivered scalar contract without redefining its requirements. Preserve the declared base type and refinements; validate at the appropriate boundary.
+Import the delivered scalar and use its checked construction path at untrusted boundaries. Preserve refinements and do not create a competing validator or bypass validation with casts/conversions.

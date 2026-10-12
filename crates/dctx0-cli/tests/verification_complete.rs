@@ -14,7 +14,14 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let root = std::env::temp_dir().join(format!("dctx0-cli-complete-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!(
+            "dctx0-cli-complete-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         let app = root.join("app");
         let spec = root.join("spec");
         fs::create_dir_all(&app).unwrap();
@@ -229,4 +236,302 @@ fn complete_cli_executes_real_cases_delivers_reviews_and_rejects_stale_notes_and
             .unwrap(),
         native
     );
+}
+
+#[tokio::test]
+async fn agent_task_reviews_close_obligations_without_notes_or_test_pass_and_reject_stale_sources()
+{
+    use dctx0_tasks::{Action, CheckStatus, WorkState};
+    let fixture = Fixture::new();
+    create_profiles(
+        &fixture.app,
+        &dctx0_target_typescript::Provider,
+        true,
+        false,
+        false,
+    )
+    .unwrap();
+    let check = fixture.project.check().unwrap();
+    fixture
+        .project
+        .task_plan(check.snapshot_id.as_deref().unwrap())
+        .unwrap();
+    let native = fixture
+        .project
+        .run_verification(
+            Some(&fixture.app),
+            Default::default(),
+            &BunHarness,
+            &NativeCancellation::default(),
+            false,
+        )
+        .await
+        .unwrap();
+    assert!(
+        native
+            .evidence
+            .run
+            .cases
+            .iter()
+            .all(|case| case.result == VerificationResult::Pass)
+    );
+    let session = fixture.project.task_session(None, None).unwrap();
+    let member = session
+        .plan
+        .members
+        .iter()
+        .find(|member| member.candidate.kind == dctx0_tasks::TaskKind::Review)
+        .unwrap();
+    let task = member.task_id;
+    let state = fixture
+        .project
+        .task_action(Action::Start {
+            task,
+            actor: "agent".into(),
+            reservation: None,
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+        .args([
+            "verify",
+            "review-template",
+            fixture.spec.to_str().unwrap(),
+            "--project",
+            fixture.app.to_str().unwrap(),
+            "--task",
+            &format!("T{task}"),
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let mut review: dctx0_tasks::ReviewReport = serde_json::from_slice(&output.stdout).unwrap();
+    let blank = fixture.project.task_action(Action::RecordReview {
+        task,
+        actor: "agent".into(),
+        claim: state.claim.unwrap(),
+        version: state.version,
+        report: review.clone(),
+    });
+    assert!(blank.is_err());
+    review.reviewer = "agent".into();
+    review.summary =
+        "Reviewed actual integer/range rejection and the explicit boundary criterion.".into();
+    for (subject, note) in &mut review.conformance.as_mut().unwrap().subjects {
+        note.report = format!(
+            "{subject}: app.ts factory rejects nonintegers and values outside 1..2; adapter.ts calls this actual factory. Native boundary observations are retained in {}.",
+            native.evidence.id
+        );
+        note.limitations =
+            vec!["Source inspection plus finite runtime corpus; no exhaustive proof.".into()];
+    }
+    let rejected = fixture
+        .project
+        .task_action(Action::RecordReview {
+            task,
+            actor: "agent".into(),
+            claim: state.claim.unwrap(),
+            version: state.version,
+            report: review.clone(),
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    // The legacy import cannot overrule the latest source-bound request-changes.
+    let failure = fixture.run(true);
+    assert!(!failure.status.success());
+    assert!(String::from_utf8_lossy(&failure.stderr).contains("Effective assessment incomplete"));
+    let mut legacy_rejection = review.clone();
+    legacy_rejection.conformance = None;
+    let rejected = fixture
+        .project
+        .task_action(Action::RecordReview {
+            task,
+            actor: "agent".into(),
+            claim: rejected.claim.unwrap(),
+            version: rejected.version,
+            report: legacy_rejection,
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    assert!(
+        !fixture.run(true).status.success(),
+        "A later legacy rejection cannot be masked by imported notes"
+    );
+    review.judgement = "approved".into();
+    let approved = fixture
+        .project
+        .task_action(Action::RecordReview {
+            task,
+            actor: "agent".into(),
+            claim: rejected.claim.unwrap(),
+            version: rejected.version,
+            report: review,
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    fixture
+        .project
+        .task_action(Action::Complete {
+            task,
+            actor: "agent".into(),
+            claim: approved.claim.unwrap(),
+            version: approved.version,
+            result: dctx0_tasks::TaskResult {
+                summary: "Reviewed the assigned obligations with source-bound evidence.".into(),
+                artifacts: vec!["app.ts".into()],
+                decisions: vec![],
+                implementation: None,
+            },
+        })
+        .unwrap();
+    let no_notes = || {
+        Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .env("DCTX0_MEMORY_GUARD", "0")
+            .args([
+                "verify",
+                "complete",
+                fixture.spec.to_str().unwrap(),
+                "--project",
+                fixture.app.to_str().unwrap(),
+                "--json",
+            ])
+            .output()
+            .unwrap()
+    };
+    let complete = no_notes();
+    assert!(
+        complete.status.success(),
+        "{}",
+        String::from_utf8_lossy(&complete.stderr)
+    );
+    let report: CompleteVerificationReport = serde_json::from_slice(&complete.stdout).unwrap();
+    assert_eq!(report.result, VerificationResult::Pass);
+    let session = fixture.project.task_session(None, None).unwrap();
+    assert_eq!(session.states[&task].work, WorkState::Done);
+    assert_eq!(session.states[&task].check, CheckStatus::Unverified);
+    assert_eq!(session.states[&task].reviews.len(), 3);
+    assert_eq!(
+        fixture
+            .project
+            .saved_verification_run(&native.evidence.id)
+            .unwrap(),
+        native.evidence
+    );
+    fs::write(
+        fixture.app.join("new-source.ts"),
+        "export const changedDependency = true;",
+    )
+    .unwrap();
+    let stale = no_notes();
+    assert!(!stale.status.success());
+    assert!(String::from_utf8_lossy(&stale.stderr).contains("Effective assessment incomplete"));
+    let renewed = fixture
+        .project
+        .task_renew_review(task, Some(&fixture.app), "Inspect added source")
+        .unwrap();
+    let successor = renewed
+        .members
+        .iter()
+        .find(|member| member.candidate.kind == dctx0_tasks::TaskKind::Review)
+        .unwrap()
+        .task_id;
+    assert_ne!(successor, task);
+    assert_eq!(
+        fixture
+            .project
+            .task_renew_review(task, Some(&fixture.app), "Inspect added source")
+            .unwrap()
+            .id,
+        renewed.id
+    );
+    assert_eq!(
+        fixture
+            .project
+            .task_plan("latest")
+            .unwrap()
+            .members
+            .iter()
+            .find(|member| member.candidate.kind == dctx0_tasks::TaskKind::Review)
+            .unwrap()
+            .task_id,
+        successor
+    );
+    let started = fixture
+        .project
+        .task_action(Action::Start {
+            task: successor,
+            actor: "agent".into(),
+            reservation: None,
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    let mut fresh = fixture
+        .project
+        .conformance_review_template(Some(&fixture.app), successor)
+        .unwrap();
+    fresh.reviewer = "agent".into();
+    fresh.judgement = "approved".into();
+    fresh.summary =
+        "Reinspected the factory and added source: the added constant does not alter validation."
+            .into();
+    for value in fresh.conformance.as_mut().unwrap().subjects.values_mut() {
+        value.report = "app.ts still rejects noninteger and out-of-range values; new-source.ts only exports an unused boolean constant. Adapter calls the actual factory.".into();
+    }
+    let recorded = fixture
+        .project
+        .task_action(Action::RecordReview {
+            task: successor,
+            actor: "agent".into(),
+            claim: started.claim.unwrap(),
+            version: started.version,
+            report: fresh,
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    fixture
+        .project
+        .task_action(Action::Complete {
+            task: successor,
+            actor: "agent".into(),
+            claim: recorded.claim.unwrap(),
+            version: recorded.version,
+            result: dctx0_tasks::TaskResult {
+                summary: "Reinspection complete.".into(),
+                artifacts: vec!["app.ts".into(), "new-source.ts".into()],
+                decisions: vec![],
+                implementation: None,
+            },
+        })
+        .unwrap();
+    let renewed_complete = no_notes();
+    assert!(
+        renewed_complete.status.success(),
+        "{}",
+        String::from_utf8_lossy(&renewed_complete.stderr)
+    );
+    let historical = fixture.project.task_show_session(task, None, None).unwrap();
+    assert_eq!(historical.states[&task].reviews.len(), 3);
+    assert_eq!(historical.states[&task].work, WorkState::Done);
+    let app = fs::read(fixture.app.join("app.ts")).unwrap();
+    fs::write(
+        fixture.app.join("app.ts"),
+        "export function factory(value:unknown){return 1;}",
+    )
+    .unwrap();
+    let mutation = no_notes();
+    assert!(!mutation.status.success());
+    assert!(
+        String::from_utf8_lossy(&mutation.stderr).contains("Complete native evidence required")
+    );
+    fs::write(fixture.app.join("app.ts"), app).unwrap();
 }

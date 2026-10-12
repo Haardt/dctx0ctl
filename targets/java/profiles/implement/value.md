@@ -1,5 +1,3 @@
 # Implement value
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Represent identity and validation explicitly, using existing primitive types where appropriate. UUID-shaped values need no additional UUID dependency.
+Implement the modeled value shape and identity/equality semantics using the common representation rules. Enforce refinements at construction and decoding. Keep value semantics stable across serialization and collection use; do not add lifecycle, persistence or identity generation that the task does not request.

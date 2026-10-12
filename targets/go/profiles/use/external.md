@@ -1,5 +1,3 @@
 # Use external
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Consume the delivered external contract without redefining its requirements. Make external configuration and unavailable dependency behavior explicit.
+Use the configured external adapter and its resource/failure contract. Supply explicit test configuration when exercising it; do not silently reach production services or substitute mocks for integration evidence.

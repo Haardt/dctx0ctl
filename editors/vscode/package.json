@@ -1,0 +1,12 @@
+{
+  "name": "dctx0", "displayName": "DCTX0", "description": "DCTX0 syntax colors and native Rust language server.",
+  "version": "0.1.0", "publisher": "dctx0", "license": "MIT", "engines": {"vscode": "^1.95.0"},
+  "categories": ["Programming Languages"], "activationEvents": ["onLanguage:dctx0"], "main": "./extension.js",
+  "contributes": {
+    "languages": [{"id":"dctx0","aliases":["DCTX0","dctx0"],"extensions":[".dctx0"],"configuration":"./language-configuration.json"}],
+    "grammars": [{"language":"dctx0","scopeName":"source.dctx0","path":"./syntaxes/dctx0.tmLanguage.json"}],
+    "configuration": {"title":"DCTX0","properties":{"dctx0.serverPath":{"type":"string","default":"","description":"Optional path to a native dctx0 executable. Empty uses the bundled executable."}}},
+    "configurationDefaults": {"[dctx0]":{"editor.semanticHighlighting.enabled":true}},
+    "commands": [{"command":"dctx0.restartServer","title":"DCTX0: Restart Language Server"}]
+  }
+}

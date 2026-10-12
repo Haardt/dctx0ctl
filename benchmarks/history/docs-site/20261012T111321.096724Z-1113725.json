@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "id": "20261012T111321.096724Z-1113725",
+  "timestamp": "2026-10-12T11:13:21.096724+00:00",
+  "workload": "documentation-site",
+  "status": "failed",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "content_hash": "b579569e465bd75f0e6d97e01e5385364fb5f82f1d8bfcf2d1c95bb451caf66b",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "mdbook": "mdbook v0.5.4",
+  "dctx0_sha256": "34a75b9fa8e78478b9e124aa950ac0d8172fe26b2153136ed9213210a1ebcd02",
+  "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
+  "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
+  "seed": null,
+  "features": "mdBook official release HTML/search renderer",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted documentation baseline; core baseline unchanged."
+  },
+  "measurements": {
+    "build-validation": [
+      {
+        "elapsed_ms": 61.427061998983845,
+        "peak_rss_bytes": 54943744,
+        "exit_code": 0
+      }
+    ],
+    "specification-check": [
+      {
+        "elapsed_ms": 20.5363569984911,
+        "peak_rss_bytes": 54943744,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.710885000880808,
+        "peak_rss_bytes": 54943744,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.58779999788385,
+        "peak_rss_bytes": 54943744,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.877321003354155,
+        "peak_rss_bytes": 54943744,
+        "exit_code": 1
+      }
+    ]
+  },
+  "validation": {
+    "html_pages": 28,
+    "local_links_and_assets": 899,
+    "external_links": "not fetched; repository/source references are authored URLs"
+  },
+  "failure": "specification-check failed:\n{\"ok\":false,\"source_hash\":\"f9fa9998694fbeb8a7c6c5b750981cf025b6cb4dedbc063d8fe80d37418c610d\",\"snapshot_id\":null,\"changes\":null,\"diagnostics\":[{\"code\":\"DCTX0_UNKNOWN_REFERENCE\",\"message\":\"Cannot resolve PaymentProvider.CardPayments from WorkshopHub.Workshops.WorkshopBooking\",\"span\":{\"file\":\"example.dctx0\",\"start\":{\"offset\":3010,\"line\":114,\"column\":9},\"end\":{\"offset\":3038,\"line\":114,\"column\":37}}}],\"symbols\":0,\"operations\":0}\n"
+}

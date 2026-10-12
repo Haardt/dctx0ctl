@@ -1,5 +1,3 @@
 # Use test
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Consume the delivered test contract without redefining its requirements. Implement and execute the requested checks, preserving replay inputs.
+Reuse relevant existing checks and fixtures without weakening assertions. Run checks appropriate to the changed implementation and distinguish earlier results from current execution. Keep replay inputs and isolation intact.

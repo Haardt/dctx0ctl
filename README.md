@@ -1,285 +1,460 @@
-# dctx0ctl
+# DCTX0
 
-Rust reimplementation of dctx0 from `../runatron`. The Cargo workspace implements the agreed foundations: deterministic multi-file compilation, typed expression IR, semantic dependencies and impact paths, versioned snapshots and change fingerprints, transactional SQLite history, explicit symbol renames, and target-neutral task planning with versioned work history.
+**Make intent executable.**
 
-Both complete example workspaces compile: Cinema (2 sources) and runatron-next (18 sources). Tests compare their statement trees and data/operation models against independently generated TypeScript fixtures. Compilation validates declarations and expressions. Target-neutral task planning and administration are available. Rust centrally evaluates finite verification plans, while generated Bun workers execute actual TypeScript applications through external adapters. The verification CLI, immutable run history, replay and guarded task adoption are implemented. Cinema complete acceptance is documented in [the Rust CLI guide](docs/verification-complete.md); the TypeScript tutorial extends this workflow through 16 cumulative applications. Four target crates supply editable profiles; TypeScript/Bun has CLI execution, and the Go crate additionally supplies SDK worker transport conformance. Opaque `calls Boundary.operation(...) exactly n` labels remain explicitly unmodeled: they do not establish resolved dependencies or prove runtime calls.
+An executable specification language for AI-native software development.
 
-## Setup and commands
+[Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/documentation-site.md)
 
-The [MiniBoard tutorial](examples/tutorial/README.md) introduces the language
-step by step with real TypeScript applications, independent production tests
-and external verification adapters. Its final page creates and completes actual
-tasks. Run it with `cd examples/tutorial-step-16-http-replay && bun run start`,
-then open <http://127.0.0.1:4173/>. Use
-`./examples/tutorial/agent-step.sh 1 -- codex exec --full-auto` to give your
-agent a fresh exercise while retaining the complete reference solutions.
+DCTX0 turns product requirements into a typed, machine-readable contract. That contract drives a dependency-aware task DAG, parallel implementation waves, and verification plans. Once an application exists, DCTX0 checks its actual behavior against the same specification.
 
-Use rustup and place `~/.cargo/bin` before system Cargo in `PATH`. Python 3 and Linux are required for the benchmark runner.
+People and coding agents develop the specification together. People own the product decisions; agents can write and refine the contracts, then implement them. An independent verification core assesses the observations.
+
+> [!WARNING]
+> **Experimental Project**
+>
+> This project is still experimental and has not been optimized for token efficiency.
+> **Use at your own risk!**
+
+## Why DCTX0?
+
+Coding agents can write an implementation and its tests while misunderstanding the same requirement in both. Reviewing more generated code does not necessarily reveal that mismatch.
+
+DCTX0 makes the expected behavior explicit before implementation begins. Data contracts define valid values. Examples describe concrete outcomes. Invariants express general rules. Lifecycles describe state transitions. Architecture intent and review criteria retain the requirements that need human or agent judgment.
+
+The specification becomes a shared language for product owners, developers, and coding agents—and an executable reference for checking what gets built.
+
+**Two central advantages: deterministic validation and coordinated parallel work.** The same contracts that define expected behavior also let DCTX0 derive focused implementation tasks, explain their dependencies, and identify which work can proceed independently.
+
+## From specification to parallel work
+
+DCTX0 derives a **directed acyclic graph (DAG) of implementation tasks** from the validated specification. Each task carries its contract, acceptance criteria, and pinned specification context. Every hard prerequisite explains which result is needed and why, giving people and agents a concrete work plan.
+
+The planner groups tasks into **dependency waves**:
+
+- **The first wave has no open prerequisites** and can start immediately.
+- **Tasks within a wave are independent in the prerequisite graph**, so multiple agents or developers can work on them in parallel, with shared-file changes coordinated separately.
+- **Later tasks become ready when their own prerequisite results are delivered.** Waves describe dependency depth; unrelated unfinished work in an earlier wave does not impose a global barrier.
+
+Atomic task claims prevent two workers from claiming the same task. A worker can also reserve a dependency-closed slice leading to a later task, then complete its prerequisites in order. DCTX0 supplies the required contracts and predecessor results on demand, so each worker can focus on its assignment while retaining the surrounding requirements.
+
+This makes the specification useful for organizing implementation as well as checking it: it exposes parallel work, preserves dependency order, and gives every worker a shared contract. An external coding agent or team executes the tasks; DCTX0 provides planning, context, and guarded coordination.
+
+```sh
+dctx0 tasks plan <spec-root>
+dctx0 tasks waves <spec-root>
+dctx0 tasks claim-next <spec-root> --actor agent-1
+dctx0 tasks claim-next <spec-root> --actor agent-2
+```
+
+Relevant specification changes create new adaptation tasks with explicit links to previous work. Historical results remain tied to their original requirements, and work completion stays separate from testing evidence: **Done does not imply PASS.** See the [task guide](docs/tasks.md) for claims, slices, and change handling.
+
+## Who writes the specification?
+
+**Your coding agent can write it with you.** Describe the product, discuss its rules and edge cases, and let the agent turn those decisions into DCTX0 contracts. The bundled language skill guides specification authoring and validation. You review the intended behavior and resolve open product questions before implementation begins.
+
+At this stage, the agent can focus on the contract: data, operations, dependencies, valid states, and expected outcomes. The specification contains no application implementation. It can express behavior precisely without carrying algorithm bodies, database plumbing, or framework wiring into every discussion.
+
+**The agent can devote its cognitive capacity to the specification.** Its reasoning effort goes into understanding the domain, connecting requirements, and identifying contradictions or missing decisions. Implementation details can wait until the contract is clear. This gives specification work a focused reasoning phase of its own.
+
+That separation makes room for more of the application's behavior in a limited context window. The agent can reason about relationships across the product before loading the implementation details of a particular task. A clear contract gives it fewer product decisions to guess and a concrete reference when it later writes code.
+
+The same benefit applies to people. You can build an understanding of what the application does and review its rules without first reading all its implementation details. When a technical question matters, you can follow it into the relevant code. The specification provides the starting point.
+
+Compilation catches invalid specifications; execution checks whether the application fulfills the modeled requirements. Examples, generated cases, and lifecycle checks help expose mistakes that plausible code alone can hide. Testing the agreed contract against the real implementation helps reduce errors, while keeping the tested scope and remaining gaps visible.
+
+The workflow is **understand the product → specify the contract → review the meaning → implement focused tasks → verify actual behavior**. Language and implementation skills support the agent through both specification and application work.
+
+## A small example
+
+These excerpts come from the [Cinema specification](examples/cinema/dctx0/movie-night.dctx0):
+
+```dctx0
+value ReleaseYear = Int {
+  range 1888..2100
+}
+```
+
+The value contract gives the verifier an explicit validity rule, including boundaries and invalid inputs.
+
+Inside the `FilmCatalog` module, a behavioral example states what happens when a film is missing:
+
+```dctx0
+example "unknown film details" {
+  given FilmCatalogStore.find(filmId) returns None
+  when result = FilmCatalogApi.getFilm(filmId)
+  expect result fails FilmNotFound
+}
+```
+
+The surrounding specification declares the port, surface, and failure. A typed fixture supplies `filmId`. During verification, an external test adapter supplies the declared collaborator reply and invokes the real application operation. The central verifier assesses the observed result.
+
+DCTX0 describes **what must hold**. Your application implements the algorithm, persistence, HTTP wiring, and framework integration in its own language.
+
+## What you can do today
+
+- **Compile specifications:** parse multiple files, compose fragments, resolve names, and check typed expressions and clauses.
+- **Plan implementation work:** derive tasks, prerequisite waves, acceptance criteria, and pinned context with the required type closure.
+- **Coordinate workers:** atomically claim individual tasks or dependency-closed work slices.
+- **Verify real applications:** execute examples, generated contract cases, properties, operation checks, and lifecycle paths through native adapters.
+- **Investigate failures:** retain observations and counterexamples, shrink supported failing inputs, and replay saved cases.
+- **Track change:** compare contract, behavior, fact, and location changes; explain impact paths; record explicit renames.
+- **Retain evidence:** store immutable verification runs and task history, with separate automatic results and source-bound inspections.
+- **Work in your editor:** use the native language server, local VS Code/Zed extensions, and bundled coding-agent skills.
+
+The CLI is written in Rust and runs independently. It does not invoke an LLM; an external coding agent uses its commands and skills.
+
+### Native targets
+
+| Target | Editable implementation profiles | Native verification | Complete Cinema example |
+| --- | --- | --- | --- |
+| TypeScript / Bun | Yes | Yes | [Cinema](examples/cinema/dctx0) |
+| Go | Yes | Yes | [Cinema Go](examples/cinema-go) |
+| Rust | Yes | Yes | [Cinema Rust](examples/cinema-rust) |
+| Java | Yes | Not implemented | — |
+
+The Rust core owns input generation, expectations, assessment, shrinking, and replay semantics. Target workers call actual application code and report observations; they do not assign their own PASS verdicts. Production applications remain independent of the DCTX0 runtime, with adapters kept in a separate testing area.
+
+Managed native execution currently targets Linux. Target-specific limits and supported representations are documented in the [TypeScript harness](docs/bun-harness.md), [Go target](docs/go-target.md), and [Rust target](docs/rust-target.md) guides.
+
+## Quick start
+
+### Install a released binary
+
+```sh
+curl -fsSL https://github.com/Haardt/dctx0ctl/releases/latest/download/install.sh | bash
+export PATH="$HOME/.local/bin:$PATH"
+dctx0 --version
+```
+
+Supports **Linux x86_64/ARM64 (glibc 2.35+) and macOS Intel/Apple Silicon (14+)**. The installer verifies SHA-256 and the binary version, then installs atomically without sudo. It leaves shell profiles untouched. Run the script with **Bash**.
+
+Pin a published release or choose another destination with `bash -s -- --version v0.1.0 --bin-dir /path/to/bin`. See [releases and installation](docs/releases.md) for exact pinned URLs and manual downloads.
+
+On **Windows x64**, run in PowerShell:
+
+```powershell
+irm https://github.com/Haardt/dctx0ctl/releases/latest/download/install.ps1 | iex
+$env:PATH = "$env:LOCALAPPDATA\DCTX0\bin;$env:PATH"
+dctx0 --version
+```
+
+The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **Managed native verification and automatic adoption currently require Linux**. macOS/Windows CI exercises the testing SDK harness and process cancellation separately and checks that unsupported managed execution never reports PASS.
+
+### Install your application toolchains
+
+Install the toolchains for your selected target yourself and make them available on `PATH` before native verification:
+
+- **TypeScript:** Bun.
+- **Go:** Go; the Cinema Go example requires Go 1.25+.
+- **Rust:** Rust/Cargo and a C compiler for bundled SQLite.
+
+Prepare your application's dependencies with its package manager, such as `bun install`, `go mod download`, or `cargo fetch`. The release installer installs DCTX0 only. Parsing specifications and planning tasks require only the DCTX0 binary.
+
+### Build the CLI from source
+
+Use a current stable Rust toolchain through rustup, Cargo, and a C toolchain for bundled SQLite. All four target features are enabled by default.
+
+From the repository root:
+
+```sh
+cargo build --release -p dctx0-cli --locked
+export PATH="$PWD/target/release:$PATH"
+dctx0 --help
+```
+
+Alternatively, install the CLI from this checkout:
+
+```sh
+cargo install --path crates/dctx0-cli --locked
+```
+
+To build only a selected target:
+
+```sh
+cargo build --release -p dctx0-cli --no-default-features --features rust --locked
+```
+
+Parsing, compilation, and task planning do not require a native application toolchain. Verification additionally needs Bun for TypeScript, Go 1.25+ for Cinema Go, or Cargo and a C toolchain for Cinema Rust. Prepare native dependencies explicitly before managed execution. Python is used for repository validation scripts, not CLI product workflows.
+
+### Explore the specification and tasks
+
+To try the example applications, clone the repository and run the following commands from its root:
+
+```sh
+git clone https://github.com/Haardt/dctx0ctl.git
+cd dctx0ctl
+```
+
+```sh
+dctx0 check examples/cinema/dctx0
+dctx0 tasks preview examples/cinema/dctx0
+dctx0 tasks plan examples/cinema/dctx0
+dctx0 tasks waves examples/cinema/dctx0
+dctx0 tasks next examples/cinema/dctx0
+```
+
+`check` compiles and publishes a valid snapshot. `tasks preview` shows proposed work; `tasks plan` publishes it. Read queries describe saved, pinned requirements rather than asserting working-tree freshness.
+
+### Run the TypeScript application checks
+
+The reference Cinema project already contains an adapter, fixtures, configured verification scope, and authored inspection notes.
+
+```sh
+bun install --frozen-lockfile --cwd examples/cinema
+
+dctx0 verify plan examples/cinema/dctx0 --project examples/cinema
+dctx0 verify run examples/cinema/dctx0 --project examples/cinema --no-adopt
+```
+
+`plan` projects requirements without executing the application. `run` executes the configured finite plan and stores evidence. `--no-adopt` keeps task progress unchanged.
+
+For complete configured acceptance:
+
+```sh
+dctx0 verify complete examples/cinema/dctx0 --project examples/cinema --json
+```
+
+This checks the specification, publishes the current task plan, executes the configured native scope, binds existing authored inspections, and requires a nonempty delivered active plan with appropriate testing or source-bound review evidence. Approved Review tasks may remain Done/Unverified and are reported separately; approval never sets testing PASS. It does not generate review approvals. See [complete acceptance](docs/verification-complete.md).
+
+### Try Go or Rust
+
+```sh
+go -C examples/cinema-go mod download
+dctx0 verify complete examples/cinema-go/dctx0 --project examples/cinema-go --json
+```
+
+```sh
+cargo fetch --manifest-path examples/cinema-rust/.dctx0/testing/rust/Cargo.toml --locked
+dctx0 verify complete examples/cinema-rust/dctx0 --project examples/cinema-rust --json
+```
+
+The applications use the same Cinema specification and central semantic verification plan. Go and Rust compile testing workers through managed native builds, with compiler inputs and worker executables recorded separately from central assessment.
+
+## Learn the language
+
+The [MiniBoard tutorial](examples/tutorial/README.md) introduces the language through 16 cumulative TypeScript applications, with independent production tests and external verification adapters. The final step creates and completes actual tasks.
+
+To open the final application, install its dependencies and start it:
+
+```sh
+cd examples/tutorial-step-16-http-replay
+bun install --frozen-lockfile
+bun run start
+```
+
+Open <http://127.0.0.1:4173/>. To give an agent a fresh exercise while retaining the reference solutions, run from the repository root:
+
+```sh
+./examples/tutorial/agent-step.sh 1 -- codex exec --full-auto
+```
+
+## Use DCTX0 in your own project
+
+Keep the reviewed specification root separate from the application root. Start by compiling the specification, then publish implementation guidance and tasks:
+
+```sh
+dctx0 check /path/to/app/dctx0
+dctx0 profile typescript create --project /path/to/app --default --agents
+dctx0 tasks plan /path/to/app/dctx0
+dctx0 tasks show /path/to/app/dctx0 T42 --target typescript
+```
+
+`T42` is an example task ID; use one returned by your task plan. Profiles are editable Markdown under `.dctx0/profiles`. They guide implementation without changing language semantics. Used profiles are frozen with claims and reservations; free-form notes are not automatically verified properties.
+
+See [Configure and extend profiles](docs/site/src/docs/profiles.md) for the difference between shared, implement, and use guidance, configuring a project, and editing the shipped defaults in a DCTX0 checkout.
+
+For Go/Gin or Rust/Axum agent guidance, merge the optional framework presets into your local profiles. This is a Markdown choice, not a `--framework` CLI flag. A reviewed project adapter must separately connect the real production router. Existing Cinema HTTP defaults remain available alongside the framework variants. See [HTTP framework profiles and harness setup](docs/http-frameworks.md).
+
+Inspect structural candidates and initialize a testing adapter:
+
+```sh
+dctx0 verify discover /path/to/app/dctx0 --project /path/to/app --target typescript
+dctx0 verify init /path/to/app/dctx0 --project /path/to/app --target typescript
+```
+
+`discover` reports unconfirmed structural candidates. `init` preserves existing files and creates an explicitly unavailable adapter scaffold. Implement the adapter against real application entry points and supply the observations required by your contracts.
+
+Technical configuration lives in `.dctx0/testing/verification.json`: target, runtime, adapter, fixtures, explicit scope, seed, and budgets. An empty scope does not select the entire application. The default generated-case budget is 100 per obligation; explicit examples remain mandatory. Changed specification sources require a successful `check` before ordinary verification.
+
+Prepared collaborator replies test consumer behavior under controlled conditions. Actual persistence and HTTP integration need real native checks and observers. See [verification setup](docs/verification-setup.md), [planning](docs/verification-planning.md), and the target guides for capability boundaries.
+
+## Understand the evidence
+
+| Result | Meaning |
+| --- | --- |
+| `PASS` | The selected mandatory finite-plan requirements are satisfied. |
+| `FAIL` | A check found a concrete violation. |
+| `UNKNOWN` | A required statement lacks sufficient evidence. |
+
+Finite testing does not prove correctness for every possible input. Missing observers, unsupported constructs, incomplete provenance, and unexecuted mandatory checks remain visible. Opaque trace labels remain unmodeled; they do not establish resolved dependencies or prove runtime calls.
+
+Work progress (`Open`, `Progress`, `Done`) is separate from testing status (`Unverified`, `PASS`, `FAIL`). **Done does not imply PASS.**
+
+Without `--no-adopt`, a native run may deliver eligible open, unclaimed, unreserved tasks when complete task-specific evidence and transactional guards permit it. Historical results, running work, reviews, and incomplete requirements retain their protections. Imported PASS reports alone cannot authorize native adoption.
+
+Saved evidence can be inspected or replayed:
+
+```sh
+dctx0 verify show <spec-root> <run-id> --json
+dctx0 verify replay <spec-root> <run-id> --case <case-id> --project <app-root>
+```
+
+Replay executes saved inputs as a new comparison and never adopts tasks. Saved reports preserve their original provenance; they do not assert that today's working tree is unchanged.
+
+Narrative requirements, named suites, and reviews can receive explicit source-bound inspections:
+
+```sh
+dctx0 verify inspect <spec-root> <run-id> --project <app-root> --file <inspections.json>
+dctx0 verify attest <spec-root> <run-id> --project <app-root> --file <task-reports.json>
+```
+
+`inspect` publishes an effective program assessment without new execution or task adoption. `attest` delivers eligible inspected task reports through guarded transitions. Automatic and inspection evidence remain separate, and approval cannot override an actual automatic FAIL. Source changes invalidate the relevant bindings. See [verification history](docs/verification-history.md) and [inspection delivery](docs/verification-suite-attestation-progress.md).
+
+### Cinema acceptance
+
+The documented complete TypeScript, Go, and Rust Cinema acceptances each cover **5,674 mandatory finite cases**. Current planning assigns 25 manual/suite obligations to four Review tasks; a fresh Cinema plan has **105 tasks**. Source-bound reviews are reported separately from testing PASS. Actual persistence and HTTP checks, deliberate production mutations, and broken/repaired replay exercise the implementation and its wiring.
+
+Native reports retain unresolved manual/suite obligations. Authored source-bound inspections produce a separate effective assessment. These results establish the documented Cinema scope, not unrestricted proof for arbitrary applications.
+
+Evidence: [TypeScript](docs/verification-complete-validation.json), [Go](docs/go-target-validation.json), [Rust](docs/rust-target-validation.json).
+
+## Track changes and coordinate work
+
+```sh
+dctx0 parse <spec-root>
+dctx0 history <spec-root> --json
+dctx0 diff <spec-root> <before-snapshot> latest --json
+dctx0 impact <spec-root> <qualified-symbol> --snapshot latest --json
+dctx0 rename <spec-root> <qualified-symbol> <new-name> --dry-run --json
+```
+
+`parse` also accepts a single file. Snapshot selectors accept `latest`, a full hash, or an unambiguous hexadecimal prefix of at least eight characters. `--json` supplies structured output; task commands default to Markdown. Global `--db <path>` selects another SQLite database.
+
+Specs remain source files. Derived history defaults to `<spec-root>/.dctx0ctl/state.sqlite3`. Successful checks publish transactionally; failed compilation preserves the last valid head. Semantic cycles are supported, while task prerequisites form a separate DAG.
+
+Changed requirements create new adaptation tasks with explicit predecessor links. Historical Done/PASS tasks remain evidence for their old requirements. Explicit renames record continuity; ordinary remove/add edits do not infer identity from similarity. Rename covers declarations and scoped descendants; fields, parameters, and enum alternatives require dedicated future operations. Dry runs write neither sources nor history. Real renames use a project lock and recovery journal for coordinated multi-file updates.
+
+For worker coordination, use `tasks claim-next` or `tasks claim-slice` with an actor. Transitions require the returned claim/reservation and version guards. Context includes required types and acceptance criteria; large contexts expose missing sections and pinned continuation cursors. See [tasks](docs/tasks.md) and [profiles](docs/profiles.md).
+
+## Agent skills and editors
+
+The CLI bundles three complementary skills:
+
+| Skill | Purpose |
+| --- | --- |
+| [`dctx0`](skills/dctx0/SKILL.md) | Navigate the workflow, select work, and interpret verification evidence. |
+| [`dctx0-language`](skills/dctx0-language/SKILL.md) | Author, review, and repair specifications, including typed contracts, examples, and lifecycles. |
+| [`dctx0-implementation`](skills/dctx0-implementation/SKILL.md) | Implement and repair application tasks and testing adapters using pinned requirements and native verification. |
+
+Install them for your coding agent:
+
+```sh
+dctx0 skills list
+dctx0 install --project /path/to/app --agent codex,claude
+```
+
+Use `--dry-run` to preview. Existing differing content is preserved unless you explicitly use `--force`. Global installation is available with `--global`. See [agent skills](docs/skills.md).
+
+The native language server supports diagnostics, completion, hover, navigation, symbols, and semantic colors, including unsaved multi-file edits:
+
+```sh
+dctx0 lsp --stdio
+dctx0 editor install vscode --output "$HOME/dctx0-editors" --activate
+dctx0 editor install zed --output "$HOME/dctx0-editors"
+```
+
+VS Code activation invokes the `code` CLI. For Zed, select the generated directory through **zed: install dev extension**. These are local extension packages. See [editor setup](docs/editors.md).
+
+## Architecture
+
+Dependencies point toward the language-neutral core. AST and validated IR remain separate; targets consume validated semantics. Filesystem and process effects belong to adapters.
+
+| Crate / directory | Responsibility |
+| --- | --- |
+| `dctx0-core` | AST, validated IR, values, diagnostics, shared contracts |
+| `dctx0-language` | Lexer, parser, composition, resolution, type checking |
+| `dctx0-interpreter` | Pure budgeted expression evaluation |
+| `dctx0-verification` | Deterministic corpora, plans, scenarios, assessment, shrinking |
+| `dctx0-target-sdk` | Versioned transport and testing-artifact contracts |
+| `dctx0-graph` | Semantic dependencies, cycles, governing facts, impact paths |
+| `dctx0-changes` | Fingerprints, snapshot diffs, history ports, rename lineage |
+| `dctx0-tasks` | Pure planning, prerequisite DAG, reconciliation, context, slices |
+| `dctx0-store` | Transactional SQLite snapshots, task events, verification history |
+| `dctx0-engine` | Source I/O, publication, locking, native orchestration, recovery |
+| `dctx0-lsp` | Language service and LSP transport |
+| `dctx0-cli` | Commands, rendering, target registration, benchmark drivers |
+| `targets/{typescript,go,rust,java}` | Target profiles and available native implementations |
+
+Compilation follows sorted source discovery → parsing → composition and resolution → type checking → validated IR → semantic graph → fingerprints and snapshot publication. Diagnostics retain source files, codes, and positions.
+
+Native execution uses bounded processes with timeouts, cancellation, output limits, and cleanup. On Linux, an available systemd user scope can cap collective memory at two thirds of startup available RAM, with swap disabled. `DCTX0_MEMORY_GUARD=0` disables this optional cap; unavailable support is reported explicitly. This is resource management, not a security sandbox. See [managed execution](docs/native-executor.md), [verification architecture](docs/verification-architecture.md), and [compiler boundaries](docs/refactoring.md).
+
+## Development and validation
+
+Repository validation requires Python 3, Linux for performance measurement, the Rust coverage tools, and the native target toolchains. CI currently uses Bun 1.4.2, Go selected by the Cinema module, and stable Rust. Consult [.github/workflows/validate.yml](.github/workflows/validate.yml) for the full environment and tutorial/browser checks.
 
 ```sh
 rustup component add rustfmt clippy llvm-tools-preview
 cargo install cargo-llvm-cov --locked
-cargo run --bin dctx0 -- check examples/cinema/dctx0
-cargo run --bin dctx0 -- check examples/runatron-next/dctx0 --json
 python3 scripts/validate.py --coverage
 ```
 
-Commands accept a spec directory; `parse` also accepts a single file. `.dctx0` discovery is recursive and sorted, skips symlinks, and excludes generated/build directories. Diagnostics use relative files, codes, half-open UTF-8 byte ranges, and Unicode scalar columns. Symbol IDs are fully qualified names, such as `MovieNight.Catalog.Film`.
+The project runner couples functional validation with release speed and RAM measurements. It runs the relevant workspace/feature checks, formatting, Clippy with warnings denied, tests, native checks, and coverage. Rust production-code coverage must meet **97% merged source lines and 97% LLVM functions**. Raw LLVM metrics and native helper coverage remain separate; line coverage does not establish branch completeness.
+
+Benchmarks use uninstrumented release builds and retain elapsed milliseconds, peak RSS bytes, raw samples, workload identity, input/source hashes, toolchains, cache conditions, and environment provenance. Rust core costs and native build/execution costs are reported separately. Core RSS is Linux post-exec `VmHWM`, including phase preparation; native workloads record their own memory scope. Unsupported measurement is explicit.
+
+The latest 20 runs are retained under `benchmarks/history/`. The accepted baseline lives separately in `benchmarks/baseline.json`. Comparable regressions above **20% runtime** or **10% RAM** fail the performance gate. Missing or incompatible baselines are reported as unassessed. Configure tolerances with `--speed-tolerance` and `--ram-tolerance`.
+
+Baseline promotion is an intentional review step, never automatic:
 
 ```sh
-dctx0 parse <root>
-dctx0 check <root> --json
-dctx0 history <root> --json
-dctx0 diff <root> <before-snapshot> latest --json
-dctx0 impact <root> <qualified-symbol> --snapshot latest --json
-dctx0 rename <root> <qualified-symbol> <new-name> --dry-run --json
-dctx0 rename <root> <qualified-symbol> <new-name>
-```
-
-Use `cargo run --bin dctx0 --` in place of `dctx0` when the binary is not installed. Snapshot selectors accept full hashes, unambiguous hexadecimal prefixes of at least eight characters, or `latest`. Global `--db <path>` selects a different SQLite database; relative database paths resolve against the working directory. Semantic or command errors exit unsuccessfully.
-
-## Architecture and history
-
-| Crate | Responsibility |
-| --- | --- |
-| `dctx0-core` | Source AST, typed IR, expressions, reference spans, diagnostics |
-| `dctx0-language` | Lexer/parser, fragments, scoped resolution, type checking |
-| `dctx0-graph` | Typed dependencies, governing facts, cycles, impact explanations |
-| `dctx0-changes` | Snapshot projections, fingerprints, diffs, history ports and rename lineage |
-| `dctx0-store` | SQLite adapter for history queries and transactional publication |
-| `dctx0-engine` | Source discovery, project locks, compilation/publication, rename journals |
-| `dctx0-cli` | Human-readable and JSON commands, benchmark drivers |
-
-Compiler orchestration lives in `compiler.rs`; declaration models, relations, symbol resolution, expression parsing, and clause handlers have separate modules. Resolution indexes qualified-name suffixes, and declaration/clause compilation indexes nodes by owner. Snapshot fingerprints use named serialization projections. Diff analysis constructs borrowed graph indexes once per changed snapshot pair; unchanged diffs skip traversal preparation.
-
-History contracts and rename continuity rules belong to `dctx0-changes`; SQLite implements `HistoryReader` and `HistoryWriter`. The engine separates filesystem access, check publication, pure `plan_rename(&sources, symbol, new_name)`, and journal execution/recovery. Its `SourceReader`/`SourceWriter` ports describe source access. The CLI separates arguments, dispatch, rendering, benchmarks, and shared source/RSS helpers; the parser driver remains isolated from history dispatch. See [refactoring boundaries](docs/refactoring.md) for extension guidance.
-
-Rust callers import the relevant history/source traits to use their methods. Database opening takes `AccessMode::ReadOnly` or `AccessMode::ReadWrite`. Change facets and state phases are enums; their serialized spellings stay unchanged. These Rust API changes do not migrate the SQLite schema or CLI/IR JSON formats.
-
-Specs remain source files. Default history is `<root>/.dctx0ctl/state.sqlite3`, with nodes, typed edges and origin spans, fingerprints, source/IR snapshots, successful/failed runs, and rename events. SQLite uses WAL and full synchronization. A successful check publishes one transaction; repeated snapshots deduplicate while retaining every run. An invalid spec records diagnostics and leaves the previous valid head intact. Unknown schemas and corrupt data cause errors and are never silently reset.
-
-Diffs distinguish contract, behavior, facts, and location changes; raw source changes remain visible even when semantic hashes match. Impact considers the old and new graphs, including removals. Dependency cycles are legal and traversal terminates with deterministic explanation paths. This semantic graph is separate from the implemented task prerequisite DAG.
-
-## Explicit renames and recovery
-
-Existing data-only `stableId` clauses retain their meaning. Ordinary edits produce additions/removals; matching names or similar semantics never infer renames. The explicit rename command resolves declaration/reference spans, previews exact edits, recompiles the proposed workspace, and records continuity across rename chains. It preserves narrative text and unrelated names. The initial implementation renames declared symbols and their scoped descendants; fields, parameters, and enum alternatives require future dedicated operations.
-
-A dry run writes neither specs nor database. A real rename acquires the project lock and writes a durable `.dctx0ctl/rename-journal.json` before replacing files atomically. Its snapshot and rename event commit together. Following interruption, `check` or another real rename completes committed edits or rolls back uncommitted edits. Unexpected intervening file changes stop recovery and retain the journal for inspection. Filesystem-wide atomic visibility is unavailable: editors may observe intermediate file replacements, while tool commands coordinate through the project lock.
-
-## Validation and performance
-
-`python3 scripts/validate.py --coverage` runs Python runner tests, rustfmt, Clippy with warnings denied, Rust tests, and the user-approved 97% line/function coverage gate. Every validation run also benchmarks uninstrumented release binaries, including failed validation runs. Coverage tools and compiler must use the same rustup toolchain. The gate merges LCOV counts by source line and retains the 97% LLVM function threshold. Raw LLVM instance-summary percentages remain visible; see [coverage measurement](docs/coverage.md) for the observed reporting distinction. No source/error paths are excluded. Coverage does not establish complete behavioral correctness or native execution.
-
-For each example, measure parsing, compilation, graph construction, snapshots, unchanged/changed diffs, persistence, and unchanged/changed checks. The changed scenario adds a small domain/type in memory and alternates snapshots for checks; original examples are untouched. Persistence uses temporary databases. One warm-up precedes five fresh-process samples; parsing uses 20 iterations and other phases up to three. Timings exclude phase preparation and source loading; parser timing includes lexing, syntax validation, AST construction, and disposal. Check timing includes compilation, graph/snapshot construction, and SQLite publication, using already loaded sources.
-
-RSS is Linux post-exec `VmHWM` in bytes for the standalone Rust process. Phase RSS includes prepared inputs, retained comparison snapshots, and SQLite caches; it is not incremental phase allocation. The isolated parser driver avoids linking history/CLI dispatch into the parser microbenchmark. No subprocess/compiler memory is included in these foundation workloads. Unsupported measurement is an explicit failure.
-
-Raw samples, medians, peak RAM, wall time, input/source hashes, toolchain, platform, and hardware are retained in the latest 20 JSON runs under `benchmarks/history/`. Locked atomic writes protect history updates. The separate accepted `benchmarks/baseline.json` survives pruning.
-
-```sh
-python3 scripts/validate.py --coverage
 python3 scripts/validate.py --accept-baseline latest
+# Or select a retained run:
 python3 scripts/validate.py --accept-baseline <recorded-filename.json>
 ```
 
-Baseline promotion is an explicit operation and requires a complete measurement with passing validation. No tests automatically promote it. Comparable regressions above speed 20% or RAM 10% fail the gate; configure independent tolerances with `--speed-tolerance` and `--ram-tolerance`. New workloads without accepted values are listed as unassessed; comparable existing workloads still enforce their gates. Hardware/toolchain/workload mismatches are reported explicitly. Establish CI baselines on a consistent runner.
+Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are development options. Deferred or partial validation does not pass final performance/coverage acceptance. See [coverage](docs/coverage.md) and the retained target validation reports for measured scope and limitations.
 
-## Reference fixtures
+## Releases
 
-`fixtures/parser/` and `fixtures/semantic/` originate from the TypeScript implementation. Regeneration requires sibling `../runatron` and Bun:
-
-```sh
-bun scripts/reference-parser.ts
-bun scripts/reference-semantic.ts
-```
-
-Review fixture changes as language compatibility changes. `fixtures/semantic/snapshot-hashes.json` captures the pre-refactoring snapshot IDs and full serialized snapshot hashes for both complete examples. Its regression test checks all IR fields, graph spans, and fingerprints; review changes to this fixture as persisted-format changes.
-
-Independent Rust tests also assert expression precedence, typing, source positions, fragments, ambiguity/errors, graph cycles, fingerprints, persistence, rename chains, races, and interruption recovery. Copied historical `.runatron` artifacts are reference material only.
-
-## Task planning and administration
-
-Tasks now use the valid stored spec snapshot and SQLite history. Start with
-`dctx0 check <root>` followed by `dctx0 tasks preview <root>` and
-`dctx0 tasks plan <root>`. `tasks list`, `waves`, `next`, `show`, `context`,
-`history`, `dependencies`, `diff` and `slice` read saved plans. Markdown is the
-new task-command default; `--json` remains available. `show` and `next` include the executable assignment, specific acceptance criteria and complete spec excerpts with required types. Large assignments expose missing required sections and pinned continuation cursors.
-
-Use `claim-next` or `claim-slice --actor <name>` for atomic work allocation;
-complete/release with the returned claim token and state version. Work completion,
-review and executed-check evidence stay separate. Spec changes create new work
-with predecessor links rather than reopening historical tasks. See
-[the task guide](docs/tasks.md) for full commands, report formats, migrations,
-pagination, domain slices and explicit follow-up.
-
-## Editable implementation profiles
-
-Four statically registered targets supply editable architecture guidance without
-changing language semantics or executing implementations:
+Pushing a version tag such as `v0.1.0` creates a GitHub Release after full validation and all five native distribution jobs pass. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
 
 ```sh
-dctx0 profile rust create --project /path/to/app --default --agents
-dctx0 tasks show /path/to/app/dctx0 T42 --target rust
-dctx0 tasks context /path/to/app/dctx0 T42 --section implementation
-dctx0 tasks profile-changes /path/to/app/dctx0 --task T42 --format json > update.json
-dctx0 tasks profile-update /path/to/app/dctx0 --file update.json --reason "Adopt revised architecture"
+git tag -a v0.1.0 -m "DCTX0 v0.1.0"
+git push origin v0.1.0
 ```
 
-TypeScript, Java, Go and Rust are enabled by default. Select shipped targets with
-`cargo build -p dctx0-cli --no-default-features --features rust`. Profiles need no
-native compiler setup; production generation and complete native verification remain deferred. See
-[the full profile workflow](docs/profiles.md) for roles, discovery, frozen claims,
-missing-file handling, migration 3, report schema 2 and selective adaptation.
+The [release workflow](.github/workflows/release.yml) publishes Linux x86_64/ARM64 and macOS Intel/Apple Silicon archives, a Windows x64 ZIP, `install.sh`, `install.ps1`, and `SHA256SUMS`. [The maintainer guide](docs/releases.md) documents release provenance and coupled installer/performance validation.
 
-`python3 scripts/validate.py --coverage` supports 92 release workloads, including
-profile creation, loading, rendering and claim binding for all four targets and
-both examples, plus core-only plan projection, input generation, unbound expression evaluation and assessment. New workload baselines remain unassessed until explicitly accepted.
+## Documentation site
 
-The adaptive external-harness architecture is recorded in
-[verification-architecture.md](docs/verification-architecture.md). Rust owns
-interpretation, input generation, assessment, shrinking and replay semantics.
-The TypeScript target generates testing-only Bun helpers; an external project
-adapter calls actual application code. Production imports no dctx0 runtime or
-harness. Execution uses bounded Linux processes with cleanup, rather than a
-security sandbox. See [the SDK and harness](docs/bun-harness.md) and
-[managed execution](docs/native-executor.md).
-
-The implemented workflow is:
+The product landing page and English user guide use **mdBook**, a Rust documentation generator. Build and validate the static GitHub Pages artifact with:
 
 ```sh
-dctx0 check examples/cinema/dctx0
-dctx0 verify discover examples/cinema/dctx0 --project examples/cinema
-dctx0 verify init examples/cinema/dctx0 --project examples/cinema --target typescript
-dctx0 verify plan examples/cinema/dctx0 --project examples/cinema
-dctx0 verify run examples/cinema/dctx0 --project examples/cinema --no-adopt
-dctx0 verify show examples/cinema/dctx0 <run-id>
-dctx0 verify replay examples/cinema/dctx0 <run-id> --case <case-id>
+python3 scripts/install_mdbook.py
+python3 scripts/docs_site.py --dctx0 target/release/dctx0
 ```
 
-`discover` produces unconfirmed structural candidates without executing code.
-`init` preserves existing testing files and creates an unavailable scaffold.
-A reviewed adapter must supply actual entry points before native checks can pass.
-Configuration defaults to an empty scope; explicit subjects or tasks override the
-configured selection. Planning preserves mandatory examples and reports missing
-lifecycle inputs without executing the adapter. Changed spec sources require a
-successful `check`; verification never publishes a compiler head implicitly.
-See [setup](docs/verification-setup.md) and
-[planning](docs/verification-planning.md).
+Build the release CLI first using the quick-start instructions. The runner checks local links and complete DSL examples, then records release site-build speed/RSS. Output is `target/docs-site`; use `target/docs-tools/mdbook serve docs/site --port 4180` for a local preview.
 
-The central application configuration is `.dctx0/testing/verification.json`.
-Its `budgets.generated_cases` defaults to 100 per obligation; set it to 1 for a
-small development corpus. Explicit examples remain mandatory, and the saved
-plan reports the chosen corpus and budgets. Cinema's adapter configuration is
-separate at `.dctx0/testing/typescript/config.json`.
+[Publishing and maintenance](docs/documentation-site.md) explains the GitHub Actions workflow, Pages setup, and source layout.
 
-Schema-4 writers preserve immutable runs, provenance and artifacts; schema-1–4
-readers do not migrate. `show` reports saved evidence without asserting current
-working-tree freshness. `replay` executes saved inputs against a new capture,
-reports changed inputs and never adopts tasks. Prepared port replies, actual
-calls/events/resources and before/after states are assessed centrally. Native
-operation and lifecycle setup must satisfy its declared preconditions. Missing
-observers, missing model projections and unsupported requirements remain UNKNOWN.
-See [run/replay and evidence limits](docs/verification-run.md) and
-[history](docs/verification-history.md).
+## Documentation
 
-Without `--no-adopt`, complete task-specific native evidence may atomically deliver eligible Open,
-unclaimed and unreserved tasks using the ordinary transition/profile guards.
-Imported PASS reports cannot authorize this. Incomplete evidence, changed sources,
-stale pins and unmet prerequisites prevent adoption. Historical Done/PASS work
-remains unchanged. SQLite rollback concerns task events, results and bindings;
-it never reverts code, adapters or specs.
-An overall UNKNOWN for unrelated manual requirements or named suites does not
-prevent fully proved tasks from being delivered. Every mandatory native case
-must still pass; each delivered task needs complete requirement mapping and
-provenance. Reviews, integrations and tasks with incomplete requirements remain
-open. To enable adoption, initialize the implementation profiles and publish a
-current task plan explicitly:
+| Guide | Topic |
+| --- | --- |
+| [Tutorial](examples/tutorial/README.md) | Learn the language through working applications |
+| [Task guide](docs/tasks.md) | Planning, context, claims, slices, history |
+| [Profiles](docs/profiles.md) | Editable implementation guidance |
+| [Verification planning](docs/verification-planning.md) | Scope, fixtures, mandatory requirements |
+| [Run and replay](docs/verification-run.md) | Native observations, counterexamples, adoption |
+| [Complete acceptance](docs/verification-complete.md) | Authored inspections and task completeness |
+| [Go target](docs/go-target.md) / [Rust target](docs/rust-target.md) | Native setup, provenance, capability limits |
+| [Skills](docs/skills.md) / [Editors](docs/editors.md) | Agent and editor integration |
 
-```sh
-dctx0 profile typescript create --project examples/cinema --default
-dctx0 tasks plan examples/cinema/dctx0
-dctx0 verify run examples/cinema/dctx0 --project examples/cinema
-```
+Capability descriptions reflect the Rust workspace as of October 12, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
 
-The frozen direct-function and Awilix/Hono fixtures pass the same central plan,
-and mutations of actual business code and HTTP wiring are detected. The complete
-Cinema scope runs through the generated harness: **5,674 mandatory cases, all
-PASS**, including 14 actual HTTP cases. The reference project has **104 tasks
-Done/PASS, zero open**. Native evidence remains UNKNOWN for manual requirements;
-explicit source-bound inspections produce a separate effective PASS without
-rewriting native observations. See [completion evidence](docs/cinema-complete-validation.json).
-Release measurements can be restricted to Cinema with
-`python3 scripts/validate.py --coverage --example cinema`; the two-example
-benchmark conformance check is deferred in this scope.
+## License
 
-During implementation, performance measurements are deferred at the user's
-request. Run functional checks with:
-
-```sh
-PATH=/home/held/.cargo/bin:$PATH python3 scripts/validate.py --focus verification --skip-performance
-```
-
-Results are saved separately in `target/validation-without-performance.json`.
-The deferred mode also skips the expensive CLI benchmark conformance test and
-names it in the report. With `--coverage`, this produces explicitly partial
-coverage and cannot pass final acceptance. Default validation retains that test.
-This does not pass a performance gate or alter the accepted baseline. Final
-acceptance still requires full workspace/feature checks, 97% merged Rust source
-lines and LLVM functions, and separately reviewed release speed/RSS measurements.
-The retained assessment-11 coverage run has 98.83% lines and 97.57% functions;
-newer focused tests do not establish a new coverage percentage. Native Bun helper
-coverage is recorded separately from Rust. Earlier foundation coverage and
-measurement reports are historical evidence, not proof for the current tree.
-
-Validation and coverage automatically use an available Linux systemd user scope capped at
-two thirds of startup `MemAvailable`, collectively including all child processes,
-with additional swap disabled. Other platforms and systems without a reachable
-systemd user manager run without this cap, with an explicit message. Set
-`DCTX0_MEMORY_GUARD=0` to disable it, including for Rust `verify complete`.
-Once a scope is selected, creation errors fail execution rather than retrying
-the application. Guarded Cargo jobs and Rust test threads default to two.
-For direct checks use `python3 scripts/memory_guard.py dctx0 verify run <spec-root>`.
-The native runner alone has time/output limits but no hard RAM limit. Functional
-checks and coverage run first; benchmark conformance and release speed/RSS run
-last. `python3 scripts/validate.py --coverage --skip-performance` defers those
-final stages and records their status as deferred. The memory budget is shared
-within one guarded invocation; concurrent independent invocations have separate
-budgets and should not be started together.
-
-Cinema entity-key checkpoint (2026-10-11): Assessment 12 executes 5,660 mandatory
-cases with PASS, including five explicit identity checks over actual persisted
-operation states. 46 of 104 tasks are delivered; 58 remain open. The whole result
-is still UNKNOWN for the 18 manual requirements and nine undefined proof/test
-suites. Actual SQLite duplicate-persistence mutation and identity replay pass.
-See [entity identity evidence](docs/cinema-entity-identity-validation.json).
-
-Complete Cinema acceptance is available directly from Rust, without Python:
-
-```sh
-dctx0 verify complete examples/cinema/dctx0 --project examples/cinema
-```
-
-It executes the configured native corpus, verifies existing source-bound review
-notes, publishes effective evidence and requires a nonempty task plan with zero
-unfinished/non-PASS tasks. Use `--json` for the summary or `--inspections <file>`
-for another authored notes file. When available and enabled, the Linux command caps collective CLI/native
-memory at two thirds of available RAM using the systemd user manager. Bun is
-still needed to run TypeScript. See [the complete command](docs/verification-complete.md).
-
-Explicit inspected task delivery is available as
-`dctx0 verify attest <spec-root> <native-run-id> --project <app-root> --file <reports.json>`.
-The file contains a JSON array of `TaskAttestation` objects. Each inspection pins
-its task (`T<ID>`), snapshot, native plan hash, complete requirement IDs and
-implementation artifact hashes, actor, report, limitations and verdict. Review
-tasks also require a structured approved review without unresolved high/action
-findings. Delivery requires the complete actual native corpus and unchanged
-inputs/profiles. It preserves automatic evidence and records agent evidence in
-normal task history; it does not manufacture an automatic native PASS. See
-[implementation checkpoint](docs/verification-suite-attestation-progress.md).
-
-`dctx0 verify inspect <spec-root> <native-run-id> --project <app-root> --file <reports.json>`
-stores an effective suite/review/Release assessment from a JSON array of
-`ProgramInspection` reports. Automatic and agent outcomes remain separate. The
-inspection report references the unchanged native source and does not claim a new
-execution or authorize automatic task adoption. Current source/check/profile
-bindings are checked before publication.
+[MIT](LICENSE).

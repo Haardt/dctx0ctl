@@ -1,5 +1,3 @@
 # Implement type
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Preserve all alternatives, payloads and refinements.
+Preserve every record field, alternative, payload and nested refinement. Keep optionality and collection shape explicit; handle alternatives exhaustively. Reuse referenced domain contracts. Include checked decoding when this task owns an external boundary; avoid creating a parallel transport/domain model without a concrete need.

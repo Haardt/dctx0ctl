@@ -1,5 +1,3 @@
 # Use lifecycle
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered lifecycle contract without redefining its requirements. Cover the supplied state transitions and sequences.
+Respect the declared sequence, guards and session/state prerequisites. Do not reorder transitions or reuse state across independent cases. Preserve setup needed for replay.

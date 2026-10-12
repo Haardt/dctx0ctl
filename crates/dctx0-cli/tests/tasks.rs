@@ -425,6 +425,7 @@ fn cli_mutations_return_claim_guards_and_accept_structured_reports() {
     fs::write(
         &file,
         serde_json::to_vec(&ReviewReport {
+            conformance: None,
             reviewer: "human".into(),
             judgement: "approved".into(),
             summary: "Contract matched".into(),

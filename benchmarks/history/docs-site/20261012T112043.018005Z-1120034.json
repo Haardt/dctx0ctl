@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "id": "20261012T112043.018005Z-1120034",
+  "timestamp": "2026-10-12T11:20:43.018005+00:00",
+  "workload": "documentation-site",
+  "status": "complete",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "content_hash": "7759b0461f445e54155cf9aa65f02e5476e88bac9d9cd019bdf54e752495cc03",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "mdbook": "mdbook v0.5.4",
+  "dctx0_sha256": "34a75b9fa8e78478b9e124aa950ac0d8172fe26b2153136ed9213210a1ebcd02",
+  "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
+  "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
+  "seed": null,
+  "features": "mdBook official release HTML/search renderer",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted documentation baseline; core baseline unchanged."
+  },
+  "measurements": {
+    "build-validation": [
+      {
+        "elapsed_ms": 101.87288300949149,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      }
+    ],
+    "specification-check": [
+      {
+        "elapsed_ms": 23.899609004729427,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.727828989038244,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.559340991894715,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 20.698975000414066,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 30.658479998237453,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      }
+    ],
+    "browser-ui": [
+      {
+        "elapsed_ms": 1933.0376260040794,
+        "peak_rss_bytes": 254398464,
+        "exit_code": 0
+      }
+    ],
+    "build-warmup": [
+      {
+        "elapsed_ms": 91.33359399857,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      }
+    ],
+    "release-build": [
+      {
+        "elapsed_ms": 91.43945699906908,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 81.39064900751691,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      },
+      {
+        "elapsed_ms": 81.47275900410023,
+        "peak_rss_bytes": 55328768,
+        "exit_code": 0
+      }
+    ]
+  },
+  "validation": {
+    "html_pages": 28,
+    "local_links_and_assets": 900,
+    "external_links": "not fetched; repository/source references are authored URLs",
+    "complete_specs": [
+      "src/docs/getting-started.md:1",
+      "src/docs/language/functional-core.md:1",
+      "src/docs/language/structure.md:1",
+      "src/docs/overview.md:1",
+      "src/docs/tutorial/complete-workshophub.md:1"
+    ],
+    "browser": {
+      "status": "PASS",
+      "checks": [
+        "Desktop landing renders without horizontal overflow under project subpath",
+        "Landing has one navigation bar and readable primary actions",
+        "DCTX0 syntax highlighting is active",
+        "Landing CTA opens the guide with documentation navigation",
+        "Local full-text search returns lifecycle documentation",
+        "Nested complete specification and local font/assets load correctly",
+        "Mobile landing fits a 390px viewport",
+        "Mobile documentation sidebar opens",
+        "Mobile documentation sidebar closes",
+        "Mobile guide fits without page overflow",
+        "Code blocks expose copy controls",
+        "No runtime exceptions or failed asset requests"
+      ],
+      "screenshots": [
+        "target/docs-site-desktop.png",
+        "target/docs-site-mobile.png"
+      ],
+      "memory_scope": "Coupled runner wait4 peak of the child process/reaped descendants; not collective simultaneous RSS"
+    }
+  },
+  "summary": {
+    "samples": 3,
+    "median_elapsed_ms": 81.47275900410023,
+    "peak_rss_bytes": 55328768
+  }
+}

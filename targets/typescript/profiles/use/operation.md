@@ -1,5 +1,3 @@
 # Use operation
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered operation contract without redefining its requirements. Preserve inputs, results, failures, modeled effects and state behavior. Keep port and surface boundaries explicit.
+Call the actual delivered operation with valid domain arguments. Respect its preconditions, result and failure contract, effects and state behavior. Do not reimplement it locally or replace it with an example answer.

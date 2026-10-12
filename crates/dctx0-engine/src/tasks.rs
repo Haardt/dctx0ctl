@@ -73,6 +73,7 @@ impl Project {
     pub fn task_action(&self, action: Action) -> Result<Receipt> {
         let _lock = self.lock()?;
         self.recover()?;
+        self.validate_conformance_action(&action, None)?;
         Ok(self
             .store(AccessMode::ReadWrite)?
             .task_action(&self.key(), action)?)
@@ -84,6 +85,7 @@ impl Project {
     ) -> Result<Receipt> {
         let _lock = self.lock()?;
         self.recover()?;
+        self.validate_conformance_action(&action, None)?;
         Ok(self
             .store(AccessMode::ReadWrite)?
             .task_action_with_profiles(
@@ -100,6 +102,7 @@ impl Project {
     ) -> Result<Receipt> {
         let _lock = self.lock()?;
         self.recover()?;
+        self.validate_conformance_action(&action, project)?;
         let loaded = self.profiles(project, target);
         let error = loaded.as_ref().err().map(ToString::to_string);
         let profiles = loaded.as_ref().ok().and_then(Option::as_ref);
@@ -185,5 +188,46 @@ impl Project {
         Ok(self
             .store(AccessMode::ReadWrite)?
             .task_follow_up(&self.key(), task, finding, reason)?)
+    }
+
+    pub fn task_renew_review(
+        &self,
+        task: i64,
+        application: Option<&Path>,
+        reason: &str,
+    ) -> Result<Plan> {
+        let _lock = self.lock()?;
+        self.recover()?;
+        let session = self.task_session(None, None)?;
+        let current = session
+            .plan
+            .members
+            .iter()
+            .find(|member| member.task_id == task)
+            .or_else(|| {
+                session.plan.members.iter().find(|member| {
+                    matches!(session.definitions[&member.task_id].adjustment,
+                Some(dctx0_tasks::AdjustmentReason::ReviewRenewal { source, .. }) if source == task)
+                })
+            })
+            .ok_or_else(|| {
+                Error::Invalid("Review is no longer active; use its current successor".into())
+            })?;
+        let template = self.conformance_review_template(application, current.task_id)?;
+        let binding = template
+            .conformance
+            .ok_or_else(|| Error::Invalid("Conformance binding unavailable".into()))?;
+        let hash = dctx0_changes::hash(&(
+            binding.snapshot,
+            binding.spec_source_hash,
+            binding.requirements_hash,
+            binding.implementation_artifacts,
+        ));
+        Ok(self.store(AccessMode::ReadWrite)?.task_renew_review(
+            &self.key(),
+            task,
+            reason,
+            &hash,
+        )?)
     }
 }

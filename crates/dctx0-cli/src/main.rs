@@ -1,16 +1,18 @@
 mod args;
 mod benchmark;
 mod commands;
+mod editors;
 mod harness_benchmark;
 mod metrics;
 mod profile_benchmark;
 mod profiles;
 mod render;
+mod skills;
 mod sources;
 mod tasks;
 mod verification;
 mod verification_benchmark;
-#[cfg(feature = "typescript")]
+#[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
 mod verification_complete;
 mod verification_discovery_benchmark;
 mod verification_history_benchmark;
@@ -24,7 +26,7 @@ fn error_message(error: impl std::fmt::Display) -> String {
 fn main() -> ExitCode {
     match run(
         &std::env::args().skip(1).collect::<Vec<_>>(),
-        &mut io::stdout().lock(),
+        &mut io::stdout(),
     ) {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::FAILURE,
@@ -77,6 +79,7 @@ mod tests {
         for budget in [0, value.to_string().len()] {
             assert!(json(&mut FailingWriter { budget }, &value).is_err());
         }
+        assert!(run(&["--version".into()], &mut FailingWriter { budget: 0 }).is_err());
         let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/cinema/dctx0");
         for args in [
             vec!["parse".into(), input.display().to_string()],

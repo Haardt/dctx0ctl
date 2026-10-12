@@ -1,5 +1,3 @@
 # Implement external
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Make external configuration and unavailable dependency behavior explicit.
+Implement the assigned external connection or adapter with explicit configuration, declared failure mapping and resource ownership. Make unavailable dependencies and cleanup observable. Use real integration checks for adapter claims; distinguish them from consumer tests using substitutes. Retries, deadlines and credentials follow explicit requirements/project configuration.

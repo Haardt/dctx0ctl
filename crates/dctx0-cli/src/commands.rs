@@ -19,11 +19,25 @@ pub(crate) fn run(args: &[String], output: &mut dyn Write) -> Result<bool, Strin
             .map_err(|_| "Iterations must be a positive integer")?;
         return bench_parse(Path::new(&args[1]), iterations, output);
     }
-    let cli = Cli::try_parse_from(std::iter::once("dctx0".to_owned()).chain(args.iter().cloned()))
-        .map_err(error_message)?;
+    let cli = match Cli::try_parse_from(
+        std::iter::once("dctx0".to_owned()).chain(args.iter().cloned()),
+    ) {
+        Ok(cli) => cli,
+        Err(error) if error.kind() == clap::error::ErrorKind::DisplayVersion => {
+            write!(output, "{error}").map_err(error_message)?;
+            return Ok(true);
+        }
+        Err(error) => return Err(error_message(error)),
+    };
     let project = |path: &Path| Project::new(path, cli.db.as_deref()).map_err(error_message);
     let mut valid = true;
     match cli.command {
+        Command::Lsp { project, stdio: _ } => {
+            dctx0_lsp::serve_stdio(dctx0_lsp::ServerOptions { project })?
+        }
+        Command::Editor(args) => crate::editors::run(args, cli.json, output)?,
+        Command::Skills(args) => crate::skills::run(args, cli.json, output)?,
+        Command::Install(args) => crate::skills::install(args, cli.json, output)?,
         Command::Verify(args) => {
             valid = crate::verification::run(args, cli.db.as_deref(), cli.json, output)?
         }

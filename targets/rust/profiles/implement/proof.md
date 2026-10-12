@@ -1,5 +1,3 @@
 # Implement proof
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Provide the requested proof evidence without claiming unexecuted checks.
+Provide evidence for the stated proof obligation and its exact scope. Separate executed checks, structural inspection and reasoning; identify sources, assumptions and unsupported claims. A finite passing corpus is not a universal proof. Do not invent evidence or change the obligation to fit the implementation.

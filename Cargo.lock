@@ -71,10 +71,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "arbitrary"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bc62ac97cc33321f50863d514c3bc38a453947a8f9e781137e47c7401020aed"
+dependencies = [
+ "derive_arbitrary",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+
+[[package]]
+name = "bitflags"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
@@ -184,6 +199,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc32fast"
+version = "1.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
+
+[[package]]
 name = "crypto-common"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -216,6 +255,7 @@ dependencies = [
  "dctx0-graph",
  "dctx0-interpreter",
  "dctx0-language",
+ "dctx0-lsp",
  "dctx0-store",
  "dctx0-target-go",
  "dctx0-target-java",
@@ -246,6 +286,7 @@ dependencies = [
  "dctx0-interpreter",
  "dctx0-language",
  "dctx0-store",
+ "dctx0-target-go",
  "dctx0-target-rust",
  "dctx0-target-sdk",
  "dctx0-target-typescript",
@@ -259,6 +300,8 @@ dependencies = [
  "sha2",
  "thiserror",
  "tokio",
+ "url",
+ "zip",
 ]
 
 [[package]]
@@ -296,6 +339,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dctx0-lsp"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-channel",
+ "dctx0-core",
+ "dctx0-language",
+ "lsp-server",
+ "lsp-types",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "dctx0-store"
 version = "0.1.0"
 dependencies = [
@@ -320,6 +377,8 @@ dependencies = [
  "dctx0-core",
  "dctx0-target-sdk",
  "serde_json",
+ "tree-sitter",
+ "tree-sitter-go",
 ]
 
 [[package]]
@@ -334,6 +393,10 @@ name = "dctx0-target-rust"
 version = "0.1.0"
 dependencies = [
  "dctx0-core",
+ "dctx0-target-sdk",
+ "serde_json",
+ "tree-sitter",
+ "tree-sitter-rust",
 ]
 
 [[package]]
@@ -383,6 +446,17 @@ dependencies = [
  "num-traits",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "derive_arbitrary"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b034bd7d5f032402a2479444dcc6f74e36a03f31854d41680fb240ef682a1ac"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -445,6 +519,15 @@ name = "fixedbitset"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
+
+[[package]]
+name = "fluent-uri"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17c704e9dbe1ddd863da1e6ff3567795087b1eb201ce80d8fa81162e1516500d"
+dependencies = [
+ "bitflags 1.3.2",
+]
 
 [[package]]
 name = "foldhash"
@@ -690,6 +773,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
+name = "log"
+version = "0.4.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "lsp-server"
+version = "0.7.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d6ada348dbc2703cbe7637b2dda05cff84d3da2819c24abcb305dd613e0ba2e"
+dependencies = [
+ "crossbeam-channel",
+ "log",
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "lsp-types"
+version = "0.97.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53353550a17c04ac46c585feb189c2db82154fc84b79c7a66c96c2c644f66071"
+dependencies = [
+ "bitflags 1.3.2",
+ "fluent-uri",
+ "serde",
+ "serde_json",
+ "serde_repr",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -878,7 +993,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1c93dd1c9683b438c392c492109cb702b8090b2bfc8fed6f6e4eb4523f17af3"
 dependencies = [
- "bitflags",
+ "bitflags 2.13.2",
  "fallible-iterator",
  "fallible-streaming-iterator",
  "hashlink",
@@ -893,7 +1008,7 @@ version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
 dependencies = [
- "bitflags",
+ "bitflags 2.13.2",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -948,6 +1063,17 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1130,10 +1256,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter-go"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8560a4d2f835cc0d4d2c2e03cbd0dde2f6114b43bc491164238d333e28b16ea"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "tree-sitter-language"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "009994f150cc0cd50ff54917d5bc8bffe8cad10ca10d81c34da2ec421ae61782"
+
+[[package]]
+name = "tree-sitter-rust"
+version = "0.24.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "439e577dbe07423ec2582ac62c7531120dbfccfa6e5f92406f93dd271a120e45"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
 
 [[package]]
 name = "tree-sitter-typescript"
@@ -1362,6 +1508,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "zip"
+version = "2.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabe6324e908f85a1c52063ce7aa26b68dcb7eb6dbc83a2d148403c9bc3eba50"
+dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "crossbeam-utils",
+ "displaydoc",
+ "indexmap",
+ "memchr",
+ "thiserror",
 ]
 
 [[package]]

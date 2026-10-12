@@ -1,5 +1,3 @@
 # Implement module
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Respect declared ownership and dependency boundaries.
+Keep contracts and implementation under the declared ownership and dependency boundaries. Reuse existing layout and composition conventions. Expose the required public API and keep internal details private. Do not restructure the whole application or treat a spec namespace as a mandatory directory/class/package.

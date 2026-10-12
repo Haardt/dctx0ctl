@@ -1,5 +1,3 @@
 # Use type
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Consume the delivered type contract without redefining its requirements. Preserve all alternatives, payloads and refinements.
+Import the complete delivered contract, including nested types and alternatives. Handle all variants and preserve optionality. Do not copy its declaration into a local substitute or weaken refinements.

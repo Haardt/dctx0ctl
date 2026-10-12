@@ -1,13 +1,16 @@
 //! Managed native execution from a published snapshot, with immutable reports.
 mod adoption;
 mod attestations;
+mod build;
 mod capture;
 mod dependencies;
 mod execution;
 mod pins;
 mod program_inspection;
 mod replay;
+mod rust_build;
 mod shrink;
+mod task_reviews;
 use crate::*;
 pub use attestations::TaskAttestation;
 use capture::Capture;
@@ -175,6 +178,8 @@ impl Project {
                     dctx0_target_sdk::InspectionLanguage::TypeScript
                 }
                 Some("tsx" | "jsx") => dctx0_target_sdk::InspectionLanguage::Tsx,
+                Some("go") => dctx0_target_sdk::InspectionLanguage::Go,
+                Some("rs") => dctx0_target_sdk::InspectionLanguage::Rust,
                 _ => continue,
             };
             observer_sources.push(dctx0_target_sdk::InspectionSource {
@@ -199,7 +204,8 @@ impl Project {
         );
         if bundle.sdk_version != SDK_VERSION
             || bundle.target != config.target
-            || bundle.recipe.program != config.runtime
+            || (bundle.build.is_none() && bundle.recipe.program != config.runtime)
+            || (bundle.build.is_some() && generator.runtime() != config.runtime)
         {
             return Err(Error::Invalid(
                 "Configured target/runtime does not match the generated harness".into(),
@@ -249,7 +255,13 @@ impl Project {
                 if artifact.path == "module-observer.json" {
                     "application/vnd.dctx0.module-observer-manifest+json"
                 } else {
-                    "text/typescript"
+                    if bundle.target == "rust" {
+                        "text/x-rust"
+                    } else if bundle.target == "go" {
+                        "text/x-go"
+                    } else {
+                        "text/typescript"
+                    }
                 },
                 artifact.contents.as_bytes().to_vec(),
             ));
@@ -276,6 +288,115 @@ impl Project {
             &generated,
             &mut artifacts,
         )?);
+        let mut go_receipt = None;
+        let mut rust_receipt = None;
+        let rust_pending = if config.target == "rust" {
+            Some(
+                rust_build::prepare(&capture.root.join(directory), &capture.root, cancellation)
+                    .await,
+            )
+        } else {
+            None
+        };
+        let mut build_ready = true;
+        if let Some(Ok(receipt)) = &rust_pending {
+            if let Some(recipe) = bundle.build.as_mut() {
+                if let Some(position) = recipe
+                    .arguments
+                    .iter()
+                    .position(|arg| arg == "--target-dir")
+                {
+                    if let Some(value) = recipe.arguments.get_mut(position + 1) {
+                        *value = receipt.target_directory.clone();
+                    }
+                }
+            }
+        }
+        if let Some(Err(error)) = &rust_pending {
+            pin_issues.push(issue("RUST_BUILD_INPUTS_UNAVAILABLE", error.to_string()));
+            build_ready = false;
+        }
+        if let Some(recipe) = bundle.build.as_ref().filter(|_| build_ready) {
+            if let Err(error) = build::execute(
+                recipe,
+                &capture.root.join(directory),
+                cancellation,
+                &mut artifacts,
+            )
+            .await
+            {
+                pin_issues.push(issue("NATIVE_BUILD", error.to_string()));
+                build_ready = false;
+            } else if config.target == "rust" {
+                match rust_pending
+                    .and_then(|pending| pending.ok())
+                    .ok_or_else(|| Error::Invalid("Missing Rust build input receipt".into()))
+                    .and_then(|receipt| rust_build::finish(receipt, &capture.root.join(directory)))
+                {
+                    Ok(receipt) => {
+                        artifacts.push(VerificationArtifact::new(
+                            "application/vnd.dctx0.rust-build-inputs+json",
+                            serde_json::to_vec(&receipt)?,
+                        ));
+                        let relative =
+                            format!(".dctx0ctl/native/rust/{}/worker", receipt.binary_hash);
+                        let (parent, executable) =
+                            crate::verification_setup::safe_file(&application, &relative)?;
+                        fs::create_dir_all(parent)?;
+                        if executable.try_exists()? {
+                            if digest(&fs::read(&executable)?) != receipt.binary_hash {
+                                return Err(Error::Invalid(
+                                    "Stored Rust worker hash mismatch".into(),
+                                ));
+                            }
+                        } else {
+                            fs::copy(
+                                capture.root.join(directory).join(".bin/worker"),
+                                &executable,
+                            )?;
+                        }
+                        bundle.recipe.program = executable.to_string_lossy().into_owned();
+                        rust_receipt = Some(receipt);
+                    }
+                    Err(error) => {
+                        pin_issues.push(issue("RUST_BUILD_INPUTS_UNAVAILABLE", error.to_string()));
+                        build_ready = false;
+                    }
+                }
+            } else if config.target == "go" {
+                match build::go_receipt(&capture.root.join(directory)) {
+                    Ok(receipt) => {
+                        artifacts.push(VerificationArtifact::new(
+                            "application/vnd.dctx0.go-build-inputs+json",
+                            serde_json::to_vec(&receipt)?,
+                        ));
+                        let relative =
+                            format!(".dctx0ctl/native/go/{}/worker", receipt.binary_hash);
+                        let (parent, executable) =
+                            crate::verification_setup::safe_file(&application, &relative)?;
+                        fs::create_dir_all(parent)?;
+                        if executable.try_exists()? {
+                            if digest(&fs::read(&executable)?) != receipt.binary_hash {
+                                return Err(Error::Invalid(
+                                    "Stored Go worker hash mismatch".into(),
+                                ));
+                            }
+                        } else {
+                            fs::copy(
+                                capture.root.join(directory).join(".bin/worker"),
+                                &executable,
+                            )?;
+                        }
+                        bundle.recipe.program = executable.to_string_lossy().into_owned();
+                        go_receipt = Some(receipt);
+                    }
+                    Err(error) => {
+                        pin_issues.push(issue("GO_BUILD_INPUTS_UNAVAILABLE", error.to_string()));
+                        build_ready = false;
+                    }
+                }
+            }
+        }
         let execution_inputs = Capture::inventory(&capture.root)?;
         let started_at_unix_ns = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -315,7 +436,14 @@ impl Project {
                 .filter(|(path, _)| {
                     matches!(
                         path.as_str(),
-                        "package.json" | "bun.lock" | "bun.lockb" | "tsconfig.json"
+                        "package.json"
+                            | "bun.lock"
+                            | "bun.lockb"
+                            | "tsconfig.json"
+                            | "go.mod"
+                            | "go.sum"
+                            | "Cargo.toml"
+                            | "Cargo.lock"
                     ) || path.starts_with("tsconfig.") && path.ends_with(".json")
                 })
                 .map(|(path, hash)| (path.clone(), hash.clone()))
@@ -340,22 +468,30 @@ impl Project {
             artifacts: vec![],
             result: VerificationResult::Pass,
         };
-        execution::execute(
-            execution::Input {
-                ir: &snapshot.ir,
-                root: &capture.root,
-                adapter: &config.adapter,
-                generated: &generated,
-                plan: &plan,
-                lifecycles: &lifecycles,
-                cancel: cancellation,
-            },
-            &bundle.recipe,
-            &capture.root.join(directory),
-            &mut run,
-            &mut artifacts,
-        )
-        .await?;
+        if !build_ready {
+            let manifest = dctx0_verification::case_manifest(&plan);
+            run.required_cases = manifest.required_cases;
+            run.open_obligations.extend(manifest.open_obligations);
+            run.bounded_obligations.extend(manifest.bounded_obligations);
+        }
+        if build_ready {
+            execution::execute(
+                execution::Input {
+                    ir: &snapshot.ir,
+                    root: &capture.root,
+                    adapter: &config.adapter,
+                    generated: &generated,
+                    plan: &plan,
+                    lifecycles: &lifecycles,
+                    cancel: cancellation,
+                },
+                &bundle.recipe,
+                &capture.root.join(directory),
+                &mut run,
+                &mut artifacts,
+            )
+            .await?;
+        }
         let resolved =
             dctx0_verification::resolved_state_preconditions(&snapshot.ir, &plan, &run.cases);
         if !resolved.is_empty() {
@@ -426,6 +562,20 @@ impl Project {
                 format!("Cannot reassess captured execution inputs: {error}"),
             )),
         }
+        if let Some(receipt) = &rust_receipt {
+            if let Err(error) = rust_build::validate(receipt) {
+                run.provenance
+                    .incomplete
+                    .push(issue("RUST_BUILD_INPUTS_CHANGED", error.to_string()));
+            }
+        }
+        if let Some(receipt) = &go_receipt {
+            if let Err(error) = build::validate(receipt) {
+                run.provenance
+                    .incomplete
+                    .push(issue("GO_BUILD_INPUTS_CHANGED", error.to_string()));
+            }
+        }
         let _lock = self.lock()?;
         match Capture::inventory(&application) {
             Ok(current) if current == captured_inputs => {}
@@ -455,6 +605,22 @@ impl Project {
                 serde_json::from_slice::<crate::NativeRuntimeIdentity>(&artifact.contents)
             })
             .transpose()?;
+        if let (Some(receipt), Some(identity)) = (&rust_receipt, &identity) {
+            if receipt.binary_hash != identity.executable_hash {
+                run.provenance.incomplete.push(issue(
+                    "RUST_EXECUTABLE_MISMATCH",
+                    "Actual worker differs from compiled artifact",
+                ));
+            }
+        }
+        if let (Some(receipt), Some(identity)) = (&go_receipt, &identity) {
+            if receipt.binary_hash != identity.executable_hash {
+                run.provenance.incomplete.push(issue(
+                    "GO_EXECUTABLE_MISMATCH",
+                    "Actual worker differs from compiled artifact",
+                ));
+            }
+        }
         match identity.map(|identity| identity.still_current()) {
             Some(Ok(true)) => {},
             other => run.provenance.incomplete.push(issue("RUNTIME_IDENTITY_CHANGED_OR_UNAVAILABLE",

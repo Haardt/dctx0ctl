@@ -2,11 +2,11 @@
 
 ## Project Direction
 
-Reimplement dctx0 from `../runatron` in Rust, with deliberate architectural improvements. Reference `../runatron/packages/plugin-dctx0/src/dctx0/` and its fixtures for existing semantics. The Cargo workspace implements parsing, multi-file composition, name resolution, typed expression IR, semantic dependency graphs, change fingerprints, SQLite history, and explicit renames. A language-neutral verification foundation is being introduced; four target crates provide editable implementation profiles. Interpreter work is resumed within the external verification stages; native execution and automatic adoption remain planned. Port the core and reference fixtures first, complete TypeScript next, stabilize the SDK through conformance tests, then add Go and Java. Document intentional compatibility changes.
+The Cargo workspace implements parsing, multi-file composition, name resolution, typed expression IR, semantic dependency graphs, change fingerprints, SQLite history, and explicit renames. A language-neutral verification foundation is being introduced; four target crates provide editable implementation profiles. Interpreter work is resumed within the external verification stages; native execution and automatic adoption remain planned. Port the core and reference fixtures first, complete TypeScript next, stabilize the SDK through conformance tests, then add Go and Java. Document intentional compatibility changes.
 
 ## Current Capabilities & Processing Flow
 
-As of 2026-10-10, eleven crates implement compiler, change-tracking and pure verification foundations, and four target crates supply editable TypeScript, Java, Go and Rust profiles. Both complete examples compile: Cinema (2 sources) and runatron-next (18 sources). The CLI provides `parse`, `check`, `history`, `diff`, `impact`, explicit `rename` with `--dry-run`, phase benchmarks, target-neutral `tasks` planning, queries, guarded work transitions, slices and external check/review reports, and read-only `verify plan` with published subject/task requirements. Task commands default to Markdown; `--json` supplies machine-readable reports.
+Eleven crates implement compiler, change-tracking and pure verification foundations, and four target crates supply editable TypeScript, Java, Go and Rust profiles. Both complete examples compile: Cinema (2 sources) and runatron-next (18 sources). The CLI provides `parse`, `check`, `history`, `diff`, `impact`, explicit `rename` with `--dry-run`, phase benchmarks, target-neutral `tasks` planning, queries, guarded work transitions, slices and external check/review reports, and read-only `verify plan` with published subject/task requirements. Task commands default to Markdown; `--json` supplies machine-readable reports.
 
 Processing follows sorted source discovery → lexer/parser and AST → workspace/fragment composition, scoped name resolution and type checking → validated IR → semantic graph → fingerprints and snapshot/diff publication. Diagnostics retain source files, codes, and positions. Specs remain reviewed `.dctx0` files; SQLite stores derived history. `check` accepts a spec directory and preserves the last valid head when compilation fails. `parse` also accepts one file.
 
@@ -64,16 +64,14 @@ Separate languages from framework profiles: `java` with `spring-web`, `typescrip
 
 Centralize interpretation, test corpus generation, seeds, and replay semantics. Targets execute common test plans against actual implementations. Retain `PASS`, `FAIL`, and `UNKNOWN`, explicit unsupported capabilities, and versioned evidence. Never report success for unexecuted checks. Keep generation and reports deterministic.
 
-## Mandatory Example Acceptance
+## Mandatory Example Acceptance (2026-10-12)
 
-Two copied specification workspaces are mandatory acceptance cases:
-
-- `examples/cinema/dctx0/`, copied with its surrounding example project from `../runatron/examples/dctx0-cinema`.
-- `examples/runatron-next/dctx0/`, copied from `../runatron-next/dctx0`, including its Hono files.
-
-Both complete multi-file specs must parse, resolve, type-check, and compile to valid IR with the Rust implementation. Their supported executable examples, properties, invariants, and lifecycles must run with the intended semantics; generation and native verification must pass for the selected supported target/profile once the necessary implementations and bindings are available. Parsing alone is not acceptance. Add integration CI cases for both workspaces and preserve deterministic output and replay behavior.
-
-Do not weaken, truncate, or skip either spec to make checks pass. Diagnose missing language/target support explicitly, and document intentional binding/configuration migrations. Copied `.runatron` artifacts are historical reference output, not proof that this Rust implementation works. The copied Cinema instructions apply to its TypeScript example; project-wide Rust development follows this root guide. Both workspaces pass parsing and semantic compilation; tests compare statement trees and data/operation models with independent TypeScript fixtures. Interpretation, generation, and native execution remain future acceptance criteria.
+Cinema is the mandatory complete specification, shared unchanged between
+`examples/cinema/dctx0` and `examples/cinema-go/dctx0`. Both actual applications
+must pass the central finite plan, their real persistence/HTTP checks, meaningful
+mutations and replay. The user explicitly removed runatron-next and requested
+removal of its compiler tests, goldens and measurement workloads; do not restore
+it as a fixture or native application. Historical evidence remains historical.
 
 ## Libraries & Tooling
 
@@ -724,3 +722,178 @@ Functional test scratch uses an owned on-disk cache with cleanup, avoiding large
 instrumented SQLite writes in capacity-limited RAM-backed /tmp; release benchmark
 scratch behavior stays unchanged and the 2/3 available-memory/no-swap guard remains.
 See docs/tutorial-acceptance.md and examples/tutorial/validation/complete.json.
+
+## Go target continuation (2026-10-12)
+
+Go now participates in native CLI selection and managed build execution. The
+Go worker is compiled with CGO disabled; production remains independent of the
+SDK. Tree-sitter provides structural inventory. A module-aware build receipt
+binds selected packages, vendored dependencies, embeds, compiler tools and the
+actual compiled executable. Go-Cinema uses net/http, ordinary interfaces and
+pinned modernc SQLite. Native finite evidence and authored inspection stay
+separate. Full workspace coverage and release measurements are completed at
+the end of the implementation, with the user-approved 97% Rust line/function
+threshold. No new baseline promotion is authorized.
+
+
+Go target acceptance (2026-10-12): the frozen-source grouped workspace validation
+passes 19 commands, including Go-only feature tests and native Go Cinema. The
+unchanged Cinema plan executes 5,674 mandatory cases; complete verification
+delivers 104 tasks (46 native adoption, 58 source-bound inspection). Five actual
+production mutations and broken/repaired replay are accepted. Native manual/suite
+obligations retain UNKNOWN and require authored review. Rust merged source-line
+coverage is 98.13%, LLVM functions 97.39%, meeting the user-approved 97% gate.
+The final release suite records 56 Cinema workloads with performance at the end;
+new workloads/reduced sampling remain unassessed and the baseline is unchanged.
+See docs/go-target.md and docs/go-target-validation.json for evidence and limits.
+
+
+Rust target continuation (2026-10-12): Tree-sitter Rust, testing-only native
+transport/adapter, managed Cargo compilation and input/executable receipts are
+implemented. Independent Rust Cinema production contains contracts, services,
+SQLite transactions and real HTTP. The first native run passed all 5,674 mandatory
+cases without incomplete provenance. Manual review remains separate, and final
+workspace/feature/coverage acceptance is pending. Group checks at the end and
+performance last; preserve the approved 97% gate and accepted baseline. See
+docs/rust-target.md and docs/rust-target-progress.md.
+
+
+Rust target acceptance (2026-10-12): the final frozen-source grouped workspace run
+passes all 22 commands. Rust Cinema passes the unchanged 5,674 mandatory-case plan,
+completes 104 tasks (46 native adoption, 58 source-bound inspection), detects five
+actual production mutations and reproduces broken/repaired replay. Native manual/
+suite UNKNOWN remains distinct from authored approval. Coverage is 97.94% merged
+source lines and 97.19% LLVM functions; no full branch/native-helper claim follows.
+The final 66 release workloads ran last, source hashes matched and the baseline
+was unchanged. Rust finite verification took about 8.8 seconds, worker RSS about
+7 MB with existing caches. See docs/rust-target.md and docs/rust-target-validation.json.
+
+Bundled skill installation (2026-10-12): the Rust CLI embeds dctx0,
+dctx0-language and dctx0-implementation with their references. `skills list`,
+`skills install` and `install` support agent-specific local/global directories,
+preview, unchanged detection and explicit replacement. Ordered locks, bounded
+preflight, staged writes and rollback preserve existing customizations on ordinary
+errors. Six focused engine/CLI tests, workspace Clippy and formatting pass. A copied
+binary installs without repository assets; its repeated six-destination installation
+was unchanged (3.526 ms, child peak RSS 16,445,440 bytes). The shipped language
+example compiles. These checks supplement the historical target acceptance; they
+are not a new full-workspace coverage run. See docs/skills.md.
+
+Editor integration continuation (2026-10-12): dctx0-lsp provides a read-only
+compiler-backed stdio language service via `dctx0 lsp`. The Rust CLI prepares
+local VS Code VSIX and Zed development bundles with `editor install`; optional
+VS Code activation invokes its own `code` installer. Syntax assets are adapted
+to the Rust language, including Cinema refinement values and post-call field
+access. Server tests cover unsaved/versioned UTF-16 edits, project isolation,
+resolved navigation, semantic tokens, cancellation and shutdown. Packaged VS Code
+client/server acceptance and prepared Zed Rust launcher compilation are implemented;
+GUI/store publication is not claimed. Grouped final validation is pending; run
+performance last and retain the approved 97% coverage gate. See docs/editors.md.
+
+Editor error-path follow-up (2026-10-12): full functional/application acceptance
+passed, but the first coverage run measured 97.33% lines and 95.24% LLVM functions.
+The failed gate is retained in benchmarks/history/20261012T085010.100415Z-890509.json;
+its completed measurements are not a baseline. Added meaningful protocol/IO,
+initialization/cancellation and local-installer failure tests. Zed launcher paths
+now use Rust string literals and explicitly reject unrepresentable paths. A focused
+editor validation mode keeps full workspace coverage and release measurements last,
+without repeating separately accepted application/race suites. Final coverage is
+pending; do not relabel the initial failed validation as successful.
+
+Editor acceptance (2026-10-12): the corrected follow-up passes all eight grouped
+commands, including full instrumented Cargo workspace coverage. Merged source
+lines are 29,720/30,421 (97.70%); LLVM functions 2,396/2,467 (97.12%). Source hashes
+match before/after checks and measurements. The 71 release workloads ran last;
+new/reduced samples are unassessed and the baseline is unchanged. Cinema LSP peak
+RSS was about 23.5 MiB, initial analysis about 61 ms and unsaved changes about
+84 ms including debounce. The earlier full run's 22 functional/application checks
+passed while its initial coverage gate failed; preserve both records. GUI/store
+availability remains outside automated acceptance. See docs/editor-validation.json.
+
+## Agent conformance tasks (2026-10-12)
+
+Planner version 2 assigns manual constraints/decisions, explicit reviews,
+conformance suites and policies through optional `review_obligations` in task
+candidates. Scoped reviews are reused; missing scopes get a Review task. Fresh
+Cinema plans have 105 tasks and four review owners for 25 obligations. Existing
+definitions and historical results remain immutable; compiler snapshots do not
+change. `verify review-template` provides deliberately incomplete source-bound
+reports, `tasks record-review` stores them under normal guards, and `verify
+complete` consumes current reports without setting testing PASS on review
+completion. `tasks renew-review` creates an idempotent successor bound to changed
+sources and preserves historical reviews. Inspection-note imports remain
+compatible but cannot overrule current bound task reports. See
+`docs/conformance-reviews.md`; validation evidence is recorded after acceptance.
+
+Agent conformance acceptance (2026-10-12): TypeScript, Go and Rust Cinema each pass
+5,674 native cases and the persisted task-review workflow, with 25 obligations,
+four Done/Unverified review tasks and 105 total tasks. Full instrumented workspace
+coverage passes at 30,350/31,070 merged lines (97.68%) and 2,454/2,529 raw LLVM
+functions (97.03%). Stable scoped checks pass; 71 release speed/RSS workloads run
+last and remain unassessed, with no baseline promotion. Concurrent unrelated
+`install_mdbook.py`/`docs_site.py` edits are explicitly outside the scoped source
+stamp, not Rust coverage exclusions. Source-change/earlier coverage failures stay
+recorded. See `docs/conformance-review-validation.json` and
+`benchmarks/history/20261012T112024.971179Z-1115890.json`.
+
+
+## Release distribution (2026-10-12)
+
+Matching `v<SemVer>` tags trigger full reusable Linux validation and five native
+release jobs: Linux x64/ARM64 (Ubuntu 22.04, glibc 2.35+), macOS Intel/Apple Silicon
+(macOS 14 deployment baseline), and Windows x64/MSVC. Shell and PowerShell
+installers verify SHA-256, stream only the executable and replace it atomically.
+Archives include CLI/LSP/profiles/skills, license and a source/toolchain receipt;
+`SHA256SUMS` covers all five archives and both installers.
+
+`python3 scripts/release_acceptance.py --cargo-tests --platform-tests` couples
+13 archive/Unix-installer tests, 9 CLI tests and real CLI/LSP/Bun SDK transport/
+owned-process cancellation checks with release packaging/startup speed and peak
+memory. Windows additionally runs the native PowerShell installer suite. Reports
+retain the latest 20 runs under `benchmarks/history/release/`, using portable
+locks and explicitly named Linux/macOS/Windows memory methods. Unavailable memory
+queries are null; distribution baselines remain unassessed and the core baseline
+is unchanged. Optional systemd limits apply only on Linux.
+
+Managed native verification/adoption remains Linux-only. macOS/Windows tests
+exercise the unsupported boundary and must never invent native PASS/adoption.
+Local x64 Linux acceptance is implemented; actual macOS/Windows execution and
+GitHub publication occur only on configured CI runners. PowerShell syntax and
+truncated-input rejection can be checked locally without claiming Windows
+execution. See `docs/releases.md` and retained `docs/release-validation.json`.
+
+## Gin and Axum reference integrations (2026-10-12)
+
+Additional Go/Gin 1.12.0 and Rust/Axum 0.8.9 HTTP variants reuse the existing
+Cinema services, persistence and unchanged specification. Existing `net/http`
+and builtin Rust HTTP paths remain defaults. Selection belongs to the example
+application and reviewed project adapter (`CINEMA_HTTP_FRAMEWORK` and optional
+`httpFramework`), not a new dctx0 CLI/framework contract. Rust enables Axum with
+its optional application feature `axum-http`; the dctx0 Rust core is unchanged.
+
+Optional English framework profile presets live under
+`targets/go/framework-profiles/gin/` and `targets/rust/framework-profiles/axum/`.
+Users deliberately merge them into local editable profiles. They are repository
+presets, not automatically installed embedded target profiles. Preserve existing
+Markdown, frozen bundles, task definitions and historical evidence. Common
+framework rules appear once; keyword roles distinguish implementation from use.
+
+The contributor runner `python3 scripts/framework_acceptance.py` couples native
+checks, all 5,674 Cinema cases per framework, current source-bound task reviews,
+eight real routing/status/middleware/business-exception mutations and broken/
+repaired replay with release first-build/warm execution and HTTP-check speed/RSS
+measurements at the end. `--skip-performance` explicitly leaves the report
+incomplete; `--performance-only` requires matching successful functional inputs
+and binary. Failed reports are retained; latest-20 framework history has no
+accepted baseline and never promotes the core baseline.
+
+Framework variants route generated real Surface operations through HTTP as well
+as explicitly configured HTTP cases. Mocked consumer cases retain a distinct
+service path. Gin uses release mode and stderr writers to preserve protocol
+stdout and the log budget. Axum uses owned bounded sessions, actual Router/State,
+blocking work off executor threads, bounded shutdown and a standard testing HTTP
+client with chunked-response/status/header checks. Review approval remains
+Done/Unverified; it does not convert the 25 native manual/suite UNKNOWN points
+into native PASS. Acceptance scratch/build files use the disk-backed project
+`target/frameworks/tmp`, avoiding RAM-backed `/tmp` pressure. Optional Linux/
+systemd memory guards remain in force. See `docs/http-frameworks.md`.

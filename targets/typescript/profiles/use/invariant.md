@@ -1,5 +1,3 @@
 # Use invariant
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered invariant contract without redefining its requirements. Check the stated invariant at the modeled state boundary.
+Preserve the delivered invariant when implementing consuming operations. Reuse its exact predicate and state boundary; report missing observation access instead of assuming it holds.

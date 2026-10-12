@@ -67,7 +67,9 @@ fn generate(adapter_import: &str, selected: BTreeSet<String>) -> HarnessBundle {
 }
 
 fn write_bundle(root: &Path, bundle: &HarnessBundle) {
+    fs::write(root.join("go.mod"), "module dctx0testing\n\ngo 1.25.0\n").unwrap();
     for artifact in &bundle.artifacts {
+        fs::create_dir_all(root.join(&artifact.path).parent().unwrap()).unwrap();
         fs::write(root.join(&artifact.path), &artifact.contents).unwrap();
     }
 }
@@ -93,6 +95,22 @@ struct Worker {
 
 impl Worker {
     fn spawn(root: &Path, bundle: &HarnessBundle) -> Self {
+        if let Some(build) = &bundle.build {
+            let output = Command::new(&build.program)
+                .args(&build.arguments)
+                .env("GOTOOLCHAIN", "local")
+                .env("GOPROXY", "off")
+                .env("CGO_ENABLED", "0")
+                .env("GOWORK", "off")
+                .current_dir(root)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
         let mut child = Command::new(&bundle.recipe.program)
             .args(&bundle.recipe.arguments)
             .current_dir(root)
@@ -226,14 +244,15 @@ fn generated_worker_is_deterministic_scaffolds_are_unavailable_and_adapters_cann
     let bundle = GoHarness.generate(&request).unwrap();
     assert_eq!(bundle, GoHarness.generate(&request).unwrap());
     assert_eq!(bundle.target, "go");
-    assert_eq!(bundle.generator_version, "dctx0-go-harness-1");
+    assert_eq!(bundle.generator_version, "dctx0-go-harness-2");
     assert_eq!(bundle.sdk_version, 1);
-    assert_eq!(bundle.recipe.program, "go");
-    assert_eq!(bundle.recipe.arguments, ["run", "."]);
+    assert_eq!(bundle.recipe.program, "./.bin/worker");
+    assert!(bundle.recipe.arguments.is_empty());
+    assert_eq!(bundle.build.as_ref().unwrap().program, "go");
     assert_eq!(bundle.artifacts.len(), 3);
     assert!(!bundle.artifacts[1].contents.contains("__SUBJECTS__"));
     assert!(bundle.artifacts[0].contents.contains("package main"));
-    assert!(bundle.artifacts[2].contents.contains("module dctx0testing"));
+    assert!(bundle.artifacts[2].contents.contains("func prepare()"));
     let scaffold = GoHarness.scaffold();
     assert_eq!(scaffold.path, "adapter.go");
     assert!(scaffold.contents.contains("not implemented"));
@@ -456,6 +475,18 @@ fn real_go_worker_conforms_to_sessions_observation_mock_transport_and_failures()
         worker.request(begin("fresh")),
         WorkerReply::Begun { .. }
     ));
+    match worker.request(invoke(Invocation {
+        subject: "operation".into(),
+        arguments: vec![text("application-panic")],
+    })) {
+        WorkerReply::Invoked { observation, .. } => assert_eq!(
+            observation,
+            Observation::Threw {
+                message: "Application panic: Actual production panic".into()
+            }
+        ),
+        other => panic!("expected actual application panic, got {other:?}"),
+    }
     match worker.request(invoke(Invocation {
         subject: "operation".into(),
         arguments: vec![text("exception")],

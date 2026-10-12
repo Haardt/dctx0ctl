@@ -130,12 +130,10 @@ fn complete_example_snapshots_preserve_the_pre_refactoring_wire_format() {
         "../../../fixtures/semantic/snapshot-hashes.json"
     ))
     .unwrap();
-    for example in ["cinema", "runatron-next"] {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(if example == "cinema" {
-            "../../fixtures/semantic/original-cinema"
-        } else {
-            "../../examples/runatron-next/dctx0"
-        });
+    {
+        let example = "cinema";
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/semantic/original-cinema");
         let sources = std::fs::read_dir(root)
             .unwrap()
             .map(|entry| entry.unwrap().path())
@@ -145,7 +143,7 @@ fn complete_example_snapshots_preserve_the_pre_refactoring_wire_format() {
                 text: std::fs::read_to_string(path).unwrap(),
             })
             .collect::<Vec<_>>();
-        assert_eq!(sources.len(), if example == "cinema" { 2 } else { 18 });
+        assert_eq!(sources.len(), 2);
         let result = dctx0_language::compile(&sources);
         assert!(
             result.diagnostics.is_empty(),

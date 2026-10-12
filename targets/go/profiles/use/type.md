@@ -1,5 +1,3 @@
 # Use type
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Consume the delivered type contract without redefining its requirements. Preserve all alternatives, payloads and refinements.
+Import the complete delivered contract, including nested types and alternatives. Handle all variants and preserve optionality. Do not copy its declaration into a local substitute or weaken refinements.

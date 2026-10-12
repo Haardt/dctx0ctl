@@ -1,0 +1,951 @@
+{
+  "schema_version": 1,
+  "id": "20261012T143408.356141Z-1340827",
+  "timestamp": "2026-10-12T14:34:08.356141+00:00",
+  "status": "complete",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "source_hash": "96a13ac234a5fd318a42224b71bb64033534bd7b94b55f2c6a9a1ae05dc3d78b",
+    "binary_sha256": "dfc00c5859b042755e9caf189e35398c43d209e129a8de82578efc49fbe91940",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U",
+    "available_memory_at_start": "MemAvailable:   12719700 kB",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": "8706468522"
+    },
+    "go": "go version go1.27.1-X:nodwarf5 linux/amd64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "versions": {
+    "gin": "1.12.0",
+    "axum": "0.8.9",
+    "tokio": "1.52.3",
+    "tower": "0.5.3"
+  },
+  "seed": 42,
+  "generated_cases": 100,
+  "measurements": {
+    "gin-release-check": [
+      {
+        "elapsed_ms": 71.3255620066775,
+        "peak_rss_bytes": 56160256,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-first-managed-build": [
+      {
+        "elapsed_ms": 9470.785703000729,
+        "peak_rss_bytes": 410349568,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-warm-native": [
+      {
+        "elapsed_ms": 9216.448516992386,
+        "peak_rss_bytes": 409931776,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 9157.273304997943,
+        "peak_rss_bytes": 412577792,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 9330.978169004084,
+        "peak_rss_bytes": 412205056,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-http-warmup": [
+      {
+        "elapsed_ms": 1410.1828610000666,
+        "peak_rss_bytes": 373932032,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-http-checks": [
+      {
+        "elapsed_ms": 1156.6245909925783,
+        "peak_rss_bytes": 369016832,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 1136.7442329938058,
+        "peak_rss_bytes": 368689152,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 1362.8655130014522,
+        "peak_rss_bytes": 369016832,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-release-check": [
+      {
+        "elapsed_ms": 60.913061010069214,
+        "peak_rss_bytes": 292073472,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-first-managed-build": [
+      {
+        "elapsed_ms": 14968.837093998445,
+        "peak_rss_bytes": 306409472,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-warm-native": [
+      {
+        "elapsed_ms": 14733.32666400529,
+        "peak_rss_bytes": 305168384,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 14496.321840997552,
+        "peak_rss_bytes": 306565120,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 15664.97657900618,
+        "peak_rss_bytes": 305303552,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-http-warmup": [
+      {
+        "elapsed_ms": 74575.44217100076,
+        "peak_rss_bytes": 450576384,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-http-checks": [
+      {
+        "elapsed_ms": 91.79145700181834,
+        "peak_rss_bytes": 300847104,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 61.39509700005874,
+        "peak_rss_bytes": 300847104,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 71.51176499610301,
+        "peak_rss_bytes": 300847104,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "mutations": [
+    {
+      "variant": "gin",
+      "mutation": "routing",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400",
+          "span": null
+        }
+      },
+      "source": "ginapi/handler.go",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework",
+      "replay": {
+        "broken": "FAIL",
+        "repaired": "PASS",
+        "changed_implementation_comparison": true
+      }
+    },
+    {
+      "variant": "gin",
+      "mutation": "status",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:operation:0",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Wrong failure HTTP status",
+          "span": null
+        }
+      },
+      "source": "ginapi/handler.go",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework"
+    },
+    {
+      "variant": "gin",
+      "mutation": "middleware",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm: Gin middleware missing",
+          "span": null
+        }
+      },
+      "source": "ginapi/handler.go",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework"
+    },
+    {
+      "variant": "gin",
+      "mutation": "domain-through-http",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400",
+          "span": null
+        }
+      },
+      "source": "application/service.go",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework"
+    },
+    {
+      "variant": "axum",
+      "mutation": "routing",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 404: {\"error\":\"Unknown HTTP route\"}",
+          "span": null
+        }
+      },
+      "source": "src/axumapi.rs",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework",
+      "replay": {
+        "broken": "FAIL",
+        "repaired": "PASS",
+        "changed_implementation_comparison": true
+      }
+    },
+    {
+      "variant": "axum",
+      "mutation": "status",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:operation:0",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Wrong failure HTTP status",
+          "span": null
+        }
+      },
+      "source": "src/httpapi.rs",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework"
+    },
+    {
+      "variant": "axum",
+      "mutation": "middleware",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm: Axum middleware missing",
+          "span": null
+        }
+      },
+      "source": "src/axumapi.rs",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework"
+    },
+    {
+      "variant": "axum",
+      "mutation": "domain-through-http",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400: {\"error\":\"Intentional business mutation\"}",
+          "span": null
+        }
+      },
+      "source": "src/application.rs",
+      "http_path_basis": "Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework"
+    }
+  ],
+  "baseline": {
+    "status": "unassessed",
+    "reason": "New HTTP framework workloads; accepted baseline unchanged"
+  },
+  "cache": "fresh managed project build; existing module/compiler caches; repeated warm execution",
+  "scope": "Linux Cinema Gin and Axum additions; existing paths retained; authored reviews separate from native PASS",
+  "functional_evidence": "20261012T132542.894278Z-1241719",
+  "review_acceptance": {
+    "frameworks": {
+      "schema_version": 1,
+      "status": "pass",
+      "basis": "Workflow test reusing source-validated authored Cinema inspection fixtures; not generated architectural approvals.",
+      "targets": {
+        "gin": {
+          "schema_version": 1,
+          "result": {
+            "status": "PASS"
+          },
+          "native_result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "MANUAL_REQUIREMENT",
+              "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+              "span": null
+            }
+          },
+          "native_run": "c7a876d5d70e6a127920a272f71c3df713d0967f2eef5155001c689a2f5392f5",
+          "inspected_run": "976709535b126165a0b31681903124a6de67ec61c6511772a20aa9a5f02be01d",
+          "mandatory_cases": 5674,
+          "tasks": 105,
+          "open_tasks": 0,
+          "non_pass_tasks": 4,
+          "reviewed_tasks": [
+            1,
+            103,
+            104,
+            105
+          ],
+          "adopted_tasks": [],
+          "inspected_tasks": [],
+          "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+        },
+        "axum": {
+          "schema_version": 1,
+          "result": {
+            "status": "PASS"
+          },
+          "native_result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "MANUAL_REQUIREMENT",
+              "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+              "span": null
+            }
+          },
+          "native_run": "5a5998141667bfc6432bc69d28a9e95578bf40a9e62ccd053751b8fbc7d49182",
+          "inspected_run": "f6a7ecda92e37df29aeb92622e48d901f73227c1e697f74fd841fde930004ff3",
+          "mandatory_cases": 5674,
+          "tasks": 105,
+          "open_tasks": 0,
+          "non_pass_tasks": 4,
+          "reviewed_tasks": [
+            1,
+            103,
+            104,
+            105
+          ],
+          "adopted_tasks": [],
+          "inspected_tasks": [],
+          "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+        }
+      }
+    },
+    "references": {
+      "schema_version": 1,
+      "status": "pass",
+      "basis": "Workflow test reusing source-validated authored Cinema inspection fixtures; not generated architectural approvals.",
+      "targets": {
+        "typescript": {
+          "schema_version": 1,
+          "result": {
+            "status": "PASS"
+          },
+          "native_result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "MANUAL_REQUIREMENT",
+              "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+              "span": null
+            }
+          },
+          "native_run": "f8116ccfc78a14a562149ebdd326538ce2a15b784479af18ea59df8464e3e4bb",
+          "inspected_run": "e2e89b642f5b6307d2a1e494dca2ba51395d16b939b32821d56acc422aa2b02b",
+          "mandatory_cases": 5674,
+          "tasks": 105,
+          "open_tasks": 0,
+          "non_pass_tasks": 4,
+          "reviewed_tasks": [
+            1,
+            103,
+            104,
+            105
+          ],
+          "adopted_tasks": [],
+          "inspected_tasks": [],
+          "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+        },
+        "go": {
+          "schema_version": 1,
+          "result": {
+            "status": "PASS"
+          },
+          "native_result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "MANUAL_REQUIREMENT",
+              "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+              "span": null
+            }
+          },
+          "native_run": "2a8e032f0dfcc3b7d08b9eb1ac65eee1a0ebdae548f578767c852474081e09f6",
+          "inspected_run": "ce724679b46e3789491801231fe8305567e5b19a221cbaadbfef15177a388830",
+          "mandatory_cases": 5674,
+          "tasks": 105,
+          "open_tasks": 0,
+          "non_pass_tasks": 4,
+          "reviewed_tasks": [
+            1,
+            103,
+            104,
+            105
+          ],
+          "adopted_tasks": [],
+          "inspected_tasks": [],
+          "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+        },
+        "rust": {
+          "schema_version": 1,
+          "result": {
+            "status": "PASS"
+          },
+          "native_result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "MANUAL_REQUIREMENT",
+              "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+              "span": null
+            }
+          },
+          "native_run": "e898b40b0720f66b26b4159d91d04dda1f1a5778a64ccf0613daefeebd2603b9",
+          "inspected_run": "390e8bea9bc4e6a173c9b1e787a5a518f8f3a6c41a64afedc2d700b02551918c",
+          "mandatory_cases": 5674,
+          "tasks": 105,
+          "open_tasks": 0,
+          "non_pass_tasks": 4,
+          "reviewed_tasks": [
+            1,
+            103,
+            104,
+            105
+          ],
+          "adopted_tasks": [],
+          "inspected_tasks": [],
+          "basis": "deterministic native cases plus explicitly source-bound agent inspection"
+        }
+      }
+    }
+  },
+  "functional_measurements": {
+    "go-tests": [
+      {
+        "elapsed_ms": 1811.2496979883872,
+        "peak_rss_bytes": 371609600,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "go-vet": [
+      {
+        "elapsed_ms": 204.31407699652482,
+        "peak_rss_bytes": 55984128,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "go-race": [
+      {
+        "elapsed_ms": 2733.429290005006,
+        "peak_rss_bytes": 429035520,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-tests": [
+      {
+        "elapsed_ms": 1446.672548991046,
+        "peak_rss_bytes": 286101504,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-default-tests": [
+      {
+        "elapsed_ms": 193.40249500237405,
+        "peak_rss_bytes": 100102144,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-clippy": [
+      {
+        "elapsed_ms": 214.60294800635893,
+        "peak_rss_bytes": 172847104,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-adapter-tests": [
+      {
+        "elapsed_ms": 81.74837598926388,
+        "peak_rss_bytes": 56209408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-format": [
+      {
+        "elapsed_ms": 71.84376800432801,
+        "peak_rss_bytes": 55984128,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-adapter-format": [
+      {
+        "elapsed_ms": 61.16156101052184,
+        "peak_rss_bytes": 55984128,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "framework-task-reviews": [
+      {
+        "elapsed_ms": 63353.801605000626,
+        "peak_rss_bytes": 410333184,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "reference-task-reviews": [
+      {
+        "elapsed_ms": 78480.30538400053,
+        "peak_rss_bytes": 411332608,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-check": [
+      {
+        "elapsed_ms": 61.72666799102444,
+        "peak_rss_bytes": 55984128,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-mutation-routing": [
+      {
+        "elapsed_ms": 4663.389642999391,
+        "peak_rss_bytes": 408121344,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-broken-replay": [
+      {
+        "elapsed_ms": 2391.3784730102634,
+        "peak_rss_bytes": 408907776,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-repaired-replay": [
+      {
+        "elapsed_ms": 2430.797997993068,
+        "peak_rss_bytes": 411660288,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-mutation-status": [
+      {
+        "elapsed_ms": 4316.795977007132,
+        "peak_rss_bytes": 410849280,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-mutation-middleware": [
+      {
+        "elapsed_ms": 4217.41139900405,
+        "peak_rss_bytes": 410996736,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "gin-mutation-domain-through-http": [
+      {
+        "elapsed_ms": 4429.653259998304,
+        "peak_rss_bytes": 409116672,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-check": [
+      {
+        "elapsed_ms": 61.27512000966817,
+        "peak_rss_bytes": 74600448,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-mutation-routing": [
+      {
+        "elapsed_ms": 9216.905863999273,
+        "peak_rss_bytes": 306786304,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-broken-replay": [
+      {
+        "elapsed_ms": 8346.543521998683,
+        "peak_rss_bytes": 306663424,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-repaired-replay": [
+      {
+        "elapsed_ms": 8466.091291003977,
+        "peak_rss_bytes": 307572736,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-mutation-status": [
+      {
+        "elapsed_ms": 9593.014641999616,
+        "peak_rss_bytes": 306503680,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-mutation-middleware": [
+      {
+        "elapsed_ms": 9396.014558005845,
+        "peak_rss_bytes": 306110464,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "axum-mutation-domain-through-http": [
+      {
+        "elapsed_ms": 9530.391082997085,
+        "peak_rss_bytes": 308592640,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "functional_status": "pass",
+  "native_plans": {
+    "gin": {
+      "mandatory_cases": 5674,
+      "recorded_cases": 5674,
+      "native_open_obligations": 25,
+      "incomplete_provenance": [],
+      "evidence_id": "af3368e05ab91d3456ac5e158485c47d5df64ba3f3d23356111f18e4eb2f4b9f"
+    },
+    "axum": {
+      "mandatory_cases": 5674,
+      "recorded_cases": 5674,
+      "native_open_obligations": 25,
+      "incomplete_provenance": [],
+      "evidence_id": "fb70f1327795b894f674de0da887dc68b46a6552ec3e0a1f25a09a74dac3cdf2"
+    }
+  },
+  "native_metrics": {
+    "gin": [
+      {
+        "engine_elapsed_ms": 6186.796,
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 23089152,
+          "runtime_version": "go1.27.1-X:nodwarf5",
+          "platform": "linux"
+        },
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1340851,
+            "received_messages": 0,
+            "stderr": ""
+          },
+          "elapsed_us": 1898169,
+          "schema_version": 1
+        },
+        "go_compile": {
+          "build_elapsed_us": 727702,
+          "build_peak_rss_bytes": 410349568,
+          "go_version": "go version go1.27.1-X:nodwarf5 linux/amd64",
+          "binary_hash": "e7ef545350e2999f2f39016d5e6079173d9feddabd3f1366b3698d6f727054fc"
+        }
+      },
+      {
+        "engine_elapsed_ms": 6411.448,
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 23138304,
+          "runtime_version": "go1.27.1-X:nodwarf5",
+          "platform": "linux"
+        },
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1341104,
+            "received_messages": 0,
+            "stderr": ""
+          },
+          "elapsed_us": 1412501,
+          "schema_version": 1
+        },
+        "go_compile": {
+          "build_elapsed_us": 621868,
+          "build_peak_rss_bytes": 409931776,
+          "go_version": "go version go1.27.1-X:nodwarf5 linux/amd64",
+          "binary_hash": "e7ef545350e2999f2f39016d5e6079173d9feddabd3f1366b3698d6f727054fc"
+        }
+      },
+      {
+        "engine_elapsed_ms": 6394.802,
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1341345,
+            "received_messages": 0,
+            "stderr": ""
+          },
+          "elapsed_us": 1390020,
+          "schema_version": 1
+        },
+        "go_compile": {
+          "build_elapsed_us": 608122,
+          "build_peak_rss_bytes": 412577792,
+          "go_version": "go version go1.27.1-X:nodwarf5 linux/amd64",
+          "binary_hash": "e7ef545350e2999f2f39016d5e6079173d9feddabd3f1366b3698d6f727054fc"
+        },
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 23355392,
+          "runtime_version": "go1.27.1-X:nodwarf5",
+          "platform": "linux"
+        }
+      },
+      {
+        "engine_elapsed_ms": 6534.094,
+        "go_compile": {
+          "build_elapsed_us": 632348,
+          "build_peak_rss_bytes": 412205056,
+          "go_version": "go version go1.27.1-X:nodwarf5 linux/amd64",
+          "binary_hash": "e7ef545350e2999f2f39016d5e6079173d9feddabd3f1366b3698d6f727054fc"
+        },
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 22966272,
+          "runtime_version": "go1.27.1-X:nodwarf5",
+          "platform": "linux"
+        },
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1341618,
+            "received_messages": 0,
+            "stderr": ""
+          },
+          "elapsed_us": 1412431,
+          "schema_version": 1
+        }
+      }
+    ],
+    "axum": [
+      {
+        "engine_elapsed_ms": 4584.634,
+        "rust_compile": {
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "binary_hash": "a511e24fc7dd702a93d10d742fec301628a570261c58637ad111933e7998fd04"
+        },
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1342287,
+            "received_messages": 0,
+            "stderr": "   Compiling cinema v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1342231-0)\n   Compiling dctx0-project-adapter v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1342231-0/.dctx0/testing/rust)\n    Finished `release` profile [optimized] target(s) in 7.03s\n"
+          },
+          "elapsed_us": 7047077,
+          "schema_version": 1
+        },
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 8790016,
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "platform": "linux"
+        }
+      },
+      {
+        "engine_elapsed_ms": 4677.937,
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1345038,
+            "received_messages": 0,
+            "stderr": "   Compiling cinema v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1344983-0)\n   Compiling dctx0-project-adapter v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1344983-0/.dctx0/testing/rust)\n    Finished `release` profile [optimized] target(s) in 7.19s\n"
+          },
+          "elapsed_us": 7216313,
+          "schema_version": 1
+        },
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 8777728,
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "platform": "linux"
+        },
+        "rust_compile": {
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "binary_hash": "a8dcbee560698283cd6cba003f6e7426d598e14342fede5a74849c2c032ef152"
+        }
+      },
+      {
+        "engine_elapsed_ms": 4578.989,
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 8761344,
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "platform": "linux"
+        },
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1347776,
+            "received_messages": 0,
+            "stderr": "   Compiling cinema v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1347721-0)\n   Compiling dctx0-project-adapter v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1347721-0/.dctx0/testing/rust)\n    Finished `release` profile [optimized] target(s) in 7.09s\n"
+          },
+          "elapsed_us": 7118847,
+          "schema_version": 1
+        },
+        "rust_compile": {
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "binary_hash": "08b2753dac7b7014733284338389444d112048d4fdda9120850870c8b5536ac3"
+        }
+      },
+      {
+        "engine_elapsed_ms": 4717.421,
+        "application/vnd.dctx0.runtime-metrics+json": {
+          "kind": "measured",
+          "peak_rss_bytes": 8679424,
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "platform": "linux"
+        },
+        "rust_compile": {
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "binary_hash": "ed3509a8664cfd72c44f661bbd72a05e5a8e33bdddb8d12744f3d2a1b8b5b874"
+        },
+        "application/vnd.dctx0.build-audit+json": {
+          "audit": {
+            "exit_code": 0,
+            "pid": 1350542,
+            "received_messages": 0,
+            "stderr": "   Compiling cinema v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1350487-0)\n   Compiling dctx0-project-adapter v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/target/frameworks/tmp/dctx0-verification-capture-1350487-0/.dctx0/testing/rust)\n    Finished `release` profile [optimized] target(s) in 8.09s\n"
+          },
+          "elapsed_us": 8108933,
+          "schema_version": 1
+        }
+      }
+    ]
+  },
+  "summary": {
+    "gin-first-managed-build": {
+      "samples": 1,
+      "median_elapsed_ms": 9470.785703000729,
+      "peak_rss_bytes": 410349568
+    },
+    "gin-warm-native": {
+      "samples": 3,
+      "median_elapsed_ms": 9216.448516992386,
+      "peak_rss_bytes": 412577792
+    },
+    "gin-http-checks": {
+      "samples": 3,
+      "median_elapsed_ms": 1156.6245909925783,
+      "peak_rss_bytes": 369016832
+    },
+    "axum-first-managed-build": {
+      "samples": 1,
+      "median_elapsed_ms": 14968.837093998445,
+      "peak_rss_bytes": 306409472
+    },
+    "axum-warm-native": {
+      "samples": 3,
+      "median_elapsed_ms": 14733.32666400529,
+      "peak_rss_bytes": 306565120
+    },
+    "axum-http-checks": {
+      "samples": 3,
+      "median_elapsed_ms": 71.51176499610301,
+      "peak_rss_bytes": 300847104
+    }
+  }
+}

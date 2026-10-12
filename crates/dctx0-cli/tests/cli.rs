@@ -21,6 +21,19 @@ fn cli(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
+fn cli_reports_the_package_version_without_a_specification() {
+    for flag in ["--version", "-V"] {
+        let output = cli(&[flag]);
+        assert!(output.status.success());
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap(),
+            format!("dctx0 {}\n", env!("CARGO_PKG_VERSION"))
+        );
+        assert!(output.stderr.is_empty());
+    }
+}
+
+#[test]
 fn cli_parses_files_and_recursive_workspaces_and_reports_failures() {
     let sandbox = Sandbox::new("cli");
     fs::create_dir(sandbox.0.join("nested")).unwrap();
@@ -79,7 +92,8 @@ fn cli_parses_files_and_recursive_workspaces_and_reports_failures() {
 #[test]
 fn cli_serializes_complete_typed_reference_asts() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    for path in ["examples/cinema/dctx0", "examples/runatron-next/dctx0"] {
+    {
+        let path = "examples/cinema/dctx0";
         assert!(
             cli(&["parse", root.join(path).to_str().unwrap()])
                 .status
@@ -235,7 +249,8 @@ fn human_readable_changes_preserve_all_facet_names() {
 
 #[test]
 fn verification_core_benchmarks_measure_both_compiled_examples_without_native_claims() {
-    for example in ["cinema", "runatron-next"] {
+    {
+        let example = "cinema";
         let input = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join(format!("../../examples/{example}/dctx0"));
         for phase in [

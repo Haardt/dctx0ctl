@@ -1,0 +1,303 @@
+{
+  "paths": {
+    "HomeCinema.MovieNight.ScreeningPollLifecycle:transition:0": {
+      "keys": [
+        {
+          "kind": "string",
+          "value": "00000000-0000-4000-8000-000000000005"
+        }
+      ],
+      "setup": [
+        {
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000001"
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Movie Night"
+                },
+                "releaseYear": {
+                  "kind": "integer",
+                  "value": "2005"
+                },
+                "genres": {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "HomeCinema.MovieNight.Genre",
+                        "name": "Comedy",
+                        "payload": null
+                      }
+                    }
+                  ]
+                },
+                "runtimeMinutes": {
+                  "kind": "integer",
+                  "value": "100"
+                },
+                "availability": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "HomeCinema.MovieNight.FilmAvailability",
+                    "name": "Available",
+                    "payload": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000002"
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Movie Night"
+                },
+                "releaseYear": {
+                  "kind": "integer",
+                  "value": "2005"
+                },
+                "genres": {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "HomeCinema.MovieNight.Genre",
+                        "name": "Comedy",
+                        "payload": null
+                      }
+                    }
+                  ]
+                },
+                "runtimeMinutes": {
+                  "kind": "integer",
+                  "value": "100"
+                },
+                "availability": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "HomeCinema.MovieNight.FilmAvailability",
+                    "name": "Available",
+                    "payload": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "subject": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "pollId": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000005"
+                },
+                "scheduledFor": {
+                  "kind": "string",
+                  "value": "2026-10-11T18:00:00Z"
+                },
+                "candidateFilmIds": {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "string",
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    {
+                      "kind": "string",
+                      "value": "00000000-0000-4000-8000-000000000002"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "arguments": [
+        [
+          {
+            "kind": "record",
+            "value": {
+              "pollId": {
+                "kind": "string",
+                "value": "00000000-0000-4000-8000-000000000005"
+              },
+              "memberId": {
+                "kind": "string",
+                "value": "00000000-0000-4000-8000-000000000003"
+              },
+              "filmId": {
+                "kind": "string",
+                "value": "00000000-0000-4000-8000-000000000001"
+              }
+            }
+          }
+        ]
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPollLifecycle:transition:1": {
+      "keys": [
+        {
+          "kind": "string",
+          "value": "00000000-0000-4000-8000-000000000005"
+        }
+      ],
+      "setup": [
+        {
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000001"
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Movie Night"
+                },
+                "releaseYear": {
+                  "kind": "integer",
+                  "value": "2005"
+                },
+                "genres": {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "HomeCinema.MovieNight.Genre",
+                        "name": "Comedy",
+                        "payload": null
+                      }
+                    }
+                  ]
+                },
+                "runtimeMinutes": {
+                  "kind": "integer",
+                  "value": "100"
+                },
+                "availability": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "HomeCinema.MovieNight.FilmAvailability",
+                    "name": "Available",
+                    "payload": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "id": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000002"
+                },
+                "title": {
+                  "kind": "string",
+                  "value": "Movie Night"
+                },
+                "releaseYear": {
+                  "kind": "integer",
+                  "value": "2005"
+                },
+                "genres": {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "variant",
+                      "value": {
+                        "declaration": "HomeCinema.MovieNight.Genre",
+                        "name": "Comedy",
+                        "payload": null
+                      }
+                    }
+                  ]
+                },
+                "runtimeMinutes": {
+                  "kind": "integer",
+                  "value": "100"
+                },
+                "availability": {
+                  "kind": "variant",
+                  "value": {
+                    "declaration": "HomeCinema.MovieNight.FilmAvailability",
+                    "name": "Available",
+                    "payload": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "subject": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting",
+          "arguments": [
+            {
+              "kind": "record",
+              "value": {
+                "pollId": {
+                  "kind": "string",
+                  "value": "00000000-0000-4000-8000-000000000005"
+                },
+                "scheduledFor": {
+                  "kind": "string",
+                  "value": "2026-10-11T18:00:00Z"
+                },
+                "candidateFilmIds": {
+                  "kind": "list",
+                  "value": [
+                    {
+                      "kind": "string",
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    {
+                      "kind": "string",
+                      "value": "00000000-0000-4000-8000-000000000002"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "arguments": [
+        [
+          {
+            "kind": "string",
+            "value": "00000000-0000-4000-8000-000000000005"
+          }
+        ]
+      ]
+    }
+  }
+}

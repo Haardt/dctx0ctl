@@ -21,6 +21,7 @@ pub(crate) enum Verb {
     ReleaseSlice,
     RecordCheck,
     RecordReview,
+    RenewReview,
     AddNote,
     FollowUp,
     ProfileChanges,

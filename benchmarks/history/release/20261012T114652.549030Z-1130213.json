@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "id": "20261012T114652.549030Z-1130213",
+  "timestamp": "2026-10-12T11:46:52.549030+00:00",
+  "workload": "release-distribution",
+  "status": "failed",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "content_hash": "a608503191fc0457978bd79574841994d344de45edb0058ce12ed230886542ac",
+    "binary_sha256": "6cfb3a7cae594c0ab9618aa245bc58e627dfd00623d3b4fc229bc0a9662c30cd",
+    "target": "x86_64-unknown-linux-gnu",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 8453363029
+    }
+  },
+  "features": [
+    "typescript",
+    "java",
+    "go",
+    "rust"
+  ],
+  "seed": null,
+  "cache": "prebuilt uninstrumented release CLI, one warm-up per phase, fresh process per sample, warm filesystem cache",
+  "memory_scope": "Linux wait4 peak child/reaped descendant RSS in bytes; not collective simultaneous RSS; unsupported platforms report null",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted distribution baseline; existing core baseline unchanged"
+  },
+  "measurements": {
+    "shell-syntax": [
+      {
+        "elapsed_ms": 11.528554998221807,
+        "peak_rss_bytes": 55713792,
+        "exit_code": 0
+      }
+    ],
+    "format": [
+      {
+        "elapsed_ms": 1064.6116729913047,
+        "peak_rss_bytes": 55713792,
+        "exit_code": 0
+      }
+    ],
+    "cli-integration": [
+      {
+        "elapsed_ms": 8238.10589099594,
+        "peak_rss_bytes": 935911424,
+        "exit_code": 101
+      }
+    ],
+    "package-warmup": [
+      {
+        "elapsed_ms": 2995.5881659989245,
+        "peak_rss_bytes": 55713792,
+        "exit_code": 0
+      }
+    ],
+    "startup-warmup": [
+      {
+        "elapsed_ms": 10.774868991575204,
+        "peak_rss_bytes": 55713792,
+        "exit_code": 1
+      }
+    ]
+  },
+  "failure": "cli-integration failed:\n   Compiling dctx0-cli v0.1.0 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-cli)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.00s\n     Running tests/cli.rs (target/debug/deps/cli-1ba32724d36b0bd3)\n\nrunning 9 tests\ntest benchmarks_reject_invalid_change_scenarios_and_skip_symlink_loops ... ok\ntest cli_reports_the_package_version_without_a_specification ... FAILED\ntest cli_parses_files_and_recursive_workspaces_and_reports_failures ... ok\ntest cli_serializes_complete_typed_reference_asts ... ok\ntest human_readable_changes_preserve_all_facet_names ... ok\ntest isolated_parser_driver_reports_valid_invalid_and_unreadable_inputs ... ok\ntest commands_publish_inspect_rename_and_benchmark_with_machine_readable_output ... ok\ntest verification_setup_and_configured_scope_preserve_files_and_never_execute_or_adopt ... ok\ntest verification_core_benchmarks_measure_both_compiled_examples_without_native_claims ... ok\n\nfailures:\n\n---- cli_reports_the_package_version_without_a_specification stdout ----\n\nthread 'cli_reports_the_package_version_without_a_specification' (1130679) panicked at crates/dctx0-cli/tests/cli.rs:27:9:\nassertion failed: output.status.success()\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    cli_reports_the_package_version_without_a_specification\n\ntest result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.21s\n\nerror: test failed, to rerun pass `-p dctx0-cli --test cli`\n\nstartup-warmup failed:\ndctx0 0.1.0\n\n"
+}

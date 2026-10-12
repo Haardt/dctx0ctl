@@ -1,5 +1,3 @@
 # Implement surface
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Keep application operations independent of framework-specific transport concerns.
+Expose only the explicitly assigned application entry points. Map transport input, results and failures to existing domain contracts and validate at the boundary. Keep business rules in the real application operation. Verify actual framework routing/composition when assigned; do not infer URLs, publish internal operations or choose a framework from the spec alone.

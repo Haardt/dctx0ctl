@@ -6,6 +6,40 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
+fn execution_target(
+    target: &str,
+) -> Result<
+    (
+        &'static dyn dctx0_core::TargetProfileProvider,
+        &'static dyn dctx0_target_sdk::HarnessGenerator,
+    ),
+    String,
+> {
+    match target {
+        #[cfg(feature = "typescript")]
+        "typescript" => Ok((
+            &dctx0_target_typescript::Provider,
+            &dctx0_target_typescript::BunHarness,
+        )),
+        #[cfg(feature = "go")]
+        "go" => Ok((&dctx0_target_go::Provider, &dctx0_target_go::GoHarness)),
+        #[cfg(feature = "rust")]
+        "rust" => Ok((
+            &dctx0_target_rust::Provider,
+            &dctx0_target_rust::RustHarness,
+        )),
+        _ => Err(format!(
+            "No executable testing target is enabled for {target}"
+        )),
+    }
+}
+#[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
+fn configured_target(project: &Project, application: Option<&Path>) -> Result<String, String> {
+    project
+        .verification_configuration(application)
+        .map(|(_, config)| config.target)
+        .map_err(crate::error_message)
+}
 fn outcome_summary(
     output: &mut dyn Write,
     run: &dctx0_core::VerificationRun,
@@ -111,6 +145,14 @@ pub(crate) struct VerifyArgs {
 }
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Read-only source-bound report template for an assigned conformance review task.
+    ReviewTemplate {
+        input: PathBuf,
+        #[arg(long, value_parser = task_id)]
+        task: i64,
+        #[arg(long)]
+        project: Option<PathBuf>,
+    },
     /// Check, execute, apply authored source inspections and require zero unfinished tasks.
     Complete {
         input: PathBuf,
@@ -140,11 +182,13 @@ enum VerifyAction {
         #[arg(long)]
         file: PathBuf,
     },
-    /// Inspect TypeScript/TSX syntax; never execute or adopt candidates.
+    /// Inspect target syntax; never execute or adopt candidates.
     Discover {
         input: PathBuf,
         #[arg(long)]
         project: PathBuf,
+        #[arg(long, default_value = "typescript")]
+        target: String,
     },
     /// Execute saved case inputs as a new comparison; never adopt tasks.
     Replay {
@@ -220,19 +264,33 @@ pub(crate) fn run(
     output: &mut dyn Write,
 ) -> Result<bool, String> {
     let (input, application, subject, task, historical_check, fixtures) = match args.action {
+        VerifyAction::ReviewTemplate {
+            input,
+            task,
+            project: application,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let report = project
+                .conformance_review_template(application.as_deref(), task)
+                .map_err(crate::error_message)?;
+            crate::render::json(output, &report)?;
+            return Ok(true);
+        }
         VerifyAction::Complete {
             input,
             project: application,
             inspections,
         } => {
-            #[cfg(feature = "typescript")]
+            #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
                 if let Some(pass) = super::verification_complete::memory_guard()? {
                     return Ok(pass);
                 }
                 let project = Project::new(&input, database).map_err(crate::error_message)?;
+                let target = configured_target(&project, Some(&application))?;
+                let (provider, generator) = execution_target(&target)?;
                 let notes = inspections.unwrap_or_else(|| {
-                    application.join(".dctx0/testing/typescript/inspection-notes.json")
+                    application.join(format!(".dctx0/testing/{target}/inspection-notes.json"))
                 });
                 let runtime = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
@@ -245,19 +303,19 @@ pub(crate) fn run(
                     .block_on(project.complete_verification(
                         &application,
                         &notes,
-                        &dctx0_target_typescript::Provider,
-                        &dctx0_target_typescript::BunHarness,
+                        provider,
+                        generator,
                         &dctx0_engine::NativeCancellation::default(),
                     ))
                     .map_err(crate::error_message)?;
                 if json {
                     crate::render::json(output, &report)?;
                 } else {
-                    writeln!(output, "# Complete verification\n\nResult: PASS\nMandatory native cases: {}\nTasks: {}; unfinished: {}; without PASS: {}\nNative result: {:?}\nNative run: `{}`\nEffective run: `{}`\nBasis: {}", report.mandatory_cases, report.tasks, report.open_tasks, report.non_pass_tasks, report.native_result, report.native_run, report.inspected_run, report.basis).map_err(crate::error_message)?;
+                    writeln!(output, "# Complete verification\n\nResult: PASS\nMandatory native cases: {}\nTasks: {}; unfinished: {}; without PASS: {}\nSource-bound review tasks: {:?}\nNative result: {:?}\nNative run: `{}`\nEffective run: `{}`\nBasis: {}", report.mandatory_cases, report.tasks, report.open_tasks, report.non_pass_tasks, report.reviewed_tasks, report.native_result, report.native_run, report.inspected_run, report.basis).map_err(crate::error_message)?;
                 }
                 return Ok(true);
             }
-            #[cfg(not(feature = "typescript"))]
+            #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
             {
                 let _ = (input, application, inspections);
                 return Err("No executable TypeScript testing target is enabled".into());
@@ -325,15 +383,24 @@ pub(crate) fn run(
         VerifyAction::Discover {
             input,
             project: application,
+            target,
         } => {
-            #[cfg(feature = "typescript")]
+            #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
+                let inspector: &dyn dctx0_target_sdk::ImplementationInspector = match target
+                    .as_str()
+                {
+                    #[cfg(feature = "typescript")]
+                    "typescript" => &dctx0_target_typescript::TypeScriptInspector,
+                    #[cfg(feature = "go")]
+                    "go" => &dctx0_target_go::GoInspector,
+                    #[cfg(feature = "rust")]
+                    "rust" => &dctx0_target_rust::RustInspector,
+                    _ => return Err(format!("No structural inspector is enabled for {target}")),
+                };
                 let report = Project::new(&input, database)
                     .map_err(crate::error_message)?
-                    .discover_verification(
-                        &application,
-                        &dctx0_target_typescript::TypeScriptInspector,
-                    )
+                    .discover_verification(&application, inspector)
                     .map_err(crate::error_message)?;
                 if json {
                     crate::render::json(output, &report)?;
@@ -377,10 +444,10 @@ pub(crate) fn run(
                 }
                 return Ok(true);
             }
-            #[cfg(not(feature = "typescript"))]
+            #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
             {
-                let _ = (input, application);
-                return Err("No TypeScript structural inspector is enabled".into());
+                let _ = (input, application, target);
+                return Err("No structural inspector is enabled".into());
             }
         }
         VerifyAction::Replay {
@@ -390,9 +457,11 @@ pub(crate) fn run(
             minimized,
             project: application,
         } => {
-            #[cfg(feature = "typescript")]
+            #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
                 let project = Project::new(&input, database).map_err(crate::error_message)?;
+                let target = configured_target(&project, application.as_deref())?;
+                let (_, generator) = execution_target(&target)?;
                 let runtime = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
@@ -406,7 +475,7 @@ pub(crate) fn run(
                                     application.as_deref(),
                                     &run_id,
                                     &case,
-                                    &dctx0_target_typescript::BunHarness,
+                                    generator,
                                     &cancel,
                                 )
                                 .await
@@ -416,7 +485,7 @@ pub(crate) fn run(
                                     application.as_deref(),
                                     &run_id,
                                     &case,
-                                    &dctx0_target_typescript::BunHarness,
+                                    generator,
                                     &cancel,
                                 )
                                 .await
@@ -442,7 +511,7 @@ pub(crate) fn run(
                 }
                 return Ok(pass);
             }
-            #[cfg(not(feature = "typescript"))]
+            #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
             {
                 let _ = (input, run_id, case, minimized, application);
                 return Err("No executable TypeScript testing target is enabled".into());
@@ -456,9 +525,11 @@ pub(crate) fn run(
             historical_check,
             no_adopt,
         } => {
-            #[cfg(feature = "typescript")]
+            #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
                 let project = Project::new(&input, database).map_err(crate::error_message)?;
+                let target = configured_target(&project, application.as_deref())?;
+                let (_, generator) = execution_target(&target)?;
                 let runtime = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
@@ -471,7 +542,7 @@ pub(crate) fn run(
                             tasks: BTreeSet::from_iter(task),
                             historical_check,
                         },
-                        &dctx0_target_typescript::BunHarness,
+                        generator,
                         &dctx0_engine::NativeCancellation::default(),
                         no_adopt,
                     ))
@@ -498,7 +569,7 @@ pub(crate) fn run(
                 }
                 return Ok(pass);
             }
-            #[cfg(not(feature = "typescript"))]
+            #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
             {
                 let _ = (
                     input,
@@ -545,13 +616,12 @@ pub(crate) fn run(
             subject,
             task,
         } => {
-            #[cfg(feature = "typescript")]
-            if target == "typescript" {
+            if let Ok((_, generator)) = execution_target(&target) {
                 let report = Project::new(&input, database)
                     .map_err(crate::error_message)?
                     .initialize_verification(
                         &project,
-                        &dctx0_target_typescript::BunHarness,
+                        generator,
                         dctx0_engine::ConfiguredVerificationScope {
                             subjects: BTreeSet::from_iter(subject),
                             tasks: BTreeSet::from_iter(task),

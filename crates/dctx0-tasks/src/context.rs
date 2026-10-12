@@ -201,15 +201,22 @@ pub fn context_with_profiles(
         }
         let scopes = index.ancestors(&node.owner);
         let category = if node.kind == K::Example
-            || scopes
-                .iter()
-                .any(|s| snapshot.ir.symbols[s].kind == K::Example)
-        {
+            || scopes.iter().any(|s| {
+                snapshot
+                    .ir
+                    .symbols
+                    .get(s)
+                    .is_some_and(|symbol| symbol.kind == K::Example)
+            }) {
             "examples"
         } else if node.kind == K::Decision
-            || scopes
-                .iter()
-                .any(|s| snapshot.ir.symbols[s].kind == K::Decision)
+            || scopes.iter().any(|s| {
+                snapshot
+                    .ir
+                    .symbols
+                    .get(s)
+                    .is_some_and(|symbol| symbol.kind == K::Decision)
+            })
         {
             "decisions"
         } else {

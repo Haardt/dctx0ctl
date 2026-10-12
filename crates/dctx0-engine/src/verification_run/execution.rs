@@ -160,6 +160,7 @@ pub(super) async fn execute(
         return Ok(());
     }
     let limits = NativeLimits::default();
+
     artifacts.push(VerificationArtifact::new(
         "application/vnd.dctx0.native-limits+json",
         serde_json::to_vec(&serde_json::json!({"schema_version":1,"limits":limits}))?,
@@ -465,6 +466,7 @@ pub(super) async fn execute(
                 events_supported,
             );
             if pure && matches!(result, VerificationResult::Fail { .. }) && !fatal {
+                let shrink_started = Instant::now();
                 let (shrink, evidence) = super::shrink::pure(
                     &mut worker,
                     ir,
@@ -477,7 +479,7 @@ pub(super) async fn execute(
                 .await;
                 artifacts.push(VerificationArtifact::new(
                     "application/vnd.dctx0.shrink+json",
-                    serde_json::to_vec(&serde_json::json!({"case_id":id,"report":shrink,"native_attempts":evidence}))?,
+                    serde_json::to_vec(&serde_json::json!({"case_id":id,"report":shrink,"native_attempts":evidence,"elapsed_us":shrink_started.elapsed().as_micros()}))?,
                 ));
             }
             if fatal {
@@ -588,6 +590,7 @@ pub(super) async fn execute(
             preserve_prefix(artifacts, &path.id, &worker)?;
             record(run, pending, &worker, result, started, events_supported);
             if let Some(assessment) = failing_assessment {
+                let shrink_started = Instant::now();
                 let (report, evidence) = super::shrink::lifecycle(
                     &mut worker,
                     ir,
@@ -599,7 +602,7 @@ pub(super) async fn execute(
                 )
                 .await;
                 artifacts.push(VerificationArtifact::new("application/vnd.dctx0.lifecycle-shrink+json",
-                    serde_json::to_vec(&serde_json::json!({"case_id":path.id,"report":report,"native_attempts":evidence}))?));
+                    serde_json::to_vec(&serde_json::json!({"case_id":path.id,"report":report,"native_attempts":evidence,"elapsed_us":shrink_started.elapsed().as_micros()}))?));
             }
             if fatal {
                 aborted(run, &mut worker, &path.id).await;

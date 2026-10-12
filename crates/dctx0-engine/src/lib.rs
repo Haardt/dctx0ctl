@@ -1,10 +1,16 @@
 //! Filesystem and history orchestration. Semantic compilation remains pure.
+mod editors;
 use dctx0_changes::HistoryReader;
+pub use editors::{
+    Editor, EditorInstallReport, EditorInstallRequest, activate_vscode, install_editor,
+};
 mod check;
 mod native;
 pub use native::*;
 mod filesystem;
 mod profiles;
+mod skills;
+pub use skills::*;
 mod rename;
 mod tasks;
 mod verification;

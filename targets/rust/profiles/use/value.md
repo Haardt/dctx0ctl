@@ -1,5 +1,3 @@
 # Use value
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered value contract without redefining its requirements. Represent identity and validation explicitly, using existing primitive types where appropriate. UUID-shaped values need no additional UUID dependency.
+Reuse the delivered value representation and equality/construction rules. Keep it typed through application code; encode/decode only at actual boundaries. Do not redefine its identity or add a competing wrapper.

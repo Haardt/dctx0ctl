@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "actor": "codex-rust-cinema-review",
+  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default.",
+  "reviewed_hashes": {
+    ".dctx0/testing/rust/Cargo.lock": "4d21819855e28d9fe77d93a357790da9b68655d77c6189e96b5015d4b7e655fb",
+    ".dctx0/testing/rust/Cargo.toml": "42afbdc3cee33145bcb0049ece5aea11da78b2c79b7ace85b8f04ef29508bf1b",
+    ".dctx0/testing/rust/adapter.rs": "e32b3711d6f511dd2830d7ff9a3dc614e25fbb70a62e95d7ed493d812960ced3",
+    ".dctx0/testing/rust/config.json": "2b882a80a014ec95b4ef71e4e52623d4a84697f3758ef4afabbc551a48e5eca5",
+    ".dctx0/testing/rust/contract.rs": "84e89050e3878c8dc85b889132e58c65a35636b9851b2934283921bb8ca671da",
+    ".dctx0/testing/rust/examples.json": "0584c7525cdb2f6721447270b107d195caa150d83c1516f588388083ae3be079",
+    ".dctx0/testing/rust/http.rs": "5349e192824332f5b4bff6d7f2e026ccaf157ff6691be5984987b0bf0595949c",
+    ".dctx0/testing/rust/lifecycles.json": "1652e70cd8c7d0aec4f40210855aee9a165fae6a891d82523a935c13a007039a",
+    ".dctx0/testing/rust/translation.rs": "152e2779ff734b36a1ffc03958088759a84b375c863294b94fa0691be3a58b2a",
+    ".dctx0/testing/verification.json": "ab3c7cb54b3f0e92d098338d413cefb9e412770f6a45f8699f47c88f381a8f23",
+    "Cargo.lock": "8014716c3cfd8ac3b2ee01a002d4133bfdfe82235463c0960150ca5c5db40900",
+    "Cargo.toml": "cf657b0608dfcee17918b0b153d94fbd2d0fff27c44c5c903d6a1cf4ec17d82b",
+    "dctx0/movie-night.dctx0": "39b8c23eb49c0c2a89a62c37902c9c2722597e472b5476235100f38c35e2e88e",
+    "dctx0/workspace.dctx0": "6d363ddab2910ea5864931e28a243f721251b75adf31b98f4ecc1c6fdffd0195",
+    "src/application.rs": "ad696e408af21b9afcab3ed38dae287537f107103e9136acad23b9a7777bbdaa",
+    "src/axumapi.rs": "8576cafd06dfbb320ed860babc3ae74533036e5a89edbb666d59070b50e49929",
+    "src/domain.rs": "f7b17b81d446f26defb58e90b091a6098ceaf1fc3ef118af9b765aa4abbf6235",
+    "src/httpapi.rs": "1ac7a9e19de917797989438a3e5eaa37bd5bba5454bd3421bde9d8cd5cbe4bc0",
+    "src/lib.rs": "2b27f49f5da4db52a6c81c3a8c74317f06f253e81d05252f53768482597fbdc1",
+    "src/main.rs": "995a7614a0d13b883fbf0257346192d3dfc7dc25cc60808dd14eaccdbe37c7e3",
+    "src/persistence.rs": "96743af023c674cfe526d0425fbee223c29049853ed5d3be10dfb42f948e947d",
+    "tests/axum.rs": "a15a02f41374a75d4b10d3cf056a1ffb973ef17f2b5816bb23060b499638a452",
+    "tests/domain.rs": "640d970de9a2cf1a69bfacdb9c0b51224078ef37d4c65655a21eb31fca7e1d41",
+    "tests/production.rs": "45fe4ae1d74a1d481fee5a87ed32a91be45ca890671d6109fca5285a6a788726"
+  },
+  "subjects": {
+    "HomeCinema.MovieNight.Catalog.CatalogReadModel": {
+      "report": "src/persistence.rs derives film summaries, details and overviews from stored films, ratings, polls and votes. The public service requests those projections through Ports, without exposing Connection or SQL to callers.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community.MutableRating": {
+      "report": "The ratings table has PRIMARY KEY(film_id,member_id). Store::put uses ON CONFLICT to replace the document. rating_summary counts the current rows and computes their average; changing a rating does not add a second rating.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.ReplaceableVote": {
+      "report": "The votes table has PRIMARY KEY(poll_id,member_id). Store::put updates both film_id and document on conflict. Casting a changed vote replaces that member/poll row and overview recounts actual persisted rows.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.DeterministicWinner": {
+      "report": "domain::candidate_order_winner scans candidates in order, counts their matching votes and replaces the winner only on a strictly larger positive count. Unknown films do not count and empty/all-zero inputs yield null.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:1": {
+      "report": "Store::search lowercases the title and supplied query, then checks substring containment. It applies only a supplied query; absent queries do not restrict rows.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:2": {
+      "report": "Store::search rejects rows failing any supplied query, genre, availability, runtime, release-year or minimum-rating predicate. A retained row therefore satisfies every active filter.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:3": {
+      "report": "The application PageLimit contract requires 1..100. Store validates FilmSearch before search, sorts and filters before slicing, clamps the start/end to the available total and preserves the requested offset/limit.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community#constraint:1": {
+      "report": "domain::Visible uses the explicit language trim whitespace set, including BOM and excluding NEXT LINE. AddComment and Comment both use Visible. Service validates requests before invoking storage.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community#constraint:2": {
+      "report": "The closed StarRating contract accepts exactly OneStar through FiveStars. Store aggregation assigns those alternatives numbers 1..5; invalid alternatives are rejected before writes.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community#constraint:3": {
+      "report": "SQLite enforces the composite rating primary key and the upsert updates that row. No append-only rating path bypasses this key.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:1": {
+      "report": "Store::cast first requires the selected poll to be Open, requires the film to exist and checks candidateFilmIds before writing the vote. Candidate validation precedes the upsert.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:2": {
+      "report": "SQLite enforces one vote row per poll/member. The upsert replaces film_id/document, and counts are derived from actual rows for that poll.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:3": {
+      "report": "require_poll rejects non-Open polls with VotingClosed. Both cast and close use that guard, and voting mutations execute within BEGIN IMMEDIATE/COMMIT or ROLLBACK.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:4": {
+      "report": "Opening persists scheduledFor in the poll document; closing changes only status. overview includes the stored scheduledFor for open and closed results.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog.CatalogArchitecture": {
+      "report": "The public catalog API is Service::invoke, its dependency is the ordinary Ports interface, and SQLite is confined to Store. HTTP owns explicit public route mapping. Production imports no dctx0 or testing modules.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.Community.CommunityRules": {
+      "report": "Service checks authoritative FilmPresence before comments and ratings, emits events after successful writes, and forwards modeled failures. Comments retain authorId/text; ratings use a composite key and exact closed stars. No comment deletion or edit endpoint is invented.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.VotingFairness": {
+      "report": "Eligibility and Open status are guarded before writes, one member/poll row is enforced by SQLite, candidate order resolves positive ties, and current/closed projections retain schedule. Independent tests and native mutations remain separate evidence.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.TypeConformance": {
+      "report": "Application-owned descriptors cover every Cinema data declaration, preserve exact integer JSON with arbitrary_precision/BigInt, use closed variants and explicit ranges/trim/UUID/RFC3339 validation. The external adapter translates using type metadata; production does not import the spec.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.SurfaceConformance": {
+      "report": "src/axumapi.rs explicitly registers Cinema routes and invokes the actual service. Path/query/body translation and typed domain errors preserve the existing mapping. The additional middleware emits X-Cinema-Framework and the adapter observes it. Unknown routes/methods and body limits are transport decisions, not invented spec requirements. Independent native HTTP tests and spec-driven calls are separate evidence. The captured adapter also routes generated real Surface operation cases through the selected framework; mocked consumer cases remain distinct direct-service checks.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ArchitectureConformance": {
+      "report": "src/axumapi.rs adds a transport boundary in the existing application root. Domain, application and persistence implementations are reused, and production imports no dctx0 code. Profiles are external agent instructions. Framework-specific lifecycle resources are owned by the router/server and test session.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.OwnershipConformance": {
+      "report": "Film and poll IDs are SQLite primary keys; ratings and votes use composite ownership keys. Store observes actual persisted documents and the adapter encodes those actual values for identity/state assertions.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.EffectConformance": {
+      "report": "Events originate in Service only after successful operations. QueryObserver is called after actual SQLite reads/writes. The adapter records those accesses and actual consumer collaborator calls; static syntax is not used as a call-count proof.",
+      "limitations": [
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.AdapterConformance": {
+      "report": "src/axumapi.rs composes the additional Axum router over the existing application service. The external adapter selects the explicit HTTP variant, delegates real calls, keeps domain translation separate and validates its middleware header. Config, dependencies and both routers are source-bound. Consumer mocks do not establish production port conformance.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ExternalConformance": {
+      "report": "Existing SQLite and external port implementations remain real for declared integration cases. The additional Axum HTTP server binds loopback dynamic ports for tests, owns session resources and has explicit cleanup. Configured mocks remain consumer-only evidence. No implicit external production services are introduced.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    }
+  }
+}

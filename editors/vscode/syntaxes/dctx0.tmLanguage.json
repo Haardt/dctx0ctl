@@ -1,0 +1,130 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "DCTX0",
+  "scopeName": "source.dctx0",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#literals"
+    },
+    {
+      "include": "#builtinFunctions"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#builtinTypes"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.dctx0",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.dctx0",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.dctx0",
+          "begin": "\\\"\\\"\\\"",
+          "end": "\\\"\\\"\\\""
+        },
+        {
+          "name": "string.quoted.double.dctx0",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.dctx0",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(operation)\\s+([A-Za-z_][A-Za-z0-9_.-]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.dctx0"
+            },
+            "2": {
+              "name": "entity.name.function.dctx0"
+            }
+          }
+        },
+        {
+          "match": "\\b(workspace|domain|module|fragment)\\s+([A-Za-z_][A-Za-z0-9_.-]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.dctx0"
+            },
+            "2": {
+              "name": "entity.name.namespace.dctx0"
+            }
+          }
+        },
+        {
+          "match": "\\b(scalar|value|type|failure|entity|message|event|surface|port|external|lifecycle)\\s+([A-Za-z_][A-Za-z0-9_.-]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.dctx0"
+            },
+            "2": {
+              "name": "entity.name.type.dctx0"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "name": "keyword.control.dctx0",
+      "match": "\\b(workspace|fragment|domain|scalar|value|type|failure|entity|message|event|module|surface|port|external|owns|requires|operation|effects|read|write|call|emit|observe|intent|decision|choose|because|avoid|constraint|example|given|when|expect|fails|emits|invariant|forall|proof|test|review|inspect|criteria|question|policy|require|range|length|format|where|stableId|key|ensures|state|lifecycle|transition|assert|returns|from|to|initial|terminal|exposes|requestReply|notification|stream|pure|is|and|or|not|implies|in|for|uses|as|result)\\b"
+    },
+    "builtinTypes": {
+      "name": "support.type.dctx0",
+      "match": "\\b(String|Boolean|Int|Float|Decimal|UUID|Timestamp|Duration|Bytes|Unit|Option|List|Some|None|Dctx0Option|Dctx0Result)\\b"
+    },
+    "numbers": {
+      "name": "constant.numeric.dctx0",
+      "match": "(?<![A-Za-z0-9_])\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?"
+    },
+    "operators": {
+      "name": "keyword.operator.dctx0",
+      "match": "->|\\.\\.|!=|<=|>=|==|[=!<>+*/%-]"
+    },
+    "literals": {
+      "name": "constant.language.dctx0",
+      "match": "\\b(true|false)\\b"
+    },
+    "builtinFunctions": {
+      "name": "support.function.dctx0",
+      "match": "\\b(count|sum|all|any|contains|distinct|min|max|filter|map|sortBy|sortDescBy|first|single|ifElse|mean|indexOf|getOrElse|lowercase|uppercase|trim|length|startsWith|endsWith|includesText|slice|reverse|divide|round)\\b(?=\\s*\\()"
+    }
+  }
+}

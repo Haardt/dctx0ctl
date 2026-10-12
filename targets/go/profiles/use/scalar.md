@@ -1,5 +1,3 @@
 # Use scalar
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Consume the delivered scalar contract without redefining its requirements. Preserve the declared base type and refinements; validate at the appropriate boundary.
+Import the delivered scalar and use its checked construction path at untrusted boundaries. Preserve refinements and do not create a competing validator or bypass validation with casts/conversions.

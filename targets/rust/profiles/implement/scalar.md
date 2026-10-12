@@ -1,5 +1,3 @@
 # Implement scalar
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Preserve the declared base type and refinements; validate at the appropriate boundary.
+Preserve the declared base representation, aliases and all refinements. Provide one checked construction/decoding path, with clear invalid-input behavior. Cover valid boundaries and rejected values, including overflow and malformed formats where applicable. Export the contract for consumers without duplicating validation.

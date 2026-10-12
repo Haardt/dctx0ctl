@@ -1,5 +1,3 @@
 # Use external
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered external contract without redefining its requirements. Make external configuration and unavailable dependency behavior explicit.
+Use the configured external adapter and its resource/failure contract. Supply explicit test configuration when exercising it; do not silently reach production services or substitute mocks for integration evidence.

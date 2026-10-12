@@ -90,6 +90,8 @@ fn inventory(
         let language = match path.extension().and_then(|x| x.to_str()) {
             Some("ts" | "mts" | "cts") => InspectionLanguage::TypeScript,
             Some("tsx") => InspectionLanguage::Tsx,
+            Some("go") => InspectionLanguage::Go,
+            Some("rs") => InspectionLanguage::Rust,
             _ => continue,
         };
         if !metadata.is_file() || metadata.len() > MAX_FILE || sources.len() >= MAX_FILES {

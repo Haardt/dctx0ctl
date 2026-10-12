@@ -1,0 +1,239 @@
+name: Release distribution
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'install.sh'
+      - 'install.ps1'
+      - 'scripts/release_platform.ts'
+      - 'scripts/release.py'
+      - 'scripts/release_acceptance.py'
+      - 'scripts/release_support.py'
+      - 'scripts/release_tests/**'
+      - 'scripts/docs_site.py'
+      - 'scripts/memory_guard.py'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/validate.yml'
+      - 'crates/**'
+      - 'targets/**'
+      - 'skills/**'
+      - 'editors/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  pull_request:
+    paths:
+      - 'install.sh'
+      - 'install.ps1'
+      - 'scripts/release_platform.ts'
+      - 'scripts/release.py'
+      - 'scripts/release_acceptance.py'
+      - 'scripts/release_support.py'
+      - 'scripts/release_tests/**'
+      - 'scripts/docs_site.py'
+      - 'scripts/memory_guard.py'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/validate.yml'
+      - 'crates/**'
+      - 'targets/**'
+      - 'skills/**'
+      - 'editors/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate release tag and Cargo version
+        id: version
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_NAME: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          sys.path.insert(0, 'scripts')
+          from release import validate_tag, workspace_version
+          tag = os.environ['RELEASE_NAME'] if os.environ['RELEASE_REF'].startswith('refs/tags/') else 'v' + workspace_version()
+          result = validate_tag(tag)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('tag=' + result['tag'] + '\n')
+              output.write('prerelease=' + str(result['prerelease']).lower() + '\n')
+          print(json.dumps(result))
+          PY
+
+  validation:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: version
+    uses: ./.github/workflows/validate.yml
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            executable: dctx0
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
+            executable: dctx0
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+            executable: dctx0
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            executable: dctx0
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2022
+            executable: dctx0.exe
+            rustflags: '-C target-feature=+crt-static'
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_BUILD_JOBS: 2
+      RUST_TEST_THREADS: 2
+      RELEASE_TARGET: ${{ matrix.target }}
+      RELEASE_TAG: ${{ needs.version.outputs.tag }}
+      RELEASE_EXECUTABLE: ${{ matrix.executable }}
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Enable bounded user scopes
+        if: runner.os == 'Linux'
+        run: |
+          uid=$(id -u)
+          sudo loginctl enable-linger "$USER"
+          sudo systemctl start "user@$uid.service"
+          echo "XDG_RUNTIME_DIR=/run/user/$uid" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus" >> "$GITHUB_ENV"
+      - name: Build the native release executable
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            python scripts/memory_guard.py cargo build --release --locked --all-features -p dctx0-cli --bin dctx0 --target "$RELEASE_TARGET"
+          else
+            cargo build --release --locked --all-features -p dctx0-cli --bin dctx0 --target "$RELEASE_TARGET"
+          fi
+      - name: Test distribution and installer; measure speed and RAM
+        run: python scripts/release_acceptance.py --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --platform-tests
+      - name: Reject redistributable VC runtime dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installation) { throw 'Visual Studio C++ tools not found' }
+          $dumpbin = Get-ChildItem "$installation\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $dumpbin) { throw 'dumpbin not found' }
+          $dependencies = & $dumpbin.FullName /DEPENDENTS "target/$env:RELEASE_TARGET/release/$env:RELEASE_EXECUTABLE" | Out-String
+          if ($LASTEXITCODE -ne 0) { throw 'Executable dependency inspection failed' }
+          if ($dependencies -match '(?i)(vcruntime|msvcp|concrt)[^\s]*\.dll') { throw "Dynamic VC runtime dependency found: $dependencies" }
+          $dependencies | Set-Content target/windows-dependencies.txt
+      - name: Package executable and release receipt
+        run: python scripts/release.py package --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --tag "$RELEASE_TAG" --output target/release-assets
+      - name: Retain distribution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-validation-${{ matrix.target }}
+          path: |
+            benchmarks/history/release/
+            target/release-platform.json
+            target/windows-dependencies.txt
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: |
+            target/release-assets/*.tar.gz
+            target/release-assets/*.zip
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [version, validation, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ needs.version.outputs.tag }}
+      RELEASE_PRERELEASE: ${{ needs.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: target/release-assets
+      - name: Add installer and exact checksum manifest
+        run: |
+          cp install.sh target/release-assets/install.sh
+          cp install.ps1 target/release-assets/install.ps1
+          python3 scripts/release.py checksums --directory target/release-assets --tag "$RELEASE_TAG"
+      - name: Prepare installation notes
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          repo = os.environ['GH_REPO']
+          Path('target/release-notes.md').write_text(
+              f'## Install DCTX0 {tag}\n\n'
+              f'```sh\ncurl -fsSL https://github.com/{repo}/releases/download/{tag}/install.sh | bash -s -- --version {tag}\n```\n\n'
+              'Linux x86_64/ARM64 (glibc 2.35+) and macOS Intel/Apple Silicon (14+). Installs to `~/.local/bin` without sudo.\n\n'
+              f'Windows x64: `irm https://github.com/{repo}/releases/download/{tag}/install.ps1 | iex`. '
+              'Installs to `%LOCALAPPDATA%\\DCTX0\\bin`.\n\n'
+              'The installer verifies SHA-256 and the executable version before atomic replacement. '
+              'The binary includes the CLI, language server, profiles and agent skills. '
+              'Native verification additionally requires Bun, Go or Rust and prepared application dependencies.\n\n'
+              'Managed verification/adoption currently requires Linux. macOS/Windows CI checks CLI, LSP, installation, '
+              'Bun SDK transport and test-process cancellation; it also rejects unsupported managed execution without PASS.\n\n'
+              'Archives include a source/toolchain receipt. `SHA256SUMS` covers all five archives and both installers.\n'
+          )
+          PY
+      - name: Publish the verified tag as a GitHub Release
+        run: |
+          release_flags=()
+          if [[ "$RELEASE_PRERELEASE" == true ]]; then
+            release_flags+=(--prerelease --latest=false)
+          else
+            release_flags+=(--latest)
+          fi
+          gh release create "$RELEASE_TAG" target/release-assets/* \
+            --verify-tag --title "DCTX0 $RELEASE_TAG" \
+            --generate-notes --notes-file target/release-notes.md "${release_flags[@]}"

@@ -1,5 +1,9 @@
 name: Validate
-on: [push, pull_request]
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_call:
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -8,10 +12,15 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: examples/cinema-go/go.mod
+          cache-dependency-path: examples/cinema-go/go.sum
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy, llvm-tools-preview
       - run: cargo install cargo-llvm-cov --locked
+      - run: cargo install tree-sitter-cli --version 0.26.13 --locked
       - name: Enable bounded user scopes
         run: |
           uid=$(id -u)
@@ -31,7 +40,20 @@ jobs:
             sleep 0.2
           done
           UI_SCREENSHOT=target/tutorial-ui.png bun examples/tutorial/ui-browser-check.ts > examples/tutorial/validation/browser.json
+      - name: Cinema agent conformance reviews
+        run: |
+          cargo build -p dctx0-cli --all-features --locked
+          python3 scripts/conformance_review_acceptance.py
       - run: python3 scripts/validate.py --coverage --example cinema --tutorial
+      - name: Gin and Axum coupled acceptance
+        run: |
+          cargo build --release -p dctx0-cli --all-features --locked
+          python3 scripts/framework_acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: framework-acceptance
+          path: target/frameworks/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -40,6 +62,11 @@ jobs:
             examples/tutorial/validation/
             examples/tutorial-variants/validation.json
             target/tutorial-ui.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conformance-reviews
+          path: target/conformance-reviews/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -65,3 +92,17 @@ jobs:
         with:
           name: cinema-native-coverage
           path: target/cinema-native-coverage/
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: go-cinema-acceptance
+          path: |
+            target/go-cinema/
+            target/go-cinema.coverage
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-cinema-acceptance
+          path: target/rust-cinema/

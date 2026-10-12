@@ -559,7 +559,7 @@ fn queries_distinguish_work_readiness_evidence_reservations_and_history() {
         .plan
         .members
         .iter_mut()
-        .find(|m| !m.candidate.prerequisites.is_empty())
+        .find(|m| m.task_id == anchor)
         .unwrap();
     m.candidate.prerequisites[0].condition = Condition::CheckPass;
     assert!(!s.overviews().iter().all(|r| r.delivered));
@@ -1104,4 +1104,103 @@ fn task_case_coverage_requires_every_mapped_case_and_never_uses_unrelated_succes
         task_case_coverage(&["postcondition".into()].into(), &mapping, &outcomes).result,
         V::Pass
     );
+}
+
+#[test]
+fn manual_obligations_have_unique_review_owners_and_preserve_original_requirements() {
+    let snapshot = snap(SPEC);
+    let planned = plan(&snapshot).unwrap();
+    let assigned = planned
+        .tasks
+        .iter()
+        .flat_map(|task| task.review_obligations.iter())
+        .collect::<Vec<_>>();
+    let unique = assigned.iter().copied().collect::<BTreeSet<_>>();
+    assert_eq!(assigned.len(), unique.len());
+    for subject in [
+        "W.D.M#constraint:1",
+        "W.D.M.ReadModel",
+        "W.D.M.Architecture",
+        "W.TypeConformance",
+        "W.Release",
+    ] {
+        assert!(
+            unique.contains(&subject.to_string()),
+            "Missing review owner: {subject}"
+        );
+    }
+    assert!(!unique.contains(&"W.Examples".to_string()));
+    let module = planned
+        .tasks
+        .iter()
+        .find(|task| task.key == "review:W.D.M.Architecture")
+        .unwrap();
+    assert!(
+        module
+            .review_obligations
+            .contains(&"W.D.M.ReadModel".into())
+    );
+    assert!(module.facts.contains(&"W.D.M#constraint:1".into()));
+    let conformance = planned
+        .tasks
+        .iter()
+        .find(|task| task.key == "conformance:W")
+        .unwrap();
+    assert!(conformance.prerequisites.iter().all(|p| {
+        planned
+            .tasks
+            .iter()
+            .any(|t| t.key == p.key && t.wave < conformance.wave)
+    }));
+    assert_eq!(
+        serde_json::to_value(&planned).unwrap(),
+        serde_json::to_value(plan(&snapshot).unwrap()).unwrap()
+    );
+    let legacy: ReviewReport = serde_json::from_value(serde_json::json!({"reviewer":"agent","judgement":"approved","summary":"Legacy review","findings":[]})).unwrap();
+    assert!(legacy.conformance.is_none());
+}
+
+#[test]
+fn cinema_manual_obligations_are_assigned_without_changing_compiler_snapshots() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/cinema/dctx0");
+    let sources = ["movie-night.dctx0", "workspace.dctx0"]
+        .into_iter()
+        .map(|file| Source {
+            file: file.into(),
+            text: std::fs::read_to_string(root.join(file)).unwrap(),
+        })
+        .collect::<Vec<_>>();
+    let ir = dctx0_language::compile(&sources).ir.unwrap();
+    let snapshot = snapshot(&sources, ir.clone(), dctx0_graph::build(&ir));
+    let planned = plan(&snapshot).unwrap();
+    let obligations = planned
+        .tasks
+        .iter()
+        .flat_map(|task| task.review_obligations.iter())
+        .collect::<Vec<_>>();
+    assert_eq!(obligations.len(), 25);
+    assert_eq!(obligations.iter().collect::<BTreeSet<_>>().len(), 25);
+    assert_eq!(
+        planned
+            .tasks
+            .iter()
+            .filter(|task| task.kind == TaskKind::Review)
+            .count(),
+        4
+    );
+    for task in planned
+        .tasks
+        .iter()
+        .filter(|task| task.kind == TaskKind::Review)
+    {
+        let session = session(&snapshot);
+        let member = session
+            .plan
+            .members
+            .iter()
+            .find(|member| member.candidate.key == task.key)
+            .unwrap();
+        let context = context(&session, &snapshot, member.task_id, "core", 100000, None).unwrap();
+        assert!(!context.page.items.is_empty());
+    }
 }

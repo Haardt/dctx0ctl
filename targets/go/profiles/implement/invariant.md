@@ -1,5 +1,3 @@
 # Implement invariant
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Check the stated invariant at the modeled state boundary.
+Check the exact modeled predicate over the supplied type/state scope. Derive cases from the declared contracts and refinements; retain seeds, boundaries and counterexamples. Obtain actual state through a real observer when needed. Missing observations or unsupported predicates remain open instead of being treated as true.

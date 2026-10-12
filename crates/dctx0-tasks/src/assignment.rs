@@ -14,12 +14,16 @@ pub fn assignment(snapshot: &Snapshot, candidate: &Candidate) -> (String, Vec<St
         TaskKind::Contract => "Define the contract for",
     };
     if candidate.kind != TaskKind::Contract {
+        let mut acceptance = candidate.acceptance.clone();
+        if !candidate.review_obligations.is_empty() {
+            acceptance.push(format!("Explicitly assess each assigned obligation: {}. Record concrete source/check evidence and limitations with `tasks record-review`; use `verify review-template` for source bindings. Do not claim automatic test PASS from an approval.", candidate.review_obligations.join(", ")));
+        }
         return (
             format!(
                 "{action} {} according to the specification below.",
                 candidate.subjects.join(", ")
             ),
-            candidate.acceptance.clone(),
+            acceptance,
         );
     }
     let mut goals = vec![];

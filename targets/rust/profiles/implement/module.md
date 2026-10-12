@@ -1,5 +1,3 @@
 # Implement module
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Respect declared ownership and dependency boundaries.
+Keep contracts and implementation under the declared ownership and dependency boundaries. Reuse existing layout and composition conventions. Expose the required public API and keep internal details private. Do not restructure the whole application or treat a spec namespace as a mandatory directory/class/package.

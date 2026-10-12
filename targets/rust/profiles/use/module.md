@@ -1,5 +1,3 @@
 # Use module
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered module contract without redefining its requirements. Respect declared ownership and dependency boundaries.
+Use the owning module's public contracts and permitted dependencies. Avoid internal imports, duplicate definitions and new cross-module cycles. Preserve the existing project layout.

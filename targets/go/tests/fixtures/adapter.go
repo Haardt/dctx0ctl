@@ -121,6 +121,8 @@ func (session *counterSession) Invoke(invocation Invocation) (Observation, error
 	command := invocation.Arguments[0]
 	var observation Observation
 	switch {
+	case command.Kind == "string" && textOf(command) == "application-panic":
+		observation = InvokeApplication(session.counter.Panic, integer)
 	case command.Kind == "string" && textOf(command) == "exception":
 		observation = InvokeApplication(func() (int, error) {
 			return 0, session.counter.Crash()

@@ -160,17 +160,24 @@ impl Project {
                 "Application root must be a directory".into(),
             ));
         }
+        let scaffold = generator.scaffold();
         let bundle = generator
             .generate(&HarnessRequest {
-                adapter_import: "./adapter.ts".into(),
+                adapter_import: format!("./{}", scaffold.path),
                 subjects: scope.subjects.clone(),
             })
             .map_err(|error| Error::Invalid(error.to_string()))?;
-        let scaffold = generator.scaffold();
         if bundle.sdk_version != SDK_VERSION
             || bundle.target.is_empty()
             || bundle.generator_version.is_empty()
-            || scaffold.path != "adapter.ts"
+            || bundle.recipe.program.is_empty()
+            || bundle
+                .build
+                .as_ref()
+                .is_some_and(|recipe| recipe.program.is_empty())
+            || scaffold.path.contains('/')
+            || scaffold.path.contains('\\')
+            || !scaffold.path.starts_with("adapter.")
         {
             return Err(Error::Invalid(
                 "Unsupported or invalid testing harness bundle".into(),
@@ -180,8 +187,8 @@ impl Project {
         let config = VerificationConfiguration {
             schema_version: 1,
             target: bundle.target.clone(),
-            runtime: bundle.recipe.program.clone(),
-            adapter: format!("{base}/adapter.ts"),
+            runtime: generator.runtime().into(),
+            adapter: format!("{base}/{}", scaffold.path),
             fixtures: format!("{base}/examples.json"),
             scope,
             budgets: Default::default(),
@@ -192,6 +199,12 @@ impl Project {
             .into_iter()
             .map(|a| (format!("{base}/{}", a.path), a.contents.into_bytes()))
             .collect::<Vec<_>>();
+        files.extend(generator.setup_artifacts().into_iter().map(|artifact| {
+            (
+                format!("{base}/{}", artifact.path),
+                artifact.contents.into_bytes(),
+            )
+        }));
         files.push((config.adapter.clone(), scaffold.contents.into_bytes()));
         files.push((
             config.fixtures.clone(),

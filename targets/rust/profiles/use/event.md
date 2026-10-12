@@ -1,5 +1,3 @@
 # Use event
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered event contract without redefining its requirements. Publish the complete event payload and delivery contract without adding unmodeled guarantees.
+Consume the declared payload and delivery semantics. Handle only guarantees actually provided; do not assume ordering, exactly-once delivery or retries. Reuse the owning module's event contract.

@@ -80,7 +80,7 @@ impl NativeCancellation {
     pub fn cancel(&self) {
         self.signal.send_replace(true);
     }
-    async fn cancelled(&self) {
+    pub(crate) async fn cancelled(&self) {
         let mut receiver = self.signal.subscribe();
         let _ = receiver.wait_for(|value| *value).await;
     }
@@ -190,6 +190,31 @@ impl NativeWorker {
             rustix::process::Pid::INIT,
         )))?;
         let mut command = Command::new(&recipe.program);
+        if recipe.program == "cargo" {
+            command
+                .env("CARGO_NET_OFFLINE", "true")
+                .env("CARGO_BUILD_JOBS", "2");
+            for name in [
+                "CARGO_TARGET_DIR",
+                "RUSTC_WRAPPER",
+                "RUSTC_WORKSPACE_WRAPPER",
+                "RUSTFLAGS",
+                "CARGO_ENCODED_RUSTFLAGS",
+            ] {
+                command.env_remove(name);
+            }
+            command
+                .env("CARGO_PROFILE_DEV_DEBUG", "0")
+                .env("CARGO_PROFILE_DEV_INCREMENTAL", "false");
+        }
+        if recipe.program == "go" {
+            command
+                .env("GOTOOLCHAIN", "local")
+                .env("GOPROXY", "off")
+                .env("GOWORK", "off")
+                .env("CGO_ENABLED", "0")
+                .env("GOFLAGS", "-mod=readonly");
+        }
         command
             .args(&recipe.arguments)
             .current_dir(directory)

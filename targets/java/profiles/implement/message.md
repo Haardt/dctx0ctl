@@ -1,5 +1,3 @@
 # Implement message
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Publish the complete input contract, including fields and refinements.
+Implement the input payload with all fields, optionality and refinements. Reuse existing domain values and define boundary decoding when assigned. Preserve the difference between omitted, null and empty values where modeled. Do not attach transport behavior or execution side effects to a data-only task.

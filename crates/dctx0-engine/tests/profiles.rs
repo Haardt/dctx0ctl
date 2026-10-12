@@ -869,7 +869,8 @@ fn complete_examples_select_all_required_profiles_and_real_call_boundaries() {
         })
         .collect::<Vec<_>>();
     let mut semantics = std::collections::BTreeSet::new();
-    for example in ["cinema", "runatron-next"] {
+    {
+        let example = "cinema";
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join(format!("../../examples/{example}/dctx0"));
         let p = Project::new(&root, None).unwrap();

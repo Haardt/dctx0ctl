@@ -1,5 +1,3 @@
 # Use message
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Consume the delivered message contract without redefining its requirements. Publish the complete input contract, including fields and refinements.
+Consume the existing validated payload and preserve field/absence semantics. Decode external data through its established boundary; do not create another incompatible input schema.

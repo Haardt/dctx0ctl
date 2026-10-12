@@ -33,3 +33,5 @@ func (counter *Counter) Refresh() (int, error) {
 	}
 	return counter.value, nil
 }
+
+func (counter *Counter) Panic() (int, error) { panic("Actual production panic") }

@@ -1981,6 +1981,7 @@ async fn inspected_review_batches_roll_back_invalid_findings_and_deliver_through
             limitations: vec!["Agent inspection, not exhaustive automatic proof.".into()], result: VerificationResult::Pass,
         },
         review: (member.candidate.kind == dctx0_tasks::TaskKind::Review).then(|| dctx0_tasks::ReviewReport {
+            conformance: None,
             reviewer: "agent-reviewer".into(), judgement: "approved".into(), summary: "The exported factory owns the integer/range rejection; no unresolved findings.".into(), findings: vec![],
         }),
     }).collect::<Vec<_>>();

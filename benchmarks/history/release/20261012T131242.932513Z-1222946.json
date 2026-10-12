@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "id": "20261012T131242.932513Z-1222946",
+  "timestamp": "2026-10-12T13:12:42.932513+00:00",
+  "workload": "release-distribution",
+  "status": "failed",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "content_hash": "0588f077d28edac11d7622b1bdcc8f93589afe7ffcfbb04f5ff89c9d80d60f5b",
+    "binary_sha256": "dfc00c5859b042755e9caf189e35398c43d209e129a8de82578efc49fbe91940",
+    "target": "x86_64-unknown-linux-gnu",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 9793429504
+    }
+  },
+  "features": [
+    "typescript",
+    "java",
+    "go",
+    "rust"
+  ],
+  "seed": null,
+  "cache": "prebuilt uninstrumented release CLI, one warm-up per phase, fresh process per sample, warm filesystem cache",
+  "memory_scope": "Linux/macOS wait4 peak child/reaped descendants; Windows polled child PeakWorkingSetSize; unsupported OS queries are null. See per-command scope; not collective simultaneous RSS",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted distribution baseline; existing core baseline unchanged"
+  },
+  "measurements": {
+    "shell-syntax": [
+      {
+        "elapsed_ms": 11.543503002030775,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "format": [
+      {
+        "elapsed_ms": 640.5619960132753,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "cli-integration": [
+      {
+        "elapsed_ms": 4140.0458099960815,
+        "peak_rss_bytes": 57397248,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "binary-version": [
+      {
+        "elapsed_ms": 10.496685994439758,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "installer-and-release-tests": [
+      {
+        "elapsed_ms": 7046.4165980083635,
+        "peak_rss_bytes": 143593472,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "package-warmup": [
+      {
+        "elapsed_ms": 2363.2232500094688,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "startup-warmup": [
+      {
+        "elapsed_ms": 10.708784000598826,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "package-release": [
+      {
+        "elapsed_ms": 2332.543547003297,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 2363.123025992536,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 2362.5374249968445,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "startup-release": [
+      {
+        "elapsed_ms": 10.708652000175789,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 10.79070298874285,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 10.638298001140356,
+        "peak_rss_bytes": 55496704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "summary": {
+    "package-release": {
+      "samples": 3,
+      "median_elapsed_ms": 2362.5374249968445,
+      "peak_rss_bytes": 55496704
+    },
+    "startup-release": {
+      "samples": 3,
+      "median_elapsed_ms": 10.708652000175789,
+      "peak_rss_bytes": 55496704
+    }
+  },
+  "failure": "installer-and-release-tests failed:\ntest_archive_paths_are_never_unpacked (test_distribution.InstallerTests.test_archive_paths_are_never_unpacked) ... ok\ntest_bad_checksums_and_duplicates_preserve_the_existing_installation (test_distribution.InstallerTests.test_bad_checksums_and_duplicates_preserve_the_existing_installation) ... ok\ntest_failed_download_and_unexpected_redirect_preserve_the_installation (test_distribution.InstallerTests.test_failed_download_and_unexpected_redirect_preserve_the_installation) ... ok\ntest_invalid_arguments_and_truncated_script_do_not_install (test_distribution.InstallerTests.test_invalid_arguments_and_truncated_script_do_not_install) ... ok\ntest_pinned_version_skips_latest_resolution_and_upgrades_atomically (test_distribution.InstallerTests.test_pinned_version_skips_latest_resolution_and_upgrades_atomically) ... ok\ntest_piped_latest_install_works_without_checkout_assets (test_distribution.InstallerTests.test_piped_latest_install_works_without_checkout_assets) ... ok\ntest_platform_minimum_versions_are_checked_before_download (test_distribution.InstallerTests.test_platform_minimum_versions_are_checked_before_download) ... ok\ntest_symlinks_and_non_regular_destinations_are_not_replaced (test_distribution.InstallerTests.test_symlinks_and_non_regular_destinations_are_not_replaced) ... ok\ntest_unsupported_platform_architecture_and_libc_do_not_fetch_assets (test_distribution.InstallerTests.test_unsupported_platform_architecture_and_libc_do_not_fetch_assets) ... ok\ntest_version_mismatch_and_missing_binary_member_preserve_the_installation (test_distribution.InstallerTests.test_version_mismatch_and_missing_binary_member_preserve_the_installation) ... ok\ntest_archives_are_reproducible_and_bind_the_architecture_and_binary (test_distribution.VersionAndArchiveTests.test_archives_are_reproducible_and_bind_the_architecture_and_binary) ... ok\ntest_checksums_require_the_complete_exact_asset_set (test_distribution.VersionAndArchiveTests.test_checksums_require_the_complete_exact_asset_set) ... ok\ntest_release_tags_match_the_workspace_and_distinguish_prereleases (test_distribution.VersionAndArchiveTests.test_release_tags_match_the_workspace_and_distinguish_prereleases) ... ok\ntest_real_powershell_installer_control_flow_with_a_unix_execution_fixture (test_powershell_logic.PowerShellLogicTests.test_real_powershell_installer_control_flow_with_a_unix_execution_fixture) ... FAIL\n\n======================================================================\nFAIL: test_real_powershell_installer_control_flow_with_a_unix_execution_fixture (test_powershell_logic.PowerShellLogicTests.test_real_powershell_installer_control_flow_with_a_unix_execution_fixture)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/held/workspaces/conpinion/dctx0ctl/scripts/release_tests/test_powershell_logic.py\", line 36, in test_real_powershell_installer_control_flow_with_a_unix_execution_fixture\n    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : Installed dctx0 0.1.0 to /tmp/dctx0-windows-test-456dbc34995f48dcaa131e411489de5e/bin with spaces/dctx0.exe\nAdd /tmp/dctx0-windows-test-456dbc34995f48dcaa131e411489de5e/bin with spaces to your user PATH.\nunix-control-flow.ps1: /home/held/workspaces/conpinion/dctx0ctl/scripts/release_tests/test_windows_install.ps1:67\nLine |\n  67 |          & $installer -Version $Tag -BinDir $env:DCTX0_INSTALL_DIR\n     |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | Exception calling \"Replace\" with \"3\" argument(s): \"The value cannot be\n     | an empty string. (Parameter 'path')\"\n\n\n----------------------------------------------------------------------\nRan 14 tests in 6.980s\n\nFAILED (failures=1)\n"
+}

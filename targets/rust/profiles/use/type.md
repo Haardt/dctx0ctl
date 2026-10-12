@@ -1,5 +1,3 @@
 # Use type
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered type contract without redefining its requirements. Preserve all alternatives, payloads and refinements.
+Import the complete delivered contract, including nested types and alternatives. Handle all variants and preserve optionality. Do not copy its declaration into a local substitute or weaken refinements.

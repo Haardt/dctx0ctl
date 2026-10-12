@@ -1,5 +1,3 @@
 # Use invariant
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered invariant contract without redefining its requirements. Check the stated invariant at the modeled state boundary.
+Preserve the delivered invariant when implementing consuming operations. Reuse its exact predicate and state boundary; report missing observation access instead of assuming it holds.

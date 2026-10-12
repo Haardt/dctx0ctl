@@ -146,6 +146,27 @@ pub fn review_state(
         ));
     }
     let mut ids = BTreeSet::new();
+    if let Some(evidence) = &report.conformance {
+        if evidence.requirements_hash != definition.candidate.requirements_hash
+            || evidence.snapshot.trim().is_empty()
+            || evidence.spec_source_hash.trim().is_empty()
+            || evidence.implementation_artifacts.is_empty()
+            || evidence.subjects.is_empty()
+            || evidence.subjects.keys().cloned().collect::<BTreeSet<_>>()
+                != definition
+                    .candidate
+                    .review_obligations
+                    .iter()
+                    .cloned()
+                    .collect::<BTreeSet<_>>()
+            || evidence.subjects.iter().any(|(subject, note)| {
+                !definition.candidate.review_obligations.contains(subject)
+                    || note.report.trim().is_empty()
+            })
+        {
+            return Err(Error::Invalid("Conformance review requires matching task requirements, source bindings and concrete subject reports".into()));
+        }
+    }
     for f in &report.findings {
         if f.id.trim().is_empty()
             || !ids.insert(&f.id)

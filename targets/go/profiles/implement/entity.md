@@ -1,5 +1,3 @@
 # Implement entity
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Publish the complete field, key and state contract; preserve identity and modeled transitions.
+Implement the complete field, key and modeled state contract. Keep identity stable and allow mutation only through the project's explicit state-change boundaries. Enforce modeled transition rules and retain dependent value contracts. Do not introduce repositories, database schemas or all entity operations unless assigned.

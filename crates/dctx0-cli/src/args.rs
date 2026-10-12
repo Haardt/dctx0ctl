@@ -4,6 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(
     name = "dctx0",
+    version,
     about = "Compile specs, inspect changes, and explicitly rename symbols"
 )]
 pub(crate) struct Cli {
@@ -16,6 +17,19 @@ pub(crate) struct Cli {
 }
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    /// Run the read-only language server over stdin/stdout.
+    Lsp {
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        stdio: bool,
+    },
+    /// Package or install local editor extensions.
+    Editor(crate::editors::EditorArgs),
+    /// List or install the bundled agent skills.
+    Skills(crate::skills::SkillArgs),
+    /// Install bundled skills (compatible shorthand for skills install).
+    Install(crate::skills::SkillInstallArgs),
     Verify(crate::verification::VerifyArgs),
     Tasks(Box<crate::tasks::TaskArgs>),
     Profile(crate::profiles::ProfileArgs),

@@ -1,0 +1,83 @@
+name: Documentation site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/site/**'
+      - 'docs/documentation-site.md'
+      - 'scripts/docs_site.py'
+      - 'scripts/docs_site_browser.ts'
+      - 'scripts/install_mdbook.py'
+      - '.github/workflows/pages.yml'
+      - 'crates/**'
+      - 'targets/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  pull_request:
+    paths:
+      - 'docs/site/**'
+      - 'docs/documentation-site.md'
+      - 'scripts/docs_site.py'
+      - 'scripts/docs_site_browser.ts'
+      - 'scripts/install_mdbook.py'
+      - '.github/workflows/pages.yml'
+      - 'crates/**'
+      - 'targets/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install pinned mdBook
+        run: python3 scripts/install_mdbook.py
+      - name: Build specification compiler
+        run: cargo build --release --locked -p dctx0-cli --bin dctx0
+      - name: Build, check links and examples, measure speed and RAM
+        run: python3 scripts/docs_site.py --dctx0 target/release/dctx0 --browser
+      - name: Retain validation and raw measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-validation
+          path: |
+            benchmarks/history/docs-site/
+            target/docs-site-desktop.png
+            target/docs-site-mobile.png
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/docs-site
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

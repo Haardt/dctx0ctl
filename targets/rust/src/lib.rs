@@ -164,3 +164,9 @@ impl TargetProfileProvider for Provider {
         ]
     }
 }
+
+mod inspection;
+pub use inspection::RustInspector;
+
+mod execution;
+pub use execution::RustHarness;

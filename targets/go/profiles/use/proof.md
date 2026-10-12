@@ -1,5 +1,3 @@
 # Use proof
 
-Use named Go types, small structs and focused interfaces. Return explicit errors and keep package boundaries small.
-
-Consume the delivered proof contract without redefining its requirements. Provide the requested proof evidence without claiming unexecuted checks.
+Read the delivered evidence with its assumptions, source binding and scope. Do not extend a finite or historical result into a broader/current proof. Identify additional evidence needed by this task.

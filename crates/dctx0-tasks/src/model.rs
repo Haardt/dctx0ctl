@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub const PLANNER_VERSION: u32 = 1;
+pub const PLANNER_VERSION: u32 = 2;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Task planning: {0}")]
@@ -51,6 +51,9 @@ pub struct Prerequisite {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Candidate {
+    /// Explicit responsibility for manual requirements and inspection suites.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub review_obligations: Vec<String>,
     pub key: String,
     pub kind: TaskKind,
     pub subjects: Vec<String>,
@@ -138,6 +141,26 @@ pub struct ReviewReport {
     pub judgement: String,
     pub summary: String,
     pub findings: Vec<Finding>,
+    /// Optional source-bound conformance evidence; legacy reviews remain readable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conformance: Option<ConformanceReview>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewedRequirement {
+    pub report: String,
+    pub limitations: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ConformanceReview {
+    pub snapshot: String,
+    pub requirements_hash: String,
+    pub spec_source_hash: String,
+    pub implementation_artifacts: std::collections::BTreeMap<String, String>,
+    pub subjects: std::collections::BTreeMap<String, ReviewedRequirement>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct State {
@@ -368,6 +391,10 @@ impl TaskKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum AdjustmentReason {
+    ReviewRenewal {
+        source: i64,
+        source_hash: String,
+    },
     FailedCheck {
         source: i64,
     },

@@ -1,5 +1,3 @@
 # Use message
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered message contract without redefining its requirements. Publish the complete input contract, including fields and refinements.
+Consume the existing validated payload and preserve field/absence semantics. Decode external data through its established boundary; do not create another incompatible input schema.

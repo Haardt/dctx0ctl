@@ -91,7 +91,20 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
         assert!(!init.status.success());
         let run = call(&["verify", "run", specs.to_str().unwrap()]);
         assert!(!run.status.success());
+        #[cfg(not(any(feature = "go", feature = "rust")))]
         assert!(String::from_utf8_lossy(&run.stderr).contains("No executable TypeScript"));
+        #[cfg(any(feature = "go", feature = "rust"))]
+        {
+            let project = dctx0_engine::Project::new(&specs, None).unwrap();
+            assert!(
+                project
+                    .optional_verification_configuration(None)
+                    .unwrap()
+                    .is_none()
+            );
+            assert_eq!(project.history().unwrap().len(), 1);
+            assert!(!run.stderr.is_empty());
+        }
         let replay = call(&[
             "verify",
             "replay",
@@ -101,7 +114,10 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
             "missing",
         ]);
         assert!(!replay.status.success());
+        #[cfg(not(any(feature = "go", feature = "rust")))]
         assert!(String::from_utf8_lossy(&replay.stderr).contains("No executable TypeScript"));
+        #[cfg(any(feature = "go", feature = "rust"))]
+        assert!(!replay.stderr.is_empty());
     }
     fs::remove_dir_all(root).unwrap();
 }

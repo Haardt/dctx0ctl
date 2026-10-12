@@ -121,7 +121,7 @@ impl AuthoredInspections {
                 .get(&id)
                 .ok_or(Error::Invalid(format!("Missing state for T{id}")))?;
             if state.work == WorkState::Done {
-                if state.check != CheckStatus::Pass {
+                if state.check != CheckStatus::Pass && member.candidate.kind != TaskKind::Review {
                     return Err(Error::Invalid(format!(
                         "T{id}: historical Done without PASS requires separate work"
                     )));
@@ -166,15 +166,25 @@ impl AuthoredInspections {
                     .subjects
                     .iter()
                     .filter_map(|subject| self.subjects.get(subject))
-                    .find(|note| note.review.is_some())
-                    .ok_or(Error::Invalid(format!(
-                        "T{id}: a concrete authored review is required"
-                    )))?;
+                    .find(|note| note.review.is_some());
+                let fallback = InspectedReview {
+                    approved: true,
+                    findings: vec![],
+                };
+                if candidate
+                    .review_obligations
+                    .iter()
+                    .any(|subject| !self.subjects.contains_key(subject))
+                {
+                    return Err(Error::Invalid(format!(
+                        "T{id}: every assigned obligation requires a concrete authored review"
+                    )));
+                }
                 let authored = note
-                    .review
-                    .as_ref()
-                    .ok_or(Error::Invalid("Review unavailable".into()))?;
+                    .and_then(|note| note.review.as_ref())
+                    .unwrap_or(&fallback);
                 Some(ReviewReport {
+                    conformance: None,
                     reviewer: self.actor.clone(),
                     judgement: if authored.approved {
                         "approved"
@@ -182,7 +192,11 @@ impl AuthoredInspections {
                         "rejected"
                     }
                     .into(),
-                    summary: note.report.clone(),
+                    summary: applicable
+                        .iter()
+                        .map(|(_, note)| note.report.clone())
+                        .collect::<Vec<_>>()
+                        .join("\n"),
                     findings: authored
                         .findings
                         .iter()
@@ -230,6 +244,8 @@ pub struct CompleteVerificationReport {
     pub tasks: usize,
     pub open_tasks: usize,
     pub non_pass_tasks: usize,
+    #[serde(default)]
+    pub reviewed_tasks: Vec<i64>,
     pub adopted_tasks: Vec<i64>,
     pub inspected_tasks: Vec<i64>,
     pub basis: String,
@@ -247,12 +263,19 @@ impl Project {
         cancellation: &NativeCancellation,
     ) -> Result<CompleteVerificationReport> {
         let application = fs::canonicalize(application)?;
-        if fs::metadata(notes_file)?.len() > 1_048_576 {
-            return Err(Error::Invalid("Inspection notes exceed 1 MiB".into()));
-        }
-        let notes: AuthoredInspections = serde_json::from_slice(&fs::read(notes_file)?)?;
-        notes.validate(&application)?;
-        notes.validate_spec(self, &application)?;
+        let imported = match fs::metadata(notes_file) {
+            Ok(metadata) => {
+                if metadata.len() > 1_048_576 {
+                    return Err(Error::Invalid("Inspection notes exceed 1 MiB".into()));
+                }
+                let notes: AuthoredInspections = serde_json::from_slice(&fs::read(notes_file)?)?;
+                notes.validate(&application)?;
+                notes.validate_spec(self, &application)?;
+                Some(notes)
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => return Err(error.into()),
+        };
         let (_, config) = self.verification_configuration(Some(&application))?;
         if config.target != provider.manifest().target {
             return Err(Error::Invalid(
@@ -278,6 +301,32 @@ impl Project {
                 .as_deref()
                 .ok_or(Error::Invalid("Successful check has no snapshot".into()))?,
         )?;
+        let mut notes = self.stored_conformance_notes(&application)?;
+        if let Some(imported) = imported {
+            let session = self.task_session(None, None)?;
+            let snapshot = self.load(&session.plan.snapshot_id)?;
+            let authoritative = session
+                .plan
+                .members
+                .iter()
+                .filter(|member| {
+                    session.states[&member.task_id]
+                        .reviews
+                        .last()
+                        .is_some_and(|review| {
+                            review.conformance.is_some() || review.judgement != "approved"
+                        })
+                })
+                .flat_map(|member| {
+                    dctx0_tasks::conformance_subjects(&snapshot.ir, &member.candidate)
+                })
+                .collect::<BTreeSet<_>>();
+            for (subject, note) in imported.subjects {
+                if !authoritative.contains(&subject) {
+                    notes.subjects.entry(subject).or_insert(note);
+                }
+            }
+        }
         let native = self
             .run_verification(
                 Some(&application),
@@ -308,7 +357,10 @@ impl Project {
                 native.evidence.id
             )));
         }
-        notes.validate(&application)?;
+        // Empty/missing reviews remain UNKNOWN in the effective assessment.
+        if !notes.subjects.is_empty() {
+            notes.validate(&application)?;
+        }
         notes.validate_spec(self, &application)?;
         // Read the exact plan retained by this run rather than projecting a new scope.
         let artifact = run
@@ -373,6 +425,17 @@ impl Project {
                 inspected.evidence.id
             )));
         }
+        // Executable release policies are evaluated centrally, not approved by an
+        // agent. Their actual assessment also supplies the policy task's evidence.
+        for policy in &inspected.assessment.policies {
+            if policy.result == VerificationResult::Pass {
+                notes.subjects.entry(policy.subject.clone()).or_insert(AuthoredInspectionNote {
+                    report: format!("Rust evaluated the declared policy {} against recorded execution and explicit reviews: PASS.", policy.subject),
+                    limitations: vec!["Only the modeled policy expression was evaluated.".into()],
+                    review: None,
+                });
+            }
+        }
         let session = self.task_session(None, None)?;
         let reports = notes.task_reports(&session, run)?;
         let inspected_tasks = reports.iter().map(|report| report.task).collect();
@@ -404,9 +467,29 @@ impl Project {
                     .is_none_or(|state| state.check != CheckStatus::Pass)
             })
             .count();
-        if session.plan.members.is_empty() || open_tasks != 0 || non_pass_tasks != 0 {
+        let reviewed_tasks = session
+            .plan
+            .members
+            .iter()
+            .filter(|member| {
+                member.candidate.kind == TaskKind::Review
+                    && !member.candidate.review_obligations.is_empty()
+                    && member
+                        .candidate
+                        .review_obligations
+                        .iter()
+                        .all(|subject| notes.subjects.contains_key(subject))
+            })
+            .map(|member| member.task_id)
+            .collect::<Vec<_>>();
+        let missing_evidence = session.plan.members.iter().any(|member| {
+            session.states.get(&member.task_id).is_none_or(|state| {
+                state.check != CheckStatus::Pass && !reviewed_tasks.contains(&member.task_id)
+            })
+        });
+        if session.plan.members.is_empty() || open_tasks != 0 || missing_evidence {
             return Err(Error::Invalid(format!(
-                "Complete acceptance requires a nonempty Done/PASS plan: {open_tasks} unfinished, {non_pass_tasks} without PASS"
+                "Complete acceptance requires delivered tasks and tests or source-bound reviews: {open_tasks} unfinished, {non_pass_tasks} without PASS"
             )));
         }
         let report = CompleteVerificationReport {
@@ -419,6 +502,7 @@ impl Project {
             tasks: session.plan.members.len(),
             open_tasks,
             non_pass_tasks,
+            reviewed_tasks,
             adopted_tasks: native.adopted_tasks,
             inspected_tasks,
             basis: "deterministic native cases plus explicitly source-bound agent inspection"

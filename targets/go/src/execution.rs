@@ -6,6 +6,15 @@ const SUBJECT_SLOT: &str = "__SUBJECTS__";
 pub struct GoHarness;
 
 impl HarnessGenerator for GoHarness {
+    fn runtime(&self) -> &str {
+        "go"
+    }
+    fn inspect_dependencies(
+        &self,
+        sources: &[InspectionSource],
+    ) -> Result<DependencyInspection, Error> {
+        crate::GoInspector.dependencies(sources)
+    }
     fn generate(&self, request: &HarnessRequest) -> Result<HarnessBundle, Error> {
         sibling_adapter(&request.adapter_import)?;
         let mut subjects = String::new();
@@ -19,8 +28,12 @@ impl HarnessGenerator for GoHarness {
         let worker = include_str!("../harness/worker.go").replace(SUBJECT_SLOT, &subjects);
         Ok(HarnessBundle {
             sdk_version: SDK_VERSION,
-            generator_version: "dctx0-go-harness-1".into(),
+            generator_version: "dctx0-go-harness-2".into(),
             target: "go".into(),
+            build: Some(ExecutionRecipe {
+                program: "go".into(),
+                arguments: vec!["run".into(), "build.go".into()],
+            }),
             artifacts: vec![
                 Artifact {
                     path: "contract.go".into(),
@@ -31,13 +44,13 @@ impl HarnessGenerator for GoHarness {
                     contents: worker,
                 },
                 Artifact {
-                    path: "go.mod".into(),
-                    contents: "module dctx0testing\n\ngo 1.21\n".into(),
+                    path: "build.go".into(),
+                    contents: include_str!("../harness/build.go").into(),
                 },
             ],
             recipe: ExecutionRecipe {
-                program: "go".into(),
-                arguments: vec!["run".into(), ".".into()],
+                program: "./.bin/worker".into(),
+                arguments: vec![],
             },
         })
     }

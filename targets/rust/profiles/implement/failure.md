@@ -1,5 +1,3 @@
 # Implement failure
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Preserve the declared failure variants and payloads.
+Represent every declared failure variant and payload so callers can distinguish them without parsing text. Follow the common target error conventions. Keep unexpected technical errors separate and translate them only where specified. Preserve failure identity across adapter mappings.

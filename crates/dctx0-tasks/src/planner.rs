@@ -104,7 +104,14 @@ impl<'a> SpecIndex<'a> {
             .and_then(|s| s.parent.as_deref());
         while let Some(id) = next {
             result.push(id.into());
-            next = self.ir.symbols[id].parent.as_deref();
+            next = if let Some(symbol) = self.ir.symbols.get(id) {
+                symbol.parent.as_deref()
+            } else {
+                self.nodes
+                    .get(id)
+                    .map(|node| node.owner.as_str())
+                    .filter(|owner| *owner != id)
+            };
         }
         result
     }
@@ -388,6 +395,7 @@ fn candidate(
     let types = index.type_closure(&subjects, &facts);
     let requirements_hash = index.requirements_hash(&subjects, &facts, &types);
     Candidate {
+        review_obligations: vec![],
         key,
         kind,
         title: format!("{:?}: {}", kind, subjects.join(", ")),
@@ -700,6 +708,7 @@ pub fn plan(snapshot: &Snapshot) -> Result<CandidatePlan> {
             tasks.insert(key, task);
         }
     }
+    assign_conformance_reviews(&index, &mut tasks);
     assign_waves(&mut tasks)?;
     // Assembly and reviews track delivered work revisions as well as spec facts.
     let ordered = tasks
@@ -727,6 +736,132 @@ pub fn plan(snapshot: &Snapshot) -> Result<CandidatePlan> {
             .map(|s| s.id.clone())
             .collect(),
     })
+}
+
+/// Every textual requirement and non-execution suite has one explicit review owner.
+/// Existing scoped reviews are reused; uncovered scopes get a separate review task.
+fn assign_conformance_reviews(index: &SpecIndex<'_>, tasks: &mut BTreeMap<String, Candidate>) {
+    let ir = index.ir;
+    let obligations = ir
+        .nodes
+        .iter()
+        .filter(|n| n.kind == K::Constraint)
+        .map(|n| (n.id.clone(), n.owner.clone()))
+        .chain(
+            ir.symbols
+                .values()
+                .filter(|s| {
+                    matches!(
+                        s.kind,
+                        K::Decision | K::Review | K::Policy | K::Proof | K::Test
+                    ) && !(matches!(s.kind, K::Proof | K::Test)
+                        && matches!(s.name.as_str(), "Examples" | "Properties"))
+                })
+                .map(|s| {
+                    (
+                        s.id.clone(),
+                        s.parent.clone().unwrap_or_else(|| ir.workspace.clone()),
+                    )
+                }),
+        )
+        .collect::<BTreeMap<_, _>>();
+    let original = tasks.clone();
+    let mut groups = BTreeMap::<String, Vec<String>>::new();
+    for (subject, owner) in obligations {
+        let ancestors = index.ancestors(&owner);
+        let existing = original
+            .values()
+            .filter(|task| task.kind == TaskKind::Review)
+            .filter_map(|task| {
+                if task.subjects.contains(&subject) {
+                    return Some((usize::MAX, task.key.clone()));
+                }
+                let scope = ir.symbols.get(&task.subjects[0])?.parent.as_ref()?;
+                (scope == &owner || ancestors.contains(scope))
+                    .then(|| (scope.split('.').count(), task.key.clone()))
+            })
+            .max();
+        let key = existing
+            .map(|(_, key)| key)
+            .unwrap_or_else(|| format!("conformance:{owner}"));
+        groups.entry(key).or_default().push(subject);
+    }
+    for (key, subjects) in groups {
+        let declared = subjects
+            .iter()
+            .filter(|subject| ir.symbols.contains_key(*subject))
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut task = tasks.remove(&key).unwrap_or_else(|| {
+            let mut task = candidate(
+                index,
+                TaskKind::Review,
+                key.clone(),
+                if declared.is_empty() {
+                    vec![key.trim_start_matches("conformance:").to_owned()]
+                } else {
+                    declared.clone()
+                },
+                false,
+            );
+            let scope = key.trim_start_matches("conformance:");
+            let scoped = original
+                .values()
+                .filter(|task| {
+                    task.subjects.iter().any(|subject| {
+                        index
+                            .ancestors(subject)
+                            .iter()
+                            .any(|ancestor| ancestor == scope)
+                    })
+                })
+                .collect::<Vec<_>>();
+            let assembled = scoped.iter().any(|task| task.kind == TaskKind::Integration);
+            task.prerequisites = scoped
+                .into_iter()
+                .filter(|t| {
+                    !assembled || matches!(t.kind, TaskKind::Integration | TaskKind::Review)
+                })
+                .map(|t| Prerequisite {
+                    key: t.key.clone(),
+                    condition: Condition::Delivered,
+                    reason:
+                        "Deliver implementation and scoped reviews before conformance assessment"
+                            .into(),
+                })
+                .collect();
+            task
+        });
+        task.review_obligations = subjects;
+        task.subjects.extend(declared);
+        task.subjects.sort();
+        task.subjects.dedup();
+        for subject in &task.review_obligations {
+            task.facts.extend(
+                ir.nodes
+                    .iter()
+                    .filter(|n| n.id == *subject || n.owner == *subject)
+                    .map(|n| n.id.clone()),
+            );
+        }
+        task.facts.sort();
+        task.facts.dedup();
+        task.types = index.type_closure(&task.subjects, &task.facts);
+        task.requirements_hash = hash(&(
+            index.requirements_hash(&task.subjects, &task.facts, &task.types),
+            &task.review_obligations,
+        ));
+        task.work_order_hash = task.requirements_hash.clone();
+        task.acceptance.push("Record a source-bound conformance review for every assigned manual requirement and suite, with concrete evidence and limitations; approval is separate from automatic test PASS.".into());
+        tasks.insert(key, task);
+    }
+}
+
+pub fn conformance_subjects(_ir: &WorkspaceIr, candidate: &Candidate) -> Vec<String> {
+    if candidate.kind != TaskKind::Review {
+        return vec![];
+    }
+    candidate.review_obligations.clone()
 }
 /// A separate DAG rejects missing producers and explains cycles.
 pub fn assign_waves(tasks: &mut BTreeMap<String, Candidate>) -> Result<()> {

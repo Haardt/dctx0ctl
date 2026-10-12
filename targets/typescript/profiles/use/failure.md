@@ -1,5 +1,3 @@
 # Use failure
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered failure contract without redefining its requirements. Preserve the declared failure variants and payloads.
+Handle declared failures by their typed identity and payload. Preserve or explicitly map them at assigned boundaries; do not match message strings, swallow errors or turn technical failures into successful results.

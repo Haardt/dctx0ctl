@@ -1,5 +1,3 @@
 # Implement event
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Publish the complete event payload and delivery contract without adding unmodeled guarantees.
+Implement the declared event payload and identity/time fields using existing domain contracts. Preserve modeled delivery requirements, but do not invent ordering, retry, deduplication or exactly-once guarantees. Keep event creation separate from publication; test actual emission when publication is in scope.

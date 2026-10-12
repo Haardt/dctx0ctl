@@ -1,5 +1,3 @@
 # Use lifecycle
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Consume the delivered lifecycle contract without redefining its requirements. Cover the supplied state transitions and sequences.
+Respect the declared sequence, guards and session/state prerequisites. Do not reorder transitions or reuse state across independent cases. Preserve setup needed for replay.

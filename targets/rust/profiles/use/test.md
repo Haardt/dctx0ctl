@@ -1,5 +1,3 @@
 # Use test
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered test contract without redefining its requirements. Implement and execute the requested checks, preserving replay inputs.
+Reuse relevant existing checks and fixtures without weakening assertions. Run checks appropriate to the changed implementation and distinguish earlier results from current execution. Keep replay inputs and isolation intact.

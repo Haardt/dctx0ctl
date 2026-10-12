@@ -1,5 +1,3 @@
 # Use entity
 
-Use the configured Java version. Prefer small value objects (records where supported) and focused interfaces. Keep application contracts independent of framework adapters.
-
-Consume the delivered entity contract without redefining its requirements. Publish the complete field, key and state contract; preserve identity and modeled transitions.
+Use the delivered identity and state-change API. Preserve transition rules and avoid direct mutation that bypasses them. Do not rebuild the entity contract or assume a persistence representation.

@@ -1,5 +1,3 @@
 # Use scalar
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered scalar contract without redefining its requirements. Preserve the declared base type and refinements; validate at the appropriate boundary.
+Import the delivered scalar and use its checked construction path at untrusted boundaries. Preserve refinements and do not create a competing validator or bypass validation with casts/conversions.

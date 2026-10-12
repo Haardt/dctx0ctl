@@ -1,5 +1,3 @@
 # Use test
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered test contract without redefining its requirements. Implement and execute the requested checks, preserving replay inputs.
+Reuse relevant existing checks and fixtures without weakening assertions. Run checks appropriate to the changed implementation and distinguish earlier results from current execution. Keep replay inputs and isolation intact.

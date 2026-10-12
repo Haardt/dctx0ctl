@@ -7,11 +7,15 @@ __pycache__/
 node_modules/
 /.runatron/
 
+article.md
+
 # Rebuildable coverage output and execution logs.
 coverage/
 coverage-*/
 *.lcov
 !/docs/evidence/*.lcov
+*.profraw
+*.profdata
 *.log
 
 # Local coordination locks; dependency lockfiles remain versioned.
@@ -22,3 +26,33 @@ coverage-*/
 # project adapters, contracts, configuration and reviewed evidence versioned.
 **/.dctx0/testing/typescript/worker.ts
 **/.dctx0/testing/typescript/module-observer.ts
+# Generated Go transport/build helpers and local Cinema databases.
+**/.dctx0/testing/go/worker.go
+**/.dctx0/testing/go/build.go
+**/.dctx0/testing/go/.bin/
+/examples/cinema-go/cinema.sqlite3*
+
+# Generated Rust transport and native Cargo scratch; adapters and lockfiles stay versioned.
+**/.dctx0/testing/rust/worker.rs
+**/.dctx0/testing/rust/build-version.txt
+**/.dctx0/testing/rust/.bin/
+/examples/cinema-rust/target/
+/examples/cinema-rust/.dctx0/testing/rust/target/
+/examples/cinema-rust/cinema.sqlite3*
+
+# Agent-skill installation coordination.
+**/.dctx0-install.lock
+
+# Locally generated editor distributions and coordination locks.
+**/.dctx0/editors/
+**/.dctx0-editor.lock
+/editors/zed/target/
+
+# Documentation benchmark coordination; retain JSON measurements.
+/benchmarks/history/.docs-site.lock
+
+# Release-distribution measurement coordination.
+/benchmarks/history/.release.lock
+
+# Framework acceptance coordination; retain JSON measurements.
+/benchmarks/history/.frameworks.lock

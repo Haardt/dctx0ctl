@@ -1,5 +1,3 @@
 # Use lifecycle
 
-Use Rust newtypes, structs and enums for domain contracts, and focused traits for external ports. Express failure paths explicitly with Result.
-
-Consume the delivered lifecycle contract without redefining its requirements. Cover the supplied state transitions and sequences.
+Respect the declared sequence, guards and session/state prerequisites. Do not reorder transitions or reuse state across independent cases. Preserve setup needed for replay.

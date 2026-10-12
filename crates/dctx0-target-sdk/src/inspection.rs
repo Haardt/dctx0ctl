@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 pub enum InspectionLanguage {
     TypeScript,
     Tsx,
+    Go,
+    Rust,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

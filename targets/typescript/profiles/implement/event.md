@@ -1,5 +1,3 @@
 # Implement event
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Publish the complete event payload and delivery contract without adding unmodeled guarantees.
+Implement the declared event payload and identity/time fields using existing domain contracts. Preserve modeled delivery requirements, but do not invent ordering, retry, deduplication or exactly-once guarantees. Keep event creation separate from publication; test actual emission when publication is in scope.

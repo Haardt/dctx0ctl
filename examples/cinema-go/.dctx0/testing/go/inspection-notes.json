@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "actor": "codex-go-cinema-review",
+  "scope": "Complete unchanged Cinema specification, reviewed Go production and external adapter; finite native execution remains separate from authored inspection. Added Gin transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default.",
+  "reviewed_hashes": {
+    ".dctx0/testing/go/adapter.go": "27ff4e04c09cf17864bff26b1b2ea1cfd3ce84c03c3d20fb5e60445cf4568b96",
+    ".dctx0/testing/go/config.json": "2b882a80a014ec95b4ef71e4e52623d4a84697f3758ef4afabbc551a48e5eca5",
+    ".dctx0/testing/go/contract.go": "3d0ac2b2b611fdc0bf2e9c487117344b504e5a1066127a5a912870d9615a7e99",
+    ".dctx0/testing/go/examples.json": "0584c7525cdb2f6721447270b107d195caa150d83c1516f588388083ae3be079",
+    ".dctx0/testing/go/http.go": "7dde7e287c325666bec4ed0a71434b81268689ba6945efceab7766c8797533c7",
+    ".dctx0/testing/go/lifecycles.json": "1652e70cd8c7d0aec4f40210855aee9a165fae6a891d82523a935c13a007039a",
+    ".dctx0/testing/go/translation.go": "e0e807bfd03e29e847254eecb5d9fc22ce02f50fbd4f0a0ef3cc5edd19eb9b94",
+    ".dctx0/testing/verification.json": "b7b7c6a5d5f6ec78ba6a38c2e1db33dfa8bcec99528e0a49bff7b61d52005925",
+    "application/service.go": "e2f5f0be1d63f3806ef5e1a626fa3f22977072741ec994c522ca7d72bcb42736",
+    "application/service_test.go": "b3f2815f160310a8ac9302a8cef624dce7c6a70863bdf8510400af41fe884113",
+    "cmd/cinema/main.go": "48b4cf9b7fdca41889b2626d4a2b95b778381b648629738e781036bac8b12135",
+    "dctx0/movie-night.dctx0": "39b8c23eb49c0c2a89a62c37902c9c2722597e472b5476235100f38c35e2e88e",
+    "dctx0/workspace.dctx0": "6d363ddab2910ea5864931e28a243f721251b75adf31b98f4ecc1c6fdffd0195",
+    "domain/contracts.go": "18c4accd09dbaf15bd1cd3b13b2b0dc3ef0f27dfae1da13d54ea8ff51ce93808",
+    "domain/contracts_test.go": "f524dc9db3e402c6df2c6d07e379b007edbfc1f716a2da253dacce98bbd2a2cd",
+    "domain/json.go": "2f5287754cd1af9b63f6e8ffcca9b85877182936ca18e008bd4d7c9afb1af534",
+    "ginapi/handler.go": "55d1a4b9aa85dfbd476f189ada55e964d9cd56daed05b9a8497a2e763f82132f",
+    "ginapi/handler_test.go": "0b6ca02f68b8bbe84bca58e198974a2771551cd8a66a65981606eb608ed4384e",
+    "go.mod": "09732edcc5cabcc056b3e1ed41fcff0c5347e989ae5071298405706387c962c7",
+    "go.sum": "d2ae7663ea2c1921bf7d22486e97921187ef314ac9141ec67720edb7b945a5b7",
+    "httpapi/handler.go": "1c6eb3f3009292374e0ca16c1a0e0663f0abb92b3672aba9efcd8b62b006a805",
+    "httpapi/handler_test.go": "af8efdeeb255a8cf3cab1c996c6c518d58170e6ee8905211a702b2843ecb6161",
+    "persistence/store.go": "e27ffec93f33ddb6766ee21feb4702a3935ad1875617e3a4c2caa0afeed7ef83",
+    "persistence/store_test.go": "e6fbeaba00494c2c44563d24122df7440770fafffc4531abc909a534991af4b9"
+  },
+  "subjects": {
+    "HomeCinema.MovieNight.Catalog.CatalogReadModel": {
+      "report": "application.Service exposes application-owned records; persistence.Store.summary and details create public projections with rating and vote counts. SQLite handles and stored documents do not cross the HTTP boundary. No generated DTOs or dctx0 runtime enter production.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community.MutableRating": {
+      "report": "The SQLite ratings primary key is (film_id,member_id), and Store.put performs ON CONFLICT document replacement. Service.Invoke checks film presence before calling the rating port. Native before/after-state obligations execute the actual consumer and store.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.ReplaceableVote": {
+      "report": "The votes primary key is (poll_id,member_id); conflict updates replace film_id and document inside the cast transaction. The independent persistence test submits the same member vote twice and observes one persisted vote.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.DeterministicWinner": {
+      "report": "domain.CandidateOrderWinner counts eligible votes and replaces a winner only for a strictly greater count while traversing candidate order. The independently authored domain test checks ties, empty votes and unknown votes. No eligible votes returns nil/None.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:1": {
+      "report": "Store.search applies strings.ToLower to title and query before substring matching. Native generated catalog cases exercise the actual search path.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:2": {
+      "report": "Store.search combines every supplied filter by rejecting rows that violate any predicate, then sorts the retained projection. Rust compares the resulting values with the modeled contract.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog#constraint:3": {
+      "report": "domain.PageLimit is checked inclusively in 1..100 before Store.search slices the filtered and sorted list using offset and limit.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community#constraint:1": {
+      "report": "domain.CommentText uses the DSL whitespace predicate, including BOM and excluding NEXT LINE. Production Validate is called for AddComment and persisted Comment; independent tests retain both Unicode boundaries.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community#constraint:2": {
+      "report": "StarRating accepts only the five named alternatives; RateFilm validates this field before SQLite upsert. Numeric and unknown alternatives are rejected by actual production validators.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Community#constraint:3": {
+      "report": "The composite ratings key and conflict update allow at most one stored rating per film/member. The finite native state obligations observe real SQLite rows rather than deriving state from returns.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:1": {
+      "report": "Store.cast requires the film to exist and checks candidate membership before writing a vote. Failure paths return FilmNotFound and the transaction rolls back.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:2": {
+      "report": "The composite vote key and upsert replace an existing vote. The independent persistence test checks actual row count after repeated votes; native replacement cases verify the selected state transitions.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:3": {
+      "report": "Store.requirePoll rejects Closed before a write. Closing changes poll status transactionally; independent persistence and native HTTP/state cases check subsequent rejection.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning#constraint:4": {
+      "report": "Store.overview always includes the persisted scheduledFor appointment when opening, reading and closing the poll. No clock-derived replacement is introduced.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.Catalog.CatalogArchitecture": {
+      "report": "Inspected application.Service, its application-owned Ports interface, persistence.Store, httpapi.New and the external adapter. Search/filter behavior stays behind the catalog store. Public projections are new records, and constructor injection permits replacement without a DI framework. No unresolved finding under the declared criteria.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.Community.CommunityRules": {
+      "report": "Inspected actual presence checks, CommentText/StarRating validators, composite rating keys and error propagation. Comments and ratings require films; replacement retains one rating; only named stars are accepted. No unresolved finding under the declared criteria.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.ScreeningPlanning.VotingFairness": {
+      "report": "Inspected cast/close transactions, candidate membership, vote keys and winner traversal. Changed votes replace prior votes, eligible ties follow candidate order, and closed polls reject changes. Native lifecycle and real HTTP cases corroborate the selected finite scope.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ],
+      "review": {
+        "approved": true,
+        "findings": []
+      }
+    },
+    "HomeCinema.MovieNight.TypeConformance": {
+      "report": "Production domain.Validate owns the 45 Cinema runtime contracts. Go builds actual production and adapter sources; Rust centrally checks every native value and operation result. Integers retain arbitrary precision through math/big.Int and JSON decoding; bounded native conversions follow checked contracts. This is runtime contract conformance, not a generated static DTO architecture. Public operation arguments, scalar port arguments and declared failure payloads are validated by production before crossing boundaries; malformed HTTP IDs return 400.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.SurfaceConformance": {
+      "report": "ginapi/handler.go explicitly registers Cinema routes and invokes the actual service. Path/query/body translation and typed domain errors preserve the existing mapping. The additional middleware emits X-Cinema-Framework and the adapter observes it. Unknown routes/methods and body limits are transport decisions, not invented spec requirements. Independent native HTTP tests and spec-driven calls are separate evidence. The captured adapter also routes generated real Surface operation cases through the selected framework; mocked consumer cases remain distinct direct-service checks.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ArchitectureConformance": {
+      "report": "ginapi/handler.go adds a transport boundary in the existing application root. Domain, application and persistence implementations are reused, and production imports no dctx0 code. Profiles are external agent instructions. Framework-specific lifecycle resources are owned by the router/server and test session.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.OwnershipConformance": {
+      "report": "Catalog writes films, Community writes comments/ratings, ScreeningPlanning writes polls/votes. Store.Invoke explicitly selects those statements; cross-context reads feed public projections. Logical ownership does not require separate Go packages per bounded context.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.EffectConformance": {
+      "report": "The native corpus uses actual port call traces, publication callbacks, executed SQLite access callbacks and before/after database observations. Rust evaluates modeled effects; setup/Observe calls do not manufacture operation evidence. No static call count is claimed.",
+      "limitations": [
+        "Authored source inspection plus the selected finite native corpus; no exhaustive input, branch or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.AdapterConformance": {
+      "report": "ginapi/handler.go composes the additional Gin router over the existing application service. The external adapter selects the explicit HTTP variant, delegates real calls, keeps domain translation separate and validates its middleware header. Config, dependencies and both routers are source-bound. Consumer mocks do not establish production port conformance. Gin release mode and stderr writers are configured once before sessions to preserve protocol stdout and the finite log budget.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    },
+    "HomeCinema.MovieNight.ExternalConformance": {
+      "report": "Existing SQLite and external port implementations remain real for declared integration cases. The additional Gin HTTP server binds loopback dynamic ports for tests, owns session resources and has explicit cleanup. Configured mocks remain consumer-only evidence. No implicit external production services are introduced.",
+      "limitations": [
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+      ]
+    }
+  }
+}

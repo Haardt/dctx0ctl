@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "20261012T131513.657771Z-1224726",
+  "timestamp": "2026-10-12T13:15:13.657771+00:00",
+  "status": "failed",
+  "metadata": {
+    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "dirty_worktree": true,
+    "source_hash": "a15f6fa5d227cf06210cc29da76a3cef7a0610db77102b895229c0fba3d42fe4",
+    "binary_sha256": "dfc00c5859b042755e9caf189e35398c43d209e129a8de82578efc49fbe91940",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "cpu": "",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": "9456907605"
+    },
+    "go": "go version go1.27.1-X:nodwarf5 linux/amd64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "versions": {
+    "gin": "1.12.0",
+    "axum": "0.8.9",
+    "tokio": "1.52.3",
+    "tower": "0.5.3"
+  },
+  "seed": 42,
+  "generated_cases": 100,
+  "measurements": {
+    "go-tests": [
+      {
+        "elapsed_ms": 224.12582299148198,
+        "peak_rss_bytes": 55222272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "go-vet": [
+      {
+        "elapsed_ms": 132.29034500545822,
+        "peak_rss_bytes": 55222272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "go-race": [
+      {
+        "elapsed_ms": 142.82400300726295,
+        "peak_rss_bytes": 55222272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-tests": [
+      {
+        "elapsed_ms": 172.92876499413978,
+        "peak_rss_bytes": 114847744,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-default-tests": [
+      {
+        "elapsed_ms": 121.9373009953415,
+        "peak_rss_bytes": 98533376,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-clippy": [
+      {
+        "elapsed_ms": 2345.362081003259,
+        "peak_rss_bytes": 55222272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-adapter-tests": [
+      {
+        "elapsed_ms": 577.8876639960799,
+        "peak_rss_bytes": 262316032,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-format": [
+      {
+        "elapsed_ms": 91.38670400716364,
+        "peak_rss_bytes": 55222272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-adapter-format": [
+      {
+        "elapsed_ms": 71.29403999715578,
+        "peak_rss_bytes": 55222272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "framework-task-reviews": [
+      {
+        "elapsed_ms": 5328.253565006889,
+        "peak_rss_bytes": 406761472,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "mutations": [],
+  "baseline": {
+    "status": "unassessed",
+    "reason": "New HTTP framework workloads; accepted baseline unchanged"
+  },
+  "cache": "fresh managed project build; existing module/compiler caches; repeated warm execution",
+  "scope": "Linux Cinema Gin and Axum additions; existing paths retained; authored reviews separate from native PASS",
+  "failure": "framework-task-reviews failed (1): Traceback (most recent call last):\n  File \"/home/held/workspaces/conpinion/dctx0ctl/scripts/conformance_review_acceptance.py\", line 126, in <module>\n    main()\n    ~~~~^^\n  File \"/home/held/workspaces/conpinion/dctx0ctl/scripts/conformance_review_acceptance.py\", line 64, in main\n    assert len(run['cases']) == len(run['required_cases']) == 5674\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+}

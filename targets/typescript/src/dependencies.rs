@@ -63,6 +63,7 @@ impl DependencyAnalyzer for TypeScriptDependencies {
             let grammar = match source.language {
                 InspectionLanguage::TypeScript => tree_sitter_typescript::LANGUAGE_TYPESCRIPT,
                 InspectionLanguage::Tsx => tree_sitter_typescript::LANGUAGE_TSX,
+                InspectionLanguage::Go | InspectionLanguage::Rust => continue,
             };
             parser
                 .set_language(&grammar.into())

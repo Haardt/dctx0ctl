@@ -48,6 +48,7 @@ impl HarnessGenerator for BunHarness {
             sdk_version: SDK_VERSION,
             generator_version: "dctx0-bun-harness-3".into(),
             target: "typescript".into(),
+            build: None,
             artifacts: vec![
                 Artifact {
                     path: "contract.ts".into(),

@@ -1,0 +1,302 @@
+==================
+Workspace and domain
+==================
+
+workspace Shop {
+  domain Commerce {
+    value CustomerId = String
+    entity Customer { id: CustomerId }
+    surface Customers exposes requestReply {
+      operation get(id: CustomerId) -> Customer
+    }
+    surface CustomerStream exposes stream {
+      operation subscribe() -> Unit
+    }
+  }
+}
+
+---
+
+(source_file
+  (declaration
+    kind: (declaration_keyword)
+    name: (identifier))
+  (block
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (block
+      (declaration
+        kind: (declaration_keyword)
+        name: (identifier))
+      (operator)
+      (builtin_type)
+      (declaration
+        kind: (declaration_keyword)
+        name: (identifier))
+      (block
+        (identifier)
+        (identifier))
+      (declaration
+        kind: (declaration_keyword)
+        name: (identifier))
+      (keyword)
+      (keyword)
+      (block
+        (declaration
+          kind: (declaration_keyword)
+          name: (identifier))
+        (arguments
+          (identifier)
+          (identifier))
+        (operator)
+        (identifier))
+      (declaration
+        kind: (declaration_keyword)
+        name: (identifier))
+      (keyword)
+      (keyword)
+      (block
+        (declaration
+          kind: (declaration_keyword)
+          name: (identifier))
+        (arguments)
+        (operator)
+        (builtin_type)))))
+
+==================
+Result-derived state source
+==================
+
+port Store {
+  operation save(request: Draft) -> Receipt {
+    state inserts Item from result.item
+  }
+}
+
+---
+
+(source_file
+  (declaration
+    kind: (declaration_keyword)
+    name: (identifier))
+  (block
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (arguments
+      (identifier)
+      (identifier))
+    (operator)
+    (identifier)
+    (block
+      (keyword)
+      (identifier)
+      (identifier)
+      (keyword)
+      (identifier))))
+
+==================
+Fragments, stable identity, records, and message unions
+==================
+
+fragment Game.Matchmaking {
+  value BotAssignment = UUID { stableId "enginestormers.bot-assignment" }
+  event Assigned { id: UUID, bot: String; accepted: Boolean }
+  message Command = Start(StartCommand) | Stop(StopCommand)
+}
+
+---
+
+(source_file
+  (declaration
+    kind: (declaration_keyword)
+    name: (identifier))
+  (block
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (operator)
+    (builtin_type)
+    (block
+      (keyword)
+      (string))
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (block
+      (identifier)
+      (builtin_type)
+      (identifier)
+      (builtin_type)
+      (identifier)
+      (builtin_type))
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (operator)
+    (identifier)
+    (arguments
+      (identifier))
+    (operator)
+    (identifier)
+    (arguments
+      (identifier))))
+
+==================
+Pure operation and productive invariant call
+==================
+
+module Pricing {
+  surface Calculations {
+    operation discount(amount: Int) -> Int { pure }
+  }
+  invariant DiscountBound {
+    forall amount: Int
+    assert Calculations.discount(amount) >= 0
+  }
+}
+
+---
+
+(source_file
+  (declaration
+    kind: (declaration_keyword)
+    name: (identifier))
+  (block
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (block
+      (declaration
+        kind: (declaration_keyword)
+        name: (identifier))
+      (arguments
+        (identifier)
+        (builtin_type))
+      (operator)
+      (builtin_type)
+      (block
+        (keyword)))
+    (declaration
+      kind: (declaration_keyword)
+      name: (identifier))
+    (block
+      (keyword)
+      (identifier)
+      (builtin_type)
+      (keyword)
+      (identifier)
+      (arguments
+        (identifier))
+      (operator)
+      (number))))
+
+==================
+Concrete nested example lists
+==================
+
+example inspect_board {
+  when result = Boards.inspect(Board { moves = [Move { labels = ["first", "second"] }, Move { labels = [] }] })
+  expect result == Board { moves = [] }
+}
+
+---
+
+(source_file
+  (declaration
+    kind: (declaration_keyword)
+    name: (identifier))
+  (block
+    (keyword)
+    (identifier)
+    (operator)
+    (identifier)
+    (arguments
+      (identifier)
+      (block
+        (identifier)
+        (operator)
+        (list
+          (identifier)
+          (block
+            (identifier)
+            (operator)
+            (list
+              (string)
+              (string)))
+          (identifier)
+          (block
+            (identifier)
+            (operator)
+            (list)))))
+    (keyword)
+    (identifier)
+    (operator)
+    (identifier)
+    (block
+      (identifier)
+      (operator)
+      (list))))
+
+==================
+Rust Cinema refinement and result field access
+==================
+
+workspace W {
+  domain D {
+    value Label = String {
+      where length(trim(value)) > 0
+    }
+    surface Api {
+      operation update() -> String {
+        ensures result == before.Film("id").title
+      }
+    }
+  }
+}
+
+---
+
+(source_file
+  (declaration
+    (declaration_keyword)
+    (identifier))
+  (block
+    (declaration
+      (declaration_keyword)
+      (identifier))
+    (block
+      (declaration
+        (declaration_keyword)
+        (identifier))
+      (operator)
+      (builtin_type)
+      (block
+        (keyword)
+        (keyword)
+        (arguments
+          (identifier)
+          (arguments
+            (declaration_keyword)))
+        (operator)
+        (number))
+      (declaration
+        (declaration_keyword)
+        (identifier))
+      (block
+        (declaration
+          (declaration_keyword)
+          (identifier))
+        (arguments)
+        (operator)
+        (builtin_type)
+        (block
+          (keyword)
+          (identifier)
+          (operator)
+          (identifier)
+          (arguments
+            (string))
+          (operator)
+          (identifier))))))

@@ -20,6 +20,10 @@ def source_hash():
     # Target profiles and helpers are embedded with include_str! in Rust crates.
     for pattern in ('**/*.md', '**/*.ts', '**/*.go'):
         paths.extend((ROOT / 'targets').glob(pattern))
+    paths.extend((ROOT / "skills").glob("**/*.md"))
+    paths.extend((ROOT / "skills").glob("**/*.yaml"))
+    for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
+        paths.extend(path for path in (ROOT / "editors").glob(pattern) if "target" not in path.relative_to(ROOT / "editors").parts)
     digest = hashlib.sha256()
     for path in sorted(paths):
         if path.is_file():

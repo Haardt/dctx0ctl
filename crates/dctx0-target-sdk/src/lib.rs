@@ -33,6 +33,8 @@ pub struct HarnessBundle {
     pub target: String,
     pub artifacts: Vec<Artifact>,
     pub recipe: ExecutionRecipe,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub build: Option<ExecutionRecipe>,
 }
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -42,6 +44,9 @@ pub enum Error {
     Protocol(String),
 }
 pub trait HarnessGenerator {
+    fn runtime(&self) -> &str {
+        "bun"
+    }
     fn inspect_dependencies(
         &self,
         _sources: &[InspectionSource],
@@ -60,6 +65,10 @@ pub trait HarnessGenerator {
     fn generate(&self, request: &HarnessRequest) -> Result<HarnessBundle, Error>;
     /// Setup preserves existing developer adapters; scaffolds are unavailable.
     fn scaffold(&self) -> Artifact;
+    /// Additional editable setup files; repeated setup preserves them.
+    fn setup_artifacts(&self) -> Vec<Artifact> {
+        Vec::new()
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

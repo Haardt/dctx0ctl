@@ -1,5 +1,3 @@
 # Use event
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Consume the delivered event contract without redefining its requirements. Publish the complete event payload and delivery contract without adding unmodeled guarantees.
+Consume the declared payload and delivery semantics. Handle only guarantees actually provided; do not assume ordering, exactly-once delivery or retries. Reuse the owning module's event contract.

@@ -271,6 +271,27 @@ impl Store {
         finding: Option<&str>,
         reason: &str,
     ) -> Result<Plan> {
+        self.task_follow_up_bound(project, source, finding, reason, None)
+    }
+
+    pub fn task_renew_review(
+        &mut self,
+        project: &str,
+        source: i64,
+        reason: &str,
+        source_hash: &str,
+    ) -> Result<Plan> {
+        self.task_follow_up_bound(project, source, None, reason, Some(source_hash))
+    }
+
+    fn task_follow_up_bound(
+        &mut self,
+        project: &str,
+        source: i64,
+        finding: Option<&str>,
+        reason: &str,
+        renewal: Option<&str>,
+    ) -> Result<Plan> {
         self.require_write()?;
         if reason.trim().is_empty() {
             return Err(invalid("Follow-up reason is required"));
@@ -279,11 +300,32 @@ impl Store {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let old = session(&tx, project, None, None)?;
+        let renewal_origin =
+            renewal.map(|hash| format!("Follow-up: T{source}/REVIEW:{hash}: {reason}"));
+        if renewal_origin.as_ref().is_some_and(|origin| {
+            old.plan
+                .members
+                .iter()
+                .any(|m| old.definitions[&m.task_id].reason == *origin)
+        }) {
+            return Ok(old.plan);
+        }
         let state = old
             .states
             .get(&source)
             .ok_or(dctx0_tasks::Error::Missing(source))?;
-        let subjects = if let Some(finding) = finding {
+        let subjects = if renewal.is_some() {
+            let member = old.member(source)?;
+            if member.candidate.kind != TaskKind::Review
+                || state.work != WorkState::Done
+                || state.actor.is_some()
+                || state.reservation.is_some()
+                || state.claim.is_some()
+            {
+                return Err(invalid("Only a delivered, unclaimed review can be renewed"));
+            }
+            vec![source]
+        } else if let Some(finding) = finding {
             let matches = state
                 .reviews
                 .iter()
@@ -302,10 +344,12 @@ impl Store {
             }
             vec![source]
         };
-        let origin = format!(
-            "Follow-up: T{source}/{}: {reason}",
-            finding.unwrap_or("FAIL")
-        );
+        let origin = renewal_origin.unwrap_or_else(|| {
+            format!(
+                "Follow-up: T{source}/{}: {reason}",
+                finding.unwrap_or("FAIL")
+            )
+        });
         if old
             .plan
             .members
@@ -331,7 +375,12 @@ impl Store {
             let data: String =
                 tx.query_row("SELECT data FROM tasks WHERE id=?1", [new], |r| r.get(0))?;
             let mut definition: Definition = decode(&data)?;
-            definition.adjustment = Some(if let Some(finding) = finding {
+            definition.adjustment = Some(if let Some(source_hash) = renewal {
+                AdjustmentReason::ReviewRenewal {
+                    source,
+                    source_hash: source_hash.into(),
+                }
+            } else if let Some(finding) = finding {
                 AdjustmentReason::ReviewFinding {
                     source,
                     finding: finding.into(),

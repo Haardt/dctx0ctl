@@ -16,7 +16,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / 'benchmarks'
-WORKLOADS = {'cinema': 'examples/cinema/dctx0', 'runatron-next': 'examples/runatron-next/dctx0'}
+WORKLOADS = {'cinema': 'examples/cinema/dctx0'}
 
 
 def capture(command):
@@ -44,7 +44,21 @@ def validation_sources():
     paths.extend(path for path in ROOT.glob('examples/**/*.dctx0') if path.is_file())
     paths.extend(path for path in ROOT.glob('fixtures/**/*.dctx0') if path.is_file())
     paths.extend(ROOT.glob('fixtures/**/*.json'))
+    paths.extend(ROOT.glob('skills/**/*.md'))
+    paths.extend(ROOT.glob('skills/**/*.yaml'))
+    for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
+        paths.extend(path for path in (ROOT / "editors").glob(pattern) if "target" not in path.relative_to(ROOT / "editors").parts)
     paths.extend(ROOT.glob('targets/**/*.go'))
+    paths.extend(ROOT.glob('targets/rust/harness/*.toml'))
+    paths.extend(ROOT.glob('examples/cinema-rust/src/**/*.rs'))
+    paths.extend(ROOT.glob('examples/cinema-rust/tests/**/*.rs'))
+    paths.extend(ROOT.glob('examples/cinema-rust/.dctx0/testing/rust/*.rs'))
+    paths.extend(ROOT.glob('examples/cinema-rust/.dctx0/testing/**/*.json'))
+    paths.extend(ROOT / 'examples/cinema-rust' / name for name in ('Cargo.toml','Cargo.lock','.dctx0/testing/rust/Cargo.toml','.dctx0/testing/rust/Cargo.lock'))
+    paths.extend(ROOT.glob('examples/cinema-go/**/*.go'))
+    paths.extend(ROOT.glob('examples/cinema-go/.dctx0/testing/go/*.go'))
+    paths.extend(ROOT.glob('examples/cinema-go/.dctx0/testing/**/*.json'))
+    paths.extend(ROOT / 'examples/cinema-go' / name for name in ('go.mod', 'go.sum'))
     for project in ROOT.glob('examples/tutorial-step-*'):
         paths.extend(project.glob('src/**/*.ts'))
         paths.extend(project.glob('*.ts'))
@@ -183,6 +197,27 @@ def benchmark(args):
                         'memory_scope': 'Linux post-exec VmHWM; Rust preparation/projection/artifact generation; no native children',
                         'elapsed_ms': statistics.median(s['elapsed_ms'] for s in samples),
                         'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+        command = [sys.executable, 'scripts/go_cinema_performance.py', '--binary', str(ROOT / 'target/release/dctx0')]
+        subprocess.run(command, cwd=ROOT, check=True)
+        native = json.loads((ROOT / 'target/go-cinema/performance.json').read_text())
+        record['go_cinema_performance'] = native
+        for phase, sample in native['samples'].items():
+            record['measurements'][f'cinema-go/{phase}'] = {
+                'samples': [sample], 'iterations': 1, 'elapsed_ms': sample['elapsed_ms'],
+                'peak_rss_bytes': sample['peak_rss_bytes'],
+                'memory_scope': native['memory_scope'], 'protocol_version': 1,
+                'workload_settings': {'seed': 42, 'generated_cases': 100, 'cache': native['cache']},
+            }
+        subprocess.run([sys.executable,'scripts/rust_cinema_performance.py','--binary',str(ROOT / 'target/release/dctx0')],cwd=ROOT,check=True)
+        native_rust=json.loads((ROOT / 'target/rust-cinema/performance.json').read_text())
+        record['rust_cinema_performance']=native_rust
+        for phase,sample in native_rust['samples'].items():
+            record['measurements'][f'cinema-rust/{phase}']={'samples':[sample],'iterations':1,'elapsed_ms':sample['elapsed_ms'],'peak_rss_bytes':sample['peak_rss_bytes'],'memory_scope':native_rust['memory_scope'],'protocol_version':1,'workload_settings':{'seed':42,'generated_cases':100,'cache':native_rust['cache']}}
+        subprocess.run([sys.executable, 'scripts/editor_acceptance.py', '--binary', str(ROOT / 'target/release/dctx0'), '--performance-only'], cwd=ROOT, check=True)
+        editor_performance = json.loads((ROOT / 'target/editors/performance.json').read_text())
+        record['editor_performance'] = editor_performance
+        for phase, sample in editor_performance['samples'].items():
+            record['measurements'][f'cinema-editor/{phase}'] = {'samples': [sample], 'iterations': 1, 'elapsed_ms': sample['elapsed_ms'], 'peak_rss_bytes': sample['peak_rss_bytes'], 'memory_scope': editor_performance['memory_scope'], 'protocol_version': 1, 'workload_settings': {'cache': 'cold server, warm OS cache', 'project': 'cinema'}}
         record['source_hash_after'] = digest(validation_sources())
         if record['source_hash_after'] != record['source_hash']:
             raise RuntimeError('Benchmark sources changed during measurement; rerun on a stable tree')
@@ -283,7 +318,7 @@ def main():
     parser.add_argument('--coverage', action='store_true', help='enforce 97%% line/function coverage')
     parser.add_argument('--tutorial', action='store_true', help='validate all 16 TypeScript steps, feature coverage, mutations and replay; measure representative tutorial Rust phases last')
     parser.add_argument('--skip-performance', action='store_true', help='defer release measurements; save check results separately from benchmark history')
-    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification'), default='workspace', help='native-transport is a partial development check; release measurements still run')
+    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification', 'editors', 'conformance-reviews'), default='workspace', help='native-transport is a partial development check; release measurements still run')
     parser.add_argument('--samples', type=int, default=5)
     parser.add_argument('--iterations', type=int, default=20)
     parser.add_argument('--speed-tolerance', type=float, default=20)
@@ -303,7 +338,8 @@ def main():
                 ['cargo', 'clippy', '--workspace', '--all-targets', '--all-features', '--locked', '--', '-D', 'warnings'],
                 ['cargo', 'test', '--no-fail-fast', '--workspace', '--all-features', '--locked'],
                 ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--locked'],
-                ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--features', 'rust', '--locked']]
+                ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--features', 'rust', '--locked'],
+                ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--features', 'go', '--locked']]
     if args.focus == 'native-transport':
         if args.coverage:
             parser.error('Coverage acceptance requires workspace focus')
@@ -316,12 +352,36 @@ def main():
         if args.coverage:
             parser.error('Coverage acceptance requires workspace focus')
         commands = commands[:5] + [['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-interpreter', '-p', 'dctx0-verification', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '-p', 'dctx0-tasks', '-p', 'dctx0-store', '-p', 'dctx0-engine', '--all-features', '--locked']]
+    if args.focus == 'editors':
+        commands = commands[:5] + [['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-lsp', '-p', 'dctx0-engine', '-p', 'dctx0-cli', '--lib', '--test', 'analysis', '--test', 'lsp', '--test', 'editors', '--test', 'skills', '--all-features', '--locked']]
+    if args.focus == 'conformance-reviews':
+        commands = commands[:5] + [
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-tasks', '-p', 'dctx0-store', '--all-features', '--locked'],
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-engine', '--lib', '--test', 'tasks', '--test', 'profiles', '--all-features', '--locked'],
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--test', 'tasks', '--test', 'verification_complete', '--all-features', '--locked'],
+            ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'],
+            [sys.executable, 'scripts/conformance_review_acceptance.py', '--binary', str(ROOT / 'target/release/dctx0')],
+        ]
     for command in commands:
         if command[:2] == ['cargo', 'test']:
             command.extend(['--', '--skip', 'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'])
-    commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
-    commands.insert(1, ['bun', 'run', '--cwd', 'examples/cinema', 'typecheck'])
-    commands.insert(2, ['bun', 'test', 'examples/cinema/src', './examples/cinema/.dctx0/testing/typescript/http-integration.test.ts', './examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts'])
+    if args.focus not in ('editors', 'conformance-reviews'):
+        commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
+        commands.insert(1, ['bun', 'run', '--cwd', 'examples/cinema', 'typecheck'])
+        commands.insert(2, ['bun', 'test', 'examples/cinema/src', './examples/cinema/.dctx0/testing/typescript/http-integration.test.ts', './examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts'])
+        commands.extend([
+            ['go', 'mod', 'download', '-C', 'examples/cinema-go'],
+            ['go', 'test', '-C', 'examples/cinema-go', '-coverprofile=' + str(ROOT / 'target/go-cinema.coverage'), './...'],
+            ['go', 'vet', '-C', 'examples/cinema-go', './...'],
+            ['go', 'test', '-C', 'examples/cinema-go', '-race', './...'],
+            ['cargo', 'build', '-p', 'dctx0-cli', '--all-features', '--locked'],
+            [sys.executable, 'scripts/go_cinema_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0')],
+            ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/Cargo.toml','--locked','--offline','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
+            ['cargo','clippy','--manifest-path','examples/cinema-rust/Cargo.toml','--all-targets','--locked','--offline','--','-D','warnings'],
+            [sys.executable,'scripts/rust_cinema_acceptance.py','--binary',str(ROOT / 'target/debug/dctx0')],
+            ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/Cargo.toml','--all-features','--offline','--locked','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
+            ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/.dctx0/testing/rust/Cargo.toml','--lib','--offline','--locked','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
+        ])
     if args.tutorial:
         commands.extend([
             ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'],
@@ -329,10 +389,12 @@ def main():
             ['bun', 'examples/tutorial/mutation-acceptance.ts'],
             ['bun', 'examples/tutorial/verify-variants.ts', '--skip-performance'],
         ])
+    if args.focus != 'conformance-reviews':
+        commands.append([sys.executable, 'scripts/editor_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--functional-only'])
     validation_source_hash = digest(validation_sources())
     validation_started_ns = time.time_ns()
     if args.coverage:
-        commands.append([sys.executable, 'scripts/coverage.py', '--skip-performance'])
+        commands.append([sys.executable, 'scripts/coverage.py'] + (['--skip-performance'] if args.skip_performance else []))
     passed = True
     validation_steps = []
     # Native evidence and instrumented verifier images can temporarily exceed

@@ -1,5 +1,3 @@
 # Implement module
 
-Use existing TypeScript types and narrow interfaces. Respect the configured compiler version and strictness. Prefer ordinary functions and explicit boundary validation.
-
-Respect declared ownership and dependency boundaries.
+Keep contracts and implementation under the declared ownership and dependency boundaries. Reuse existing layout and composition conventions. Expose the required public API and keep internal details private. Do not restructure the whole application or treat a spec namespace as a mandatory directory/class/package.

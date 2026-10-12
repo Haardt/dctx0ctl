@@ -157,6 +157,15 @@ pub(crate) fn run(
                 Body::Plan(project.task_plan(&args.snapshot).map_err(error_message)?)
             }
         }
+        Verb::RenewReview => Body::Plan(
+            project
+                .task_renew_review(
+                    task()?,
+                    args.project.as_deref(),
+                    required(args.reason.as_deref(), "--reason")?,
+                )
+                .map_err(error_message)?,
+        ),
         Verb::FollowUp => Body::Plan(
             project
                 .task_follow_up(

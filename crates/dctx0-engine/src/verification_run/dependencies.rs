@@ -26,6 +26,8 @@ pub(super) fn inspect(
         let language = match Path::new(path).extension().and_then(|value| value.to_str()) {
             Some("ts" | "js" | "mjs" | "cjs") => InspectionLanguage::TypeScript,
             Some("tsx" | "jsx") => InspectionLanguage::Tsx,
+            Some("go") => InspectionLanguage::Go,
+            Some("rs") => InspectionLanguage::Rust,
             _ => continue,
         };
         sources.push(InspectionSource {
@@ -172,6 +174,30 @@ pub(super) async fn resolve_native(
     };
     let report: dctx0_target_sdk::DependencyInspection =
         serde_json::from_slice(&artifact.contents)?;
+    if run.provenance.target == "go" || run.provenance.target == "rust" {
+        if artifacts.iter().any(|artifact| {
+            artifact.reference.media_type
+                == format!(
+                    "application/vnd.dctx0.{}-build-inputs+json",
+                    run.provenance.target
+                )
+        }) {
+            run.provenance
+                .incomplete
+                .retain(|issue| issue.code != "PACKAGE_DEPENDENCY_UNASSESSED");
+            for path in &report.syntax_errors {
+                run.provenance
+                    .incomplete
+                    .push(issue("DEPENDENCY_SYNTAX_UNRESOLVED", path));
+            }
+        } else {
+            run.provenance.incomplete.push(issue(
+                "NATIVE_DEPENDENCY_CLOSURE_UNAVAILABLE",
+                "No verified compiler-selected dependency closure",
+            ));
+        }
+        return Ok(());
+    }
     let Some(description) = artifacts.iter().find(|artifact| {
         artifact.reference.media_type == "application/vnd.dctx0.adapter-description+json"
     }) else {
