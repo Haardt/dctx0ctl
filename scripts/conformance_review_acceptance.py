@@ -85,8 +85,19 @@ def main():
                     'limitations': ['Existing explicit inspection fixture; finite native corpus, not an exhaustive proof.'], 'result': {'status': 'PASS'},
                 }})
             imports = base / f'{target}-attestations.json'
-            imports.write_text(json.dumps(attestations))
-            if attestations:
+            # Captured toolchain paths vary by runner. Preserve every inspection
+            # while respecting the CLI's 1-MiB import limit on all platforms.
+            batch = []
+            for attestation in attestations:
+                encoded = json.dumps([*batch, attestation], separators=(',', ':')).encode()
+                if len(encoded) > 1_048_576 and batch:
+                    imports.write_text(json.dumps(batch, separators=(',', ':')))
+                    invoke('verify', 'attest', spec, native['evidence']['id'], '--project', project, '--file', imports)
+                    batch = []
+                assert len(json.dumps([attestation], separators=(',', ':')).encode()) <= 1_048_576, 'A single inspection exceeds the import limit'
+                batch.append(attestation)
+            if batch:
+                imports.write_text(json.dumps(batch, separators=(',', ':')))
                 invoke('verify', 'attest', spec, native['evidence']['id'], '--project', project, '--file', imports)
             # Removing the legacy notes proves completion uses persisted task reviews.
             notes_path.unlink()

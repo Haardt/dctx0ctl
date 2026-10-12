@@ -113,7 +113,8 @@ try {
     const uri = pathToFileURL(file).href;
     client.send({jsonrpc:'2.0',method:'textDocument/didOpen',params:{textDocument:{uri,languageId:'dctx0',version:1,text:'workspace Platform { type Year = Missing }'}}});
     let diagnostic: any;
-    do {diagnostic = await client.next();} while (diagnostic.method !== 'textDocument/publishDiagnostics');
+    // Startup can publish disk diagnostics before the opened editor overlay.
+    do {diagnostic = await client.next();} while (diagnostic.method !== 'textDocument/publishDiagnostics' || diagnostic.params.uri !== uri || diagnostic.params.version !== 1);
     assert(diagnostic.params.diagnostics.length > 0);
     client.send({jsonrpc:'2.0',id:2,method:'textDocument/documentSymbol',params:{textDocument:{uri}}});
     let response: any; do {response = await client.next();} while (response.id !== 2);
