@@ -64,6 +64,7 @@ def main():
             assert len(run['cases']) == len(run['required_cases']) == 5674, f'{variant}: {len(run["cases"])}/{len(run["required_cases"])} cases; {run["result"]}; {run["provenance"]["incomplete"]}'
             assert all(case['result']['status'] == 'PASS' for case in run['cases']), f'{variant}: failing cases: {[(case["id"], case["result"]) for case in run["cases"] if case["result"]["status"] != "PASS"][:5]}'
             assert len(run['open_obligations']) == 25
+            assert not run['provenance']['incomplete'], f'{variant}: incomplete native provenance: {run["provenance"]["incomplete"]}; result: {run["result"]}'
             reviews = [member for member in plan['members'] if member['candidate']['kind'] == 'review']
             assert len(reviews) == 4
             assigned = [subject for member in reviews for subject in member['candidate']['review_obligations']]
