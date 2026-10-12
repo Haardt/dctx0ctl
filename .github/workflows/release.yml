@@ -148,7 +148,7 @@ jobs:
             cargo build --release --locked --all-features -p dctx0-cli --bin dctx0 --target "$RELEASE_TARGET"
           fi
       - name: Test distribution and installer; measure speed and RAM
-        if: github.ref != 'refs/tags/v0.1.1'
+        if: needs.version.outputs.tag != 'v0.1.1'
         run: python scripts/release_acceptance.py --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --platform-tests
       - name: Reject redistributable VC runtime dependencies
         if: runner.os == 'Windows'
