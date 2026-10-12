@@ -71,8 +71,6 @@ The site runner builds HTML, validates internal links/anchors/assets and complet
 target/docs-tools/mdbook serve docs/site --hostname 127.0.0.1 --port 4180
 ```
 
-The generated site is `target/docs-site`. Navigation, search, themes, and code copying are bundled locally. Authored chapters are under `docs/site/src`; generated output stays ignored. See the [publishing guide](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/documentation-site.md) for GitHub Pages setup and content maintenance.
+The generated site is `target/docs-site`. Navigation, search, themes, and code copying are bundled locally. Authored chapters are under `docs/site/src`; generated output stays ignored.
 
-## Further developer references
-
-[Task API](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/tasks.md), [conformance reviews](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/conformance-reviews.md), [coverage](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/coverage.md), and [architecture boundaries](https://github.com/Haardt/dctx0ctl/blob/main/docs/site/src/reference/refactoring.md) retain detailed contracts and checkpoint evidence.
+GitHub Actions builds and deploys this book through `.github/workflows/pages.yml`. Enable GitHub Pages with **GitHub Actions** as its source in repository settings. Changes to the documentation on `main` rebuild the published site.

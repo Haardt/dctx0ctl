@@ -23,7 +23,6 @@ Each step adds a language concept while preserving a working application:
 | 15 | Reviews and policies |
 | 16 | HTTP, task administration, and replay |
 
-The recorded tutorial acceptance executes 43,490 mandatory native cases across all steps, audits 158 language features in actual nodes, and includes real production mutations and browser checks. These are checkpoint-specific results with separate Rust/native coverage scopes, not a universal correctness guarantee.
 
 ## Open the final application
 

@@ -4,7 +4,7 @@ This tutorial grows a small TypeScript task board through 16 complete examples. 
 
 Each step’s README explains what was added, shows the actual specification extension, identifies its TypeScript implementation and describes the tests. Start at step 1 and compare adjacent directories, or use a complete later step as a reference.
 
-The [complete acceptance report](validation/complete.json) records all sixteen current projects and 158 feature occurrences. The final coupled workspace gate passed, including the user-approved 97% Rust coverage threshold. [Acceptance notes](../../docs/site/src/reference/tutorial-acceptance.md) explain the exact scope, measurements and evidence limits.
+The [complete acceptance report](validation/complete.json) records all sixteen current projects and 158 feature occurrences. The final coupled workspace gate passed, including the user-approved 97% Rust coverage threshold. [Acceptance notes](../../docs/site/src/docs/workflow.md) explain the exact scope, measurements and evidence limits.
 
 ## The learning path
 
@@ -111,7 +111,7 @@ Use bound methods for callbacks. Keep integers exact as bigint.
 
 Align the relevant implement/use files as well as common.md so an inherited preference for ordinary functions does not conflict with your choice. Keep behavioral contracts intact. Existing adapters/tests may need explicit, reviewable changes when public implementation entry points change; editing a profile does not transform code automatically.
 
-Profile text appears in selected task context and is frozen when work is claimed/reserved. Editing profiles alone changes no task's work/check status and does not rewrite historical results. Existing claims retain their captured guidance. The [profile guide](../../docs/site/src/reference/profiles.md) describes selective adaptations for completed work and the relevant commands.
+Profile text appears in selected task context and is frozen when work is claimed/reserved. Editing profiles alone changes no task's work/check status and does not rewrite historical results. Existing claims retain their captured guidance. The [profile guide](../../docs/site/src/docs/profiles.md) describes selective adaptations for completed work and the relevant commands.
 
 The [two complete architecture variants](../tutorial-variants/README.md) show these choices against the same small spec: direct Bun and Hono with Awilix using classes. Their AGENTS.md and editable profiles are included so you can compare actual instructions with actual production code.
 
@@ -156,4 +156,4 @@ PASS means every mandatory check in the reported finite plan was executed succes
 
 Actual mock interactions establish consumer behavior toward those collaborators; they do not automatically establish a production port adapter. Missing observers, unsupported capabilities, aborted budgets and incomplete mandatory plans prevent a complete proof. Free-text constraints, decisions and reviews retain separate authored evidence.
 
-Measured production line/function coverage is distinct from full branch coverage. Browser coverage uses actual V8 ranges and executable line starts, with raw ranges retained. Intentional language/representation differences are documented in [tutorial-language-semantics.md](../../docs/site/src/reference/tutorial-language-semantics.md).
+Measured production line/function coverage is distinct from full branch coverage. Browser coverage uses actual V8 ranges and executable line starts, with raw ranges retained. Intentional language/representation differences are documented in [tutorial-language-semantics.md](../../docs/site/src/docs/workflow.md).

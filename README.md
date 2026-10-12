@@ -4,7 +4,7 @@
 
 An executable specification language for AI-native software development.
 
-[Documentation website](https://haardt.github.io/dctx0ctl/) · [Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/site/src/reference/documentation-site.md)
+[Documentation website](https://haardt.github.io/dctx0ctl/) · [Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/site/src/docs/contributing.md)
 
 DCTX0 turns product requirements into a typed, machine-readable contract. That contract drives a dependency-aware task DAG, parallel implementation waves, and verification plans. Once an application exists, DCTX0 checks its actual behavior against the same specification.
 
@@ -47,7 +47,7 @@ dctx0 tasks claim-next <spec-root> --actor agent-1
 dctx0 tasks claim-next <spec-root> --actor agent-2
 ```
 
-Relevant specification changes create new adaptation tasks with explicit links to previous work. Historical results remain tied to their original requirements, and work completion stays separate from testing evidence: **Done does not imply PASS.** See the [task guide](docs/site/src/reference/tasks.md) for claims, slices, and change handling.
+Relevant specification changes create new adaptation tasks with explicit links to previous work. Historical results remain tied to their original requirements, and work completion stays separate from testing evidence: **Done does not imply PASS.** See the [task guide](docs/site/src/docs/workflow.md) for claims, slices, and change handling.
 
 ## Who writes the specification?
 
@@ -115,7 +115,7 @@ The CLI is written in Rust and runs independently. It does not invoke an LLM; an
 
 The Rust core owns input generation, expectations, assessment, shrinking, and replay semantics. Target workers call actual application code and report observations; they do not assign their own PASS verdicts. Production applications remain independent of the DCTX0 runtime, with adapters kept in a separate testing area.
 
-Managed native execution currently targets Linux. Target-specific limits and supported representations are documented in the [TypeScript harness](docs/site/src/reference/bun-harness.md), [Go target](docs/site/src/reference/go-target.md), and [Rust target](docs/site/src/reference/rust-target.md) guides.
+Managed native execution currently targets Linux. Target-specific limits and supported representations are documented in the [TypeScript harness](docs/site/src/docs/typescript-adapters.md), [Go target](docs/site/src/docs/targets.md), and [Rust target](docs/site/src/docs/targets.md) guides.
 
 ## Quick start
 
@@ -129,7 +129,7 @@ dctx0 --version
 
 Supports **Linux x86_64/ARM64 (glibc 2.35+) and macOS Intel/Apple Silicon (14+)**. The installer verifies SHA-256 and the binary version, then installs atomically without sudo. It leaves shell profiles untouched. Run the script with **Bash**.
 
-Pin a published release or choose another destination with `bash -s -- --version v0.1.0 --bin-dir /path/to/bin`. See [releases and installation](docs/site/src/reference/releases.md) for exact pinned URLs and manual downloads.
+Pin a published release or choose another destination with `bash -s -- --version v0.1.0 --bin-dir /path/to/bin`. See [releases and installation](docs/site/src/docs/releases.md) for exact pinned URLs and manual downloads.
 
 On **Windows x64**, run in PowerShell:
 
@@ -215,7 +215,7 @@ For complete configured acceptance:
 dctx0 verify complete examples/cinema/dctx0 --project examples/cinema --json
 ```
 
-This checks the specification, publishes the current task plan, executes the configured native scope, binds existing authored inspections, and requires a nonempty delivered active plan with appropriate testing or source-bound review evidence. Approved Review tasks may remain Done/Unverified and are reported separately; approval never sets testing PASS. It does not generate review approvals. See [complete acceptance](docs/site/src/reference/verification-complete.md).
+This checks the specification, publishes the current task plan, executes the configured native scope, binds existing authored inspections, and requires a nonempty delivered active plan with appropriate testing or source-bound review evidence. Approved Review tasks may remain Done/Unverified and are reported separately; approval never sets testing PASS. It does not generate review approvals. See [complete acceptance](docs/site/src/docs/agent-evidence.md).
 
 ### Try Go or Rust
 
@@ -264,7 +264,7 @@ dctx0 tasks show /path/to/app/dctx0 T42 --target typescript
 
 See [Configure and extend profiles](docs/site/src/docs/profiles.md) for the difference between shared, implement, and use guidance, configuring a project, and editing the shipped defaults in a DCTX0 checkout.
 
-For Go/Gin or Rust/Axum agent guidance, merge the optional framework presets into your local profiles. This is a Markdown choice, not a `--framework` CLI flag. A reviewed project adapter must separately connect the real production router. Existing Cinema HTTP defaults remain available alongside the framework variants. See [HTTP framework profiles and harness setup](docs/site/src/reference/http-frameworks.md).
+For Go/Gin or Rust/Axum agent guidance, merge the optional framework presets into your local profiles. This is a Markdown choice, not a `--framework` CLI flag. A reviewed project adapter must separately connect the real production router. Existing Cinema HTTP defaults remain available alongside the framework variants. See [HTTP framework profiles and harness setup](docs/site/src/docs/http-frameworks.md).
 
 Inspect structural candidates and initialize a testing adapter:
 
@@ -277,7 +277,7 @@ dctx0 verify init /path/to/app/dctx0 --project /path/to/app --target typescript
 
 Technical configuration lives in `.dctx0/testing/verification.json`: target, runtime, adapter, fixtures, explicit scope, seed, and budgets. An empty scope does not select the entire application. The default generated-case budget is 100 per obligation; explicit examples remain mandatory. Changed specification sources require a successful `check` before ordinary verification.
 
-Prepared collaborator replies test consumer behavior under controlled conditions. Actual persistence and HTTP integration need real native checks and observers. See [verification setup](docs/site/src/reference/verification-setup.md), [planning](docs/site/src/reference/verification-planning.md), and the target guides for capability boundaries.
+Prepared collaborator replies test consumer behavior under controlled conditions. Actual persistence and HTTP integration need real native checks and observers. See [verification setup](docs/site/src/docs/workflow.md), [planning](docs/site/src/docs/workflow.md), and the target guides for capability boundaries.
 
 ## Understand the evidence
 
@@ -309,7 +309,7 @@ dctx0 verify inspect <spec-root> <run-id> --project <app-root> --file <inspectio
 dctx0 verify attest <spec-root> <run-id> --project <app-root> --file <task-reports.json>
 ```
 
-`inspect` publishes an effective program assessment without new execution or task adoption. `attest` delivers eligible inspected task reports through guarded transitions. Automatic and inspection evidence remain separate, and approval cannot override an actual automatic FAIL. Source changes invalidate the relevant bindings. See [verification history](docs/site/src/reference/verification-history.md) and [inspection delivery](docs/site/src/reference/verification-suite-attestation-progress.md).
+`inspect` publishes an effective program assessment without new execution or task adoption. `attest` delivers eligible inspected task reports through guarded transitions. Automatic and inspection evidence remain separate, and approval cannot override an actual automatic FAIL. Source changes invalidate the relevant bindings. See [verification history](docs/site/src/docs/evidence.md) and [inspection delivery](docs/site/src/docs/agent-evidence.md).
 
 ### Cinema acceptance
 
@@ -335,7 +335,7 @@ Specs remain source files. Derived history defaults to `<spec-root>/.dctx0ctl/st
 
 Changed requirements create new adaptation tasks with explicit predecessor links. Historical Done/PASS tasks remain evidence for their old requirements. Explicit renames record continuity; ordinary remove/add edits do not infer identity from similarity. Rename covers declarations and scoped descendants; fields, parameters, and enum alternatives require dedicated future operations. Dry runs write neither sources nor history. Real renames use a project lock and recovery journal for coordinated multi-file updates.
 
-For worker coordination, use `tasks claim-next` or `tasks claim-slice` with an actor. Transitions require the returned claim/reservation and version guards. Context includes required types and acceptance criteria; large contexts expose missing sections and pinned continuation cursors. See [tasks](docs/site/src/reference/tasks.md) and [profiles](docs/site/src/reference/profiles.md).
+For worker coordination, use `tasks claim-next` or `tasks claim-slice` with an actor. Transitions require the returned claim/reservation and version guards. Context includes required types and acceptance criteria; large contexts expose missing sections and pinned continuation cursors. See [tasks](docs/site/src/docs/workflow.md) and [profiles](docs/site/src/docs/profiles.md).
 
 ## Agent skills and editors
 
@@ -354,7 +354,7 @@ dctx0 skills list
 dctx0 install --project /path/to/app --agent codex,claude
 ```
 
-Use `--dry-run` to preview. Existing differing content is preserved unless you explicitly use `--force`. Global installation is available with `--global`. See [agent skills](docs/site/src/reference/skills.md).
+Use `--dry-run` to preview. Existing differing content is preserved unless you explicitly use `--force`. Global installation is available with `--global`. See [agent skills](docs/site/src/docs/tools.md).
 
 The native language server supports diagnostics, completion, hover, navigation, symbols, and semantic colors, including unsaved multi-file edits:
 
@@ -364,7 +364,7 @@ dctx0 editor install vscode --output "$HOME/dctx0-editors" --activate
 dctx0 editor install zed --output "$HOME/dctx0-editors"
 ```
 
-VS Code activation invokes the `code` CLI. For Zed, select the generated directory through **zed: install dev extension**. These are local extension packages. See [editor setup](docs/site/src/reference/editors.md).
+VS Code activation invokes the `code` CLI. For Zed, select the generated directory through **zed: install dev extension**. These are local extension packages. See [editor setup](docs/site/src/docs/tools.md).
 
 ## Architecture
 
@@ -388,7 +388,7 @@ Dependencies point toward the language-neutral core. AST and validated IR remain
 
 Compilation follows sorted source discovery → parsing → composition and resolution → type checking → validated IR → semantic graph → fingerprints and snapshot publication. Diagnostics retain source files, codes, and positions.
 
-Native execution uses bounded processes with timeouts, cancellation, output limits, and cleanup. On Linux, an available systemd user scope can cap collective memory at two thirds of startup available RAM, with swap disabled. `DCTX0_MEMORY_GUARD=0` disables this optional cap; unavailable support is reported explicitly. This is resource management, not a security sandbox. See [managed execution](docs/site/src/reference/native-executor.md), [verification architecture](docs/site/src/reference/verification-architecture.md), and [compiler boundaries](docs/site/src/reference/refactoring.md).
+Native execution uses bounded processes with timeouts, cancellation, output limits, and cleanup. On Linux, an available systemd user scope can cap collective memory at two thirds of startup available RAM, with swap disabled. `DCTX0_MEMORY_GUARD=0` disables this optional cap; unavailable support is reported explicitly. This is resource management, not a security sandbox. See [managed execution](docs/site/src/docs/evidence.md), [verification architecture](docs/site/src/docs/contributing.md), and [compiler boundaries](docs/site/src/docs/contributing.md).
 
 ## Development and validation
 
@@ -414,7 +414,7 @@ python3 scripts/validate.py --accept-baseline latest
 python3 scripts/validate.py --accept-baseline <recorded-filename.json>
 ```
 
-Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are development options. Deferred or partial validation does not pass final performance/coverage acceptance. See [coverage](docs/site/src/reference/coverage.md) and the retained target validation reports for measured scope and limitations.
+Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are development options. Deferred or partial validation does not pass final performance/coverage acceptance. See [coverage](docs/site/src/docs/contributing.md) for measured scope and limitations.
 
 ## Releases
 
@@ -425,7 +425,7 @@ git tag -a v0.1.0 -m "DCTX0 v0.1.0"
 git push origin v0.1.0
 ```
 
-The [release workflow](.github/workflows/release.yml) publishes Linux x86_64/ARM64 and macOS Intel/Apple Silicon archives, a Windows x64 ZIP, `install.sh`, `install.ps1`, and `SHA256SUMS`. [The maintainer guide](docs/site/src/reference/releases.md) documents release provenance and coupled installer/performance validation.
+The [release workflow](.github/workflows/release.yml) publishes Linux x86_64/ARM64 and macOS Intel/Apple Silicon archives, a Windows x64 ZIP, `install.sh`, `install.ps1`, and `SHA256SUMS`. [The maintainer guide](docs/site/src/docs/releases.md) documents release provenance and coupled installer/performance validation.
 
 ## Documentation site
 
@@ -438,20 +438,20 @@ python3 scripts/docs_site.py --dctx0 target/release/dctx0
 
 Build the release CLI first using the quick-start instructions. The runner checks local links and complete DSL examples, then records release site-build speed/RSS. Output is `target/docs-site`; use `target/docs-tools/mdbook serve docs/site --port 4180` for a local preview.
 
-[Publishing and maintenance](docs/site/src/reference/documentation-site.md) explains the GitHub Actions workflow, Pages setup, and source layout.
+[Publishing and maintenance](docs/site/src/docs/contributing.md) explains the GitHub Actions workflow, Pages setup, and source layout.
 
 ## Documentation
 
 | Guide | Topic |
 | --- | --- |
 | [Tutorial](examples/tutorial/README.md) | Learn the language through working applications |
-| [Task guide](docs/site/src/reference/tasks.md) | Planning, context, claims, slices, history |
-| [Profiles](docs/site/src/reference/profiles.md) | Editable implementation guidance |
-| [Verification planning](docs/site/src/reference/verification-planning.md) | Scope, fixtures, mandatory requirements |
-| [Run and replay](docs/site/src/reference/verification-run.md) | Native observations, counterexamples, adoption |
-| [Complete acceptance](docs/site/src/reference/verification-complete.md) | Authored inspections and task completeness |
-| [Go target](docs/site/src/reference/go-target.md) / [Rust target](docs/site/src/reference/rust-target.md) | Native setup, provenance, capability limits |
-| [Skills](docs/site/src/reference/skills.md) / [Editors](docs/site/src/reference/editors.md) | Agent and editor integration |
+| [Task guide](docs/site/src/docs/workflow.md) | Planning, context, claims, slices, history |
+| [Profiles](docs/site/src/docs/profiles.md) | Editable implementation guidance |
+| [Verification planning](docs/site/src/docs/workflow.md) | Scope, fixtures, mandatory requirements |
+| [Run and replay](docs/site/src/docs/evidence.md) | Native observations, counterexamples, adoption |
+| [Complete acceptance](docs/site/src/docs/agent-evidence.md) | Authored inspections and task completeness |
+| [Go target](docs/site/src/docs/targets.md) / [Rust target](docs/site/src/docs/targets.md) | Native setup, provenance, capability limits |
+| [Skills](docs/site/src/docs/tools.md) / [Editors](docs/site/src/docs/tools.md) | Agent and editor integration |
 
 Capability descriptions reflect the Rust workspace as of October 12, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
 
