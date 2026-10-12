@@ -55,7 +55,11 @@ def main():
         assert specs == reference, 'Cinema spec differs between targets'
         report['spec_hashes'] = specs
         go_plan = invoke(binary, project, 'verify', 'plan', str(project / 'dctx0'), '--project', str(project))
-        ts_plan = invoke(binary, ROOT / 'examples/cinema', 'verify', 'plan', str(ROOT / 'examples/cinema/dctx0'), '--project', str(ROOT / 'examples/cinema'))
+        reference_project = base / 'typescript-reference'
+        shutil.copytree(ROOT / 'examples/cinema', reference_project,
+                        ignore=shutil.ignore_patterns('.dctx0ctl', 'node_modules', 'cinema.sqlite3*'))
+        invoke(binary, reference_project, 'check', str(reference_project / 'dctx0'), expect=0)
+        ts_plan = invoke(binary, reference_project, 'verify', 'plan', str(reference_project / 'dctx0'), '--project', str(reference_project))
         def semantic(value):
             if isinstance(value, dict):
                 return {key: semantic(item) for key, item in value.items() if key != 'check_occurrence'}

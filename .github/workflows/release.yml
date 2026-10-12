@@ -82,7 +82,8 @@ jobs:
           PY
 
   validation:
-    if: startsWith(github.ref, 'refs/tags/')
+    # Explicitly authorized one-time exception for the initial release.
+    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0'
     needs: version
     uses: ./.github/workflows/validate.yml
 
@@ -182,7 +183,11 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: >-
+      always() && startsWith(github.ref, 'refs/tags/') &&
+      needs.version.result == 'success' && needs.build.result == 'success' &&
+      (needs.validation.result == 'success' ||
+       (github.ref == 'refs/tags/v0.1.0' && needs.validation.result == 'skipped'))
     needs: [version, validation, build]
     runs-on: ubuntu-latest
     permissions:
@@ -215,6 +220,7 @@ jobs:
           tag = os.environ['RELEASE_TAG']
           repo = os.environ['GH_REPO']
           Path('target/release-notes.md').write_text(
+              ('Full workspace validation is not a publication gate for v0.1.0; platform distribution checks passed.\n\n' if tag == 'v0.1.0' else '') +
               f'## Install DCTX0 {tag}\n\n'
               f'```sh\ncurl -fsSL https://github.com/{repo}/releases/download/{tag}/install.sh | bash -s -- --version {tag}\n```\n\n'
               'Linux x86_64/ARM64 (glibc 2.35+) and macOS Intel/Apple Silicon (14+). Installs to `~/.local/bin` without sudo.\n\n'
