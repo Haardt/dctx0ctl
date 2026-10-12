@@ -125,4 +125,4 @@ workloads remain unassessed and the accepted baseline is unchanged. On this Linu
 machine, the release LSP used approximately 23.5 MiB peak RSS for Cinema; initial
 analysis/symbols took 61 ms, unsaved changes 84 ms (including debounce), semantic
 colors 12 ms and workspace navigation 12 ms. These are single development samples,
-not universal latency guarantees. See retained validation (historical evidence is available in Git history).
+not universal latency guarantees. See retained validation (historical evidence removed during repository cleanup).

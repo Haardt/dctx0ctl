@@ -20,6 +20,6 @@ separately. Reduced single-sample measurements/new workloads remain unassessed;
 the accepted baseline is unchanged.
 
 See [implemented contract, commands and limits](rust-target.md) and
-retained evidence (historical evidence is available in Git history). Remaining capabilities outside
+retained evidence (historical evidence removed during repository cleanup). Remaining capabilities outside
 this increment include Java native execution and additional framework/toolchain
 integration; they are not claimed by this Rust Cinema acceptance.

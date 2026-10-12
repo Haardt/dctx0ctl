@@ -82,7 +82,7 @@ remaining verification CLI. See [the complete goal checklist](cinema-verificatio
 The retained full checkpoint passes 192 Rust/8 Python/4 Bun tests, 13,979 merged
 Rust lines and 1,183 LLVM functions at 100%. All 84 paired release workloads
 complete; development settings remain unassessed.
-Raw evidence (historical evidence is available in Git history) preserves raw LLVM metrics, native
+Raw evidence (historical evidence removed during repository cleanup) preserves raw LLVM metrics, native
 process samples and earlier failed checks. No baseline or coverage exclusions
 were changed. The next runner must distinguish adapter failures from application
 observations and enforce a whole-case deadline across requests; existing request

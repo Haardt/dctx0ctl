@@ -86,7 +86,7 @@ verification by a Rust target.
 
 ## Performance evidence
 
-Retained evidence (historical reference is available in Git history) includes assertions,
+Retained evidence (historical reference removed during repository cleanup) includes assertions,
 command timings, sampled memory, native check evidence, input/implementation
 hashes and raw release samples. The rotating full measurement is
 `benchmarks/history/20261009T210056.150514Z-401668.json`. Its source hash is unchanged

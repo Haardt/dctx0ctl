@@ -13,7 +13,7 @@ Coverage: **8,591/8,591 merged production source lines and 806/806 LLVM function
 
 ## Release performance
 
-20261009T181143.296099Z-266218.json (historical reference is available in Git history) records all 34 workloads, raw samples, hardware/toolchain, input hashes and source provenance. Settings: one warm-up, five fresh-process samples, 20 parser iterations and three iterations per other phase. Speed is median milliseconds per iteration; RAM is maximum post-exec peak RSS in MiB and includes prepared inputs/IR/SQLite. It is not incremental allocation. Task publication measures actual new plans; protocol 2 prevents comparison with earlier no-op samples.
+20261009T181143.296099Z-266218.json (historical reference removed during repository cleanup) records all 34 workloads, raw samples, hardware/toolchain, input hashes and source provenance. Settings: one warm-up, five fresh-process samples, 20 parser iterations and three iterations per other phase. Speed is median milliseconds per iteration; RAM is maximum post-exec peak RSS in MiB and includes prepared inputs/IR/SQLite. It is not incremental allocation. Task publication measures actual new plans; protocol 2 prevents comparison with earlier no-op samples.
 
 | Workload | Cinema ms | Cinema MiB | runatron-next ms | runatron-next MiB |
 | --- | ---: | ---: | ---: | ---: |
@@ -61,7 +61,7 @@ accepted.
 
 The final paired run used
 `PATH=/home/held/.cargo/bin:$PATH python3 scripts/validate.py --coverage`.
-Full measurement (historical reference is available in Git history)
+Full measurement (historical reference removed during repository cleanup)
 records all 74 workloads, successful functional validation and matching source
 hashes before/after measurement
 (`3363d79b7a39b9e3897f51fa65aa3c1db6f87efc6c94e0c027f7dc777956ff5c`).

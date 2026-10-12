@@ -55,7 +55,7 @@ Große Integrations-/Bindings-Kontexte enthalten besonders viel wiederholte Info
 
 Als anfängliche Planungsgröße bieten sich ungefähr 100 Tokens pro Überblick und etwa 2.000–6.000 Tokens für einen gewöhnlichen fachlichen Erstkontext an. Komplexe Aufgaben können darüber liegen. Verbindliche Regeln bestimmen den Inhalt; das Budget bestimmt Darstellung und Nachladeverfahren. Benötigte Definitionen, Produktcode und der gesamte Agent-Dialog kommen hinzu. Der Gesamtverbrauch einer Umsetzung lässt sich aus diesen Dateien allein nicht bestimmen.
 
-Alle Einzelzählungen, Artefakt-Prüfsummen, Zusammenfassungen, Projektionsbeschreibungen und der verwendete Analysecode stehen in task-context-sizing.json (historical evidence is available in Git history). Die Analyse verändert weder Specs noch Rust-Code und ist kein Test-/Speed-/RAM-Benchmark.
+Alle Einzelzählungen, Artefakt-Prüfsummen, Zusammenfassungen, Projektionsbeschreibungen und der verwendete Analysecode stehen in task-context-sizing.json (historical evidence removed during repository cleanup). Die Analyse verändert weder Specs noch Rust-Code und ist kein Test-/Speed-/RAM-Benchmark.
 
 Quellen im Original: [Envelope und Voraussetzungenübersicht](https://github.com/Haardt/runatron/blob/main/packages/plugin-dctx0/src/dctx0/agent-context/task-projector.ts), [Kontextabschnitte](https://github.com/Haardt/runatron/blob/main/packages/plugin-dctx0/src/dctx0/agent-context/task-context-projector.ts), [Seitenausgabe](https://github.com/Haardt/runatron/blob/main/packages/plugin-dctx0/src/dctx0/agent-context/page-projector.ts).
 

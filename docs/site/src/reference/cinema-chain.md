@@ -57,7 +57,7 @@ The implementation performs no I/O and does not mutate either input. See
 
 ## Measurement evidence
 
-Retained evidence (historical reference is available in Git history) records assertions,
+Retained evidence (historical reference removed during repository cleanup) records assertions,
 commands, input/source/binary hashes, sampled native memory and release samples.
 Source hashes match before and after execution. The rotating measurement is
 `benchmarks/history/20261009T211849.740363Z-cinema-chain.json`; its scoped schema-2

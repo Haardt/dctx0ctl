@@ -168,7 +168,7 @@ discharged state-precondition hints from pinned snapshots, immutable plans and
 actual before-state observations inside the delivery transaction.
 
 See [current scope and remaining gates](cinema-verification-progress.md) and
-whole-plan adoption evidence (historical evidence is available in Git history).
+whole-plan adoption evidence (historical evidence removed during repository cleanup).
 Final full workspace coverage and release speed/RSS assessment are still open;
 the accepted benchmark baseline is unchanged. Other language targets retain
 their own capability claims and cannot inherit TypeScript's native acceptance.

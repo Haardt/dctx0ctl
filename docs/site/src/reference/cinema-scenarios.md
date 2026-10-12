@@ -81,7 +81,7 @@ The complete coupled checkpoint passes 202 Rust/8 Python/4 Bun tests, with
 release speed/RSS workloads complete; reduced development settings and single
 native measurements are unassessed against the accepted baseline. No baseline,
 threshold or coverage exclusion changes were made.
-Retained raw evidence (historical evidence is available in Git history) includes native examples,
+Retained raw evidence (historical evidence removed during repository cleanup) includes native examples,
 winner/transport samples, the native compiler check, reference source hashes and
 earlier failed/incomplete runs. Rust instrumentation does not measure native
 TypeScript coverage, and this checkpoint does not complete the Cinema goal.

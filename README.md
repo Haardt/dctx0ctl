@@ -317,7 +317,7 @@ The documented complete TypeScript, Go, and Rust Cinema acceptances each cover *
 
 Native reports retain unresolved manual/suite obligations. Authored source-bound inspections produce a separate effective assessment. These results establish the documented Cinema scope, not unrestricted proof for arbitrary applications.
 
-Evidence: TypeScript (historical evidence is available in Git history), Go (historical evidence is available in Git history), Rust (historical evidence is available in Git history).
+Evidence: TypeScript (historical evidence removed during repository cleanup), Go (historical evidence removed during repository cleanup), Rust (historical evidence removed during repository cleanup).
 
 ## Track changes and coordinate work
 

@@ -50,7 +50,7 @@ The coupled planning checkpoint passes 173 all-feature Rust tests and 8 Python
 tests, with 13,143/13,143 merged source lines and 1,099/1,099 LLVM functions. Raw
 LLVM reports 13,793/13,819 instrumented lines, 20,447/21,048 regions and
 1,400/2,369 instantiations; branch counters are unavailable. No exclusions or
-threshold changes were introduced. See complete raw evidence (historical evidence is available in Git history).
+threshold changes were introduced. See complete raw evidence (historical evidence removed during repository cleanup).
 All 82 paired release speed/RSS workloads complete; reduced development settings
 remain incompatible/unassessed against the accepted baseline. This measures Rust
 planning/guards and retains native execution as outstanding work.
@@ -63,7 +63,7 @@ conformance tests, with 13,244/13,244 merged Rust lines and 1,108/1,108 LLVM
 functions. Raw LLVM reports 13,898/13,924 instance lines, 20,601/21,203 regions and
 1,409/2,389 instantiations. No branch counters or exclusions were added. Native
 helpers/generated TS are not measured by LLVM and still require separate line
-coverage. Raw evidence (historical evidence is available in Git history) retains these distinctions,
+coverage. Raw evidence (historical evidence removed during repository cleanup) retains these distinctions,
 84 release workloads and native transport timing/RSS samples. Native single
 samples and reduced development settings remain unassessed against the baseline.
 
@@ -75,7 +75,7 @@ Merged Rust lines are 13,979/13,979 and LLVM functions 1,183/1,183. Raw LLVM ret
 14,672/14,710 instance lines, 21,561/22,197 regions and 1,531/2,537 instantiations;
 branch counters remain unavailable. No exclusion or threshold changes were added.
 Native/generated TypeScript coverage remains outstanding.
-Retained evidence (historical evidence is available in Git history) includes all 84 release
+Retained evidence (historical evidence removed during repository cleanup) includes all 84 release
 speed/RSS workloads and separate native process samples. Reduced development
 settings and single native samples are unassessed against the accepted baseline.
 
@@ -87,7 +87,7 @@ Rust lines and 1,232/1,232 LLVM functions. Raw LLVM retains 15,251/15,289 instan
 lines, 22,316/22,969 regions and 1,582/2,635 instantiations. Branch counters remain
 unavailable; no exclusions or threshold changes were added. Native/generated
 TypeScript helper coverage remains outstanding.
-Raw evidence (historical evidence is available in Git history) retains the 84 release workloads,
+Raw evidence (historical evidence removed during repository cleanup) retains the 84 release workloads,
 native examples/winner/transport costs, separate compiler costs, source hashes
 and intermediate failed/incomplete runs. Development settings and native single
 samples remain unassessed; the accepted baseline is unchanged.
@@ -107,7 +107,7 @@ contracts/observers, lifecycle guards and native setup/protocol/deadline failure
 Bun LCOV independently reports 210/210 production application lines and 131/131
 functions across the Cinema domain, services, SQLite ports, Hono routes and Awilix
 session. This does not measure the generic generated worker or testing adapter;
-that helper coverage remains required. Raw checkpoint evidence (historical evidence is available in Git history)
+that helper coverage remains required. Raw checkpoint evidence (historical evidence removed during repository cleanup)
 retains full release speed/RSS records, native observations and source provenance.
 Development sampling is unassessed against the accepted baseline; no baseline
 promotion occurred. Complete verification CLI/history/adoption remains pending.
@@ -121,7 +121,7 @@ functions 1,313/1,313. Raw LLVM separately reports 16,397/16,439 instance lines,
 23,956/24,680 regions and 1,695/2,826 instantiations; branch counters remain
 unavailable. Filesystem metadata/publication failure tests preserve ordinary
 error-path coverage and demonstrate resumed setup. No exclusion or threshold
-change was made. Retained evidence (historical evidence is available in Git history) includes
+change was made. Retained evidence (historical evidence removed during repository cleanup) includes
 all 86 release workloads and actual native scaffold/Cinema observations.
 Development settings remain unassessed; the accepted baseline is unchanged.
 Generic generated-worker/adapter coverage and the full native workflow remain
@@ -134,7 +134,7 @@ The coupled run passes 229 Rust/8 Python tests, four Bun transport tests and
 36 native Cinema tests. Merged source lines are 15,894/15,894; LLVM functions
 1,343/1,343. Raw LLVM retains 16,689/16,732 instance lines, 24,466/25,239 regions
 and 1,728/2,889 instantiations. Branch counters remain unavailable; no exclusions
-or threshold changes were added. Raw evidence (historical evidence is available in Git history)
+or threshold changes were added. Raw evidence (historical evidence removed during repository cleanup)
 retains all 90 release workloads and provenance. Development settings remain
 unassessed and the accepted baseline is unchanged. The new history is not native
 execution/adoption authority; complete run orchestration and helper coverage remain
@@ -173,7 +173,7 @@ source hashes, invalid ranges, unsupported native arguments and trace exhaustion
 Merged observer-helper source lines are 54/54. Raw per-run function totals are
 retained without claiming complete merged function identities. This measurement
 is separate from required Rust coverage and from release performance;
-retained native evidence (historical evidence is available in Git history) records the scope.
+retained native evidence (historical evidence removed during repository cleanup) records the scope.
 New Rust observer/planning/orchestration code still requires the final full Rust
 coverage run; no Rust thresholds or exclusions are changed.
 

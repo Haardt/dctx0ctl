@@ -22,7 +22,7 @@ observations/signatures remain UNKNOWN; invalid values or unexpected exceptions
 are FAIL. Explicit empty event constructors retain their empty record shape;
 missing nonempty payload models are not invented. Nested lifecycle shrinking
 preserves keys inside options, variants, records and lists while reducing
-unrelated arguments. Retained acceptance (historical evidence is available in Git history)
+unrelated arguments. Retained acceptance (historical evidence removed during repository cleanup)
 includes the whole Cinema corpus, guarded adoption and actual replay.
 
 Automatic adoption evaluates complete evidence for each pinned task. A whole
@@ -39,7 +39,7 @@ Root subject selection pins active task subjects below that exact qualified
 root; it does not silently select unrelated dependency tasks.
 The complete Cinema integration test now checks native adoption and preserves
 all other task states, then confirms that replay changes no task events.
-Retained evidence (historical evidence is available in Git history) records its scope.
+Retained evidence (historical evidence removed during repository cleanup) records its scope.
 
 Contract replay requires the saved `expect_rejection` binding to be an explicit
 boolean. Missing or malformed markers are rejected before native execution,
@@ -77,7 +77,7 @@ All-kind replay selection and missing-evidence guards are covered by conformance
 tests. Pure and lifecycle shrinking use actual native sessions, and minimized
 replay preserves required setup. Dedicated replay performance workloads remain
 deferred; full workspace/coverage acceptance remains outstanding.
-Retained replay evidence (historical evidence is available in Git history) includes focused
+Retained replay evidence (historical evidence removed during repository cleanup) includes focused
 acceptance and stable-source 90-workload release measurements. It does not replace
 full workspace/feature/coverage acceptance.
 
@@ -96,7 +96,7 @@ and already-closed polls, plus additional real port and service scenarios.
 Typed pre/postconditions, state, resource, call and event obligations are centrally
 assessed. Missing projections, native value access and unmet setup preconditions
 remain UNKNOWN. These cases are not a claim of whole-operation PASS.
-Retained operation evidence (historical evidence is available in Git history) includes
+Retained operation evidence (historical evidence removed during repository cleanup) includes
 the successful focused tests, stable-source 90-workload release measurement and
 actual Cinema run. Full workspace/feature/coverage acceptance is still required.
 
@@ -189,7 +189,7 @@ whether rejection was required; unexpected acceptance is assessed by Rust.
 The focused acceptance includes an independent exact-arithmetic/reference corpus
 and a real production mutation that removes range enforcement while valid inputs
 still pass. FilmId/ReleaseYear reject all 30 selected native negative cases.
-Retained rejection evidence (historical evidence is available in Git history) includes
+Retained rejection evidence (historical evidence removed during repository cleanup) includes
 the stable-source, complete 90-workload development measurement. This does not
 replace full workspace/coverage acceptance or establish task-adoption authority.
 
@@ -207,7 +207,7 @@ with 90 complete paired release workloads. Its scope excludes the remaining
 workspace/feature/coverage acceptance; performance comparisons use reduced
 development sampling and remain unassessed. The earlier full coverage failure,
 new focused measurements and actual Cinema report are preserved together in
-retained development evidence (historical evidence is available in Git history). The additional
+retained development evidence (historical evidence removed during repository cleanup). The additional
 negative tests have not yet been measured by a fresh complete coverage run.
 
 State assessment now checks actual entity observations for read preservation,
@@ -223,7 +223,7 @@ insert/update cases in addition to four castVote/closeVoting cases. Six cases
 retain actual calls and state observations, while missing obligations remain
 explicit. These bounded cases do not replace generated operation obligations.
 The stable focused validation and 90 paired release workloads are retained in
-the measurement record (historical reference is available in Git history).
+the measurement record (historical reference removed during repository cleanup).
 Validation passes; reduced sampling leaves performance unassessed. This is not
 full workspace/coverage acceptance, automatic adoption, or complete Cinema PASS.
 
@@ -237,7 +237,7 @@ collaborator result; absent or repeated observations are UNKNOWN, never guessed.
 This does not prove undeclared-effect absence or add resource-access observers.
 
 Focused verification tests and 90 release workloads pass with identical before/
-after source hashes in the effects measurement record (historical reference is available in Git history).
+after source hashes in the effects measurement record (historical reference removed during repository cleanup).
 Reduced sampling leaves baseline comparisons unassessed. Full effect-boundary
 coverage, resource-access evidence, generated nonpure cases, guarded adoption,
 discovery, shrinking and full workspace/100% coverage acceptance remain pending.
@@ -530,7 +530,7 @@ aggregate validation. Go and other target helper coverage is outside this scope.
 The combined copy-freshness/replay/native-helper implementation passes focused
 verification validation and paired release measurements in
 `benchmarks/history/20261010T150010.334286Z-1342894.json`.
-Raw native helper coverage (historical evidence is available in Git history) retains 15 actual
+Raw native helper coverage (historical evidence removed during repository cleanup) retains 15 actual
 worker executions, independent source hashes and LCOV. Bun function unions remain
 unavailable as documented in [coverage limits](coverage.md). Reduced release
 sampling remains unassessed against the accepted baseline; the baseline has not
@@ -551,7 +551,7 @@ Replay reports changes in that artifact. This is distinct
 from corpus generation and expression interpretation versions. The focused test
 and paired release run passes in
 `benchmarks/history/20261010T151436.349735Z-1349024.json`.
-Complete Cinema recheck (historical evidence is available in Git history) executes all 5,543
+Complete Cinema recheck (historical evidence removed during repository cleanup) executes all 5,543
 mandatory cases, with 1,037 PASS, 579 FAIL and 3,927 UNKNOWN. It removes all 98
 premature alias UNKNOWNs without changing the spec or production implementation.
 No tasks are adopted. This still does not satisfy full Cinema/coverage acceptance.

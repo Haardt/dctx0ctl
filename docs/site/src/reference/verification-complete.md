@@ -82,8 +82,8 @@ comparison remains unassessed and the baseline is unchanged. Tests cover new
 check bindings without changing definitions/states, repeated CLI acceptance,
 missing reviews, spec/source drift, newly added spec files, escaped paths and
 native implementation mutations. See
-retained evidence (historical evidence is available in Git history),
-coverage (historical evidence is available in Git history) and
+retained evidence (historical evidence removed during repository cleanup),
+coverage (historical evidence removed during repository cleanup) and
 `benchmarks/history/20261011T133605.523639Z-186242.json`.
 
 ## Go target

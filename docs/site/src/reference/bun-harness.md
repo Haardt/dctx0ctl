@@ -96,7 +96,7 @@ The full coupled checkpoint passes 177 Rust tests, 8 Python tests and four Bun
 tests. It measures 13,244/13,244 merged Rust source lines and 1,108/1,108 LLVM
 functions. All 84 release workloads complete. Raw LLVM totals, earlier failed or
 incomplete runs, actual protocol samples and separate native timing/RSS samples
-are retained in checkpoint evidence (historical evidence is available in Git history). Development
+are retained in checkpoint evidence (historical evidence removed during repository cleanup). Development
 settings remain unassessed; the accepted baseline is unchanged.
 
 CI installs the locally exercised Bun 1.4.2 and uploads native conformance reports.

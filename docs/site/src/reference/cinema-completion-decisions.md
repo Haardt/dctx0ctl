@@ -7,7 +7,7 @@ Done/PASS tasks, with zero open tasks. Existing suite and Release semantics are
 implemented. Explicit source-bound inspections and structured reviews supplement
 automatic evidence; the effective report is PASS with zero open obligations.
 The native automatic report is preserved unchanged. Final aggregate coverage is
-still running. See current evidence (historical evidence is available in Git history).
+still running. See current evidence (historical evidence removed during repository cleanup).
 
 The no-eligible-vote outcome remains None according to the executable contract.
 Broader rationale wording is recorded as a low, non-action-required review
@@ -25,14 +25,14 @@ been implemented and verified. They are not outstanding decisions. The current
 complete Cinema corpus executes 5,655 mandatory cases with PASS; 41 of 104 tasks
 have been adopted with task-specific native evidence. See
 [current progress](cinema-verification-progress.md) and
-current Unicode corpus validation (historical evidence is available in Git history).
+current Unicode corpus validation (historical evidence removed during repository cleanup).
 
 Current clarification (2026-10-11): all 5,660 mandatory cases pass, including
 five persisted entity-key checks. 46 tasks are adopted; 58 remain open. Workspace
 validation and the user-authorized 97% coverage gate pass (98.19% lines, 97.07%
 functions). Final release measurements completed; their baseline comparison is
 unassessed and the accepted baseline remains unchanged. See
-entity evidence (historical evidence is available in Git history).
+entity evidence (historical evidence removed during repository cleanup).
 
 The reference implementation already defines the nine standard proof/test suite
 names in `../runatron/packages/plugin-dctx0/src/dctx0/language/proof-catalog.ts`

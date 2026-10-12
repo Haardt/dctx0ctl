@@ -43,7 +43,7 @@ is 15,332/15,332 lines and LLVM function coverage is 1,298/1,298. The runner rec
 all 84 release workloads with speed/RSS samples. Reduced development settings
 remain unassessed against the accepted baseline, which is unchanged. Native
 application coverage separately reports 210/210 lines and 131/131 functions.
-Retained evidence (historical evidence is available in Git history) keeps full measurement records,
+Retained evidence (historical evidence removed during repository cleanup) keeps full measurement records,
 raw LLVM totals, actual native observations and intermediate failed runs.
 
 ## Remaining evidence limits

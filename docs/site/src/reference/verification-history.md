@@ -63,7 +63,7 @@ representative compiled snapshot and pinned plan outside the measured loop; RSS
 includes preparation. Publication records a fresh report occurrence each iteration
 with already-cached artifacts. Read phases load the same immutable saved report.
 Reduced development sampling is unassessed; the accepted baseline is unchanged.
-Retained evidence (historical evidence is available in Git history) keeps full measurements
+Retained evidence (historical evidence removed during repository cleanup) keeps full measurements
 and distinct raw LLVM metrics. Native managed whole-plan execution and adoption
 remain the next required implementation.
 
@@ -73,6 +73,6 @@ tests. All 15,931 merged Rust lines and 1,344 LLVM functions are covered. Ninety
 release workloads complete with stable source provenance; reduced development
 sampling is unassessed and does not promote the baseline. Raw LLVM lines,
 regions and instantiations remain separate in
-retained evidence (historical evidence is available in Git history). Error-prefix tests
+retained evidence (historical evidence removed during repository cleanup). Error-prefix tests
 exercise malformed Begin/Invoke/End replies, rejected mock requests, actual
 Cinema mock replies, state observations and repeated fresh cases.

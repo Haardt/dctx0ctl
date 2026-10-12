@@ -144,7 +144,7 @@ against the accepted baseline, which was not changed. Concurrently edited
 `scripts/install_mdbook.py` and `scripts/docs_site.py` are outside this feature's
 verification and measurement source scope; neither is executed or embedded here.
 All Rust and embedded-helper coverage inputs remain fully included and match the
-current tree. See retained evidence (historical evidence is available in Git history) and
+current tree. See retained evidence (historical evidence removed during repository cleanup) and
 `benchmarks/history/20261012T112024.971179Z-1115890.json`. The aggregate records
 that encountered concurrent source changes retain their failed validation stamp;
 independently valid coverage, stable checks and final measurements are linked

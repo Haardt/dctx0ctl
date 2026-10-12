@@ -124,7 +124,7 @@ Current coupled validation passes 173 all-feature Rust tests and 8 Python tests,
 13,143/13,143 merged source lines and 1,099/1,099 LLVM functions. Raw LLVM
 line/region/instantiation totals are retained separately; no branch completeness
 is claimed. The successful development run and earlier incomplete runs are
-retained in raw checkpoint evidence (historical evidence is available in Git history).
+retained in raw checkpoint evidence (historical evidence removed during repository cleanup).
 All 82 workloads completed. The projection sample measures Cinema at 44.857 ms /
 17,805,312 peak RSS bytes and runatron-next at 5,594.290 ms / 202,964,992 bytes.
 These are single development samples, not a noise-adjusted performance gate.

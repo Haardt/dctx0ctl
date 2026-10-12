@@ -48,7 +48,7 @@ Cinema execution.
 `PATH=/home/held/.cargo/bin:$PATH python3 scripts/validate.py --coverage --samples 1 --iterations 1`
 passes 155 all-feature Rust tests, 8 Python tests, 12,065/12,065 merged source lines
 and 1,016/1,016 LLVM functions. Raw LLVM totals and all 80 release workloads are in
-checkpoint evidence (historical evidence is available in Git history). The development sample
+checkpoint evidence (historical evidence removed during repository cleanup). The development sample
 configuration differs from the accepted baseline; performance is explicitly
 unassessed and no baseline is promoted.
 

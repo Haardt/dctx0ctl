@@ -25,5 +25,5 @@ task definitions and prior stored reports are unchanged. The core test suite and
 all-target verification-core/Engine Clippy checks pass. The fresh full Cinema
 acceptance also passes: 5,655 mandatory cases, 41 adopted tasks, zero incomplete
 provenance entries. Its whole result remains UNKNOWN for the existing 27 manual
-or undefined-suite obligations; see retained evidence (historical evidence is available in Git history).
+or undefined-suite obligations; see retained evidence (historical evidence removed during repository cleanup).
 Release performance and strict final coverage remain separate outstanding gates.

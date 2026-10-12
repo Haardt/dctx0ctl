@@ -18,7 +18,7 @@ lines and 955/955 LLVM functions. Both complete example compiler/hash acceptance
 cases pass; compiler IR and snapshot fixtures were not refreshed. These results
 are not native application acceptance or complete branch coverage. Raw LLVM totals
 are retained separately from the merged source-line summary in
-validation evidence (historical evidence is available in Git history); full exports remain under
+validation evidence (historical evidence removed during repository cleanup); full exports remain under
 `target/coverage/`.
 
 ## Performance
@@ -45,7 +45,7 @@ that the earlier historical runtime deviation was fixed is made here.
 
 Full raw samples, accepted baseline provenance and absolute/percentage comparisons
 for every assessed workload are preserved in
-validation evidence (historical evidence is available in Git history). The project runner retains
+validation evidence (historical evidence removed during repository cleanup). The project runner retains
 its last 20 runs and prints recent trends; the concurrent initial attempt should
 not serve as an isolated trend baseline.
 

@@ -64,7 +64,7 @@ Validation checkpoint (2026-10-10): 224 Rust tests, eight Python tests, four Bun
 transport tests and 36 native Cinema tests pass. Merged Rust coverage is
 15,619/15,619 lines; LLVM functions are 1,313/1,313. All 86 release speed/RSS
 workloads complete with reduced, explicitly unassessed development settings.
-Retained evidence (historical evidence is available in Git history) keeps raw LLVM metrics,
+Retained evidence (historical evidence removed during repository cleanup) keeps raw LLVM metrics,
 full measurement records, actual Bun scaffold failure and prior incomplete runs.
 The filesystem publication rejection test uses an unprivileged POSIX user so
 read-only directory permissions genuinely reject a write; the Linux CI runner

@@ -33,21 +33,21 @@ The actual example project's active plan has **104 Done/PASS tasks and 0 open
 or non-PASS tasks**. `scripts/cinema_complete_acceptance.py` refuses changed reviewed
 sources, empty plans, incomplete native corpora and active reservations/claims.
 It preserves prior evidence and uses ordinary guarded transactional delivery.
-See current evidence (historical evidence is available in Git history) and
+See current evidence (historical evidence removed during repository cleanup) and
 [implementation/inspection limits](verification-suite-attestation-progress.md).
 Fresh final aggregate coverage/performance acceptance is still running; the
 coverage gate remains 97% and the accepted benchmark baseline is unchanged.
 
-Earlier entity-key evidence (historical evidence is available in Git history) remains
+Earlier entity-key evidence (historical evidence removed during repository cleanup) remains
 historical: five mandatory state checks independently reconstruct observed keys;
 actual replacement mutations detect duplicated rows and replay preserves old
 results. They are bounded state checks, not a universal database theorem.
 
-The earlier CLI proof (historical evidence is available in Git history) also verifies
+The earlier CLI proof (historical evidence removed during repository cleanup) also verifies
 that improved field mapping delivers 27 additional tasks in existing history
 while preserving the earlier 14 Done/PASS tasks. All 5,552 cases still pass.
 
-The Unicode workspace aggregate (historical evidence is available in Git history)
+The Unicode workspace aggregate (historical evidence removed during repository cleanup)
 passed all nine stages, including all-feature and separate CLI feature tests,
 with identical source hashes before and after execution. It predates the
 additional malformed-precondition regression test, which independently passes.
@@ -93,7 +93,7 @@ Historical contract checkpoint: 148 all-feature Rust tests and 8 Python tests pa
 merged source lines 11,590/11,590 and LLVM functions 977/977. The paired development
 release run uses one sample/iteration and records all 78 existing workloads; its
 baseline assessment is explicitly incompatible/unassessed. The accepted baseline
-is unchanged. Raw checkpoint evidence (historical evidence is available in Git history) retains
+is unchanged. Raw checkpoint evidence (historical evidence removed during repository cleanup) retains
 coverage totals and speed/RSS samples. This is progress, not complete Cinema
 acceptance; the other completion rows remain outstanding.
 
@@ -103,7 +103,7 @@ all 45 tested declaration domains. 155 Rust/8 Python tests pass, with 12,065 mer
 source lines and 1,016 LLVM functions at 100%. Paired release evidence now includes
 80 workloads; development sample settings remain explicitly unassessed. See
 [algorithm and limits](verification-generation.md) and
-raw evidence (historical evidence is available in Git history). Full plan projection and the
+raw evidence (historical evidence removed during repository cleanup). Full plan projection and the
 remaining native/application/workflow rows remain outstanding.
 
 Projection continuation: `project_program` accounts for the full Cinema scope,
@@ -117,7 +117,7 @@ provenance and rejects stale current specs without modifying history. See
 workloads (82 total). The coupled run passes 173 Rust/8 Python tests, 13,143 merged
 source lines and 1,099 LLVM functions at 100%, with all 82 release speed/RSS
 measurements complete. Development settings remain unassessed against the accepted
-baseline. Raw evidence (historical evidence is available in Git history) preserves the successful
+baseline. Raw evidence (historical evidence removed during repository cleanup) preserves the successful
 run, earlier incomplete runs and distinct raw LLVM totals. Native execution and
 the remaining completion rows are still open.
 
@@ -142,7 +142,7 @@ nor full application acceptance. The coupled workspace checkpoint passes 177
 Rust/8 Python tests and 13,244 merged lines/1,108 LLVM functions at 100%, with 84
 release workloads plus separate native timing/RSS samples. Development settings
 remain unassessed. See [transport contract](bun-harness.md) and
-raw evidence (historical evidence is available in Git history).
+raw evidence (historical evidence removed during repository cleanup).
 
 Next required work is the managed Linux executor and central Rust scenario runner,
 including correct adapter-vs-application exception classification and bounded
@@ -159,7 +159,7 @@ cases with 201 calls; mutation of an isolated production copy fails centrally.
 The full paired check passes 192 Rust/8 Python/4 Bun tests and 13,979 merged lines/
 1,183 LLVM functions at 100%, with 84 release speed/RSS workloads. Raw LLVM still
 reports separate region/instance metrics, and helper line coverage is outstanding.
-Retained evidence (historical evidence is available in Git history) includes native process costs
+Retained evidence (historical evidence removed during repository cleanup) includes native process costs
 and earlier failed coverage checks. Development measurements remain unassessed;
 the accepted baseline is unchanged.
 
@@ -178,7 +178,7 @@ collaborator requests, seven events and nineteen checked expectations. Native
 event/wiring mutations are detected. The regular TypeScript check passes. The
 coupled checkpoint passes 202 Rust/8 Python/4 Bun tests, 14,526 merged Rust lines/
 1,232 LLVM functions at 100%, and all 84 paired release workloads.
-Raw evidence (historical evidence is available in Git history) retains native costs/source hashes
+Raw evidence (historical evidence removed during repository cleanup) retains native costs/source hashes
 and failed intermediate runs. The accepted baseline is unchanged; development
 settings remain unassessed.
 
@@ -199,7 +199,7 @@ The full paired checkpoint passes 217 Rust/8 Python/4 Bun transport tests and
 100%. All 84 release workloads complete; reduced settings remain unassessed
 against the unchanged accepted baseline. Native application coverage separately
 reports 210 lines/131 functions at 100%.
-Raw evidence (historical evidence is available in Git history) retains measurements, native results,
+Raw evidence (historical evidence removed during repository cleanup) retains measurements, native results,
 raw LLVM metrics and intermediate failures. This is a checkpoint, not complete
 Cinema acceptance or safe task adoption.
 
@@ -225,7 +225,7 @@ the CLI, with preserved developer files and empty default scope. The coupled
 checkpoint passes 224 Rust/8 Python/4 Bun transport/36 native Cinema tests,
 15,619 merged lines/1,313 LLVM functions at 100%, and 86 release workloads.
 See [setup contract](verification-setup.md) and
-raw evidence (historical evidence is available in Git history). No native run/history/adoption
+raw evidence (historical evidence removed during repository cleanup). No native run/history/adoption
 authority follows from this setup checkpoint; the full goal remains active.
 
 
@@ -233,7 +233,7 @@ History continuation: immutable schema-4 storage and `verify show` are implement
 229 Rust/8 Python/4 Bun transport/36 native Cinema tests pass, 15,894 merged
 Rust lines/1,343 LLVM functions are covered, and all 90 paired release workloads
 complete. [History contract](verification-history.md) and
-raw evidence (historical evidence is available in Git history) preserve scope and metrics.
+raw evidence (historical evidence removed during repository cleanup) preserve scope and metrics.
 This is storage/read capability only. The next action must integrate real managed
 whole-plan execution with report publication and guarded native adoption; imported
 or self-declared native evidence alone remains insufficient.
@@ -242,7 +242,7 @@ Native transport failures now retain the latest case's actual ordered session
 prefix, including returned values, observed states and mock requests/replies.
 Cleanup acknowledgments and case separation are tested. The coupled checkpoint
 passes 229 Rust tests with 15,931 merged lines/1,344 LLVM functions at 100% and
-90 release workloads; see retained evidence (historical evidence is available in Git history).
+90 release workloads; see retained evidence (historical evidence removed during repository cleanup).
 This supplies partial evidence to the missing whole-plan runner, not another
 claim of complete Cinema verification. Run publication and safe adoption remain
 the immediate implementation priority.
@@ -363,7 +363,7 @@ remain explicit; the spec is not changed to produce PASS. No tasks were adopted.
 
 Run `dctx0 verify show examples/cinema/dctx0
 ca7ebeb7d3f4289bde72ff8882a7ef6c9b6eb6fe62bd899cdc8d3bad7592df67`
-to inspect saved evidence. Retained scope and provenance (historical evidence is available in Git history)
+to inspect saved evidence. Retained scope and provenance (historical evidence removed during repository cleanup)
 include the exact plan, implementation, dependency, adapter, harness and runtime
 bindings plus measured release CLI wall time and memory scope. The native run
 took about 1.97 seconds; its RSS measurement includes reaped child processes and
@@ -410,7 +410,7 @@ not a claim that those missing application/model obligations have been resolved.
 The scoped-dependency CLI rerun retains the same 5,543 executed cases and outcome
 counts. Its provenance now names only the actual unassessed Awilix/Hono package
 closures, rather than the unused legacy binding imports. See
-the retained summary (historical evidence is available in Git history), run
+the retained summary (historical evidence removed during repository cleanup), run
 `59816bdb1d645f3116bd6bf5f58ff580b8a3fc55fad3104342e4bc365fd361f8`.
 No task adoption occurred. Performance is deferred at the user's request;
 this debug execution is functional evidence, not a release benchmark.
@@ -427,14 +427,14 @@ not included in the preceding coverage measurement.
 The combined verification-focused validation after bounded shrink generation,
 legacy minimized replay, operation/lifecycle setup guards and static lifecycle
 input inspection passes all selected stages on an unchanged source hash.
-Retained check report (historical evidence is available in Git history) explicitly
+Retained check report (historical evidence removed during repository cleanup) explicitly
 marks performance deferred. This does not replace the full workspace/coverage
 acceptance or resolve the missing Cinema production value access.
 
 The full configured Cinema rerun with typed lifecycle input contracts still
 executes all 5,543 cases: 1,037 PASS, 579 FAIL and 3,927 UNKNOWN. Both actual
 lifecycle paths PASS; no tasks are adopted. The overall application verdict
-remains FAIL. Retained evidence (historical evidence is available in Git history) includes
+remains FAIL. Retained evidence (historical evidence removed during repository cleanup) includes
 the two observed lifecycle cases and run provenance; performance is deferred.
 
 The bounded-session evidence change passes all 20 native executor tests and all
@@ -864,7 +864,7 @@ filled poll. Both pass, and four production mutations (incorrect counts, ignored
 replacement, incorrect closed status, missing winner) fail centrally. The wider
 selected closure remains UNKNOWN (missing required state observer), so this is
 not complete Cinema acceptance or an adoption claim. See
-retained voting evidence (historical evidence is available in Git history).
+retained voting evidence (historical evidence removed during repository cleanup).
 
 ## Voting open/current checkpoint
 
@@ -880,7 +880,7 @@ cases PASS. Seven independent native scenarios additionally cover populated
 reopening, current open/closed/empty state and three actual production mutations;
 correct scenarios pass and mutants fail. This covers meaningful successful state
 that generated failure cases alone cannot establish. Retained evidence is in
-open/current validation (historical evidence is available in Git history). The native
+open/current validation (historical evidence removed during repository cleanup). The native
 Cinema lifecycle/state suite and Clippy pass at this checkpoint; complete
 aggregate validation and the complete adoption/provenance gates remain open.
 
@@ -894,7 +894,7 @@ mechanism is still needed for these generated cases. Open obligations also
 retain missing actual state observation for mocked examples and manual review
 points. No tasks were adopted (--no-adopt). This is substantial full-plan
 progress, not complete acceptance.
-Whole-plan evidence (historical evidence is available in Git history) pins the snapshot,
+Whole-plan evidence (historical evidence removed during repository cleanup) pins the snapshot,
 check occurrence, budgets, counts and open obligations.
 
 ## Prepared full native corpus
@@ -913,7 +913,7 @@ aggregate/coverage validation remain outstanding.
 The preparation planner rejects duplicate/non-corpus binding selections and
 invalid setup operations/types. Projection tests, pinned-setup replay unit tests
 and focused all-target Clippy pass. Performance is deferred and no baseline is
-changed. Full prepared-corpus evidence (historical evidence is available in Git history)
+changed. Full prepared-corpus evidence (historical evidence removed during repository cleanup)
 retains the truthful overall UNKNOWN result and all remaining obligations.
 
 ## Runtime precondition reconciliation
@@ -924,7 +924,7 @@ recorded Before state and discharges the two planning-time missing-state hints.
 The run stores their resolution as a separate immutable artifact. Remaining open
 requirements are 18 manual requirements and nine named proof/test suites; the
 overall report truthfully remains UNKNOWN. See
-complete run evidence (historical evidence is available in Git history).
+complete run evidence (historical evidence removed during repository cleanup).
 
 The positive central reconciliation test and ten evidence mutations pass;
 missing/duplicate cases, unknown result, changed setup/inputs, missing invocation
@@ -942,7 +942,7 @@ this execution, using source-bound runtime evidence; the static inspection and
 observer trace remain immutable artifacts. CommonJS and executed dynamic loaders
 retain conservative limits. Overall status remains UNKNOWN for 18 manual
 requirements and nine named suites, and this run requests no adoption.
-Retained complete-corpus evidence (historical evidence is available in Git history) records
+Retained complete-corpus evidence (historical evidence removed during repository cleanup) records
 the actual scope and open requirements.
 
 Target planning/conformance and nine Rust evidence rejection mutations pass. Six
@@ -950,7 +950,7 @@ real native observer scenarios preserve actual values and exercise dynamic
 loading, changed hashes, invalid ranges and trace exhaustion. A large-protocol
 shutdown issue found under native instrumentation is corrected and tested.
 Separate Bun LCOV reports 54/54 observer-helper lines; raw function counters retain
-their Bun identity limitations. See native helper evidence (historical evidence is available in Git history).
+their Bun identity limitations. See native helper evidence (historical evidence removed during repository cleanup).
 The strengthened full native integration test passes, including complete dependency
 provenance and replay. Final aggregate and Rust coverage validation are still required.
 
@@ -984,7 +984,7 @@ executions with zero failures (including repeated executions across features).
 The full Cinema integration and adaptive TypeScript business/wiring mutations
 pass in this aggregate run. The runner confirms identical source hashes before
 and after validation. Retained evidence is
-aggregate functional validation (historical evidence is available in Git history).
+aggregate functional validation (historical evidence removed during repository cleanup).
 This invocation does not run coverage or release measurements: the strict
 coverage gate remains unfinished, performance is deferred, and the whole Cinema
 report still retains its manual and named-suite UNKNOWN requirements.
@@ -1012,7 +1012,7 @@ zero test failures, including full Cinema and the new rejection-path tests.
 Merged line coverage is 23,390/24,038 (97.30%); raw LLVM function coverage is
 1,864/1,927 (96.73%). There are 648 uncovered source lines. Captured Rust input
 hashes match before and after the run. See
-current isolated coverage evidence (historical evidence is available in Git history).
+current isolated coverage evidence (historical evidence removed during repository cleanup).
 This supersedes the earlier 96.95%/96.59% measurement for this source revision.
 Benchmark conformance remains intentionally skipped, so the measurement is
 partial and fails the unchanged 100% gate. No release benchmark or baseline
@@ -1033,7 +1033,7 @@ All 12 TypeScript target tests pass. Seven real native observer scenarios cover
 native engine test confirms passing factory cases do not adopt tasks when an
 escaped loader remains unresolved. The full Cinema integration passes again in
 123.09 seconds, including complete provenance, mandatory cases, native adoption
-and replay. See opaque-loader evidence (historical evidence is available in Git history).
+and replay. See opaque-loader evidence (historical evidence removed during repository cleanup).
 The earlier Rust coverage measurement predates this production correction; the
 strict final coverage and aggregate gates remain open.
 
@@ -1100,7 +1100,7 @@ The next isolated instrumented batch completes with 395 passing Rust tests and
 identical before/after Rust input hashes. Merged coverage is 23,596/24,180 source
 lines (97.58%); LLVM functions are 1,873/1,934 (96.85%). The unchanged 100% gate
 is not met and benchmark conformance remains deferred. Raw retained results are
-batched coverage evidence (historical evidence is available in Git history).
+batched coverage evidence (historical evidence removed during repository cleanup).
 
 After that measurement, independent runatron/Bun reference vectors exposed a
 Unicode `trim` discrepancy: Rust trim includes NEL and excludes BOM, unlike the
@@ -1122,7 +1122,7 @@ BOM rejection cases both pass against the actual production validator through
 the generated Bun harness. All 27 manual/named-suite obligations remain open and
 the whole result remains UNKNOWN. Replay and historical task preservation pass
 in the same full integration test (126.26 seconds, not a release benchmark).
-See retained Unicode harness evidence (historical evidence is available in Git history).
+See retained Unicode harness evidence (historical evidence removed during repository cleanup).
 Earlier 5,552-case checkpoints describe generator 1 and remain historical. The
 strict final Rust coverage gate remains unfinished; performance is deferred.
 

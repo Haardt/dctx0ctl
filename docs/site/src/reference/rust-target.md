@@ -100,5 +100,5 @@ CARGO_BUILD_JOBS=2 RUST_TEST_THREADS=2 python3 scripts/validate.py \
   --coverage --example cinema --samples 1 --iterations 1
 ```
 
-Retained acceptance, coverage and measurements (historical evidence is available in Git history)
+Retained acceptance, coverage and measurements (historical evidence removed during repository cleanup)
 include the exact commands, source hashes, full finite scope and benchmark record.

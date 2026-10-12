@@ -128,6 +128,6 @@ The process RSS metric is the largest reaped process, not summed simultaneous
 memory. New workloads and these reduced sampling settings are unassessed against
 the accepted baseline; no baseline was promoted.
 
-Retained acceptance, coverage and measurement evidence (historical evidence is available in Git history)
+Retained acceptance, coverage and measurement evidence (historical evidence removed during repository cleanup)
 includes unchanged before/after source hashes and points to the full benchmark
 history record.
