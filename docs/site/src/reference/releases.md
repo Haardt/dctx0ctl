@@ -2,6 +2,8 @@
 
 A pushed **`v<SemVer>` tag creates a GitHub Release** after full validation and all five native distribution jobs pass. Branch, PR and manual runs test packaging without publishing. Stable tags become the latest release; prereleases are marked explicitly and excluded from the default installer.
 
+Runs for the same Git ref supersede older in-progress runs. Different version tags run independently. Correcting an unpublished tag therefore cancels its obsolete build; published release tags should remain immutable.
+
 ## Install DCTX0
 
 On Linux or macOS:

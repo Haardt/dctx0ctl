@@ -48,7 +48,9 @@ permissions:
 
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: false
+  # A corrected, unpublished tag must supersede its obsolete failed build.
+  # Different version tags still have independent concurrency groups.
+  cancel-in-progress: true
 
 jobs:
   version:
