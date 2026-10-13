@@ -4,6 +4,10 @@
 
 An executable specification language for AI-native software development.
 
+**Describe your product in plain language. Your coding agent writes and validates the specification with you. You review its rules and expected outcomes, then let agents implement the derived tasks.**
+
+You can start without learning to author DCTX0 yourself. The contracts use familiar types, ranges, and given/when/expect examples so developers can read and discuss the behavior. The [agent-assisted guide](docs/site/src/docs/authoring.md) explains the workflow.
+
 [Documentation website](https://haardt.github.io/dctx0ctl/) · [Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/site/src/docs/contributing.md)
 
 DCTX0 turns product requirements into a typed, machine-readable contract. That contract drives a dependency-aware task DAG, parallel implementation waves, and verification plans. Once an application exists, DCTX0 checks its actual behavior against the same specification.
@@ -25,6 +29,24 @@ DCTX0 makes the expected behavior explicit before implementation begins. Data co
 The specification becomes a shared language for product owners, developers, and coding agents—and an executable reference for checking what gets built.
 
 **Two central advantages: deterministic validation and coordinated parallel work.** The same contracts that define expected behavior also let DCTX0 derive focused implementation tasks, explain their dependencies, and identify which work can proceed independently.
+
+## Who writes the specification?
+
+**Your coding agent can write it with you.** Describe the product, discuss its rules and edge cases, and let the agent turn those decisions into DCTX0 contracts. The bundled language skill guides specification authoring and validation. You review the intended behavior and resolve open product questions before implementation begins.
+
+At this stage, the agent can focus on the contract: data, operations, dependencies, valid states, and expected outcomes. The specification contains no application implementation. It can express behavior precisely without carrying algorithm bodies, database plumbing, or framework wiring into every discussion.
+
+**The agent can devote its cognitive capacity to the specification.** Its reasoning effort goes into understanding the domain, connecting requirements, and identifying contradictions or missing decisions. Implementation details can wait until the contract is clear. This gives specification work a focused reasoning phase of its own.
+
+Keeping implementation details separate can make room for more of the application's behavior in a limited context window. The agent can reason about relationships across the product before loading the implementation details of a particular task. A clear contract gives it fewer product decisions to guess and a concrete reference when it later writes code.
+
+The same benefit applies to people. You can build an understanding of what the application does and review its rules without first reading all its implementation details. When a technical question matters, you can follow it into the relevant code. The specification provides the starting point.
+
+Compilation catches invalid specifications; execution checks whether the application fulfills the modeled requirements. Examples, generated cases, and lifecycle checks help expose mistakes that plausible code alone can hide. Testing the agreed contract against the real implementation helps reduce errors, while keeping the tested scope and remaining gaps visible.
+
+A consistently written specification can still encode a wrong product assumption. Review the meaning of its rules and examples; successful compilation does not establish that they describe the product you want. This workflow does not yet establish measured token savings.
+
+The workflow is **understand the product → specify the contract → review the meaning → implement focused tasks → verify actual behavior**. Language and implementation skills support the agent through both specification and application work.
 
 ## From specification to parallel work
 
@@ -48,22 +70,6 @@ dctx0 tasks claim-next <spec-root> --actor agent-2
 ```
 
 Relevant specification changes create new adaptation tasks with explicit links to previous work. Historical results remain tied to their original requirements, and work completion stays separate from testing evidence: **Done does not imply PASS.** See the [task guide](docs/site/src/docs/workflow.md) for claims, slices, and change handling.
-
-## Who writes the specification?
-
-**Your coding agent can write it with you.** Describe the product, discuss its rules and edge cases, and let the agent turn those decisions into DCTX0 contracts. The bundled language skill guides specification authoring and validation. You review the intended behavior and resolve open product questions before implementation begins.
-
-At this stage, the agent can focus on the contract: data, operations, dependencies, valid states, and expected outcomes. The specification contains no application implementation. It can express behavior precisely without carrying algorithm bodies, database plumbing, or framework wiring into every discussion.
-
-**The agent can devote its cognitive capacity to the specification.** Its reasoning effort goes into understanding the domain, connecting requirements, and identifying contradictions or missing decisions. Implementation details can wait until the contract is clear. This gives specification work a focused reasoning phase of its own.
-
-That separation makes room for more of the application's behavior in a limited context window. The agent can reason about relationships across the product before loading the implementation details of a particular task. A clear contract gives it fewer product decisions to guess and a concrete reference when it later writes code.
-
-The same benefit applies to people. You can build an understanding of what the application does and review its rules without first reading all its implementation details. When a technical question matters, you can follow it into the relevant code. The specification provides the starting point.
-
-Compilation catches invalid specifications; execution checks whether the application fulfills the modeled requirements. Examples, generated cases, and lifecycle checks help expose mistakes that plausible code alone can hide. Testing the agreed contract against the real implementation helps reduce errors, while keeping the tested scope and remaining gaps visible.
-
-The workflow is **understand the product → specify the contract → review the meaning → implement focused tasks → verify actual behavior**. Language and implementation skills support the agent through both specification and application work.
 
 ## A small example
 
@@ -118,6 +124,8 @@ The Rust core owns input generation, expectations, assessment, shrinking, and re
 Managed native execution currently targets Linux. Target-specific limits and supported representations are documented in the [TypeScript harness](docs/site/src/docs/typescript-adapters.md), [Go target](docs/site/src/docs/targets.md), and [Rust target](docs/site/src/docs/targets.md) guides.
 
 ## Quick start
+
+Install the CLI, then [install the agent skills and draft a contract](#draft-a-contract-with-your-agent). You can ask your agent to handle syntax and validation while you review product decisions. The Cinema commands below provide a separate way to explore an existing application.
 
 ### Install a released binary
 
@@ -176,6 +184,22 @@ cargo build --release -p dctx0-cli --no-default-features --features rust --locke
 ```
 
 Parsing, compilation, and task planning do not require a native application toolchain. Verification additionally needs Bun for TypeScript, Go 1.25+ for Cinema Go, or Cargo and a C toolchain for Cinema Rust. Prepare native dependencies explicitly before managed execution. Python is used for repository validation scripts, not CLI product workflows.
+
+### Draft a contract with your agent
+
+Install the bundled skills in your application project:
+
+```sh
+dctx0 install --project /path/to/app --agent codex,claude
+```
+
+Open your coding agent in that project and give it a request like this:
+
+> Use the dctx0-language skill to draft a specification under dctx0/ for a film catalog. Films have a title and a release year from 1888 through 2100. Users can retrieve a film by ID; an unknown ID must return FilmNotFound. Ask me about unresolved product rules instead of choosing silently. Validate the specification with dctx0 check, explain its rules and examples in plain language, and wait for my review before implementation.
+
+Review the generated contract alongside the explanation. For example, `range 1888..2100` makes the year boundaries visible, and the missing-film example above describes the expected failure. Ask the agent to correct any rule that differs from your intent. Once you agree on the behavior, ask it to plan the tasks and use the `dctx0-implementation` skill to implement them and connect a testing adapter to the real application.
+
+DCTX0 supplies contracts, task context, and verification commands. Your external coding agent performs the work. See [author with your agent](docs/site/src/docs/authoring.md) for a walkthrough.
 
 ### Explore the specification and tasks
 

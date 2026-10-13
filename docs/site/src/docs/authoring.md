@@ -1,6 +1,6 @@
 # Author with your agent
 
-**The coding agent can write the specification.** You supply the product intent and make the business decisions; the agent translates those decisions into typed contracts, examples, and explicit boundaries.
+**You can start without learning to author DCTX0 yourself. The coding agent can write and validate the specification with you.** You supply the product intent and make the business decisions; the agent translates those decisions into typed contracts, examples, and explicit boundaries.
 
 ## Concentrate reasoning on the contract
 
@@ -8,13 +8,25 @@ During specification work, the agent can set aside database queries, algorithm b
 
 The specification contains no application implementation. That makes space for more of the product's behavior in the same context window. A person can also understand and review that behavior without first reading the implementation. Later tasks bring in the particular technical details they need.
 
-This separation is a workflow advantage, not a measured universal improvement in model performance. It makes assumptions explicit and gives implementation a reference that can be tested.
+This separation is a workflow advantage, not a measured universal improvement in model performance or token cost. It makes assumptions explicit and gives implementation a reference that can be tested.
 
 ## A useful request
 
-> Help me specify a workshop booking service in DCTX0. First model the vocabulary, public operations, visible failures, ownership, and examples. Ask about genuinely unresolved business rules. Keep implementation algorithms and framework wiring out of the specification. Compile the contract before moving to application work.
+> Use the dctx0-language skill to draft a specification under dctx0/ for a film catalog. Films have a title and a release year from 1888 through 2100. Users can retrieve a film by ID; an unknown ID must return FilmNotFound. Ask me about unresolved product rules instead of choosing silently. Validate the specification with dctx0 check, explain its rules and examples in plain language, and wait for my review before implementation.
 
 Use the bundled `dctx0-language` skill for syntax, composition, identity rules, and validation. Use `dctx0-implementation` when moving into task execution or adapter work.
+
+## Read and review the draft
+
+You do not need to memorize the grammar to review a first contract. Types, ranges, operation signatures, and given/when/expect examples expose rules in a form developers can often read directly. More involved constructs, such as lifecycles and collaborator replies, deserve an explanation from the agent or the [language reference](language.md).
+
+For the film-catalog request, review these concrete questions:
+
+- Does the year range include both 1888 and 2100?
+- Does an unknown film ID produce FilmNotFound?
+- Which rules are still undecided, such as whether duplicate films are allowed?
+
+Ask the agent to show the relevant declarations and examples beside its explanation. Resolve open decisions and correct the draft before authorizing implementation. Later, if a native check observes a different outcome, investigate the application and adapter against that agreed rule. Missing evidence remains visible in the verification report.
 
 ## Develop the contract together
 

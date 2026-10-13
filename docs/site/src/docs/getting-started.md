@@ -1,5 +1,7 @@
 # Getting started
 
+Describe your product in plain language and let your coding agent draft and validate the contract. You review the rules and expected outcomes. You can start without learning to author DCTX0 yourself.
+
 ## Install a released binary
 
 ```sh
@@ -38,9 +40,17 @@ dctx0 install --project /path/to/app --agent codex,claude
 
 This installs skills, not the CLI executable. Other supported agent layouts include `agents`, `copilot`, `cursor`, `gemini`, and `opencode`. Existing differing files are preserved unless explicitly replaced with `--force`.
 
-## A first specification
+## Draft your first specification with an agent
 
-Create `dctx0/calculations.dctx0`:
+After installing the skills, open your coding agent in the application project and paste:
+
+> Use the dctx0-language skill to create dctx0/calculations.dctx0. Specify a pure operation double that takes an integer and returns twice its input. Include an invariant for this rule. Ask me about unresolved product decisions, validate the specification with dctx0 check, and explain the contract in plain language. Wait for my review before implementing the application.
+
+The agent writes the contract and runs the compiler. Review whether the declarations and invariant describe what you meant; successful compilation checks syntax and semantics, not the correctness of your product decisions. You can ask the agent to explain any unfamiliar construct. See [author with your agent](authoring.md) for the full workflow.
+
+## Read the resulting contract
+
+A specification for that request can look like this. You can also create `dctx0/calculations.dctx0` manually if you prefer:
 
 <!-- dctx0:check -->
 ```dctx0
@@ -84,6 +94,8 @@ app/
 ```
 
 Derived history lives under the spec root's `.dctx0ctl/`. Do not hand-edit SQLite records or generated reports to satisfy a check.
+
+After reviewing the contract, ask your agent to plan the tasks and use the `dctx0-implementation` skill to implement them and connect a testing adapter to the real application. The commands below show the setup that you or the agent can perform.
 
 ## Initialize a real adapter
 
