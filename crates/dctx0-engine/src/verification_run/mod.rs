@@ -8,7 +8,7 @@ mod execution;
 mod pins;
 mod program_inspection;
 mod replay;
-mod rust_build;
+pub(crate) mod rust_build;
 mod shrink;
 mod task_reviews;
 use crate::*;
@@ -80,11 +80,39 @@ impl Project {
     pub(super) async fn run_verification_plan(
         &self,
         application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        no_adopt: bool,
+        pinned: Option<(ProgramPlan, VerificationLifecycleFixtures)>,
+    ) -> Result<NativeVerificationReport> {
+        let (_, config) = self.verification_configuration(application)?;
+        let limits = config
+            .execution
+            .as_ref()
+            .map(VerificationExecutionBudgets::native_limits)
+            .unwrap_or_default();
+        self.run_verification_with_limits(
+            application,
+            selection,
+            generator,
+            cancellation,
+            no_adopt,
+            pinned,
+            limits,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn run_verification_with_limits(
+        &self,
+        application: Option<&Path>,
         mut selection: VerificationSelection,
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
         no_adopt: bool,
         pinned: Option<(ProgramPlan, VerificationLifecycleFixtures)>,
+        limits: NativeLimits,
     ) -> Result<NativeVerificationReport> {
         let historical = selection.historical_check.is_some() || pinned.is_some();
         let no_adopt = no_adopt || historical;
@@ -484,6 +512,7 @@ impl Project {
                     plan: &plan,
                     lifecycles: &lifecycles,
                     cancel: cancellation,
+                    limits,
                 },
                 &bundle.recipe,
                 &capture.root.join(directory),

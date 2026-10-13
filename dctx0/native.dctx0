@@ -1,0 +1,107 @@
+fragment Dctx0 {
+  domain Native {
+    message RunSummary {
+      runId: String
+      mandatoryCases: ApiInt
+      recordedCases: ApiInt
+      openObligations: ApiInt
+      provenanceGaps: ApiInt
+      status: Evidence.Status
+      adoptedTasks: ApiInt
+    }
+    failure InvalidRequest { reason: String }
+    message ReplaySummary {
+      originalRun: String
+      originalCase: String
+      runId: String
+      status: Evidence.Status
+      provenanceChanges: ApiInt
+    }
+    message TaskCounts {
+      done: ApiInt
+      passed: ApiInt
+    }
+    surface Verification {
+      operation firstCase(runId: String) -> String ! InvalidRequest
+      operation capability(enabled: Boolean) -> Unit
+      operation mutate(broken: Boolean) -> Unit
+      operation taskCounts() -> TaskCounts ! InvalidRequest
+      operation run(subjects: List<String>, noAdopt: Boolean) -> RunSummary ! InvalidRequest
+      operation show(runId: String) -> RunSummary ! InvalidRequest
+      operation replay(runId: String, caseId: String) -> ReplaySummary ! InvalidRequest
+    }
+    example "no-adopt saves complete evidence without task delivery" {
+      when run = Verification.run(["Fixture"], true)
+      expect run.status == Passed
+      expect run.recordedCases == run.mandatoryCases
+      expect run.provenanceGaps == 0
+      expect run.adoptedTasks == 0
+      when counts = Verification.taskCounts()
+      expect counts.done == 0
+      expect counts.passed == 0
+      when saved = Verification.show(run.runId)
+      expect saved.status == Passed
+    }
+    example "native adoption is real and idempotent" {
+      when first = Verification.run(["Fixture"], false)
+      expect first.status == Passed
+      expect first.adoptedTasks > 0
+      when second = Verification.run(["Fixture"], false)
+      expect second.status == Passed
+      expect second.adoptedTasks == 0
+      when counts = Verification.taskCounts()
+      expect counts.done > 0
+      expect counts.passed > 0
+    }
+    example "actual production mutation breaks replay and repair restores it" {
+      when run = Verification.run(["Fixture"], true)
+      when caseId = Verification.firstCase(run.runId)
+      when Verification.mutate(true)
+      when broken = Verification.replay(run.runId, caseId)
+      expect broken.status == Failed
+      expect broken.originalRun == run.runId
+      expect broken.originalCase == caseId
+      expect broken.provenanceChanges > 0
+      when Verification.mutate(false)
+      when repaired = Verification.replay(run.runId, caseId)
+      expect repaired.status == Passed
+    }
+    example "unknown run is rejected" {
+      when Verification.show("unknown")
+      expect result fails InvalidRequest
+    }
+    example "empty scope cannot implicitly execute the fixture" {
+      when Verification.run([], true)
+      expect result fails InvalidRequest
+      when counts = Verification.taskCounts()
+      expect counts.passed == 0
+    }
+    example "unsupported capability cannot supply native PASS or adoption" {
+      when Verification.capability(false)
+      when run = Verification.run(["Fixture"], false)
+      expect run.status == Unknown
+      expect run.adoptedTasks == 0
+      expect run.openObligations > 0
+      when counts = Verification.taskCounts()
+      expect counts.passed == 0
+    }
+    review ExecutionAndAdoption {
+      inspect { implementation dependencyGraph contracts surfaces }
+      criteria {
+        "The adapter invokes captured real production code; generated scaffolds are explicitly unavailable."
+        "Every required case is recorded, including failures, unsupported capabilities and resource aborts."
+        "An empty configured scope never selects the whole application implicitly."
+        "Inputs, seeds, budgets, plan, toolchain, dependencies, adapter and implementation bind the report."
+        "The verifier decides PASS, FAIL and UNKNOWN centrally; worker success flags cannot override violations."
+        "Missing tools and unsupported boundaries remain UNKNOWN; executed violations and application exceptions are FAIL."
+        "Each independent case has a fresh session; lifecycle paths retain connected state only within their own session."
+        "Timeout and cancellation terminate and reap managed child processes; protocol and log limits are enforced."
+        "Mocks replace declared collaborators and prove only the consumer behavior observed against them."
+        "State, resource, call and event claims require actual observers and modeled labels."
+        "No-adopt saves evidence without task transitions; eligible adoption is transactional and idempotent."
+        "Publication rechecks source, occurrence, task events and profile bindings; conflicts preserve the executed report."
+        "Replay uses saved inputs and identifies source/environment changes; historical results are never overwritten."
+      }
+    }
+  }
+}

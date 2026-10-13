@@ -1,0 +1,69 @@
+fragment Dctx0 {
+  domain Compiler {
+    message Compilation {
+      files: List<String>
+      lines: List<ApiInt>
+      columns: List<ApiInt>
+      accepted: Boolean
+      diagnostics: ApiInt
+      symbols: ApiInt
+      operations: ApiInt
+    }
+    surface Frontend {
+      operation compose(sources: List<String>) -> Compilation
+      operation compile(source: String) -> Compilation {
+        pure
+        ensures result.diagnostics >= 0
+        ensures result.symbols >= 0
+        ensures result.operations >= 0
+        ensures result.accepted == (result.diagnostics == 0)
+      }
+    }
+    example "empty named workspace compiles" {
+      when result = Frontend.compile("workspace Sample {}")
+      expect result.accepted == true
+      expect result.diagnostics == 0
+      expect result.operations == 0
+    }
+    example "pure operation compiles" {
+      when result = Frontend.compile("workspace Sample { surface Api { operation echo(text:String) -> String { pure } } }")
+      expect result.accepted == true
+      expect result.operations == 1
+    }
+    example "malformed source is rejected" {
+      when result = Frontend.compile("workspace Sample {")
+      expect result.accepted == false
+      expect result.diagnostics > 0
+    }
+    example "unresolved result type is rejected" {
+      when result = Frontend.compile("workspace Sample { surface Api { operation next() -> Missing } }")
+      expect result.accepted == false
+      expect result.diagnostics > 0
+    }
+    example "postcondition must be Boolean" {
+      when result = Frontend.compile("workspace Sample { surface Api { operation next() -> Int { pure ensures 1 } } }")
+      expect result.accepted == false
+      expect result.diagnostics > 0
+    }
+    example "fragments resolve across real source files" {
+      when result = Frontend.compose(["workspace Sample { type Name = String }", "fragment Sample { surface Api { operation echo() -> Name } }"])
+      expect result.accepted == true
+      expect result.operations == 1
+    }
+    example "diagnostics retain source file and position" {
+      when result = Frontend.compose(["workspace Sample {}", "fragment Sample { surface Api { operation echo() -> Missing } }"])
+      expect result.accepted == false
+      expect result.files == ["source-1.dctx0"]
+      expect result.lines == [1]
+      expect getOrElse(first(result.columns), 0) > 0
+    }
+    review Compatibility {
+      inspect { implementation contracts dependencyGraph }
+      criteria {
+        "AST and validated IR remain separate; unsupported execution does not weaken compilation."
+        "Resolution uses composed files and scopes, and diagnostics retain original file positions."
+        "Compiler snapshot hashes and serialized IR remain compatible unless an explicit migration is reviewed."
+      }
+    }
+  }
+}

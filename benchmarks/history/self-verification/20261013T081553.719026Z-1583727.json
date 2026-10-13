@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-13T08:15:36.581139+00:00",
+  "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+  "revision": "96761b337ad4b02f556511b3c47f56aa700a5d77",
+  "dirty": true,
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "seed": 42,
+  "generated_cases": 16,
+  "collection_size": 2,
+  "baseline": "unassessed; no baseline promotion",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "build",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 73.26132099842653,
+      "peak_rss_bytes": 57466880,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "elapsed_ms": 623.4193810087163,
+      "peak_rss_bytes": 56377344,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "elapsed_ms": 856.4145299897064,
+      "peak_rss_bytes": 266252288,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "    Checking dctx0-lsp v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-lsp)\n    Checking dctx0-cli v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-cli)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.80s\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--lib",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 7784.577534010168,
+      "peak_rss_bytes": 759877632,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "\nrunning 59 tests\ntest native::identity::tests::identity_hashes_are_exact_and_bounded ... ok\ntest native::session::tests::legacy_observation_journals_keep_their_unknown_phase ... ok\ntest native::streams::tests::stream_io_failures_and_closed_receivers_are_explicit ... ok\ntest native::cleanup_retry_tests::cleanup_retries_after_leader_reaping_without_claiming_a_completed_group ... ok\ntest native::identity::tests::environment_identity_preserves_values_and_ignores_entry_order ... ok\ntest native::tests::command_cancellation_keeps_cleanup_failure_and_allows_owned_recovery ... ok\ntest native::tests::request_encoding_limits_abort_and_reap_the_actual_worker ... ok\ntest profile_publication_tests::new_profile_publication_preserves_concurrent_edits_and_cleans_failed_temporaries ... ok\ntest rename::tests::source_edits_require_exact_utf8_ranges_and_nonoverlapping_spans ... ok\ntest skills::environment_tests::global_preview_uses_the_live_agent_environment_without_writing_files ... ok\ntest native::tests::request_failure_preserves_failed_cleanup_and_later_owned_cleanup_can_recover ... ok\ntest skills::tests::failed_application_rolls_back_all_skills_in_the_request ... ok\ntest self_verification::tests::self_inventory_captures_embedded_inputs_and_ignores_databases_builds_and_modules ... ok\ntest skills::tests::preview_and_late_conflict_never_install_earlier_destinations ... ok\ntest skills::tests::global_roots_honor_agent_environment_without_changing_project_files ... ok\ntest tests::atomic_files_and_database_paths_reject_missing_parent_directories ... ok\ntest skills::tests::unknown_selection_and_symlinks_are_rejected_even_when_forced ... ok\ntest native::command::tests::command_status_preserves_separate_streams_and_nonzero_exit ... ok\ntest verification_complete::tests::authored_notes_bind_all_spec_sources_and_reject_invalid_or_escaping_inputs ... ok\ntest verification_run::build::tests::receipts_bind_actual_inputs_and_binary_and_reject_changes ... ok\ntest verification_run::capture::directory_budget_tests::directory_entries_and_depth_are_bounded_even_without_files ... ok\ntest native::tests::kernel_cleanup_failures_and_nonresponsive_waits_remain_explicit ... ok\ntest verification_run::capture::inventory_tests::distinct_native_paths_cannot_collide_in_verification_provenance ... ok\ntest verification_run::capture::tests::capture_rejects_symlinks_and_enforces_file_tree_and_count_budgets ... ok\ntest verification_run::capture::inventory_tests::freshness_inventory_detects_edits_additions_removals_and_dependency_changes_without_writes ... ok\ntest verification_run::dependencies::language_scope_tests::rust_embedded_other_language_assets_remain_captured_outside_rust_syntax_analysis ... ok\ntest verification_run::adoption::tests::imported_missing_pin_and_incomplete_native_proofs_never_open_task_history ... ok\ntest skills::tests::installs_complete_embedded_trees_deduplicates_codex_and_preserves_edits ... ok\ntest verification_run::dependencies::tests::captured_dependency_analysis_retains_all_unresolved_inputs_and_its_artifact ... ok\ntest verification_run::dependencies::tests::generated_artifacts_are_available_only_in_the_testing_boundary ... ok\ntest verification_run::dependencies::tests::recorded_esm_sites_require_matching_complete_evidence_and_actual_loading ... ok\ntest verification_run::dependencies::tests::relative_dependencies_cannot_escape_the_capture_root ... ok\ntest verification_run::dependencies::tests::reports_cannot_omit_sources_or_invent_source_ranges ... ok\ntest rename::tests::recovery_preserves_intervening_edits_and_rejects_unsafe_journals ... ok\ntest verification_run::replay::tests::generated_operation_replay_rejects_corrupt_bindings_arguments_setup_and_indices ... ok\ntest rename::tests::race_checks_and_recovery_reject_edits_without_overwriting_them ... ok\ntest verification_run::replay::tests::prepared_generated_replay_preserves_setup_and_rejects_changes ... ok\ntest verification_run::replay::tests::replay_rejects_missing_pinned_cases_for_every_case_kind ... ok\ntest verification_run::replay::tests::lifecycle_replay_rejects_unknown_paths_instead_of_executing_an_empty_plan ... ok\ntest verification_run::rust_build::tests::cargo_package_metadata_rejects_missing_fields_and_escaping_local_sources ... ok\ntest verification_run::rust_build::tests::compiler_dependency_paths_preserve_escaped_spaces_and_reject_incomplete_paths ... ok\ntest verification_run::rust_build::tests::invalid_compiler_depinfo_and_unpinned_includes_cannot_finish_a_receipt ... ok\ntest rename::tests::interrupted_rename_rolls_back_or_finishes_committed_publication ... ok\ntest editors::tests::staging_failures_and_private_bundle_writes_preserve_existing_destinations ... ok\ntest verification_run::replay::tests::reviewed_operation_replay_keeps_setup_and_rejects_extra_bindings ... ok\ntest verification_run::rust_build::tests::unavailable_and_failed_inspection_tools_return_technical_errors ... ok\ntest verification_run::dependencies::native_resolution_tests::syntax_failures_remain_open_without_inventing_native_resolution_attempts ... ok\ntest verification_setup::execution_budget_tests::scoped_execution_budgets_are_optional_and_reject_zero_or_overflowing_deadlines ... ok\ntest editors::path_tests::zed_requires_representable_server_paths_and_emits_real_rust_literals ... ok\ntest native::command::tests::cancellation_reaps_descendants_that_create_independent_groups ... ok\ntest verification_run::shrink::tests::pure_shrinking_requires_a_failure_and_disabled_budgets_invoke_nothing ... ok\ntest verification_run::shrink::tests::native_failure_during_shrinking_retains_original_counterexamples_without_exhaustion ... ok\ntest verification_run::shrink::tests::native_step_limits_preserve_only_verified_pure_and_lifecycle_improvements ... ok\ntest verification_run::task_reviews::tests::source_bound_reviews_validate_current_requirements_and_keep_latest_judgements ... ok\ntest verification_run::dependencies::native_resolution_tests::dependency_scope_guards_execute_no_resolution_without_valid_captured_roots ... ok\ntest verification_run::dependencies::native_resolution_tests::resolver_replies_cannot_invent_captured_sources_or_enter_the_testing_boundary ... ok\ntest verification_run::dependencies::native_resolution_tests::native_dependency_budget_retains_its_executed_prefix_and_reports_incompleteness ... ok\ntest verification_run::replay::tests::cinema_assertion_and_example_replay_bindings_are_pinned_and_isolate_one_subject ... ok\ntest native::identity::tests::verifier_identity_binds_the_actual_running_rust_image ... ok\n\ntest result: ok. 59 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.53s\n\n",
+      "stderr": "   Compiling dctx0-engine v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.23s\n     Running unittests src/lib.rs (target/debug/deps/dctx0_engine-cb647fc249bc4d6c)\nZipWriter drop failed: Io(Os { code: 28, kind: StorageFull, message: \"No space left on device\" })"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "native",
+        "--test",
+        "verification_rust",
+        "--test",
+        "tasks",
+        "--test",
+        "profiles",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 7778.318497992586,
+      "peak_rss_bytes": 728776704,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 101,
+      "stdout": "\nrunning 21 tests\ntest closed_worker_input_is_an_io_failure_and_reaps_the_leader ... ok\ntest duplicate_mock_ids_and_callback_rejection_abort_the_real_process ... ok\ntest cleanup_kills_and_reaps_descendants_and_drop_is_a_last_resort ... ok\ntest evidence_limits_keep_the_acknowledged_prefix_reap_workers_and_reset_for_new_cases ... ok\ntest late_logs_and_streams_from_detached_processes_prevent_clean_completion ... FAILED\ntest acknowledged_shutdown_still_requires_a_real_clean_exit ... ok\ntest malformed_oversized_incomplete_and_unsolicited_messages_are_terminal ... ok\ntest runtime_identity_binds_the_managed_executable_and_initial_environment ... ok\ntest real_process_callbacks_logs_graceful_exit_and_repeated_abort_are_managed ... ok\ntest native_commands_bound_logs_time_cancellation_and_failures_without_protocol_claims ... ok\ntest value_factory_transport_rejects_wrong_reply_kinds_and_whole_case_timeouts ... ok\ntest missing_runtime_invalid_limits_timeouts_and_cancellation_never_return_a_reply ... ok\ntest lifecycle_inputs_setup_failures_observer_protocol_and_deadlines_remain_explicit ... ok\ntest central_cases_distinguish_contract_failures_unknowns_exceptions_and_protocol_errors ... ok\ntest pure_operation_cases_validate_real_returns_effects_arguments_and_whole_case_deadlines ... ok\ntest spec_derived_cinema_properties_use_real_bun_and_central_rust_assessment ... ok\ntest example_protocol_guards_and_whole_session_deadlines_reap_workers ... ok\ntest real_cinema_native_suite_typechecks_measures_storage_http_and_di_and_detects_wiring_mutation ... ok\ntest all_cinema_examples_invoke_real_services_with_central_mocks_and_observed_events ... ok\ntest cinema_existing_validators_and_boundaries_are_real_and_mutations_are_detected ... ok\ntest cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services ... ok\n\nfailures:\n\n---- late_logs_and_streams_from_detached_processes_prevent_clean_completion stdout ----\n\nthread 'late_logs_and_streams_from_detached_processes_prevent_clean_completion' (1585760) panicked at crates/dctx0-engine/tests/native.rs:2849:71:\ncalled `Result::unwrap()` on an `Err` value: Os { code: 3, kind: Uncategorized, message: \"No such process\" }\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    late_logs_and_streams_from_detached_processes_prevent_clean_completion\n\ntest result: FAILED. 20 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.94s\n\n",
+      "stderr": "   Compiling dctx0-engine v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.82s\n     Running tests/native.rs (target/debug/deps/native-ab638fbafa69a9ee)\nerror: test failed, to rerun pass `-p dctx0-engine --test native`\n"
+    }
+  ],
+  "mutations": [],
+  "measurements": [],
+  "complete": false,
+  "error": "Regression check failed: cargo test -p dctx0-engine --test native --test verification_rust --test tasks --test profiles --all-features --locked\n   Compiling dctx0-engine v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.82s\n     Running tests/native.rs (target/debug/deps/native-ab638fbafa69a9ee)\nerror: test failed, to rerun pass `-p dctx0-engine --test native`\n"
+}

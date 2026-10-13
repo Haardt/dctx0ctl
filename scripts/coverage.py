@@ -24,6 +24,7 @@ def source_hash():
     paths.extend((ROOT / "skills").glob("**/*.yaml"))
     for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
         paths.extend(path for path in (ROOT / "editors").glob(pattern) if "target" not in path.relative_to(ROOT / "editors").parts)
+    paths.extend(path for path in (ROOT / "ui/site").rglob("*") if path.is_file() and "node_modules" not in path.parts)
     digest = hashlib.sha256()
     for path in sorted(paths):
         if path.is_file():

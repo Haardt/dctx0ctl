@@ -8,6 +8,71 @@ use dctx0_verification::{
     OperationAssessment, OperationCaseInput, OperationObservers, OperationPlan, assess_operation,
     operation_ready,
 };
+
+#[cfg(all(test, target_os = "linux"))]
+mod setup_tests {
+    use super::*;
+    use dctx0_core::{Invocation, Source};
+    use dctx0_target_sdk::ExecutionRecipe;
+    #[tokio::test]
+    async fn undeclared_setup_is_rejected_before_an_adapter_call_and_reaps_the_session() {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "setup.dctx0".into(),
+            text: "workspace W { surface Api { operation f() -> Int { pure\n ensures result == 1\n } } }".into(),
+        }]);
+        assert!(compiled.diagnostics.is_empty());
+        let ir = compiled.ir.unwrap();
+        let plan = dctx0_verification::project_program(
+            &ir,
+            "snapshot",
+            1,
+            dctx0_verification::VerificationScope {
+                subjects: std::collections::BTreeSet::from(["W.Api.f".into()]),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let operation = &plan.operations[0];
+        let input = OperationCaseInput {
+            id: "undeclared-setup".into(),
+            invocation: Invocation {
+                subject: "W.Api.f".into(),
+                arguments: vec![],
+            },
+            setup: vec![Invocation {
+                subject: "W.Api.missing".into(),
+                arguments: vec![],
+            }],
+            mocks: vec![],
+        };
+        let recipe = ExecutionRecipe { program: "python3".into(), arguments: vec!["-u".into(), "-c".into(),
+            "import sys,json\nfor line in sys.stdin:\n p=json.loads(line);r=p['request'];assert r['kind']=='begin';print(json.dumps({'protocol_version':1,'message':{'kind':'reply','id':p['id'],'reply':{'kind':'begun','case_id':r['case_id']}}}),flush=True)".into()] };
+        let mut worker =
+            NativeWorker::spawn(&recipe, &std::env::temp_dir(), NativeLimits::default())
+                .await
+                .unwrap();
+        let pid = worker.pid();
+        let error = worker
+            .execute_operation_contract(
+                &ir,
+                operation,
+                &input,
+                (
+                    &plan.budgets,
+                    OperationObservers::default(),
+                    &NativeCancellation::default(),
+                ),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind, NativeFailureKind::Technical);
+        assert!(error.detail.contains("undeclared"));
+        assert_eq!(worker.session_evidence().len(), 1);
+        worker.abort().await.unwrap();
+        assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NativeOperationAssessment {
     pub setup: Vec<InvocationObservation>,

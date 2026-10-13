@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::io::Read;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct RustBuildReceipt {
+pub(crate) struct RustBuildReceipt {
     pub schema_version: u32,
     pub runtime_version: String,
     pub files: BTreeMap<String, String>,
@@ -37,7 +37,7 @@ async fn output(
         .wait(cancel)
         .await
         .map_err(|e| Error::Invalid(format!("Cargo inspection: {e}")))?
-        .stderr)
+        .stdout)
 }
 fn hash(path: &Path) -> Result<String> {
     let mut file = fs::File::open(path)?;
@@ -78,7 +78,7 @@ fn walk(root: &Path, files: &mut BTreeMap<String, String>, depth: usize) -> Resu
     for entry in entries {
         if matches!(
             entry.file_name().to_str(),
-            Some("target" | ".bin" | ".git" | ".dctx0ctl")
+            Some("target" | ".bin" | ".git" | ".dctx0ctl" | "__pycache__")
         ) {
             continue;
         }
@@ -152,7 +152,7 @@ fn package_roots(
     Ok(roots)
 }
 
-pub(super) async fn prepare(
+pub(crate) async fn prepare(
     directory: &Path,
     application: &Path,
     cancel: &NativeCancellation,
@@ -188,8 +188,12 @@ pub(super) async fn prepare(
     let metadata: serde_json::Value = serde_json::from_str(&text)?;
     let mut files = BTreeMap::new();
     let mut names = Vec::new();
+    // Workspace-level embedded assets are real compiler inputs outside package roots.
+    walk(application, &mut files, 0)?;
     for (name, root) in package_roots(&metadata, application)? {
-        walk(&root, &mut files, 0)?;
+        if !root.starts_with(application) {
+            walk(&root, &mut files, 0)?;
+        }
         names.push(name);
     }
     names.sort();
@@ -294,9 +298,17 @@ pub(super) async fn prepare(
         cache_guard: Some(guard),
     })
 }
-pub(super) fn finish(mut receipt: RustBuildReceipt, directory: &Path) -> Result<RustBuildReceipt> {
+pub(super) fn finish(receipt: RustBuildReceipt, directory: &Path) -> Result<RustBuildReceipt> {
+    finish_named(receipt, directory, "dctx0-worker", ".bin/worker")
+}
+pub(crate) fn finish_named(
+    mut receipt: RustBuildReceipt,
+    directory: &Path,
+    name: &str,
+    destination: &str,
+) -> Result<RustBuildReceipt> {
     validate(&receipt)?;
-    let depinfo = Path::new(&receipt.target_directory).join("release/dctx0-worker.d");
+    let depinfo = Path::new(&receipt.target_directory).join(format!("release/{name}.d"));
     let metadata = fs::metadata(&depinfo)?;
     if metadata.len() > 4_194_304 {
         return Err(Error::Invalid("Rust dependency info exceeds budget".into()));
@@ -321,17 +333,22 @@ pub(super) fn finish(mut receipt: RustBuildReceipt, directory: &Path) -> Result<
             )));
         }
     }
-    let executable = Path::new(&receipt.target_directory).join("release/dctx0-worker");
+    let executable = Path::new(&receipt.target_directory).join(format!("release/{name}"));
     receipt.binary_hash = hash(&executable)?;
-    fs::create_dir_all(directory.join(".bin"))?;
-    fs::copy(executable, directory.join(".bin/worker"))?;
-    if hash(&directory.join(".bin/worker"))? != receipt.binary_hash {
+    fs::create_dir_all(
+        directory
+            .join(destination)
+            .parent()
+            .ok_or_else(|| Error::Invalid("Executable destination lacks parent".into()))?,
+    )?;
+    fs::copy(executable, directory.join(destination))?;
+    if hash(&directory.join(destination))? != receipt.binary_hash {
         return Err(Error::Invalid("Rust worker changed while copying".into()));
     }
     receipt.cache_guard.take();
     Ok(receipt)
 }
-pub(super) fn validate(receipt: &RustBuildReceipt) -> Result<()> {
+pub(crate) fn validate(receipt: &RustBuildReceipt) -> Result<()> {
     if receipt.schema_version != 1
         || receipt.files.is_empty()
         || receipt.packages.is_empty()

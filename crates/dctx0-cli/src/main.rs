@@ -7,6 +7,7 @@ mod metrics;
 mod profile_benchmark;
 mod profiles;
 mod render;
+mod site;
 mod skills;
 mod sources;
 mod tasks;

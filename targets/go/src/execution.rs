@@ -6,6 +6,9 @@ const SUBJECT_SLOT: &str = "__SUBJECTS__";
 pub struct GoHarness;
 
 impl HarnessGenerator for GoHarness {
+    fn dependency_languages(&self) -> &'static [InspectionLanguage] {
+        &[InspectionLanguage::Go]
+    }
     fn runtime(&self) -> &str {
         "go"
     }

@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-10-13T16:32:38.304771+00:00",
+  "passed": false,
+  "complete": false,
+  "source_hash": "e952ed645eb04fb86843e34de355b499763e957f4addb5b75792161c2187faaa",
+  "revision": "96761b337ad4b02f556511b3c47f56aa700a5d77",
+  "dirty": true,
+  "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+  "hardware": {
+    "cpu_count": 12,
+    "machine": "x86_64"
+  },
+  "baseline_status": "unassessed: no accepted site workload baseline",
+  "samples": 1,
+  "iterations": 1,
+  "measurements": {
+    "ui-typecheck": [
+      {
+        "elapsed_ms": 994.0195309754927,
+        "peak_rss_bytes": 385622016,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-unit": [
+      {
+        "elapsed_ms": 10.70527100819163,
+        "peak_rss_bytes": 30818304,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-reproducibility": [
+      {
+        "elapsed_ms": 283.9495250082109,
+        "peak_rss_bytes": 125186048,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-engine": [
+      {
+        "elapsed_ms": 131.9086809817236,
+        "peak_rss_bytes": 56184832,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-cli": [
+      {
+        "elapsed_ms": 163.1826479861047,
+        "peak_rss_bytes": 63016960,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "release-build": [
+      {
+        "elapsed_ms": 91.56978098326363,
+        "peak_rss_bytes": 63266816,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "isolated-check": [
+      {
+        "elapsed_ms": 71.65072599309497,
+        "peak_rss_bytes": 30818304,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "isolated-plan": [
+      {
+        "elapsed_ms": 71.74600998405367,
+        "peak_rss_bytes": 30818304,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "native-cinema-contract": [
+      {
+        "elapsed_ms": 4551.533132005716,
+        "peak_rss_bytes": 297476096,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "native-cinema-mutation": [
+      {
+        "elapsed_ms": 4378.801307990216,
+        "peak_rss_bytes": 297332736,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "native-cinema-replay": [
+      {
+        "elapsed_ms": 4488.488506001886,
+        "peak_rss_bytes": 296660992,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "export-warmup": [
+      {
+        "elapsed_ms": 213.2345520076342,
+        "peak_rss_bytes": 137175040,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "snapshot-projection": [
+      {
+        "elapsed_ms": 31.283606018405408,
+        "peak_rss_bytes": 59256832,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+        "rust_phase": {
+          "elapsed_ms": 24.98053,
+          "files": 2,
+          "iterations": 1,
+          "peak_rss_bytes": 27242496,
+          "valid": true
+        }
+      }
+    ],
+    "offline-export": [
+      {
+        "elapsed_ms": 223.07707997970283,
+        "peak_rss_bytes": 137367552,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "browser-checks": [
+      {
+        "elapsed_ms": 32456.17639599368,
+        "peak_rss_bytes": 238399488,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "checks": [
+    "actual bounded Cinema native PASS, production mutation FAIL, repaired replay; provenance limits retained",
+    "deterministic export preserves unmanaged files and published database"
+  ],
+  "workload": "isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI",
+  "cache_conditions": "one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history",
+  "error": "RuntimeError('browser-checks: 51 |     if (error.value === void 0)\\n52 |       throw new Error(\"Serialized error must have either an error or a value\");\\n53 |     return (0, import_serializers.parseSerializedValue)(error.value, void 0);\\n54 |   }\\n55 |   if (error.error.name === \"TimeoutError\") {\\n56 |     const e2 = new TimeoutError(error.error.message);\\n                        ^\\nTimeoutError: option: Timeout 30000ms exceeded.\\nCall log:\\n\\x1b[2m  - waiting for getByLabel(\\'Display\\', { exact: true })\\x1b[22m\\n\\n      at /home/held/workspaces/conpinion/dctx0ctl/ui/site/node_modules/playwright-core/lib/client/errors.js:56:20\\n\\nBun v1.4.2 (Linux x64)\\n')",
+  "finished_at": "2026-10-13T16:33:27.006590+00:00"
+}

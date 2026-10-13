@@ -1,0 +1,981 @@
+{
+  "schema_version": 1,
+  "scope": "Graph readability correction; final acceptance phase with interrupted browser scenario continued",
+  "passed": true,
+  "cause": "Source-view .source CSS stretched React Flow source handles to 520px. Parallel edges also obscured dense graphs.",
+  "changes": [
+    "Scoped source-code styles and six-pixel horizontal graph handles",
+    "Fixed node dimensions matching Dagre",
+    "Directed relation bundles preserve individual semantic, prerequisite and history records",
+    "Task wave summaries expand; task focus retains actual prerequisite closure",
+    "New local layout namespace preserves old saved coordinates"
+  ],
+  "final_phase_record": "benchmarks/history/site/20261013T201250.021845Z-2209810.json",
+  "final_phase_status": "Broad stages passed; browser interrupted by a test assuming Zoom In was enabled at maximum zoom. Original failed/incomplete record is retained. Only remaining browser and unreached history checks continued after correcting that assumption.",
+  "passed_stages": {
+    "ui-typecheck": [
+      {
+        "elapsed_ms": 1003.5983600246254,
+        "peak_rss_bytes": 392314880,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-unit": [
+      {
+        "elapsed_ms": 21.304485999280587,
+        "peak_rss_bytes": 31543296,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-reproducibility": [
+      {
+        "elapsed_ms": 263.7290289858356,
+        "peak_rss_bytes": 126627840,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-engine": [
+      {
+        "elapsed_ms": 1724.097892001737,
+        "peak_rss_bytes": 678780928,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-cli": [
+      {
+        "elapsed_ms": 2901.0838459944353,
+        "peak_rss_bytes": 1063563264,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-http-errors": [
+      {
+        "elapsed_ms": 2162.1921340120025,
+        "peak_rss_bytes": 1078169600,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "release-build": [
+      {
+        "elapsed_ms": 43092.46266898117,
+        "peak_rss_bytes": 690130944,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "isolated-check": [
+      {
+        "elapsed_ms": 50.922728987643495,
+        "peak_rss_bytes": 31047680,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "isolated-plan": [
+      {
+        "elapsed_ms": 71.9709990080446,
+        "peak_rss_bytes": 31047680,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "native-cinema-contract": [
+      {
+        "elapsed_ms": 4568.876473000273,
+        "peak_rss_bytes": 297250816,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "native-cinema-mutation": [
+      {
+        "elapsed_ms": 4509.210490999976,
+        "peak_rss_bytes": 297283584,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "native-cinema-replay": [
+      {
+        "elapsed_ms": 4549.739319016226,
+        "peak_rss_bytes": 297123840,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "export-warmup": [
+      {
+        "elapsed_ms": 203.33220800966956,
+        "peak_rss_bytes": 190754816,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "snapshot-projection": [
+      {
+        "elapsed_ms": 122.51810502493754,
+        "peak_rss_bytes": 55693312,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+        "rust_phase": {
+          "elapsed_ms": 112.13456,
+          "files": 2,
+          "iterations": 5,
+          "peak_rss_bytes": 29769728,
+          "valid": true
+        }
+      },
+      {
+        "elapsed_ms": 121.80465599521995,
+        "peak_rss_bytes": 55693312,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+        "rust_phase": {
+          "elapsed_ms": 112.629166,
+          "files": 2,
+          "iterations": 5,
+          "peak_rss_bytes": 29786112,
+          "valid": true
+        }
+      },
+      {
+        "elapsed_ms": 122.30470398208126,
+        "peak_rss_bytes": 55693312,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+        "rust_phase": {
+          "elapsed_ms": 116.32693400000001,
+          "files": 2,
+          "iterations": 5,
+          "peak_rss_bytes": 29540352,
+          "valid": true
+        }
+      }
+    ],
+    "offline-export": [
+      {
+        "elapsed_ms": 193.2795479951892,
+        "peak_rss_bytes": 191123456,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 203.23417201871052,
+        "peak_rss_bytes": 191033344,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 203.89502999023534,
+        "peak_rss_bytes": 191197184,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "browser_checks": [
+    "offline file export uses no network",
+    "all views navigate",
+    "native failure opens its actual recorded case through a linkable selection",
+    "spec search opens pinned source and marked line",
+    "architecture handles stay six pixels, face horizontally, and bundled connections retain accessible details",
+    "graph node movement, zoom and fit",
+    "small viewport navigation and keyboard focus",
+    "ETag and read-only route boundary",
+    "task graph handles stay six pixels and face horizontally",
+    "live task start/complete retain selection and viewport; Done stays unverified",
+    "failed live refresh keeps selection and recovers from stale connection",
+    "hidden-tab polling pauses",
+    "10,000 explicitly synthetic tasks are virtualized",
+    "300 synthetic tasks start with compact wave bundles and expand without losing prerequisites"
+  ],
+  "browser_continuation": {
+    "schema_version": 1,
+    "scope": "Continuation of interrupted final graph validation; previously passed stages are not rerun",
+    "previous_record": "benchmarks/history/site/20261013T201250.021845Z-2209810.json",
+    "source_hash_before": "1db6de5e2ee2d9051064ae0c9266be895d6129b494fb06da30d876cb2c8cd566",
+    "measurements": {
+      "fixture-check": {
+        "elapsed_ms": 41.5358440077398,
+        "peak_rss_bytes": 30175232,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "fixture-plan": {
+        "elapsed_ms": 71.35953797842376,
+        "peak_rss_bytes": 30175232,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "fixture-export": {
+        "elapsed_ms": 172.9435269953683,
+        "peak_rss_bytes": 183623680,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "remaining-browser": {
+        "elapsed_ms": 23121.588642999995,
+        "peak_rss_bytes": 307847168,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "changed-check": {
+        "elapsed_ms": 61.33775899070315,
+        "peak_rss_bytes": 31981568,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "changed-plan": {
+        "elapsed_ms": 132.6205040095374,
+        "peak_rss_bytes": 34246656,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "rename": {
+        "elapsed_ms": 124.54095302382484,
+        "peak_rss_bytes": 41582592,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "rename-plan": {
+        "elapsed_ms": 131.8787290074397,
+        "peak_rss_bytes": 35352576,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "changed-export": {
+        "elapsed_ms": 373.66717401891947,
+        "peak_rss_bytes": 401567744,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "historical-export": {
+        "elapsed_ms": 313.3098350081127,
+        "peak_rss_bytes": 374038528,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    },
+    "fixture": "/home/held/workspaces/conpinion/dctx0ctl/target/site/graph-continue-cfdmw0or",
+    "passed": true,
+    "browser": {
+      "passed": true,
+      "checks": [
+        "task graph handles stay six pixels and face horizontally",
+        "live task start/complete retain selection and viewport; Done stays unverified",
+        "failed live refresh keeps selection and recovers from stale connection",
+        "hidden-tab polling pauses",
+        "10,000 explicitly synthetic tasks are virtualized",
+        "300 synthetic tasks start with compact wave bundles and expand without losing prerequisites"
+      ],
+      "errors": [],
+      "measurements": [
+        {
+          "phase": "live-refresh",
+          "elapsed_ms": 3045.941535,
+          "cache_condition": "3-second polling; CLI event published; warm browser"
+        },
+        {
+          "phase": "browser-memory",
+          "peak_rss_bytes": 1298284544,
+          "memory_scope": "100ms samples of summed RSS for owned Chromium parent and descendants; shared pages counted per process; separate from Rust; may miss transient peaks",
+          "memory_status": "measured"
+        }
+      ],
+      "remote_requests": 0
+    },
+    "source_hash_after": "1db6de5e2ee2d9051064ae0c9266be895d6129b494fb06da30d876cb2c8cd566"
+  },
+  "assets": {
+    "schema_version": 1,
+    "input_sha256": "0d3ed9306e8e5385182432a63e8b11ad47c5a0a8e3967bd6d3aa6d1bdb38f145",
+    "bun": "1.4.2",
+    "assets": {
+      "site.js": "8c026b98ac2aa8bbb2972c37119b6d0bbddf356ffc815a516bd710a5992c48df",
+      "site.css": "e3ee58fe811a41f962173686ef1bfb55bcdf848056115f9c4bd2cbe75daf0c4c"
+    },
+    "packages": [
+      {
+        "name": "@adobe/react-spectrum-ui",
+        "version": "1.2.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@adobe/react-spectrum-workflow",
+        "version": "2.3.5",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@adobe/react-spectrum",
+        "version": "3.47.7",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@babel/runtime",
+        "version": "7.29.10",
+        "license": "MIT"
+      },
+      {
+        "name": "@dagrejs/dagre",
+        "version": "3.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "@dagrejs/graphlib",
+        "version": "4.0.5",
+        "license": "MIT"
+      },
+      {
+        "name": "@heroui/react",
+        "version": "3.2.6",
+        "license": "MIT"
+      },
+      {
+        "name": "@heroui/styles",
+        "version": "3.2.6",
+        "license": "MIT"
+      },
+      {
+        "name": "@internationalized/date",
+        "version": "3.12.4",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@internationalized/number",
+        "version": "3.6.9",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@internationalized/string",
+        "version": "3.2.10",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@jridgewell/gen-mapping",
+        "version": "0.3.13",
+        "license": "MIT"
+      },
+      {
+        "name": "@jridgewell/remapping",
+        "version": "2.3.5",
+        "license": "MIT"
+      },
+      {
+        "name": "@jridgewell/resolve-uri",
+        "version": "3.1.2",
+        "license": "MIT"
+      },
+      {
+        "name": "@jridgewell/sourcemap-codec",
+        "version": "1.6.0",
+        "license": "MIT"
+      },
+      {
+        "name": "@jridgewell/trace-mapping",
+        "version": "0.3.31",
+        "license": "MIT"
+      },
+      {
+        "name": "@parcel/watcher-linux-x64-glibc",
+        "version": "2.6.0",
+        "license": "MIT"
+      },
+      {
+        "name": "@parcel/watcher-linux-x64-musl",
+        "version": "2.6.0",
+        "license": "MIT"
+      },
+      {
+        "name": "@parcel/watcher",
+        "version": "2.6.0",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/primitive",
+        "version": "1.1.7",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-avatar",
+        "version": "1.2.6",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-compose-refs",
+        "version": "1.1.5",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-context",
+        "version": "1.2.2",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-primitive",
+        "version": "2.1.10",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-slot",
+        "version": "1.3.3",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-use-callback-ref",
+        "version": "1.1.4",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-use-is-hydrated",
+        "version": "0.1.3",
+        "license": "MIT"
+      },
+      {
+        "name": "@radix-ui/react-use-layout-effect",
+        "version": "1.1.4",
+        "license": "MIT"
+      },
+      {
+        "name": "@react-aria/color",
+        "version": "3.2.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-aria/ssr",
+        "version": "3.10.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-aria/utils",
+        "version": "3.34.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-spectrum/color",
+        "version": "3.2.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-spectrum/provider",
+        "version": "3.11.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-stately/color",
+        "version": "3.10.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-stately/utils",
+        "version": "3.12.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-types/color",
+        "version": "3.2.0",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-types/shared",
+        "version": "3.36.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@react-types/shared",
+        "version": "3.37.0",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@spectrum-icons/ui",
+        "version": "3.7.2",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@spectrum-icons/workflow",
+        "version": "4.3.2",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@swc/helpers",
+        "version": "0.5.23",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@tailwindcss/cli",
+        "version": "4.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "@tailwindcss/node",
+        "version": "4.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "@tailwindcss/oxide-linux-x64-gnu",
+        "version": "4.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "@tailwindcss/oxide-linux-x64-musl",
+        "version": "4.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "@tailwindcss/oxide",
+        "version": "4.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "@tanstack/react-virtual",
+        "version": "3.13.22",
+        "license": "MIT"
+      },
+      {
+        "name": "@tanstack/virtual-core",
+        "version": "3.13.22",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/d3-color",
+        "version": "3.1.3",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/d3-drag",
+        "version": "3.0.7",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/d3-interpolate",
+        "version": "3.0.4",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/d3-selection",
+        "version": "3.0.12",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/d3-transition",
+        "version": "3.0.9",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/d3-zoom",
+        "version": "3.0.9",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/react-dom",
+        "version": "19.2.3",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/react",
+        "version": "19.2.14",
+        "license": "MIT"
+      },
+      {
+        "name": "@xyflow/react",
+        "version": "12.12.0",
+        "license": "MIT"
+      },
+      {
+        "name": "@xyflow/system",
+        "version": "0.0.83",
+        "license": "MIT"
+      },
+      {
+        "name": "aria-hidden",
+        "version": "1.2.6",
+        "license": "MIT"
+      },
+      {
+        "name": "classcat",
+        "version": "5.0.5",
+        "license": "MIT"
+      },
+      {
+        "name": "client-only",
+        "version": "0.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "clsx",
+        "version": "2.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "csstype",
+        "version": "3.2.3",
+        "license": "MIT"
+      },
+      {
+        "name": "d3-color",
+        "version": "3.1.0",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-dispatch",
+        "version": "3.0.1",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-drag",
+        "version": "3.0.0",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-ease",
+        "version": "3.0.1",
+        "license": "BSD-3-Clause"
+      },
+      {
+        "name": "d3-interpolate",
+        "version": "3.0.1",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-selection",
+        "version": "3.0.0",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-timer",
+        "version": "3.0.1",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-transition",
+        "version": "3.0.1",
+        "license": "ISC"
+      },
+      {
+        "name": "d3-zoom",
+        "version": "3.0.0",
+        "license": "ISC"
+      },
+      {
+        "name": "detect-libc",
+        "version": "2.1.2",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "dom-helpers",
+        "version": "5.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "enhanced-resolve",
+        "version": "5.26.0",
+        "license": "MIT"
+      },
+      {
+        "name": "graceful-fs",
+        "version": "4.2.11",
+        "license": "ISC"
+      },
+      {
+        "name": "input-otp",
+        "version": "1.5.0",
+        "license": "MIT"
+      },
+      {
+        "name": "is-extglob",
+        "version": "2.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "is-glob",
+        "version": "4.0.3",
+        "license": "MIT"
+      },
+      {
+        "name": "jiti",
+        "version": "2.7.0",
+        "license": "MIT"
+      },
+      {
+        "name": "js-tokens",
+        "version": "4.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "lightningcss-linux-x64-gnu",
+        "version": "1.31.1",
+        "license": "MPL-2.0"
+      },
+      {
+        "name": "lightningcss-linux-x64-musl",
+        "version": "1.31.1",
+        "license": "MPL-2.0"
+      },
+      {
+        "name": "lightningcss",
+        "version": "1.31.1",
+        "license": "MPL-2.0"
+      },
+      {
+        "name": "loose-envify",
+        "version": "1.4.0",
+        "license": "MIT"
+      },
+      {
+        "name": "magic-string",
+        "version": "0.30.21",
+        "license": "MIT"
+      },
+      {
+        "name": "mri",
+        "version": "1.2.0",
+        "license": "MIT"
+      },
+      {
+        "name": "node-addon-api",
+        "version": "7.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "object-assign",
+        "version": "4.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "picocolors",
+        "version": "1.1.1",
+        "license": "ISC"
+      },
+      {
+        "name": "picomatch",
+        "version": "4.0.7",
+        "license": "MIT"
+      },
+      {
+        "name": "playwright-core",
+        "version": "1.58.2",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "playwright",
+        "version": "1.58.2",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "prop-types",
+        "version": "15.8.1",
+        "license": "MIT"
+      },
+      {
+        "name": "react-aria-components",
+        "version": "1.22.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "react-aria",
+        "version": "3.53.1",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.4",
+        "license": "MIT"
+      },
+      {
+        "name": "react-is",
+        "version": "16.13.1",
+        "license": "MIT"
+      },
+      {
+        "name": "react-stately",
+        "version": "3.51.0",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "react-transition-group",
+        "version": "4.4.5",
+        "license": "BSD-3-Clause"
+      },
+      {
+        "name": "react",
+        "version": "19.2.4",
+        "license": "MIT"
+      },
+      {
+        "name": "scheduler",
+        "version": "0.27.0",
+        "license": "MIT"
+      },
+      {
+        "name": "source-map-js",
+        "version": "1.2.2",
+        "license": "BSD-3-Clause"
+      },
+      {
+        "name": "tailwind-variants",
+        "version": "3.3.1",
+        "license": "MIT"
+      },
+      {
+        "name": "tailwindcss",
+        "version": "4.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "tapable",
+        "version": "2.3.3",
+        "license": "MIT"
+      },
+      {
+        "name": "tslib",
+        "version": "2.8.1",
+        "license": "0BSD"
+      },
+      {
+        "name": "tw-animate-css",
+        "version": "1.4.0",
+        "license": "MIT"
+      },
+      {
+        "name": "typescript",
+        "version": "5.9.3",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "use-sync-external-store",
+        "version": "1.7.0",
+        "license": "MIT"
+      },
+      {
+        "name": "zustand",
+        "version": "4.5.7",
+        "license": "MIT"
+      }
+    ]
+  },
+  "performance_summary_before_browser_continuation": {
+    "ui-typecheck": {
+      "samples": 1,
+      "elapsed_ms_median": 1003.5983600246254,
+      "peak_rss_bytes_median": 392314880
+    },
+    "ui-unit": {
+      "samples": 1,
+      "elapsed_ms_median": 21.304485999280587,
+      "peak_rss_bytes_median": 31543296
+    },
+    "ui-reproducibility": {
+      "samples": 1,
+      "elapsed_ms_median": 263.7290289858356,
+      "peak_rss_bytes_median": 126627840
+    },
+    "rust-site-engine": {
+      "samples": 1,
+      "elapsed_ms_median": 1724.097892001737,
+      "peak_rss_bytes_median": 678780928
+    },
+    "rust-site-cli": {
+      "samples": 1,
+      "elapsed_ms_median": 2901.0838459944353,
+      "peak_rss_bytes_median": 1063563264
+    },
+    "rust-site-http-errors": {
+      "samples": 1,
+      "elapsed_ms_median": 2162.1921340120025,
+      "peak_rss_bytes_median": 1078169600
+    },
+    "release-build": {
+      "samples": 1,
+      "elapsed_ms_median": 43092.46266898117,
+      "peak_rss_bytes_median": 690130944
+    },
+    "isolated-check": {
+      "samples": 1,
+      "elapsed_ms_median": 50.922728987643495,
+      "peak_rss_bytes_median": 31047680
+    },
+    "isolated-plan": {
+      "samples": 1,
+      "elapsed_ms_median": 71.9709990080446,
+      "peak_rss_bytes_median": 31047680
+    },
+    "native-cinema-contract": {
+      "samples": 1,
+      "elapsed_ms_median": 4568.876473000273,
+      "peak_rss_bytes_median": 297250816
+    },
+    "native-cinema-mutation": {
+      "samples": 1,
+      "elapsed_ms_median": 4509.210490999976,
+      "peak_rss_bytes_median": 297283584
+    },
+    "native-cinema-replay": {
+      "samples": 1,
+      "elapsed_ms_median": 4549.739319016226,
+      "peak_rss_bytes_median": 297123840
+    },
+    "export-warmup": {
+      "samples": 1,
+      "elapsed_ms_median": 203.33220800966956,
+      "peak_rss_bytes_median": 190754816
+    },
+    "snapshot-projection": {
+      "samples": 3,
+      "elapsed_ms_median": 122.30470398208126,
+      "peak_rss_bytes_median": 55693312
+    },
+    "offline-export": {
+      "samples": 3,
+      "elapsed_ms_median": 203.23417201871052,
+      "peak_rss_bytes_median": 191123456
+    },
+    "browser-checks": {
+      "samples": 1,
+      "elapsed_ms_median": 32486.0146069841,
+      "peak_rss_bytes_median": 247164928
+    }
+  },
+  "current_export_measurement": {
+    "elapsed_ms": 16399.091964005493,
+    "peak_rss_bytes": 1879126016,
+    "exit_code": 0,
+    "memory_status": "measured",
+    "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+  },
+  "baseline_status": "unassessed; no accepted baseline promoted",
+  "coverage_scope": "No Rust logic changed. Previous workspace coverage is historical; no new workspace coverage claim."
+}

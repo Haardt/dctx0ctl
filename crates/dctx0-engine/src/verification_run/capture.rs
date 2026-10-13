@@ -10,6 +10,7 @@ pub(super) struct Capture {
     limits: Limits,
     copy_files: bool,
     entries_remaining: usize,
+    helper_remaining: u64,
 }
 #[derive(Clone, Copy)]
 struct Limits {
@@ -57,6 +58,7 @@ impl Capture {
             limits,
             copy_files,
             entries_remaining: 40_000,
+            helper_remaining: 268_435_456,
         };
         capture.directory(application, Path::new(""))?;
         Ok(capture)
@@ -110,11 +112,22 @@ impl Capture {
                 "Verification capture exceeds 20000 files".into(),
             ));
         }
+        let helper = relative == Path::new(".dctx0/testing/rust/executables/dctx0");
+        let file_limit = if helper {
+            268_435_456
+        } else {
+            self.limits.file
+        };
+        let remaining = if helper {
+            &mut self.helper_remaining
+        } else {
+            &mut self.remaining
+        };
         let mut bytes = Vec::new();
         fs::File::open(source)?
-            .take(self.limits.file + 1)
+            .take(file_limit + 1)
             .read_to_end(&mut bytes)?;
-        if bytes.len() as u64 > self.limits.file || bytes.len() as u64 > self.remaining {
+        if bytes.len() as u64 > file_limit || bytes.len() as u64 > *remaining {
             return Err(Error::Invalid(
                 "Verification capture exceeds its 16 MiB file or 512 MiB tree budget".into(),
             ));
@@ -128,10 +141,16 @@ impl Capture {
             ));
         }
         let name = name.replace('\\', "/");
-        self.remaining -= bytes.len() as u64;
+        *remaining -= bytes.len() as u64;
         self.files.insert(name, digest(&bytes));
         if self.copy_files {
             fs::write(self.root.join(relative), bytes)?;
+            if helper {
+                fs::set_permissions(
+                    self.root.join(relative),
+                    fs::metadata(source)?.permissions(),
+                )?;
+            }
         }
         Ok(())
     }
@@ -190,6 +209,21 @@ mod tests {
             std::os::unix::fs::symlink(root.join("a.ts"), root.join("link.ts")).unwrap();
             assert!(Capture::new(&root).is_err());
         }
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[cfg(unix)]
+    #[test]
+    fn non_utf8_source_paths_cannot_enter_capture_or_freshness_evidence() {
+        use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+        let root = std::env::temp_dir().join(format!("dctx0-capture-utf8-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join(OsString::from_vec(vec![0xff])), "actual source").unwrap();
+        assert!(
+            matches!(Capture::inventory(&root), Err(Error::Invalid(message)) if message.contains("UTF-8"))
+        );
+        assert!(
+            matches!(Capture::new(&root), Err(Error::Invalid(message)) if message.contains("UTF-8"))
+        );
         fs::remove_dir_all(root).unwrap();
     }
 }

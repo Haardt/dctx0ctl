@@ -22,6 +22,7 @@ pub(super) fn inspect(
     artifacts: &mut Vec<VerificationArtifact>,
 ) -> Result<Vec<VerificationIssue>> {
     let mut sources = vec![];
+    let mut outside_language_scope = Vec::new();
     for path in capture.files.keys() {
         let language = match Path::new(path).extension().and_then(|value| value.to_str()) {
             Some("ts" | "js" | "mjs" | "cjs") => InspectionLanguage::TypeScript,
@@ -30,11 +31,18 @@ pub(super) fn inspect(
             Some("rs") => InspectionLanguage::Rust,
             _ => continue,
         };
+        if !generator.dependency_languages().contains(&language) {
+            outside_language_scope.push(path.clone());
+            continue;
+        }
         sources.push(InspectionSource {
             path: path.clone(),
             language,
             text: fs::read_to_string(capture.root.join(path))?,
         });
+    }
+    if !outside_language_scope.is_empty() {
+        artifacts.push(VerificationArtifact::new("application/vnd.dctx0.dependency-language-scope+json", serde_json::to_vec(&serde_json::json!({"schema_version":1,"languages":generator.dependency_languages(),"outside_language_scope":outside_language_scope,"bound_by_input_inventory":true}))?));
     }
     let report = match generator.inspect_dependencies(&sources) {
         Ok(report) => report,
@@ -1110,5 +1118,39 @@ for line in sys.stdin:
                 .all(|entry| entry.captured && entry.path.as_deref() == Some("value.json"))
         );
         finish(&mut worker, &cancel).await;
+    }
+}
+
+#[cfg(test)]
+mod language_scope_tests {
+    use super::*;
+    #[test]
+    fn rust_embedded_other_language_assets_remain_captured_outside_rust_syntax_analysis() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-rust-embedded-scope-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("actual.rs"), "pub fn actual() {} ").unwrap();
+        fs::write(root.join("embedded.ts"), "generated transport placeholder").unwrap();
+        let capture = Capture::new(&root).unwrap();
+        let mut artifacts = vec![];
+        let issues = inspect(
+            &capture,
+            &dctx0_target_rust::RustHarness,
+            &BTreeSet::new(),
+            &mut artifacts,
+        )
+        .unwrap();
+        assert!(issues.is_empty(), "{issues:?}");
+        assert!(capture.files.contains_key("embedded.ts"));
+        let scope: serde_json::Value = serde_json::from_slice(&artifacts[0].contents).unwrap();
+        assert_eq!(
+            scope["outside_language_scope"],
+            serde_json::json!(["embedded.ts"])
+        );
+        let report: dctx0_target_sdk::DependencyInspection =
+            serde_json::from_slice(&artifacts[1].contents).unwrap();
+        assert_eq!(report.sources, ["actual.rs"]);
+        drop(capture);
+        fs::remove_dir_all(root).unwrap();
     }
 }

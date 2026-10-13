@@ -3,19 +3,22 @@ members = ["crates/dctx0-lsp", "crates/dctx0-target-sdk", "crates/dctx0-core", "
 resolver = "3"
 
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 
 [workspace.dependencies]
+axum = "=0.8.9"
+base64 = "=0.22.1"
+flate2 = "=1.1.9"
 dctx0-lsp = { path = "crates/dctx0-lsp" }
 lsp-server = "=0.7.9"
 lsp-types = "=0.97.0"
 crossbeam-channel = "=0.5.15"
 zip = { version = "=2.4.2", default-features = false }
 url = "=2.5.7"
-tokio = { version = "=1.52.3", features = ["rt-multi-thread", "process", "io-util", "sync", "time", "macros"] }
+tokio = { version = "=1.52.3", features = ["rt-multi-thread", "process", "io-util", "sync", "time", "macros", "net", "signal"] }
 rustix = { version = "=1.1.4", features = ["process"] }
 dctx0-target-sdk = { path = "crates/dctx0-target-sdk" }
 dctx0-core = { path = "crates/dctx0-core" }

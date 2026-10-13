@@ -76,6 +76,10 @@ def validation_sources():
     paths.extend((ROOT / 'examples/tutorial').glob('*.ts'))
     paths.extend((ROOT / 'examples/tutorial').glob('*.sh'))
     paths.append(ROOT / 'examples/tutorial/features.json')
+    paths.extend(path for path in (ROOT / "ui/site").rglob("*") if path.is_file() and "node_modules" not in path.parts)
+    paths.extend(ROOT.glob("dctx0/*.dctx0"))
+    paths.extend(ROOT.glob(".dctx0/testing/rust/*.rs"))
+    paths.extend(ROOT / ".dctx0/testing/rust" / name for name in ("Cargo.toml", "Cargo.lock"))
     paths.append(adaptive / 'production-frozen.json')
     return paths
 

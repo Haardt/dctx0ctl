@@ -1,0 +1,22 @@
+[package]
+name = "dctx0-project-adapter"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+[workspace]
+[lib]
+path = "adapter.rs"
+[[bin]]
+name = "dctx0-worker"
+path = "worker.rs"
+[dependencies]
+serde_json = { version = "=1.0.151", features = ["arbitrary_precision"] }
+serde = { version = "1", features = ["derive"] }
+dctx0-core = { path = "../../../crates/dctx0-core" }
+dctx0-language = { path = "../../../crates/dctx0-language" }
+dctx0-tasks = { path = "../../../crates/dctx0-tasks" }
+dctx0-engine = { path = "../../../crates/dctx0-engine" }
+dctx0-store = { path = "../../../crates/dctx0-store" }
+dctx0-target-sdk = { path = "../../../crates/dctx0-target-sdk" }
+dctx0-target-rust = { path = "../../../targets/rust" }
+tokio = { version = "=1.52.3", features = ["rt", "process", "io-util", "sync", "time"] }

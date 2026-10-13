@@ -10,6 +10,33 @@ const MAX_FILES: usize = 10_000;
 const MAX_FILE: u64 = 4 * 1024 * 1024;
 const MAX_TOTAL: u64 = 128 * 1024 * 1024;
 
+#[cfg(all(test, unix))]
+mod path_tests {
+    use super::*;
+    use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+    #[test]
+    fn non_utf8_source_names_are_rejected_without_lossy_identity_collisions() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-discovery-utf8-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join(OsString::from_vec(vec![0xff, b'.', b'r', b's'])),
+            "pub fn actual() {}",
+        )
+        .unwrap();
+        let result = inventory(
+            &root,
+            &root,
+            &mut Vec::new(),
+            &mut BTreeMap::new(),
+            &mut 0,
+            &mut 0,
+        );
+        assert!(matches!(result, Err(Error::Invalid(message)) if message.contains("UTF-8")));
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveryCandidate {
     pub path: String,

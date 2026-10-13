@@ -49,10 +49,29 @@ jobs:
           bun install --frozen-lockfile --cwd examples/cinema
           go -C examples/cinema-go mod download
           cargo fetch --locked --manifest-path examples/cinema-rust/.dctx0/testing/rust/Cargo.toml
+          cargo fetch --locked --manifest-path .dctx0/testing/rust/Cargo.toml
+          cargo fetch --locked --manifest-path .dctx0/testing/rust/fixtures/native/.dctx0/testing/rust/Cargo.toml
       - name: Cinema agent conformance reviews
         run: |
           cargo build -p dctx0-cli --all-features --locked
           python3 scripts/conformance_review_acceptance.py
+      - name: Rust product self-verification and production mutations
+        run: python3 scripts/self_verification_acceptance.py --mutations
+      - name: Read-only Cinema companion acceptance and measurements
+        run: |
+          bun install --frozen-lockfile --cwd ui/site
+          python3 scripts/site_acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinema-site-acceptance
+          path: |
+            target/site/acceptance.json
+            target/site/cinema-site.png
+            target/site/architecture-graph.png
+            target/site/task-graph.png
+            target/site/logs/
+            ui/site/dist/provenance.json
       - run: python3 scripts/validate.py --coverage --example cinema --tutorial
       - name: Gin and Axum coupled acceptance
         run: |
@@ -81,6 +100,11 @@ jobs:
         with:
           name: performance-history
           path: benchmarks/history/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-self-verification
+          path: target/self-verification/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

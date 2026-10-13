@@ -21,6 +21,8 @@ pub struct ConfiguredVerificationScope {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VerificationConfiguration {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution: Option<VerificationExecutionBudgets>,
     pub schema_version: u32,
     pub target: String,
     pub runtime: String,
@@ -28,6 +30,26 @@ pub struct VerificationConfiguration {
     pub fixtures: String,
     pub scope: ConfiguredVerificationScope,
     pub budgets: VerificationBudgets,
+}
+/// Per-application process budgets; omitted configurations retain global defaults.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VerificationExecutionBudgets {
+    pub initialization_seconds: u64,
+    pub case_seconds: u64,
+    pub run_seconds: u64,
+    pub cleanup_seconds: u64,
+}
+impl VerificationExecutionBudgets {
+    pub fn native_limits(&self) -> crate::NativeLimits {
+        crate::NativeLimits {
+            initialization: std::time::Duration::from_secs(self.initialization_seconds),
+            case: std::time::Duration::from_secs(self.case_seconds),
+            run: std::time::Duration::from_secs(self.run_seconds),
+            cleanup: std::time::Duration::from_secs(self.cleanup_seconds),
+            ..Default::default()
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -95,6 +117,12 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     Ok(serde_json::from_reader(file)?)
 }
 fn validate(config: &VerificationConfiguration) -> Result<()> {
+    if let Some(execution) = &config.execution {
+        execution
+            .native_limits()
+            .validate()
+            .map_err(|error| Error::Invalid(error.to_string()))?;
+    }
     if config.schema_version != 1
         || config.target.is_empty()
         || config.runtime.is_empty()
@@ -185,6 +213,7 @@ impl Project {
         }
         let base = format!(".dctx0/testing/{}", bundle.target);
         let config = VerificationConfiguration {
+            execution: None,
             schema_version: 1,
             target: bundle.target.clone(),
             runtime: generator.runtime().into(),
@@ -278,5 +307,32 @@ impl Project {
         )?;
         // Static setup never certifies that preserved developer code is functional.
         Ok(report)
+    }
+}
+
+#[cfg(test)]
+mod execution_budget_tests {
+    use super::*;
+    #[test]
+    fn scoped_execution_budgets_are_optional_and_reject_zero_or_overflowing_deadlines() {
+        let text = r#"{"schema_version":1,"target":"rust","runtime":"cargo","adapter":".dctx0/testing/rust/adapter.rs","fixtures":".dctx0/testing/rust/examples.json","scope":{"subjects":["W"],"tasks":[]},"budgets":{"seed":42,"generated_cases":16,"collection_size":2,"recursion_depth":8,"value_bytes":65536,"shrink_steps":100,"evaluation_steps":100000}}"#;
+        let mut config: VerificationConfiguration = serde_json::from_str(text).unwrap();
+        assert!(config.execution.is_none());
+        assert!(validate(&config).is_ok());
+        config.execution = Some(VerificationExecutionBudgets {
+            initialization_seconds: 60,
+            case_seconds: 60,
+            run_seconds: 900,
+            cleanup_seconds: 5,
+        });
+        assert!(validate(&config).is_ok());
+        assert_eq!(
+            config.execution.as_ref().unwrap().native_limits().case,
+            std::time::Duration::from_secs(60)
+        );
+        config.execution.as_mut().unwrap().case_seconds = 0;
+        assert!(validate(&config).is_err());
+        config.execution.as_mut().unwrap().case_seconds = u64::MAX;
+        assert!(validate(&config).is_err());
     }
 }

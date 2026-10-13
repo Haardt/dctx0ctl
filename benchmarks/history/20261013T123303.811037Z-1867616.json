@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-13T12:33:03.625909+00:00",
+  "status": "incomplete",
+  "measurements": {},
+  "settings": {
+    "iterations": 1,
+    "samples": 1,
+    "warmup_runs": 1,
+    "profile": "release",
+    "features": "all",
+    "cache": "warm filesystem; fresh process per sample"
+  },
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+  "hardware": {
+    "machine": "x86_64",
+    "cpu_count": 12,
+    "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
+  },
+  "revision": "96761b337ad4b02f556511b3c47f56aa700a5d77",
+  "dirty_worktree": "M .github/workflows/validate.yml\n M .gitignore\n M AGENTS.md\n M README.md\n D benchmarks/history/20261010T155006.326205Z-1376553.json\n D benchmarks/history/20261011T085846.609303Z-3738.json\n D benchmarks/history/20261011T102302.825398Z-39971.json\n D benchmarks/history/20261011T122730.517917Z-122640.json\n D benchmarks/history/20261011T125429.502923Z-175814.json\n D benchmarks/history/20261011T133605.523639Z-186242.json\n D benchmarks/history/docs-site/20261012T111919.780630Z-1118398.json\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/native/command.rs\n M crates/dctx0-engine/src/native/contracts.rs\n M crates/dctx0-engine/src/native/identity.rs\n M crates/dctx0-engine/src/native/mod.rs\n M crates/dctx0-engine/src/verification_discovery.rs\n M crates/dctx0-engine/src/verification_run/capture.rs\n M crates/dctx0-engine/src/verification_run/dependencies.rs\n M crates/dctx0-engine/src/verification_run/execution.rs\n M crates/dctx0-engine/src/verification_run/mod.rs\n M crates/dctx0-engine/src/verification_run/rust_build.rs\n M crates/dctx0-engine/src/verification_setup.rs\n M crates/dctx0-engine/tests/native.rs\n M crates/dctx0-lsp/src/workspace.rs\n M crates/dctx0-target-sdk/src/lib.rs\n M docs/site/src/SUMMARY.md\n M editors/zed/Cargo.lock\n M examples/cinema-rust/.dctx0/testing/rust/Cargo.lock\n M targets/go/src/execution.rs\n M targets/rust/src/execution.rs\n?? .dctx0/\n?? benchmarks/history/20261013T091007.908678Z-1604938.json\n?? benchmarks/history/20261013T095012.604494Z-1651465.json\n?? benchmarks/history/20261013T101816.051499Z-1679885.json\n?? benchmarks/history/20261013T113943.953533Z-1764087.json\n?? benchmarks/history/20261013T122224.211079Z-1830273.json\n?? benchmarks/history/20261013T122655.041487Z-1860135.json\n?? benchmarks/history/docs-site/20261012T195656.797486Z-1464944.json\n?? benchmarks/history/self-verification/\n?? crates/dctx0-cli/tests/self_verification.rs\n?? crates/dctx0-engine/src/native/descendants.rs\n?? crates/dctx0-engine/src/self_verification.rs\n?? dctx0/\n?? docs/self-verification-reviews.json\n?? docs/self-verification-validation.json\n?? docs/site/src/docs/self-verification.md\n?? examples/icalendar/\n?? scripts/self_verification_acceptance.py",
+  "source_hash": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+  "input_hashes": {
+    "cinema": "ef0ba39c0ffc94fc9ca2bce00b85d335b8d4f33e224d2f891567c310fcd1b516"
+  },
+  "memory_scope": "Linux post-exec VmHWM from standalone Rust parser process /proc/self/status; no child processes",
+  "error": "[Errno 2] No such file or directory: '/home/held/workspaces/conpinion/dctx0ctl/target/self-verification/performance-capture-20261013/target/release/dctx0-parse-bench'",
+  "validation_source_hash": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+  "validation_source_hash_after": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+  "validation_scope": "editors",
+  "validation_steps": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--workspace",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-lsp",
+        "-p",
+        "dctx0-engine",
+        "-p",
+        "dctx0-cli",
+        "--lib",
+        "--test",
+        "analysis",
+        "--test",
+        "lsp",
+        "--test",
+        "editors",
+        "--test",
+        "skills",
+        "--all-features",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/editor_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/conpinion/dctx0ctl/target/self-verification/performance-capture-20261013/target/debug/dctx0",
+        "--functional-only"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    }
+  ],
+  "adaptive_conformance": {
+    "status": "unavailable",
+    "reason": "No fresh successful adaptive report from this validation"
+  },
+  "native_executor_conformance": {
+    "status": "unavailable"
+  },
+  "native_transport_conformance": {
+    "status": "unavailable",
+    "reason": "No successful native transport conformance report from this validation"
+  },
+  "validation_status": "pass",
+  "performance_gate": "fail",
+  "unassessed_workloads": [],
+  "tolerances_percent": {
+    "speed": 20,
+    "ram": 10
+  }
+}

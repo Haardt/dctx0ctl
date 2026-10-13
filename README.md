@@ -418,7 +418,7 @@ Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are deve
 
 ## Releases
 
-Pushing a version tag such as `v0.1.1` creates a GitHub Release after full validation and all five native distribution jobs pass. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
+Pushing a version tag such as `v0.2.0` creates a GitHub Release after full validation and all five native distribution jobs pass. For v0.2.0, CI validation and distribution tests are explicitly skipped at the maintainer’s request; native builds and packaging remain required. This exception does not disable validation for future releases. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
 
 ```sh
 git tag -a v0.1.1 -m "DCTX0 v0.1.1"
@@ -453,8 +453,59 @@ Build the release CLI first using the quick-start instructions. The runner check
 | [Go target](docs/site/src/docs/targets.md) / [Rust target](docs/site/src/docs/targets.md) | Native setup, provenance, capability limits |
 | [Skills](docs/site/src/docs/tools.md) / [Editors](docs/site/src/docs/tools.md) | Agent and editor integration |
 
-Capability descriptions reflect the Rust workspace as of October 12, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
+Capability descriptions reflect the Rust workspace as of October 13, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
 
 ## License
 
 [MIT](LICENSE).
+
+## DCTX0 self-specification
+
+The [product specification](dctx0/README.md) describes DCTX0 itself, with compiler
+and evidence examples plus executable contracts for tasks, history, profiles, native
+execution, editors and distribution. The testing-only Rust adapter exercises the
+actual implementations through an isolated captured build. See the
+[self-verification guide](docs/site/src/docs/self-verification.md) for scope and limits.
+
+Rust self-verification from this checkout:
+
+```sh
+cargo build -p dctx0-cli --all-features --locked
+./target/debug/dctx0 verify self . --json
+python3 scripts/self_verification_acceptance.py --checks --mutations
+```
+
+The coupled runner performs affected regressions and production mutation checks,
+then release speed/RSS measurements. Linux, rustup Cargo/Rust and the SQLite host
+C compiler are required. Reports retain partial scope and separate source-bound
+reviews; they never adopt the development project's tasks. See
+[the self-verification guide](docs/site/src/docs/self-verification.md).
+
+## Static Site and Task Live View
+
+```sh
+dctx0 site export examples/cinema/dctx0 --output target/cinema-site
+dctx0 site serve examples/cinema/dctx0
+```
+
+**Static Site:** open the exported `index.html` directly, including under
+`file://`, or host the export as a static website. All assets and data are embedded;
+no network service is needed to browse the frozen snapshot.
+
+**Task Live View:** follow the loopback URL printed by `site serve`. Task starts,
+completions and newly stored evidence appear on a three-second refresh. Selection,
+scroll position and graph positions are preserved. Task waves expand into individual
+tasks, and focus shows the actual prerequisite chain. The interface includes
+Overview, Spec, Behavior, Architecture, Tasks, Changes, Evidence and Stats.
+
+The React companion reads published spec/task/evidence history; it never creates
+or migrates a database. Export supports `--snapshot`, `--plan`, and `--as-of`;
+both commands honor global `--db`. Live mode accepts `--port` and stops on Ctrl-C.
+
+Contributor assets: `bun install --frozen-lockfile --cwd ui/site`,
+`bun run --cwd ui/site check`, `bun run --cwd ui/site build`, then
+`bun run --cwd ui/site verify-assets`. Users of the Rust CLI need no Bun or Node.
+Run `python3 scripts/site_acceptance.py` for coupled Rust/UI/Chromium acceptance
+and release speed/RSS measurements; Chromium must be locally installed. Run
+`python3 scripts/validate.py --coverage` for required full-workspace validation.
+See [site capability and provenance details](docs/site/src/docs/site-companion.md).

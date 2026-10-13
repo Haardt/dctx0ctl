@@ -17,6 +17,18 @@ pub(crate) fn benchmark(
     if iterations == 0 {
         return Err("Iterations must be a positive integer".into());
     }
+    if matches!(phase, Phase::SiteSnapshot) {
+        let start = std::time::Instant::now();
+        let mut files = 0;
+        for _ in 0..iterations {
+            let data = project
+                .site_snapshot(&dctx0_store::SiteSelection::default())
+                .map_err(error_message)?;
+            files = data.records.snapshot.sources.len();
+            std::hint::black_box(data);
+        }
+        return benchmark_report(output, start, iterations, files);
+    }
     let sources = project.sources().map_err(error_message)?;
     let compiled = dctx0_language::compile(&sources);
     let Some(ir) = compiled.ir else {

@@ -2,6 +2,9 @@
 use dctx0_target_sdk::*;
 pub struct RustHarness;
 impl HarnessGenerator for RustHarness {
+    fn dependency_languages(&self) -> &'static [InspectionLanguage] {
+        &[InspectionLanguage::Rust]
+    }
     fn runtime(&self) -> &str {
         "cargo"
     }

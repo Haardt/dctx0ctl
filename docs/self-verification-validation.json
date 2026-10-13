@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-13",
+  "acceptance_report": "benchmarks/history/self-verification/20261013T120135.477580Z-1819894.json",
+  "source_hash": "ff77704ae7396eb316fe1e3573e78af3b133b21aefc018db490e5606cb528a3f",
+  "native_run": "0d1640b39d60d9a3c55ba25b015c0e42961188461533c0346ed23f4541f2ce39",
+  "machine_complete": true,
+  "source_current": true,
+  "partial": false,
+  "required_cases": 1115,
+  "executed_cases": 1115,
+  "explicit_examples": 43,
+  "original_examples_retained": 14,
+  "areas": 8,
+  "corpus": {
+    "seed": 42,
+    "generated_cases_per_obligation": 16,
+    "collection_size": 2
+  },
+  "budgets_seconds": {
+    "initialization": 60,
+    "case": 60,
+    "run": 900,
+    "cleanup": 5
+  },
+  "mutations": [
+    {
+      "name": "compiler",
+      "source": "crates/dctx0-language/src/compiler.rs",
+      "failures": [
+        "Dctx0.Compiler.empty named workspace compiles",
+        "Dctx0.Compiler.fragments resolve across real source files",
+        "Dctx0.Compiler.pure operation compiles"
+      ]
+    },
+    {
+      "name": "evidence",
+      "source": "crates/dctx0-tasks/src/adoption.rs",
+      "failures": [
+        "Dctx0.Evidence.empty requirements cannot pass"
+      ]
+    }
+  ],
+  "inspection": {
+    "reports": "docs/self-verification-reviews.json",
+    "sha256": "207078ae52666d6b9193b73a683cbf40ed52802adc20771ef034308b41fd32a3",
+    "count": 12,
+    "native_run": "0d1640b39d60d9a3c55ba25b015c0e42961188461533c0346ed23f4541f2ce39",
+    "imported_evidence": "ccd19198aad921443da6d966007df8c8f75edf4f317828c07eed03c5f031aa88",
+    "effective_result": {
+      "status": "PASS"
+    },
+    "open_obligations": 0,
+    "native_result_unchanged": {
+      "status": "UNKNOWN",
+      "issue": {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "Dctx0#constraint:1: Constraint has no automatically asserted meaning",
+        "span": null
+      }
+    }
+  },
+  "measurements": [
+    {
+      "phase": "preparation",
+      "elapsed_ms": 526,
+      "peak_rss_bytes": 36200448,
+      "memory_method": "post-preparation orchestrator /proc VmHWM; includes preparation",
+      "passed": true
+    },
+    {
+      "phase": "cold-cli-build",
+      "cache_condition": "fresh target directory; existing registry cache",
+      "passed": true,
+      "elapsed_ms": 99543.7174020044,
+      "peak_rss_bytes": 949563392,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0
+    },
+    {
+      "phase": "orchestrator",
+      "elapsed_ms": 184680,
+      "peak_rss_bytes": 111366144,
+      "memory_method": "post-execution orchestrator /proc VmHWM; previous stages included, child workers excluded",
+      "passed": true
+    },
+    {
+      "phase": "native-worker",
+      "samples": [
+        {
+          "kind": "measured",
+          "peak_rss_bytes": 18595840,
+          "runtime_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+          "platform": "linux"
+        }
+      ],
+      "memory_method": "worker-reported /proc VmHWM, captured in native artifacts",
+      "passed": true
+    },
+    {
+      "phase": "warm-finite-plan",
+      "passed": true,
+      "elapsed_ms": 113054.14929398103,
+      "peak_rss_bytes": 618278912,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 1
+    },
+    {
+      "phase": "replay",
+      "passed": true,
+      "elapsed_ms": 84897.02636000584,
+      "peak_rss_bytes": 616034304,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0
+    }
+  ],
+  "limitations": [
+    "Bounded Linux corpus, not exhaustive inputs or branch coverage.",
+    "Standalone adapter/generated helper coverage is unmeasured.",
+    "Authored source-bound inspection is separate from automatic testing evidence.",
+    "New self-verification workloads have no accepted baseline; existing baseline was not promoted."
+  ],
+  "coverage": {
+    "lines": 32087,
+    "covered_lines": 31313,
+    "line_percent": 97.58780814660143,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "c4f899de668a238b0a2bbf0929262f2ee14bc657baeb0f4f7eca8a32116b9219",
+    "source_hash_after": "c4f899de668a238b0a2bbf0929262f2ee14bc657baeb0f4f7eca8a32116b9219",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 2615,
+        "covered": 2538,
+        "percent": 97.05544933078393
+      },
+      "instantiations": {
+        "count": 5533,
+        "covered": 3428,
+        "percent": 61.95553949033075
+      },
+      "lines": {
+        "count": 33918,
+        "covered": 32874,
+        "percent": 96.9219883247833
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 50855,
+        "covered": 48249,
+        "notcovered": 2606,
+        "percent": 94.87562678202734
+      }
+    },
+    "threshold_percent": 97,
+    "new_exclusions": []
+  },
+  "previous_full_workspace_validation": {
+    "report": "benchmarks/history/20261013T113943.953533Z-1764087.json",
+    "status": "fail",
+    "reason": "Full functional suites including Cinema TypeScript/Go/Rust passed; Zed standalone locked build failed due package-version mismatch. The corrected lockfile is covered by the final editors-focused validation and fresh complete workspace Rust coverage. The earlier source-changing coverage run remains unproven."
+  },
+  "coverage_validation_run": {
+    "report": "benchmarks/history/20261013T122224.211079Z-1830273.json",
+    "functional_steps": "all passed, including repaired Zed packaging and fresh full-workspace Rust coverage",
+    "overall_status": "incomplete",
+    "reason": "Concurrent edits to examples/icalendar/dctx0 changed the broader benchmark inventory. Coverage compilation-input hashes and self-verification original inventory remained unchanged. A fresh coupled editors-focused validation/performance run follows."
+  },
+  "final_coupled_validation": {
+    "report": "benchmarks/history/20261013T123746.840199Z-1870817.json",
+    "status": "complete",
+    "validation_status": "pass",
+    "validation_scope": "editors",
+    "performance_gate": "unassessed",
+    "measurement_workloads": 71,
+    "settings": {
+      "iterations": 1,
+      "samples": 1,
+      "warmup_runs": 1,
+      "profile": "release",
+      "features": "all",
+      "cache": "warm filesystem; fresh process per sample"
+    },
+    "source_hash": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+    "source_hash_after": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+    "validation_source_hash": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+    "validation_source_hash_after": "7f54ddefe4b828175e818997f03109aaac5cba176af40abe6afad008c59394be",
+    "capture_inventory": "docs/self-verification-performance-capture.json",
+    "capture_inventory_sha256": "2c3e21ef931745e014e935c669b571652cbebe757cd30e3af8f401e3a6cb2f86",
+    "notes": [
+      "Frozen performance source copy prevents concurrent unrelated calendar-spec edits from invalidating measurements.",
+      "Generated build/database inputs were omitted; cache artifacts and fixture dependencies are measurement environment, not production source.",
+      "Final focused checks passed; separate fresh full-workspace LLVM run also passed with stable compilation hashes.",
+      "Reduced one-sample/one-iteration development settings are unassessed against the accepted baseline."
+    ]
+  }
+}

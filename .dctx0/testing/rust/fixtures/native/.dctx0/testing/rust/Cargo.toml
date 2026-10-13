@@ -1,0 +1,14 @@
+[package]
+name = "dctx0-project-adapter"
+version = "0.1.0"
+edition = "2024"
+[workspace]
+[lib]
+path = "adapter.rs"
+[[bin]]
+name = "dctx0-worker"
+path = "worker.rs"
+[dependencies]
+serde_json = { version = "=1.0.151", features = ["arbitrary_precision"] }
+num-bigint = "=0.4.6"
+dctx0-self-native-fixture = { path = "../../.." }

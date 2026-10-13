@@ -1,4 +1,6 @@
 //! Filesystem and history orchestration. Semantic compilation remains pure.
+mod site;
+pub use site::*;
 mod editors;
 use dctx0_changes::HistoryReader;
 pub use editors::{
@@ -12,7 +14,9 @@ mod profiles;
 mod skills;
 pub use skills::*;
 mod rename;
+mod self_verification;
 mod tasks;
+pub use self_verification::*;
 mod verification;
 mod verification_complete;
 pub use verification_complete::*;

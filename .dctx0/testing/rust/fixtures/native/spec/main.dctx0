@@ -1,0 +1,12 @@
+workspace Fixture {
+  surface Api {
+    operation increment(input: Int) -> Int {
+      pure
+      ensures result == input + 1
+    }
+  }
+  example "actual native increment" {
+    when result = Api.increment(1)
+    expect result == 2
+  }
+}

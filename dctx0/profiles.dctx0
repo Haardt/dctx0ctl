@@ -1,0 +1,65 @@
+fragment Dctx0 {
+  domain Profiles {
+    message Document {
+      path: String
+      content: String
+    }
+    message Setup {
+      created: List<String>
+      preserved: List<String>
+    }
+    failure InvalidRequest { reason: String }
+    message Adaptation {
+      oldTask: ApiInt
+      newTask: ApiInt
+      frozenHash: String
+      retainedHash: String
+      editUnchanged: Boolean
+      oldDone: Boolean
+      newOpen: Boolean
+      newUnverified: Boolean
+    }
+    surface Guidance {
+      operation adaptation() -> Adaptation
+      operation write(path: String, content: String) -> Unit ! InvalidRequest
+      operation initialize(target: String) -> Setup ! InvalidRequest
+      operation read(path: String) -> Document ! InvalidRequest
+    }
+    example "repeated initialization preserves local edits" {
+      when Guidance.initialize("rust")
+      when Guidance.write("common.md", "local guidance")
+      when Guidance.initialize("rust")
+      when document = Guidance.read("common.md")
+      expect document.content == "local guidance"
+    }
+    example "escaping profile path is rejected" {
+      when Guidance.write("../outside.md", "invalid")
+      expect result fails InvalidRequest
+    }
+    example "unknown target is rejected" {
+      when Guidance.initialize("unknown-target")
+      expect result fails InvalidRequest
+    }
+    example "claims freeze guidance and explicit adaptation preserves history" {
+      when result = Guidance.adaptation()
+      expect result.frozenHash == result.retainedHash
+      expect result.editUnchanged == true
+      expect result.newTask != result.oldTask
+      expect result.oldDone == true
+      expect result.newOpen == true
+      expect result.newUnverified == true
+    }
+    review ProfileBinding {
+      inspect { implementation contracts decisions }
+      criteria {
+        "Default manifests remain target-owned and language semantics remain target-neutral."
+        "Initialization writes only project-local guidance and preserves existing Markdown and unrelated AGENTS instructions."
+        "Own subjects select implement documents; dependencies select use documents; common guidance is included once."
+        "Claims and reservations freeze the exact selected bundles, including local edits."
+        "An edited profile alone changes neither task definitions nor work/check status."
+        "Explicit adaptation creates new work and preserves old results and profile bindings."
+        "Unknown roles, unsafe paths and incompatible manifests are rejected explicitly."
+      }
+    }
+  }
+}

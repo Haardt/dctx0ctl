@@ -1,4 +1,5 @@
 //! Managed Linux native transport. No worker reply constitutes verification PASS.
+mod descendants;
 mod identity;
 pub use identity::NativeRuntimeIdentity;
 pub(crate) use identity::VerifierIdentity;
@@ -111,7 +112,7 @@ impl Default for NativeLimits {
     }
 }
 impl NativeLimits {
-    fn validate(&self) -> Result<(), NativeFailure> {
+    pub(crate) fn validate(&self) -> Result<(), NativeFailure> {
         if [self.initialization, self.case, self.run, self.cleanup]
             .iter()
             .any(|duration| duration.is_zero() || Instant::now().checked_add(*duration).is_none())
@@ -133,6 +134,8 @@ impl NativeLimits {
 pub struct NativeAudit {
     pub pid: u32,
     pub stderr: String,
+    #[serde(default)]
+    pub stdout: String,
     pub received_messages: usize,
     pub exit_code: Option<i32>,
 }
@@ -140,6 +143,7 @@ pub struct NativeAudit {
 pub struct NativeWorker {
     child: Option<Child>,
     group_active: bool,
+    descendants: descendants::Descendants,
     groups: std::sync::Arc<dyn GroupControl>,
     input: Option<ChildStdin>,
     pid: u32,
@@ -150,6 +154,7 @@ pub struct NativeWorker {
     fault: watch::Receiver<Option<NativeFailure>>,
     tasks: Vec<JoinHandle<()>>,
     logs: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    stdout: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     received: usize,
     session_evidence: Vec<NativeSessionEvidence>,
     evidence_bytes: usize,
@@ -215,6 +220,21 @@ impl NativeWorker {
                 .env("CGO_ENABLED", "0")
                 .env("GOFLAGS", "-mod=readonly");
         }
+        // An inherited ownership chain also identifies detached descendants after
+        // their original parent exits, when /proc's PPid relationship is lost.
+        let owner = format!(
+            "{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|error| NativeFailure::new(
+                    NativeFailureKind::Technical,
+                    error.to_string()
+                ))?
+                .as_nanos()
+        );
+        let ancestors = std::env::var("DCTX0_NATIVE_OWNERS").unwrap_or_default();
+        command.env("DCTX0_NATIVE_OWNERS", format!("{ancestors}:{owner}"));
         command
             .args(&recipe.arguments)
             .current_dir(directory)
@@ -233,6 +253,7 @@ impl NativeWorker {
         let (send, frames) = mpsc::channel(2);
         let (fault_send, fault) = watch::channel(None);
         let logs = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let stdout_logs = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let output = if protocol {
             tokio::spawn(streams::protocol(
                 stdout,
@@ -244,7 +265,7 @@ impl NativeWorker {
             drop(send);
             tokio::spawn(streams::logs(
                 stdout,
-                logs.clone(),
+                stdout_logs.clone(),
                 fault_send.clone(),
                 limits.log_bytes,
             ))
@@ -262,6 +283,7 @@ impl NativeWorker {
         Ok(Self {
             child: Some(child),
             group_active: true,
+            descendants: descendants::Descendants::start(pid, owner),
             groups: std::sync::Arc::new(LinuxGroups),
             input: Some(input),
             pid,
@@ -272,6 +294,7 @@ impl NativeWorker {
             fault,
             tasks,
             logs,
+            stdout: stdout_logs,
             received: 0,
             session_evidence: Vec::new(),
             evidence_bytes: 0,
@@ -301,6 +324,8 @@ impl NativeWorker {
                     .expect("reader holds no lock across awaits"),
             )
             .into_owned(),
+            stdout: String::from_utf8_lossy(&self.stdout.lock().expect("stdout guard"))
+                .into_owned(),
             received_messages: self.received,
             exit_code: None,
         }
@@ -431,6 +456,9 @@ impl NativeWorker {
         }
     }
     pub async fn finish(&mut self) -> Result<NativeAudit, NativeFailure> {
+        self.finish_status(true).await
+    }
+    async fn finish_status(&mut self, require_success: bool) -> Result<NativeAudit, NativeFailure> {
         self.input.take();
         let child = self.child.as_mut().ok_or_else(|| {
             NativeFailure::new(NativeFailureKind::WorkerExit, "Worker already closed")
@@ -439,9 +467,11 @@ impl NativeWorker {
             self.abort().await?;
             return Err(error);
         }
+        self.descendants.kill(self.pid)?;
         self.groups.kill(self.pid)?;
         let status = child.wait().await.map_err(NativeFailure::io)?;
         reap_group_with(self.pid, self.limits.cleanup, self.groups.as_ref()).await?;
+        self.descendants.reap(self.limits.cleanup).await?;
         self.group_active = false;
         self.child.take();
         let drain = async {
@@ -479,7 +509,7 @@ impl NativeWorker {
         }
         let mut audit = self.audit();
         audit.exit_code = status.code();
-        if !status.success() {
+        if require_success && !status.success() {
             return Err(NativeFailure::new(
                 NativeFailureKind::WorkerExit,
                 format!("Native worker exited with {status}"),
@@ -492,11 +522,13 @@ impl NativeWorker {
             return Ok(());
         }
         self.input.take();
+        self.descendants.kill(self.pid)?;
         self.groups.kill(self.pid)?;
         if let Some(mut child) = self.child.take() {
             bounded_reap(child.wait(), self.limits.cleanup).await?;
         }
         reap_group_with(self.pid, self.limits.cleanup, self.groups.as_ref()).await?;
+        self.descendants.reap(self.limits.cleanup).await?;
         self.group_active = false;
         for task in self.tasks.drain(..) {
             task.abort();
@@ -604,16 +636,28 @@ async fn bounded_reap<T>(
 impl Drop for NativeWorker {
     fn drop(&mut self) {
         if self.group_active {
+            // Discover children before killing their parent. A group-only wait
+            // can see ECHILD during the short interval before reparenting.
+            let _ = self.descendants.kill(self.pid);
             let _ = LinuxGroups.kill(self.pid);
             self.child.take();
             let pid = self.pid;
+            let timeout = self.limits.cleanup;
+            let descendants = std::mem::take(&mut self.descendants);
             #[cfg(target_os = "linux")]
             std::thread::spawn(move || {
-                let group = rustix::process::Pid::from_raw(pid as i32).expect("PID came from OS");
-                while rustix::process::waitpgid(group, rustix::process::WaitOptions::empty())
-                    .is_ok()
-                {}
+                let deadline = Instant::now() + timeout;
+                loop {
+                    let group_empty = matches!(LinuxGroups.reap(pid), Ok(ReapStep::Empty));
+                    let descendants_empty = matches!(descendants.reap_pending(), Ok(false));
+                    if (group_empty && descendants_empty) || Instant::now() >= deadline {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(1));
+                }
             });
+            #[cfg(not(target_os = "linux"))]
+            let _ = (pid, timeout, descendants);
             for task in self.tasks.drain(..) {
                 task.abort();
             }

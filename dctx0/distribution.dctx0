@@ -1,0 +1,60 @@
+fragment Dctx0 {
+  domain Distribution {
+    message InvocationResult {
+      exitCode: ApiInt
+      stdout: String
+      stderr: String
+    }
+    message Packages {
+      skillsExit: ApiInt
+      repeatExit: ApiInt
+      editorExit: ApiInt
+      zedExit: ApiInt
+      skillPreserved: Boolean
+      editorPreserved: Boolean
+      jsonValid: Boolean
+    }
+    surface CommandLine {
+      operation localPackages() -> Packages
+      operation jsonCheck() -> InvocationResult
+      operation invoke(arguments: List<String>) -> InvocationResult
+    }
+    example "version command succeeds" {
+      when result = CommandLine.invoke(["--version"])
+      expect result.exitCode == 0
+      expect length(result.stdout) > 0
+    }
+    example "unknown command is rejected" {
+      when result = CommandLine.invoke(["not-a-dctx0-command"])
+      expect result.exitCode != 0
+      expect length(result.stderr) > 0
+    }
+    example "check returns actual JSON with successful exit" {
+      when result = CommandLine.jsonCheck()
+      expect result.exitCode == 0
+      expect length(result.stdout) > 0
+      expect result.stderr == ""
+    }
+    example "local package preparation preserves customization" {
+      when result = CommandLine.localPackages()
+      expect result.skillsExit == 0
+      expect result.repeatExit != 0
+      expect result.editorExit == 0
+      expect result.zedExit == 0
+      expect result.skillPreserved == true
+      expect result.editorPreserved == true
+      expect result.jsonValid == true
+    }
+    review Packaging {
+      inspect { implementation contracts decisions }
+      criteria {
+        "JSON output is machine-readable and command exit codes preserve failure and unsupported evidence."
+        "Release tags match the workspace version, and archives contain the actual versioned executable and receipt."
+        "Checksums cover every distributed archive and installer; installation verifies them before replacement."
+        "Linux, macOS and Windows support boundaries are explicit; unsupported managed execution cannot claim PASS."
+        "Installed CLI, LSP, profiles, agent skills and target templates work independently of the source checkout."
+        "Skipped validation is stated accurately and never represented as passed tests."
+      }
+    }
+  }
+}

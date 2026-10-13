@@ -1,0 +1,63 @@
+fragment Dctx0 {
+  domain History {
+    message Snapshot {
+      id: String
+      sourceHash: String
+      checkOccurrence: ApiInt
+    }
+    message CheckReport {
+      accepted: Boolean
+      diagnostics: ApiInt
+      publishedSnapshot: Option<Snapshot>
+    }
+    failure MissingSnapshot { reason: String }
+    surface Publication {
+      operation write(source: String) -> Unit
+      operation readerUnchanged() -> Boolean
+      operation check() -> CheckReport
+      operation head() -> Snapshot ! MissingSnapshot
+      operation latest() -> Option<Snapshot>
+    }
+    example "failed compilation preserves valid head" {
+      when Publication.write("workspace Sample {}")
+      when valid = Publication.check()
+      expect valid.accepted == true
+      when Publication.write("workspace Sample {")
+      when invalid = Publication.check()
+      expect invalid.accepted == false
+      when head = Publication.head()
+      when saved = Publication.latest()
+      expect saved == valid.publishedSnapshot
+    }
+    example "identical snapshots have separate occurrences" {
+      when Publication.check()
+      when first = Publication.head()
+      when Publication.check()
+      when second = Publication.head()
+      expect first.id == second.id
+      expect second.checkOccurrence > first.checkOccurrence
+      when unchanged = Publication.readerUnchanged()
+      expect unchanged == true
+    }
+    example "initial failure cannot create a valid head" {
+      when Publication.write("workspace Sample {")
+      when invalid = Publication.check()
+      expect invalid.accepted == false
+      expect invalid.publishedSnapshot == None
+      when head = Publication.latest()
+      expect head == None
+    }
+    review Persistence {
+      inspect { implementation contracts decisions }
+      criteria {
+        "A successful check publishes the snapshot and occurrence atomically under the project lock."
+        "A failed check records diagnostics and leaves the last valid snapshot unchanged."
+        "Repeated identical snapshots retain distinct successful check occurrences."
+        "Read-only access never creates a database, migrates a schema or repairs a rename journal."
+        "Writer migrations are additive and preserve supported historical snapshots and events."
+        "Dry-run rename never writes; execution validates references and uses recoverable multi-file publication."
+        "Only explicit rename events establish continuity between differently named subjects."
+      }
+    }
+  }
+}

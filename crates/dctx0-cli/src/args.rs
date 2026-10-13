@@ -30,6 +30,7 @@ pub(crate) enum Command {
     Skills(crate::skills::SkillArgs),
     /// Install bundled skills (compatible shorthand for skills install).
     Install(crate::skills::SkillInstallArgs),
+    Site(crate::site::SiteArgs),
     Verify(crate::verification::VerifyArgs),
     Tasks(Box<crate::tasks::TaskArgs>),
     Profile(crate::profiles::ProfileArgs),
@@ -88,6 +89,7 @@ pub(crate) enum Command {
 }
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum Phase {
+    SiteSnapshot,
     VerificationHarness,
     VerificationDiscover,
     VerificationInit,

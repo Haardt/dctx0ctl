@@ -1,0 +1,62 @@
+fragment Dctx0 {
+  domain Site {
+    intent "Present published specifications, immutable task history and stored evidence through a read-only React companion."
+    constraint "Browser IDs, claims and event sequences retain exact decimal text; legacy CLI, IR and SQLite formats remain unchanged."
+    constraint "Read-only readers never publish, migrate, recover or infer working-tree freshness. Task readiness comes from the central task model."
+    constraint "Done, testing PASS, imported evidence and review judgement remain independent. Historical PASS cannot prove current requirements."
+    message SnapshotView {
+      sourceFiles: ApiInt
+      tasks: ApiInt
+      integerPins: Boolean
+      sourcePinned: Boolean
+      unverified: Boolean
+    }
+    message ExportView {
+      deterministic: Boolean
+      selfContained: Boolean
+      preservesUnmanaged: Boolean
+      databaseUnchanged: Boolean
+    }
+    message EmptyView {
+      rejected: Boolean
+      databaseCreated: Boolean
+    }
+    surface Companion {
+      operation snapshot() -> SnapshotView
+      operation exportSnapshot() -> ExportView
+      operation emptyHistory() -> EmptyView
+    }
+    example "published site reads pinned sources and lossless IDs" {
+      when view = Companion.snapshot()
+      expect view.sourceFiles > 0
+      expect view.tasks > 0
+      expect view.integerPins == true
+      expect view.sourcePinned == true
+      expect view.unverified == true
+    }
+    example "portable export is deterministic and preserves history" {
+      when view = Companion.exportSnapshot()
+      expect view.deterministic == true
+      expect view.selfContained == true
+      expect view.preservesUnmanaged == true
+      expect view.databaseUnchanged == true
+    }
+    example "missing published history never creates a database" {
+      when view = Companion.emptyHistory()
+      expect view.rejected == true
+      expect view.databaseCreated == false
+    }
+    review BrowserExperience {
+      inspect { implementation contracts decisions }
+      criteria {
+        "Offline file navigation, sources and all views require no network services. Local live mode binds only to loopback and exposes no write routes."
+        "Search, keyboard navigation and small viewports remain usable; large task lists are virtualized."
+        "Task and semantic graphs retain separate edge meaning, allow pan, zoom, node movement and focus, and preserve local positions across refresh."
+        "Status colors include names and symbols. Case failures lead to their actual stored observations and input evidence."
+        "Live polling pauses in hidden tabs, preserves selection and reports stale connections while retaining the last coherent snapshot."
+        "Locked open-source packages, installed license notices and source-bound reproducible embedded bundles ship with the CLI."
+        "Rust, UI and browser acceptance retain separate speed and memory provenance; unassessed site workloads never replace accepted baselines."
+      }
+    }
+  }
+}

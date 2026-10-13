@@ -1,0 +1,79 @@
+fragment Dctx0 {
+  domain Evidence {
+    type Status = Passed | Failed | Unknown
+    type CaseRequirement {
+      caseId: String
+      requirements: List<String>
+    }
+    type CaseOutcome {
+      caseId: String
+      status: Status
+    }
+    message Coverage {
+      status: Status
+      requiredCases: List<String>
+      missingRequirements: List<String>
+      unexecutedCases: List<String>
+    }
+    surface TaskEvidence {
+      operation coverage(requirements: List<String>, mappings: List<CaseRequirement>, outcomes: List<CaseOutcome>) -> Coverage {
+        pure
+      }
+    }
+    example "complete mapped evidence passes" {
+      when result = TaskEvidence.coverage(["operation"], [CaseRequirement { caseId = "case-1" requirements = ["operation"] }], [CaseOutcome { caseId = "case-1" status = Passed }])
+      expect result.status == Passed
+      expect result.requiredCases == ["case-1"]
+      expect result.missingRequirements == []
+      expect result.unexecutedCases == []
+    }
+    example "unmapped requirement remains unknown" {
+      when result = TaskEvidence.coverage(["pure"], [CaseRequirement { caseId = "case-1" requirements = ["operation"] }], [CaseOutcome { caseId = "case-1" status = Passed }])
+      expect result.status == Unknown
+      expect result.missingRequirements == ["pure"]
+    }
+    example "missing execution remains unknown" {
+      when result = TaskEvidence.coverage(["operation"], [CaseRequirement { caseId = "case-1" requirements = ["operation"] }], [])
+      expect result.status == Unknown
+      expect result.unexecutedCases == ["case-1"]
+    }
+    example "failure dominates incomplete coverage" {
+      when result = TaskEvidence.coverage(["operation", "unmapped"], [CaseRequirement { caseId = "case-1" requirements = ["operation"] }], [CaseOutcome { caseId = "case-1" status = Failed }])
+      expect result.status == Failed
+      expect result.missingRequirements == ["unmapped"]
+    }
+    example "unknown observation cannot pass" {
+      when result = TaskEvidence.coverage(["operation"], [CaseRequirement { caseId = "case-1" requirements = ["operation"] }], [CaseOutcome { caseId = "case-1" status = Unknown }])
+      expect result.status == Unknown
+    }
+    example "empty requirements cannot pass" {
+      when result = TaskEvidence.coverage([], [], [])
+      expect result.status == Unknown
+    }
+    example "purity and example clauses have their own mappings" {
+      when result = TaskEvidence.coverage(["operation", "pure", "when", "expect"], [CaseRequirement { caseId = "generated" requirements = ["operation", "pure"] }, CaseRequirement { caseId = "example" requirements = ["when", "expect"] }], [CaseOutcome { caseId = "generated" status = Passed }, CaseOutcome { caseId = "example" status = Passed }])
+      expect result.status == Passed
+      expect result.requiredCases == ["example", "generated"]
+    }
+    example "every mapped mandatory case must execute" {
+      when result = TaskEvidence.coverage(["operation"], [CaseRequirement { caseId = "a" requirements = ["operation"] }, CaseRequirement { caseId = "b" requirements = ["operation"] }], [CaseOutcome { caseId = "a" status = Passed }])
+      expect result.status == Unknown
+      expect result.requiredCases == ["a", "b"]
+      expect result.unexecutedCases == ["b"]
+    }
+    example "irrelevant PASS cannot discharge required work" {
+      when result = TaskEvidence.coverage(["operation"], [CaseRequirement { caseId = "required" requirements = ["operation"] }], [CaseOutcome { caseId = "irrelevant" status = Passed }])
+      expect result.status == Unknown
+      expect result.unexecutedCases == ["required"]
+    }
+    review NativeAuthority {
+      inspect { implementation contracts decisions }
+      criteria {
+        "The Rust verifier assesses actual observations; a worker success flag never supplies the verdict."
+        "Automatic adoption uses complete mapped native cases and captured provenance, not imported PASS reports."
+        "Pure and example clause mappings derive from actual semantic nodes and executed case obligations."
+        "Free-form requirements remain source-bound review work; approval cannot override an automatic FAIL."
+      }
+    }
+  }
+}

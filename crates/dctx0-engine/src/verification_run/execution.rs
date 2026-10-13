@@ -118,6 +118,7 @@ pub(super) struct Input<'a> {
     pub plan: &'a ProgramPlan,
     pub lifecycles: &'a VerificationLifecycleFixtures,
     pub cancel: &'a NativeCancellation,
+    pub limits: NativeLimits,
 }
 async fn aborted(run: &mut VerificationRun, worker: &mut NativeWorker, id: &str) {
     let cleanup = worker.abort().await;
@@ -141,6 +142,7 @@ pub(super) async fn execute(
         plan,
         lifecycles,
         cancel,
+        limits,
     } = input;
     let manifest = dctx0_verification::case_manifest(plan);
     run.required_cases = manifest.required_cases.clone();
@@ -159,7 +161,6 @@ pub(super) async fn execute(
     {
         return Ok(());
     }
-    let limits = NativeLimits::default();
 
     artifacts.push(VerificationArtifact::new(
         "application/vnd.dctx0.native-limits+json",

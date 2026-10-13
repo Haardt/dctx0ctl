@@ -140,7 +140,14 @@ impl Workspace {
 }
 impl Snapshot {
     pub fn project(&self, uri: &str) -> Option<&Analysis> {
-        self.projects.iter().find(|p| p.source(uri).is_some())
+        self.projects.iter().find(|project| {
+            project.source(uri).is_some()
+                || file_path(uri).is_some_and(|path| {
+                    project
+                        .files()
+                        .any(|source| file_path(source).as_ref() == Some(&path))
+                })
+        })
     }
     pub fn request(
         &self,
@@ -173,18 +180,30 @@ impl Snapshot {
                 _ => Value::Null,
             });
         };
+        // Compiler spans retain the open document's URI. Resolve a canonical alias
+        // to that source before looking up symbols/tokens in the pinned analysis.
+        let source_uri = if project.source(uri).is_some() {
+            uri
+        } else {
+            let path = file_path(uri).ok_or("Invalid local file URI")?;
+            project
+                .files()
+                .find(|source| file_path(source).as_ref() == Some(&path))
+                .map(String::as_str)
+                .ok_or("Document alias has no analyzed source")?
+        };
         let position = || {
             serde_json::from_value::<Position>(params["position"].clone())
                 .map_err(|e| e.to_string())
         };
         Ok(match method {
-            "textDocument/documentSymbol" => project.document_symbols(uri),
-            "textDocument/semanticTokens/full" => project.semantic_tokens(uri),
-            "textDocument/completion" => project.completions(uri, position()?),
-            "textDocument/hover" => project.hover(uri, position()?),
-            "textDocument/definition" => project.definition(uri, position()?),
+            "textDocument/documentSymbol" => project.document_symbols(source_uri),
+            "textDocument/semanticTokens/full" => project.semantic_tokens(source_uri),
+            "textDocument/completion" => project.completions(source_uri, position()?),
+            "textDocument/hover" => project.hover(source_uri, position()?),
+            "textDocument/definition" => project.definition(source_uri, position()?),
             "textDocument/references" => project.references(
-                uri,
+                source_uri,
                 position()?,
                 params["context"]["includeDeclaration"]
                     .as_bool()
@@ -316,6 +335,16 @@ mod tests {
         let project = snapshot.project(&uri).unwrap();
         assert_eq!(project.files().count(), 1);
         assert!(!project.diagnostics(&uri).as_array().unwrap().is_empty());
+        let canonical_uri = file_uri(&workspace.roots[0].join("a.dctx0")).unwrap();
+        assert_ne!(canonical_uri, uri);
+        let aliased_tokens = snapshot
+            .request(
+                "textDocument/semanticTokens/full",
+                &serde_json::json!({"textDocument":{"uri":canonical_uri}}),
+            )
+            .unwrap();
+        assert_eq!(aliased_tokens, project.semantic_tokens(&uri));
+        assert!(!aliased_tokens["data"].as_array().unwrap().is_empty());
         fs::remove_dir_all(directory).unwrap();
     }
     #[test]

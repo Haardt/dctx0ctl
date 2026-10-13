@@ -10,7 +10,8 @@ mod profiles;
 mod publish;
 mod read;
 mod schema;
-use read::{event, head, latest_check, session, watermark};
+use read::{event, latest_check};
+pub(super) use read::{head, session, watermark};
 
 pub(super) use schema::{MIGRATION, PROFILE_MIGRATION};
 fn invalid(message: impl Into<String>) -> Error {

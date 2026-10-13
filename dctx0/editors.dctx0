@@ -1,0 +1,52 @@
+fragment Dctx0 {
+  domain Editors {
+    message Diagnostic {
+      code: String
+      message: String
+      line: ApiInt
+      column: ApiInt
+    }
+    message SemanticToken {
+      line: ApiInt
+      column: ApiInt
+      length: ApiInt
+      tokenType: ApiInt
+    }
+    failure InvalidRequest { reason: String }
+    surface LanguageService {
+      operation version() -> Option<ApiInt>
+      operation shutdown() -> Unit
+      operation diagnostics(uri: String, version: ApiInt, text: String) -> List<Diagnostic> ! InvalidRequest
+      operation semanticTokens(uri: String) -> List<SemanticToken> ! InvalidRequest
+    }
+    example "unsaved edits publish current version diagnostics" {
+      when broken = LanguageService.diagnostics("main.dctx0", 1, "workspace Sample {")
+      expect length(broken) > 0
+      when firstVersion = LanguageService.version()
+      expect getOrElse(firstVersion, -1) == 1
+      when repaired = LanguageService.diagnostics("main.dctx0", 2, "workspace Sample {}")
+      expect repaired == []
+      when secondVersion = LanguageService.version()
+      expect getOrElse(secondVersion, -1) == 2
+      when tokens = LanguageService.semanticTokens("./main.dctx0")
+      expect length(tokens) > 0
+      when LanguageService.shutdown()
+      expect Success
+    }
+    example "escaping document URI is rejected" {
+      when LanguageService.diagnostics("../outside.dctx0", 1, "workspace Outside {}")
+      expect result fails InvalidRequest
+    }
+    review EditorIntegration {
+      inspect { implementation contracts surfaces }
+      criteria {
+        "Diagnostics follow the current document version and unsaved text rather than a stale disk buffer."
+        "Equivalent canonical file paths belong to one workspace while responses retain the editor's URI."
+        "Definitions, references, completion and hover use resolved declarations and source positions."
+        "Semantic tokens use the current DCTX0 keywords and declaration kinds, not an obsolete grammar."
+        "Shutdown, document closure and malformed protocol messages are handled explicitly."
+        "Local VS Code and Zed extension installation preserves existing content unless force is explicitly requested."
+      }
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-13T10:18:16.411670+00:00",
+  "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+  "revision": "96761b337ad4b02f556511b3c47f56aa700a5d77",
+  "dirty": true,
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "seed": 42,
+  "generated_cases": 16,
+  "collection_size": 2,
+  "baseline": "unassessed; no baseline promotion",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "build",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 67.79944300069474,
+      "peak_rss_bytes": 57176064,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "elapsed_ms": 668.4764039819129,
+      "peak_rss_bytes": 56594432,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "elapsed_ms": 1978.0183419934474,
+      "peak_rss_bytes": 351354880,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "    Checking dctx0-engine v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Checking dctx0-cli v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-cli)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.92s\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--lib",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 16004.910510993795,
+      "peak_rss_bytes": 769470464,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "\nrunning 67 tests\ntest editors::path_tests::zed_requires_representable_server_paths_and_emits_real_rust_literals ... ok\ntest editors::tests::staging_failures_and_private_bundle_writes_preserve_existing_destinations ... ok\ntest native::cleanup_retry_tests::cleanup_retries_after_leader_reaping_without_claiming_a_completed_group ... ok\ntest native::command::input_tests::bounded_command_input_round_trips_and_rejects_oversize_and_closed_pipes ... ok\ntest native::command::tests::command_status_preserves_separate_streams_and_nonzero_exit ... ok\ntest native::contracts::setup_tests::undeclared_setup_is_rejected_before_an_adapter_call_and_reaps_the_session ... ok\ntest native::command::tests::cancellation_reaps_descendants_that_create_independent_groups ... ok\ntest native::identity::tests::environment_identity_preserves_values_and_ignores_entry_order ... ok\ntest native::identity::tests::identity_hashes_are_exact_and_bounded ... ok\ntest native::identity::managed_environment_tests::runtime_identity_ignores_only_supervisor_tokens_and_remains_current ... ok\ntest native::session::tests::legacy_observation_journals_keep_their_unknown_phase ... ok\ntest native::streams::tests::stream_io_failures_and_closed_receivers_are_explicit ... ok\ntest native::tests::command_cancellation_keeps_cleanup_failure_and_allows_owned_recovery ... ok\ntest native::tests::kernel_cleanup_failures_and_nonresponsive_waits_remain_explicit ... ok\ntest native::tests::request_encoding_limits_abort_and_reap_the_actual_worker ... ok\ntest native::tests::request_failure_preserves_failed_cleanup_and_later_owned_cleanup_can_recover ... ok\ntest profile_publication_tests::new_profile_publication_preserves_concurrent_edits_and_cleans_failed_temporaries ... ok\ntest rename::tests::interrupted_rename_rolls_back_or_finishes_committed_publication ... ok\ntest rename::tests::race_checks_and_recovery_reject_edits_without_overwriting_them ... ok\ntest rename::tests::recovery_preserves_intervening_edits_and_rejects_unsafe_journals ... ok\ntest rename::tests::source_edits_require_exact_utf8_ranges_and_nonoverlapping_spans ... ok\ntest native::identity::tests::verifier_identity_binds_the_actual_running_rust_image ... ok\ntest self_verification::rejection_tests::self_verification_rejects_invalid_spec_before_building_or_mutating_original_history ... ok\ntest self_verification::tests::capture_timestamps_reject_pre_epoch_clocks_without_unsigned_wrapping ... ok\ntest self_verification::tests::self_inventory_captures_embedded_inputs_and_ignores_databases_builds_and_modules ... ok\ntest skills::environment_tests::global_preview_uses_the_live_agent_environment_without_writing_files ... ok\ntest skills::tests::failed_application_rolls_back_all_skills_in_the_request ... ok\ntest skills::tests::global_roots_honor_agent_environment_without_changing_project_files ... ok\ntest skills::tests::installs_complete_embedded_trees_deduplicates_codex_and_preserves_edits ... ok\ntest skills::tests::preview_and_late_conflict_never_install_earlier_destinations ... ok\ntest skills::tests::unknown_selection_and_symlinks_are_rejected_even_when_forced ... ok\ntest tests::atomic_files_and_database_paths_reject_missing_parent_directories ... ok\ntest verification_complete::tests::authored_notes_bind_all_spec_sources_and_reject_invalid_or_escaping_inputs ... ok\ntest verification_discovery::path_tests::non_utf8_source_names_are_rejected_without_lossy_identity_collisions ... ok\ntest verification_run::adoption::tests::imported_missing_pin_and_incomplete_native_proofs_never_open_task_history ... ok\ntest verification_run::build::tests::receipts_bind_actual_inputs_and_binary_and_reject_changes ... ok\ntest verification_run::capture::directory_budget_tests::directory_entries_and_depth_are_bounded_even_without_files ... ok\ntest verification_run::capture::inventory_tests::distinct_native_paths_cannot_collide_in_verification_provenance ... ok\ntest verification_run::capture::inventory_tests::freshness_inventory_detects_edits_additions_removals_and_dependency_changes_without_writes ... ok\ntest verification_run::capture::tests::capture_rejects_symlinks_and_enforces_file_tree_and_count_budgets ... ok\ntest verification_run::capture::tests::non_utf8_source_paths_cannot_enter_capture_or_freshness_evidence ... ok\ntest verification_run::dependencies::language_scope_tests::rust_embedded_other_language_assets_remain_captured_outside_rust_syntax_analysis ... ok\ntest verification_run::dependencies::native_resolution_tests::dependency_scope_guards_execute_no_resolution_without_valid_captured_roots ... ok\ntest verification_run::dependencies::native_resolution_tests::native_dependency_budget_retains_its_executed_prefix_and_reports_incompleteness ... ok\ntest verification_run::dependencies::native_resolution_tests::resolver_replies_cannot_invent_captured_sources_or_enter_the_testing_boundary ... ok\ntest verification_run::dependencies::native_resolution_tests::syntax_failures_remain_open_without_inventing_native_resolution_attempts ... ok\ntest verification_run::dependencies::tests::captured_dependency_analysis_retains_all_unresolved_inputs_and_its_artifact ... ok\ntest verification_run::dependencies::tests::generated_artifacts_are_available_only_in_the_testing_boundary ... ok\ntest verification_run::dependencies::tests::recorded_esm_sites_require_matching_complete_evidence_and_actual_loading ... ok\ntest verification_run::dependencies::tests::relative_dependencies_cannot_escape_the_capture_root ... ok\ntest verification_run::dependencies::tests::reports_cannot_omit_sources_or_invent_source_ranges ... ok\ntest verification_run::replay::tests::cinema_assertion_and_example_replay_bindings_are_pinned_and_isolate_one_subject ... ok\ntest verification_run::replay::tests::generated_operation_replay_rejects_corrupt_bindings_arguments_setup_and_indices ... ok\ntest verification_run::replay::tests::lifecycle_replay_rejects_unknown_paths_instead_of_executing_an_empty_plan ... ok\ntest verification_run::replay::tests::prepared_generated_replay_preserves_setup_and_rejects_changes ... ok\ntest verification_run::replay::tests::replay_rejects_missing_pinned_cases_for_every_case_kind ... ok\ntest verification_run::replay::tests::reviewed_operation_replay_keeps_setup_and_rejects_extra_bindings ... ok\ntest verification_run::rust_build::tests::cargo_package_metadata_rejects_missing_fields_and_escaping_local_sources ... ok\ntest verification_run::rust_build::tests::compiler_dependency_paths_preserve_escaped_spaces_and_reject_incomplete_paths ... ok\ntest verification_run::rust_build::tests::invalid_compiler_depinfo_and_unpinned_includes_cannot_finish_a_receipt ... ok\ntest verification_run::rust_build::tests::unavailable_and_failed_inspection_tools_return_technical_errors ... ok\ntest verification_run::shrink::tests::native_failure_during_shrinking_retains_original_counterexamples_without_exhaustion ... ok\ntest verification_run::shrink::tests::native_step_limits_preserve_only_verified_pure_and_lifecycle_improvements ... ok\ntest verification_run::shrink::tests::pure_shrinking_requires_a_failure_and_disabled_budgets_invoke_nothing ... ok\ntest verification_run::task_reviews::tests::source_bound_reviews_validate_current_requirements_and_keep_latest_judgements ... ok\ntest verification_setup::execution_budget_tests::scoped_execution_budgets_are_optional_and_reject_zero_or_overflowing_deadlines ... ok\ntest self_verification::rejection_tests::a_valid_spec_without_the_required_cli_package_cannot_publish_self_evidence ... ok\n\ntest result: ok. 67 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.61s\n\n",
+      "stderr": "   Compiling dctx0-engine v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.37s\n     Running unittests src/lib.rs (target/debug/deps/dctx0_engine-cb647fc249bc4d6c)\nZipWriter drop failed: Io(Os { code: 28, kind: StorageFull, message: \"No space left on device\" })"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "native",
+        "--test",
+        "verification_rust",
+        "--test",
+        "tasks",
+        "--test",
+        "profiles",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 111996.68569499045,
+      "peak_rss_bytes": 728743936,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "\nrunning 21 tests\ntest acknowledged_shutdown_still_requires_a_real_clean_exit ... ok\ntest central_cases_distinguish_contract_failures_unknowns_exceptions_and_protocol_errors ... ok\ntest all_cinema_examples_invoke_real_services_with_central_mocks_and_observed_events ... ok\ntest cinema_existing_validators_and_boundaries_are_real_and_mutations_are_detected ... ok\ntest cleanup_kills_and_reaps_descendants_and_drop_is_a_last_resort ... ok\ntest closed_worker_input_is_an_io_failure_and_reaps_the_leader ... ok\ntest duplicate_mock_ids_and_callback_rejection_abort_the_real_process ... ok\ntest evidence_limits_keep_the_acknowledged_prefix_reap_workers_and_reset_for_new_cases ... ok\ntest example_protocol_guards_and_whole_session_deadlines_reap_workers ... ok\ntest late_logs_are_rejected_and_owned_detached_processes_are_cleaned ... ok\ntest lifecycle_inputs_setup_failures_observer_protocol_and_deadlines_remain_explicit ... ok\ntest malformed_oversized_incomplete_and_unsolicited_messages_are_terminal ... ok\ntest missing_runtime_invalid_limits_timeouts_and_cancellation_never_return_a_reply ... ok\ntest native_commands_bound_logs_time_cancellation_and_failures_without_protocol_claims ... ok\ntest cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services ... ok\ntest pure_operation_cases_validate_real_returns_effects_arguments_and_whole_case_deadlines ... ok\ntest real_process_callbacks_logs_graceful_exit_and_repeated_abort_are_managed ... ok\ntest runtime_identity_binds_the_managed_executable_and_initial_environment ... ok\ntest spec_derived_cinema_properties_use_real_bun_and_central_rust_assessment ... ok\ntest value_factory_transport_rejects_wrong_reply_kinds_and_whole_case_timeouts ... ok\ntest real_cinema_native_suite_typechecks_measures_storage_http_and_di_and_detects_wiring_mutation ... ok\n\ntest result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.97s\n\n\nrunning 15 tests\ntest catalog_validation_rejects_corruption_symlinks_and_missing_provider_templates ... ok\ntest claims_freeze_history_release_reloads_and_completed_context_survives_deletion ... ok\ntest complete_examples_select_all_required_profiles_and_real_call_boundaries ... ok\ntest concurrent_profile_claims_are_distinct_and_missing_catalog_blocks_only_new_work ... ok\ntest creation_checks_all_paths_and_preserves_exact_agents_suffixes ... ok\ntest context_provenance_distinguishes_current_requested_stored_and_unknown_legacy_guidance ... ok\ntest creation_is_resumable_preserves_edits_and_agents_text_and_dry_run_is_read_only ... ok\ntest optional_profiles_and_legacy_selection_require_explicit_adoption ... ok\ntest missing_current_files_disable_drift_and_unrelated_edits_do_not_stale_selected_updates ... ok\ntest profile_selection_handles_operation_boundaries_retirement_and_short_domain_filters ... ok\ntest profiles_reject_path_and_metadata_conflicts ... ok\ntest profile_updates_are_selective_stale_guarded_idempotent_and_survive_planning ... ok\ntest semantic_profiles_are_pinned_budgeted_and_empty_files_are_intentional ... ok\ntest repeated_checks_stale_previews_and_fresh_previews_pin_the_observed_occurrence ... ok\ntest slice_reservations_freeze_all_contexts_and_roll_back_on_missing_files ... ok\n\ntest result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s\n\n\nrunning 14 tests\ntest action_write_failures_roll_back_work_results_evidence_and_reservations ... ok\ntest changes_preserve_history_rename_occurrences_and_reversions ... ok\ntest claims_transitions_and_external_evidence_enforce_guards ... ok\ntest deletion_of_started_work_creates_retirement_and_conflicting_actors_block_it ... ok\ntest plan_changes_invalidate_reserved_slices_without_starting_their_tasks ... ok\ntest plan_queries_are_read_only_idempotent_and_keep_valid_heads ... ok\ntest both_complete_examples_produce_explainable_target_neutral_plans ... ok\ntest reviews_are_explicit_tasks_with_separate_reports_and_followups ... ok\ntest simultaneous_store_claims_never_allocate_the_same_task_and_stale_plans_roll_back ... ok\ntest restored_operation_identity_requires_new_integration_even_with_identical_contracts ... ok\ntest slice_claims_can_include_existing_own_work_and_keep_its_token ... ok\ntest slices_reserve_atomically_keep_future_tasks_open_and_preserve_pinned_pages ... ok\ntest unchanged_requirements_rebind_to_new_check_without_rewriting_tasks_or_history ... ok\ntest source_locations_and_unplanned_deletion_never_restore_old_identity ... ok\n\ntest result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s\n\n\nrunning 1 test\ntest rust_builds_actual_code_detects_mutations_and_preserves_failed_build_cases has been running for over 60 seconds\ntest rust_builds_actual_code_detects_mutations_and_preserves_failed_build_cases ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 99.74s\n\n",
+      "stderr": "   Compiling dctx0-engine v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.56s\n     Running tests/native.rs (target/debug/deps/native-ab638fbafa69a9ee)\n     Running tests/profiles.rs (target/debug/deps/profiles-bed0793028e22ccc)\n     Running tests/tasks.rs (target/debug/deps/tasks-74e5692a21bebed1)\n     Running tests/verification_rust.rs (target/debug/deps/verification_rust-af5e9eb00f55fd8f)\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--locked"
+      ],
+      "elapsed_ms": 22485.60351500055,
+      "peak_rss_bytes": 824782848,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0,
+      "stdout": "\nrunning 5 tests\ntest tests::invalid_compilation_output_failures_are_reported ... ok\ntest skills::tests::catalog_and_default_preview_are_available_to_embedded_cli_callers ... ok\ntest tests::task_markdown_json_and_benchmark_output_errors_are_propagated ... ok\ntest tests::output_failures_and_unavailable_memory_are_explicit ... ok\ntest tests::verification_planning_retains_unknowns_and_propagates_every_output_failure ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 9 tests\ntest benchmarks_reject_invalid_change_scenarios_and_skip_symlink_loops ... ok\ntest cli_reports_the_package_version_without_a_specification ... ok\ntest cli_parses_files_and_recursive_workspaces_and_reports_failures ... ok\ntest cli_serializes_complete_typed_reference_asts ... ok\ntest human_readable_changes_preserve_all_facet_names ... ok\ntest isolated_parser_driver_reports_valid_invalid_and_unreadable_inputs ... ok\ntest commands_publish_inspect_rename_and_benchmark_with_machine_readable_output ... ok\ntest verification_setup_and_configured_scope_preserve_files_and_never_execute_or_adopt ... ok\ntest verification_core_benchmarks_measure_both_compiled_examples_without_native_claims ... ok\n\ntest result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.42s\n\n\nrunning 2 tests\ntest editor_installation_preview_is_read_only_and_distinct_from_agent_skills ... ok\ntest explicit_activation_uses_local_code_command_and_retains_vsix_on_failure ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.70s\n\n\nrunning 3 tests\ntest invalid_utf8_headers_invalid_message_shapes_and_closed_stdout_are_rejected ... ok\ntest malformed_stdio_messages_fail_without_emitting_non_protocol_stdout ... ok\ntest native_stdio_lsp_handles_unsaved_edits_navigation_colors_and_exit_without_stdin_eof ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s\n\n\nrunning 1 test\ntest shipped_target_features_control_profile_registration ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 2 tests\ntest defaults_all_agents_and_global_environment_fallbacks_are_explicit ... ok\ntest standalone_binary_installs_without_a_spec_and_reports_preview_idempotence_and_conflict ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s\n\n\nrunning 3 tests\ntest all_read_views_share_pinned_models_and_markdown_json_formats ... ok\ntest cli_mutations_return_claim_guards_and_accept_structured_reports ... ok\ntest task_benchmarks_measure_every_phase_and_reject_project_state_and_empty_inputs ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 1 test\ntest discovery_cli_reports_unconfirmed_candidates_without_executing_or_writing_application ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 1 test\ntest show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_migration ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n\nrunning 1 test\ntest run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s\n\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+      "stderr": "   Compiling dctx0-cli v0.1.1 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-cli)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.20s\n     Running unittests src/main.rs (target/debug/deps/dctx0-1caa313ff22f68a9)\n     Running unittests src/parse_bench.rs (target/debug/deps/dctx0_parse_bench-d31159c94e85856d)\n     Running tests/cli.rs (target/debug/deps/cli-12c5dce45e55517a)\n     Running tests/editors.rs (target/debug/deps/editors-2f1128d18afda09d)\nZed activation requires its \u2018install dev extension\u2019 UI; omit --activate\n     Running tests/lsp.rs (target/debug/deps/lsp-2dbbacd038720acb)\n     Running tests/profile_features.rs (target/debug/deps/profile_features-dc9f2b8aa04ffca0)\n     Running tests/profiles.rs (target/debug/deps/profiles-9930ab11b198f329)\n     Running tests/self_verification.rs (target/debug/deps/self_verification-15af1625fd3725c6)\n     Running tests/skills.rs (target/debug/deps/skills-9ac063888b3052b8)\n     Running tests/tasks.rs (target/debug/deps/tasks-8c9295330ea78f1f)\n     Running tests/verification_complete.rs (target/debug/deps/verification_complete-3453eb05a05e133a)\n     Running tests/verification_discovery.rs (target/debug/deps/verification_discovery-8197fab4b006ae86)\n     Running tests/verification_go.rs (target/debug/deps/verification_go-af67a3bb17be9223)\n     Running tests/verification_history.rs (target/debug/deps/verification_history-56678cf88996532d)\nHistory: Snapshot not found or ambiguous: Verification run missing\n     Running tests/verification_inspection.rs (target/debug/deps/verification_inspection-dc09f86ae23253b3)\n     Running tests/verification_lifecycle.rs (target/debug/deps/verification_lifecycle-ff19734d3b1faf85)\n     Running tests/verification_run.rs (target/debug/deps/verification_run-6fffc16d62b473b9)\n     Running tests/verification_rust.rs (target/debug/deps/verification_rust-200aa45097027d75)\n"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-lsp",
+        "-p",
+        "dctx0-cli",
+        "--lib",
+        "--test",
+        "self_verification",
+        "--test",
+        "lsp",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 349.37347401864827,
+      "peak_rss_bytes": 57536512,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 101,
+      "stdout": "\nrunning 3 tests\ntest invalid_utf8_headers_invalid_message_shapes_and_closed_stdout_are_rejected ... ok\ntest malformed_stdio_messages_fail_without_emitting_non_protocol_stdout ... ok\ntest native_stdio_lsp_handles_unsaved_edits_navigation_colors_and_exit_without_stdin_eof ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s\n\n\nrunning 1 test\ntest self_command_builds_captured_sources_keeps_development_history_untouched_and_detects_real_mutation ... FAILED\n\nfailures:\n\n---- self_command_builds_captured_sources_keeps_development_history_untouched_and_detects_real_mutation stdout ----\n\nthread 'self_command_builds_captured_sources_keeps_development_history_untouched_and_detects_real_mutation' (1749672) panicked at crates/dctx0-cli/tests/self_verification.rs:28:5:\nSelf specification rejected: [Diagnostic { code: \"DCTX0_STATEMENT_CONTEXT\", message: \"constraint is not allowed in operation\", span: Span { file: \"main.dctx0\", start: Position { offset: 84, line: 4, column: 2 }, end: Position { offset: 137, line: 5, column: 1 } }, related: [] }]\n\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    self_command_builds_captured_sources_keeps_development_history_untouched_and_detects_real_mutation\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s\n\n",
+      "stderr": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s\n     Running tests/lsp.rs (target/debug/deps/lsp-adac6d78c22021d8)\n     Running tests/self_verification.rs (target/debug/deps/self_verification-643a0791cfe488b6)\nerror: test failed, to rerun pass `-p dctx0-cli --test self_verification`\n"
+    }
+  ],
+  "mutations": [],
+  "measurements": [],
+  "complete": false,
+  "error": "Regression check failed: cargo test -p dctx0-lsp -p dctx0-cli --lib --test self_verification --test lsp --all-features --locked\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s\n     Running tests/lsp.rs (target/debug/deps/lsp-adac6d78c22021d8)\n     Running tests/self_verification.rs (target/debug/deps/self_verification-643a0791cfe488b6)\nerror: test failed, to rerun pass `-p dctx0-cli --test self_verification`\n"
+}

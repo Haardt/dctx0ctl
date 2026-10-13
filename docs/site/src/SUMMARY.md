@@ -37,4 +37,7 @@
 - [Agent evidence and reviews](docs/agent-evidence.md)
 - [History and sharing](docs/sharing.md)
 - [Skills and editors](docs/tools.md)
+- [DCTX0's own specification](docs/self-verification.md)
 - [Architecture and contributing](docs/contributing.md)
+
+- [Read-only spec companion](docs/site-companion.md)

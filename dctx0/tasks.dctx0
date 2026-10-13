@@ -1,0 +1,97 @@
+fragment Dctx0 {
+  domain Tasks {
+    type WorkState = Open | Progress | Done
+    type CheckState = Unverified | Passed | Failed
+    message TaskState {
+      taskId: ApiInt
+      work: WorkState
+      check: CheckState
+      version: ApiInt
+      claim: Option<ApiInt>
+    }
+    failure TransitionConflict { taskId: ApiInt }
+    message ClaimRace {
+      claims: ApiInt
+      distinct: ApiInt
+      rejected: ApiInt
+    }
+    surface Work {
+      operation blocked() -> TaskState
+      operation race() -> ClaimRace
+      operation setup() -> TaskState
+      operation state(taskId: ApiInt) -> TaskState ! TransitionConflict
+      operation next(actor: String) -> TaskState ! TransitionConflict
+      operation start(taskId: ApiInt, actor: String) -> TaskState ! TransitionConflict
+      operation release(taskId: ApiInt, actor: String, claim: ApiInt, expectedVersion: ApiInt) -> TaskState ! TransitionConflict
+      operation complete(taskId: ApiInt, actor: String, claim: ApiInt, expectedVersion: ApiInt, summary: String) -> TaskState ! TransitionConflict
+    }
+    example "manual completion never creates PASS" {
+      when open = Work.setup()
+      expect open.work == Open
+      expect open.check == Unverified
+      when started = Work.start(open.taskId, "worker")
+      expect started.work == Progress
+      expect started.claim != None
+      when done = Work.complete(started.taskId, "worker", getOrElse(started.claim, -1), started.version, "implemented")
+      expect done.work == Done
+      expect done.check == Unverified
+    }
+    example "release returns claimed work to Open" {
+      when open = Work.setup()
+      when started = Work.start(open.taskId, "worker")
+      when released = Work.release(started.taskId, "worker", getOrElse(started.claim, -1), started.version)
+      expect released.work == Open
+      expect released.claim == None
+    }
+    example "wrong actor cannot complete work" {
+      when open = Work.setup()
+      when started = Work.start(open.taskId, "worker")
+      when Work.complete(started.taskId, "other", getOrElse(started.claim, -1), started.version, "invalid")
+      expect result fails TransitionConflict
+      when current = Work.state(started.taskId)
+      expect current.work == Progress
+      expect current.version == started.version
+    }
+    example "wrong claim cannot release work" {
+      when open = Work.setup()
+      when started = Work.start(open.taskId, "worker")
+      when Work.release(started.taskId, "worker", -1, started.version)
+      expect result fails TransitionConflict
+    }
+    example "stale version cannot complete work" {
+      when open = Work.setup()
+      when started = Work.start(open.taskId, "worker")
+      when Work.complete(started.taskId, "worker", getOrElse(started.claim, -1), -1, "invalid")
+      expect result fails TransitionConflict
+    }
+    example "missing task is rejected" {
+      when Work.setup()
+      when Work.state(-1)
+      expect result fails TransitionConflict
+    }
+    example "blocked prerequisites reject start" {
+      when blocked = Work.blocked()
+      when Work.start(blocked.taskId, "worker")
+      expect result fails TransitionConflict
+      when current = Work.state(blocked.taskId)
+      expect current.work == Open
+    }
+    example "concurrent claims never return the same task" {
+      when result = Work.race()
+      expect result.claims == result.distinct
+      expect result.claims + result.rejected == 2
+      expect result.claims > 0
+    }
+    review HistoryAndConcurrency {
+      inspect { implementation contracts dependencyGraph }
+      criteria {
+        "Task definitions are immutable; progress, checks and review results are append-only events."
+        "Done and testing PASS remain independent; manual completion never creates testing PASS."
+        "Claims and reservations are atomic, actor-bound and version-guarded."
+        "Spec changes create new work rather than reopening or overwriting historical Done/PASS."
+        "Adoption preserves reserved, ongoing, superseded, completed, review and retirement work."
+        "Complete producers may be delivered topologically in the same adoption transaction."
+      }
+    }
+  }
+}

@@ -397,11 +397,12 @@ async fn malformed_oversized_incomplete_and_unsolicited_messages_are_terminal() 
 async fn cleanup_kills_and_reaps_descendants_and_drop_is_a_last_resort() {
     let t = Temp::new();
     let pid_file = t.0.join("child.pid");
-    let code = format!(
-        "import subprocess,time,pathlib;child=subprocess.Popen(['python3','-c','import time;time.sleep(300)']);pathlib.Path({:?}).write_text(str(child.pid));time.sleep(300)",
-        pid_file
-    );
-    for drop_only in [false, true] {
+    for (drop_only, detached) in [(false, false), (true, false), (false, true), (true, true)] {
+        let code = format!(
+            "import subprocess,time,pathlib;child=subprocess.Popen(['python3','-c','import time;time.sleep(300)'],start_new_session={});p=pathlib.Path({:?});pending=p.with_suffix('.pending');pending.write_text(str(child.pid));pending.replace(p);time.sleep(300)",
+            if detached { "True" } else { "False" },
+            pid_file
+        );
         let mut w = NativeWorker::spawn(&recipe(&code), &t.0, limits())
             .await
             .unwrap();
@@ -410,7 +411,10 @@ async fn cleanup_kills_and_reaps_descendants_and_drop_is_a_last_resort() {
             assert!(start.elapsed() < Duration::from_secs(2));
             tokio::time::sleep(Duration::from_millis(1)).await;
         }
-        let child = fs::read_to_string(&pid_file).unwrap();
+        let child = fs::read_to_string(&pid_file)
+            .unwrap()
+            .parse::<u32>()
+            .unwrap();
         let parent = w.pid();
         if drop_only {
             drop(w);
@@ -424,7 +428,7 @@ async fn cleanup_kills_and_reaps_descendants_and_drop_is_a_last_resort() {
         {
             assert!(
                 start.elapsed() < Duration::from_secs(2),
-                "descendants remain"
+                "descendants remain: parent={parent}, child={child}, drop={drop_only}, detached={detached}"
             );
             tokio::time::sleep(Duration::from_millis(1)).await;
         }
@@ -2242,7 +2246,7 @@ async fn native_commands_bound_logs_time_cancellation_and_failures_without_proto
     .await
     .unwrap();
     let audit = command.wait(&cancel).await.unwrap();
-    assert!(audit.stderr.contains("PASS"));
+    assert!(audit.stdout.contains("PASS"));
     assert!(audit.stderr.contains("diagnostic"));
     assert_eq!(audit.received_messages, 0);
     assert_eq!(audit.exit_code, Some(0));
@@ -2595,9 +2599,18 @@ async fn example_protocol_guards_and_whole_session_deadlines_reap_workers() {
         issues: vec![],
     };
     for mode in ["bad-begin", "bad-invoke", "bad-end"] {
-        let mut worker = NativeWorker::spawn(&recipe(&case_program(mode)), &temp.0, limits())
-            .await
-            .unwrap();
+        let mut worker = NativeWorker::spawn(
+            &recipe(&case_program(mode)),
+            &temp.0,
+            NativeLimits {
+                initialization: Duration::from_secs(2),
+                case: Duration::from_secs(2),
+                run: Duration::from_secs(10),
+                ..limits()
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(
             worker
                 .execute_example(&ir, &example, &plan.budgets, &cancel)
@@ -2804,7 +2817,7 @@ async fn closed_worker_input_is_an_io_failure_and_reaps_the_leader() {
 }
 
 #[tokio::test]
-async fn late_logs_and_streams_from_detached_processes_prevent_clean_completion() {
+async fn late_logs_are_rejected_and_owned_detached_processes_are_cleaned() {
     let temp = Temp::new();
     let cancel = NativeCancellation::default();
     let late = "import sys,json,time;p=json.loads(sys.stdin.readline());print(json.dumps({'protocol_version':1,'message':{'kind':'reply','id':p['id'],'reply':{'kind':'bye'}}}),flush=True);time.sleep(0.04);print('x'*300,file=sys.stderr,flush=True)";
@@ -2843,12 +2856,11 @@ async fn late_logs_and_streams_from_detached_processes_prevent_clean_completion(
         .await
         .unwrap();
     let result = w.finish().await;
-    // The test owns this deliberately detached process and cleans it separately.
+    // Managed ownership now includes detached sessions; successful cleanup must
+    // leave neither a running descendant nor an unreaped zombie.
     let id = fs::read_to_string(file).unwrap().parse::<i32>().unwrap();
-    let pid = rustix::process::Pid::from_raw(id).unwrap();
-    rustix::process::kill_process(pid, rustix::process::Signal::KILL).unwrap();
-    rustix::process::waitpid(Some(pid), rustix::process::WaitOptions::empty()).unwrap();
-    assert_eq!(result.unwrap_err().kind, NativeFailureKind::Cleanup);
+    assert!(result.is_ok(), "{result:?}");
+    assert!(!std::path::Path::new(&format!("/proc/{id}")).exists());
 }
 
 #[tokio::test]

@@ -3,7 +3,7 @@ use crate::Result;
 pub(super) fn schema(connection: &Connection) -> Result<i64> {
     Ok(connection.pragma_query_value(None, "user_version", |r| r.get(0))?)
 }
-pub(super) fn head(connection: &Connection, project: &str) -> Result<Option<i64>> {
+pub(crate) fn head(connection: &Connection, project: &str) -> Result<Option<i64>> {
     if schema(connection)? == 1 {
         return Ok(None);
     }
@@ -15,7 +15,7 @@ pub(super) fn head(connection: &Connection, project: &str) -> Result<Option<i64>
         )
         .optional()?)
 }
-pub(super) fn watermark(connection: &Connection, project: &str) -> Result<i64> {
+pub(crate) fn watermark(connection: &Connection, project: &str) -> Result<i64> {
     if schema(connection)? == 1 {
         return Ok(0);
     }
@@ -44,7 +44,7 @@ pub(super) fn event(
     }
     Ok(seq)
 }
-pub(super) fn session(
+pub(crate) fn session(
     connection: &Connection,
     project: &str,
     plan_id: Option<i64>,

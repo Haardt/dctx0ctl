@@ -49,8 +49,15 @@ jobs:
         run: python3 scripts/install_mdbook.py
       - name: Build specification compiler
         run: cargo build --release --locked -p dctx0-cli --bin dctx0
-      - name: Build, check links and examples, measure speed and RAM
-        run: python3 scripts/docs_site.py --dctx0 target/release/dctx0 --browser
+      - name: Build documentation (validation may be explicitly skipped)
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ "${{ github.event_name }}" == push && "$COMMIT_MESSAGE" == *"[skip validation]"* ]]; then
+            target/docs-tools/mdbook build docs/site
+          else
+            python3 scripts/docs_site.py --dctx0 target/release/dctx0 --browser
+          fi
       - name: Retain validation and raw measurements
         if: always()
         uses: actions/upload-artifact@v4

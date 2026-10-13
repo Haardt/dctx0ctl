@@ -94,6 +94,8 @@ impl NativeWorker {
     }
 }
 
+// Process ownership tokens are ephemeral supervisor metadata, not application
+// environment inputs. All other names and values remain bound exactly.
 fn environment_hash(input: impl Read) -> Result<String, NativeFailure> {
     let mut bytes = Vec::new();
     input
@@ -108,7 +110,7 @@ fn environment_hash(input: impl Read) -> Result<String, NativeFailure> {
     }
     let mut entries = bytes
         .split(|byte| *byte == 0)
-        .filter(|entry| !entry.is_empty())
+        .filter(|entry| !entry.is_empty() && !entry.starts_with(b"DCTX0_NATIVE_OWNERS="))
         .collect::<Vec<_>>();
     entries.sort();
     let mut hash = Sha256::new();
@@ -182,5 +184,41 @@ mod tests {
             environment_hash(&b"A=two\0"[..]).unwrap()
         );
         assert!(environment_hash(vec![b'x'; 1_048_577].as_slice()).is_err());
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod managed_environment_tests {
+    use super::*;
+    #[tokio::test]
+    async fn runtime_identity_ignores_only_supervisor_tokens_and_remains_current() {
+        let recipe=ExecutionRecipe{program:"python3".into(),arguments:vec!["-c".into(),r#"import sys,json,time
+request=json.loads(sys.stdin.readline());print(json.dumps({'protocol_version':1,'message':{'kind':'reply','id':request['id'],'reply':{'kind':'described','description':{'protocol_version':1,'subjects':[],'artifacts':[],'capabilities':['sessions'],'representations':{}}}}}),flush=True);time.sleep(100)
+"#.into()]};
+        let mut worker = NativeWorker::spawn(&recipe, Path::new("/tmp"), NativeLimits::default())
+            .await
+            .unwrap();
+        worker
+            .request(
+                WorkerRequest::Describe,
+                &NativeCancellation::default(),
+                &mut |_invocation| unreachable!(),
+            )
+            .await
+            .unwrap();
+        let identity = worker.runtime_identity().unwrap();
+        assert!(identity.still_current().unwrap());
+        let mut invalid = identity.clone();
+        invalid.schema_version = 99;
+        assert!(!invalid.still_current().unwrap());
+        assert_eq!(
+            environment_hash(b"A=1\0DCTX0_NATIVE_OWNERS=one:two\0".as_slice()).unwrap(),
+            environment_hash(b"A=1\0".as_slice()).unwrap()
+        );
+        assert_ne!(
+            environment_hash(b"A=1\0".as_slice()).unwrap(),
+            environment_hash(b"A=2\0".as_slice()).unwrap()
+        );
+        worker.abort().await.unwrap();
     }
 }

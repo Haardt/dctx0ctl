@@ -145,6 +145,13 @@ pub(crate) struct VerifyArgs {
 }
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Build captured Rust production and execute the repository self specification.
+    #[command(name = "self")]
+    SelfCheck {
+        input: PathBuf,
+        #[arg(long)]
+        subject: Vec<String>,
+    },
     /// Read-only source-bound report template for an assigned conformance review task.
     ReviewTemplate {
         input: PathBuf,
@@ -264,6 +271,36 @@ pub(crate) fn run(
     output: &mut dyn Write,
 ) -> Result<bool, String> {
     let (input, application, subject, task, historical_check, fixtures) = match args.action {
+        VerifyAction::SelfCheck { input, subject } => {
+            #[cfg(feature = "rust")]
+            {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(crate::error_message)?;
+                let report = runtime
+                    .block_on(dctx0_engine::verify_self(
+                        &input,
+                        subject.into_iter().collect(),
+                        &dctx0_target_rust::RustHarness,
+                        &dctx0_target_rust::Provider,
+                        &dctx0_engine::NativeCancellation::default(),
+                    ))
+                    .map_err(crate::error_message)?;
+                let pass = report.selected_machine_complete;
+                if json {
+                    crate::render::json(output, &report)?;
+                } else {
+                    writeln!(output, "# Rust self-verification\n\nMachine complete: {}; source current: {}; partial: {}\n{} mandatory cases; {} recorded cases; {} review obligations.\nReport: `{}`\nReview approval remains separate from native evidence.", report.machine_complete, report.source_current, report.partial, report.native.evidence.run.required_cases.len(), report.native.evidence.run.cases.len(), report.review_obligations.len(), report.report_path.display()).map_err(crate::error_message)?;
+                }
+                return Ok(pass);
+            }
+            #[cfg(not(feature = "rust"))]
+            {
+                let _ = (input, subject);
+                return Err("Self-verification requires the Rust target feature".into());
+            }
+        }
         VerifyAction::ReviewTemplate {
             input,
             task,

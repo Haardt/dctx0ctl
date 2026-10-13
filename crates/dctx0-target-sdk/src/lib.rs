@@ -44,6 +44,17 @@ pub enum Error {
     Protocol(String),
 }
 pub trait HarnessGenerator {
+    /// Languages whose syntax this target can inventory. Other captured assets remain
+    /// bound by source/build receipts and are explicitly outside this syntax analysis.
+    fn dependency_languages(&self) -> &'static [InspectionLanguage] {
+        &[
+            InspectionLanguage::TypeScript,
+            InspectionLanguage::Tsx,
+            InspectionLanguage::Go,
+            InspectionLanguage::Rust,
+        ]
+    }
+
     fn runtime(&self) -> &str {
         "bun"
     }

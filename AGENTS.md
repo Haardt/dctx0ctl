@@ -897,3 +897,90 @@ Done/Unverified; it does not convert the 25 native manual/suite UNKNOWN points
 into native PASS. Acceptance scratch/build files use the disk-backed project
 `target/frameworks/tmp`, avoiding RAM-backed `/tmp` pressure. Optional Linux/
 systemd memory guards remain in force. See `docs/site/src/reference/http-frameworks.md`.
+
+
+## Rust self-verification acceptance (2026-10-13)
+
+`dctx0 verify self .` captures the required source/build inputs, builds its own
+receipt-bound Rust CLI and runs the testing-only adapter in isolated projects.
+Explicit subjects are partial development runs; development tasks are never
+adopted. Per-project execution limits preserve global defaults. Native stdout and
+stderr are separate, and nested/detached process ownership is cleaned up.
+
+The complete bounded Linux plan executes 1,115 mandatory cases across eight
+product areas with every case PASS and no machine coverage gaps. All 14 original
+examples remain among 43 explicit examples. Actual compiler/evidence mutations
+fail three/one relevant cases; native fixtures also exercise production mutation,
+adoption and broken/repaired replay. Twelve source-bound authored inspections
+complete manual requirements separately. Automatic evidence retains UNKNOWN for
+manual requirements; inspection evidence is imported and cannot erase native FAIL.
+
+Seed 42, 16 generated cases per obligation and collection size 2 define a bounded
+corpus, not exhaustive behavior. No branch-completeness or standalone adapter
+coverage claim is made. Preparation, cold build, warm execution and replay retain
+separate elapsed time/RSS; self workloads have no accepted baseline and existing
+baselines are unchanged. See `docs/site/src/docs/self-verification.md`,
+`docs/self-verification-validation.json` and `docs/self-verification-reviews.json`
+for final bindings, scope and measurements.
+
+Fresh all-feature workspace coverage passes 31,313/32,087 merged source lines
+(97.59%) and 2,538/2,615 raw LLVM functions (97.06%) with unchanged source hashes.
+Raw LLVM lines are 32,874/33,918 (96.92%), regions 48,249/50,855 (94.88%); retain
+these separately and make no complete branch-coverage claim. No new exclusions
+or threshold reductions were introduced.
+
+The final coupled editor checks and 71 release workloads pass on a frozen source
+copy with unchanged before/after source hashes. Fresh full-workspace coverage is
+recorded separately. Concurrent unrelated calendar-spec changes invalidated two
+shared-checkout measurement runs; these retain incomplete status. One-sample,
+one-iteration measurements remain unassessed, with no baseline promotion.
+
+## Read-only Site companion (2026-10-13)
+
+`dctx0 site export` publishes a portable self-contained React UI; `site serve`
+binds a read-only Axum server to loopback with conditional refresh. Both read one
+consistent published-history transaction and never check, migrate, reserve or
+adopt. `--db`, independent historical snapshot/plan pins and task-event `--as-of`
+are supported. Browser integer fields are exact decimal strings; existing
+CLI/IR/storage contracts are unchanged. Complete historical case inventories are
+compressed per run and decoded on selection.
+
+The OSS HeroUI/React Flow/Dagre UI includes pinned sources, behavior, semantic
+architecture, task waves/DAG, changes, evidence and stats. Historical links stay
+separate from scheduling prerequisites; Done never implies PASS. Embedded assets
+and installed-license receipts reproduce from the committed Bun lockfile.
+`python3 scripts/site_acceptance.py` couples Rust/UI/browser checks with release
+projection/export/server/render/refresh measurements and retains the latest 20
+Site runs. Twelve browser checks and four model tests pass, including actual
+CLI transitions, stale recovery, keyboard/mobile behavior, native mutation/replay,
+read-only boundaries and explicitly synthetic stress inputs.
+
+The product spec includes `Dctx0.Site` and real snapshot/export adapter calls. Its
+bounded verification passes 128 native cases; seven manual obligations remain
+UNKNOWN. This is not complete product verification or adoption. Site workloads
+have no accepted baseline; existing baselines, Cinema sources and compiler
+goldens are unchanged. See `docs/site/src/docs/site-companion.md` and
+`docs/site-companion-validation.json` for final evidence and memory limits.
+
+Site final-source coverage passes 31,886/32,669 merged source lines (97.60%) and
+2,599/2,677 raw LLVM functions (97.09%), with identical source hashes. Raw LLVM
+lines are 33,480/34,535 (96.95%), regions 49,223/51,905 (94.83%) and
+instantiations 3,504/5,653 (61.98%); preserve these separately. No branch
+completeness, new exclusion or threshold reduction is claimed. Site error
+formatting reuses the standard CLI formatter; all error paths remain present.
+
+The final coupled workspace validation and all 71 release workloads pass in
+`benchmarks/history/20261013T195347.552983Z-2148470.json`, with matching source
+hashes. Workspace measurements use one sample/iteration and are unassessed;
+Site acceptance retains three samples/five projection iterations in
+`benchmarks/history/site/20261013T191319.735841Z-2148755.json`. No baseline was
+promoted. Final retained evidence is `docs/site-companion-validation.json`.
+
+Site graph readability correction (2026-10-13): source-code CSS no longer
+stretches React Flow handles. Horizontal ports, directed relation bundles and
+expandable task-wave summaries preserve individual relation details and actual
+prerequisite focus. Final Site acceptance stages pass with an interrupted browser
+scenario continued without repeating passed Rust/model/build stages; original
+failed records remain retained. Speed/RSS and scope are documented in
+`docs/site-graph-correction-validation.json`. Previous workspace coverage remains
+historical; no Rust logic, specs, compiler goldens or accepted baselines changed.
