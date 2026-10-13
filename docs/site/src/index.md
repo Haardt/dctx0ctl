@@ -7,15 +7,15 @@
 <section class="hero" aria-labelledby="hero-title">
 <p class="eyebrow">Executable specifications for coding agents</p>
 <h1 id="hero-title">Make intent<br><span>executable.</span></h1>
-<p class="hero-lead">Give your agent a clear contract.<br>Verify what it builds.</p>
-<p class="hero-description">A shared language for product meaning, focused implementation tasks, and evidence from real applications. Built in Rust. Independent of your framework.</p>
+<p class="hero-lead">Describe your product.<br>Review the contract your agent writes.</p>
+<p class="hero-description">Start in plain language. Your coding agent writes and validates the specification with you; you review its rules and expected outcomes. Then implement focused tasks and verify the real application.</p>
 <div class="hero-actions"><a class="primary-action" href="docs/getting-started.html">Get started <span aria-hidden="true">→</span></a><a class="secondary-action" href="#specification">See the specification</a></div>
 <div class="target-strip" aria-label="Executable targets"><span>Native verification</span><strong>TypeScript / Bun</strong><strong>Go</strong><strong>Rust</strong></div>
 </section>
 
 <section class="intent-section" aria-labelledby="intent-title">
 <div class="section-label">01 / Understand first</div>
-<div class="split-section"><div><h2 id="intent-title">More of the product.<br>Less implementation noise.</h2></div><div><p>Your agent can write the specification with you. With implementation details set aside, it can devote its cognitive capacity to domain rules, relationships, contradictions, and missing decisions.</p><p>More of the application's meaning fits into context. People can understand and review the behavior before reading its database plumbing or framework wiring.</p><a class="text-link" href="docs/authoring.html">Author a contract with your agent <span aria-hidden="true">→</span></a></div></div>
+<div class="split-section"><div><h2 id="intent-title">More of the product.<br>Less implementation noise.</h2></div><div><p>You can start without learning to author DCTX0 yourself. Your agent handles syntax and validation while you discuss domain rules, relationships, and missing decisions. Familiar types, ranges, and given/when/expect examples help developers read the contract.</p><p>Keeping implementation details separate can leave more context for the application's meaning. People can understand and review the behavior before reading its database plumbing or framework wiring.</p><a class="text-link" href="docs/authoring.html">Author a contract with your agent <span aria-hidden="true">→</span></a></div></div>
 </section>
 
 <section class="spec-section" id="specification" aria-labelledby="spec-title">
