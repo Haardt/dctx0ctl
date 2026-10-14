@@ -6,7 +6,7 @@ export interface Snapshot {id:string; source_hash:string; sources:{file:string;t
 export interface Task {task_id:string;title:string;kind:string;subjects:string[];wave:string;work:string;check:string;ready:boolean;delivered:boolean;blockers:string[];actor:string|null;reservation:string|null;claim:string|null;result_summary:string|null}
 export interface Candidate {key:string;title:string;subjects:string[];acceptance:string[];contract:string;wave:string;kind:string;facts:string[];types:string[]}
 export interface Definition {id:string;candidate:Candidate;reason:string;origin_snapshot:string;before_snapshot:string|null;changes:Json[]}
-export interface TaskState {work:string;check:string;result:Json;evidence:Json[];reviews:Json[];actor:string|null;reservation:string|null;claim:string|null}
+export interface TaskState {execution_bundle?:{documents:{path:string;text:string;subjects:string[]}[]}|null;work:string;check:string;result:Json;evidence:Json[];reviews:Json[];actor:string|null;reservation:string|null;claim:string|null}
 export interface Session {plan:{id:string;snapshot_id:string;check_run_id:string;parent:string|null;members:{task_id:string;candidate:Candidate}[]};event_seq:string;definitions:Record<string,Definition>;states:Record<string,TaskState>;links:{from:string;to:string;kind:string;reason:string}[];events:{seq:string;task_id:string|null;kind:string;message:string}[]}
 export interface Verdict {status:'PASS'|'FAIL'|'UNKNOWN';issue?:{code:string;message:string}}
 export interface Case {id:string;subject:string;kind:string;result:Verdict;[key:string]:unknown}

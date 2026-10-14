@@ -81,7 +81,11 @@ so you do not need to scroll below the architecture view to read details.
 Drag the header to move it, or focus the header and use arrow keys (Shift moves
 in larger steps). The right-aligned **−** and **×** buttons minimize and close
 it; **+** restores a minimized Inspector. Position is kept locally and constrained
-to the graph area when the screen is resized. The panel does not block the rest
+to the graph area when the screen is resized. Use **Focus selected** inside the Inspector to focus its declaration. The **Depth**
+slider controls the focus levels for the selected node. The setting is remembered
+per node; depth is available only in the Inspector. Selected cards have a blue
+background and a prominent border in both themes.
+The panel does not block the rest
 of the graph or trap keyboard focus.
 
 **Selection** shows the selected declaration or connection. **Connections**
@@ -91,9 +95,30 @@ architecture view; source links open the exact pinned source and line.
 
 ## Tasks and evidence
 
-Task graphs start with compact, expandable waves. Task focus follows actual
-prerequisites, with delivered results and blockers; optional history links are
-separate from scheduling dependencies. Work completion does not imply testing
+Tasks use **Waves** as the default display; **List** and **DAG** remain selectable
+and are preserved in the URL. In the DAG, search **Focus task** or use
+**Focus selected**, then choose Prerequisites, Dependents or Both directions.
+The depth slider uses 0–5 dependency hops and All. It follows actual scheduling
+edges, not all tasks in earlier waves. Historical links remain a separate toggle
+and do not contribute to the depth traversal.
+
+In the DAG, task details use the same movable, nonmodal **Inspector** as
+architecture. Selection remains highlighted; minimizing or closing the Inspector
+preserves selection. **Focus selected** is available inside it and above the graph.
+
+**Focus selected** in the Waves/List task dialog opens the DAG focused on that task and
+closes the dialog so you can work in the graph. Its **Depth** slider sets how many prerequisite or dependent levels the focus includes.
+
+Clicking a task opens a centered dialog with assignment, acceptance, required types,
+constraints/examples, delivered results, pinned implementation guidance, checks,
+reviews and history. Narrative content renders as Markdown; full DCTX0 contracts
+remain code blocks. JSON is confined to an optional technical record. Escape,
+the close button or a backdrop click closes the dialog while preserving display,
+focus and filters. Work and check statuses remain independent.
+
+Labels sit above dropdowns and focus inputs, with consistent field spacing.
+Large wave lists are virtualized, and task selection remains accessible on small
+screens. Work completion does not imply testing
 PASS. Saved native runs, imported assessments and source-bound reviews preserve
 their own provenance. Historical evidence never proves working-tree freshness.
 
@@ -325,3 +350,9 @@ Architecture; pinned source links still open the source view.
 
 Inspector interaction checks and actual speed/RSS samples are retained in
 [inspector validation](../../../site-inspector-validation.json).
+
+Task focus/dialog validation and actual time/RSS samples are retained in
+[task UI validation](../../../site-task-ui-validation.json). Markdown rendering uses
+MIT-licensed react-markdown 10.1.0; its installed transitive licenses are included
+in the embedded dependency inventory. Raw HTML is omitted and Markdown images
+are displayed as alt text, preserving offline browsing without remote asset loads.

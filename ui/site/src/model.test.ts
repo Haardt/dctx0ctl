@@ -73,3 +73,8 @@ test('surface dependency focus retains its operations and operation focus shows 
  const surface=focusedDependencies(snapshot,'Surface',1,'outgoing');expect(surface.ids.has('Surface.getFilmRating')).toBe(true);expect(surface.relations.some(r=>r.source==='Surface.getFilmRating'&&r.target==='RatingStore.summary')).toBe(true);expect(surface.relations.some(r=>r.source==='Surface'&&r.target==='Surface.getFilmRating'&&r.kind==='contains')).toBe(true);
  const operation=focusedDependencies(snapshot,'Surface.getFilmRating',1,'both');expect(operation.ids.has('Surface')).toBe(true);expect(operation.ids.has('RatingStore')).toBe(true);expect([...focusedDependencies(snapshot,'Surface.getFilmRating',0,'outgoing').ids]).toEqual(['Surface.getFilmRating']);
 });
+
+test('task depth follows prerequisites or dependents and excludes unrelated wave members',async()=>{
+ const {taskNeighborhood}=await import('./task-focus');const edges=[{task_id:'9',prerequisite_id:'4',condition:'delivered',reason:'type'},{task_id:'4',prerequisite_id:'1',condition:'PASS',reason:'result'},{task_id:'12',prerequisite_id:'9',condition:'delivered',reason:'consumer'},{task_id:'8',prerequisite_id:'2',condition:'delivered',reason:'unrelated'}];
+ expect([...taskNeighborhood('9',0,'both',edges)]).toEqual(['9']);expect([...taskNeighborhood('9',1,'prerequisites',edges)]).toEqual(['9','4']);expect([...taskNeighborhood('9',Infinity,'prerequisites',edges)]).toEqual(['9','4','1']);expect([...taskNeighborhood('9',1,'dependents',edges)]).toEqual(['9','12']);expect([...taskNeighborhood('9',1,'both',edges)]).toEqual(['9','4','12']);expect(taskNeighborhood('',1,'both',edges).size).toBe(0);
+});

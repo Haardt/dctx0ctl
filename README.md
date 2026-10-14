@@ -442,7 +442,7 @@ Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are deve
 
 ## Releases
 
-Pushing a version tag such as `v0.2.1` creates a GitHub Release after full validation and all five native distribution jobs pass. For v0.2.0 and v0.2.1, CI validation and distribution tests are explicitly skipped at the maintainer’s request; native builds and packaging remain required. This exception does not disable validation for future releases. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
+Pushing a version tag such as `v0.2.2` creates a GitHub Release after full validation and all five native distribution jobs pass. For v0.2.0, v0.2.1 and v0.2.2, CI validation and distribution tests are explicitly skipped at the maintainer’s request; native builds and packaging remain required. This exception does not disable validation for future releases. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
 
 ```sh
 git tag -a v0.1.1 -m "DCTX0 v0.1.1"
@@ -546,8 +546,13 @@ and Stats. Architecture offers:
   narrow panel. Drag its header or use arrow keys; minimize or close it while
   continuing to pan, zoom and arrange nodes. Its contents scroll internally.
 
-Task graphs offer expandable waves and focus on actual prerequisite chains;
-historical links remain separate. Light and dark modes are available.
+Tasks open in **Waves** by default. Clicking a task in Waves, List or DAG opens
+its assignment, acceptance, results and history in a **Markdown-oriented dialog**;
+DCTX0 contracts remain exact code blocks, with JSON available as technical detail.
+The DAG offers searchable task focus, a depth slider, **Prerequisites**,
+**Dependents**, and **Both directions**. Closing the dialog preserves graph focus;
+historical links remain separate. Filter labels sit above their controls.
+Light and dark modes are available.
 
 ![DCTX0 architecture with implementation filtering, dependency focus and a floating Inspector](docs/site/src/assets/dctx0-static-site.png)
 
