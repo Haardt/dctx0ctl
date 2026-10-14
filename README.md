@@ -442,7 +442,7 @@ Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are deve
 
 ## Releases
 
-Pushing a version tag such as `v0.2.0` creates a GitHub Release after full validation and all five native distribution jobs pass. For v0.2.0, CI validation and distribution tests are explicitly skipped at the maintainer’s request; native builds and packaging remain required. This exception does not disable validation for future releases. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
+Pushing a version tag such as `v0.2.1` creates a GitHub Release after full validation and all five native distribution jobs pass. For v0.2.0 and v0.2.1, CI validation and distribution tests are explicitly skipped at the maintainer’s request; native builds and packaging remain required. This exception does not disable validation for future releases. The tag must match `[workspace.package].version` and the committed lockfile. Prereleases are marked explicitly and do not replace the installer's latest stable release.
 
 ```sh
 git tag -a v0.1.1 -m "DCTX0 v0.1.1"
@@ -475,9 +475,10 @@ Build the release CLI first using the quick-start instructions. The runner check
 | [Run and replay](docs/site/src/docs/evidence.md) | Native observations, counterexamples, adoption |
 | [Complete acceptance](docs/site/src/docs/agent-evidence.md) | Authored inspections and task completeness |
 | [Go target](docs/site/src/docs/targets.md) / [Rust target](docs/site/src/docs/targets.md) | Native setup, provenance, capability limits |
+| [Static Site and Task Live View](docs/site/src/docs/site-companion.md) | Project export, architecture focus, floating Inspector, live tasks |
 | [Skills](docs/site/src/docs/tools.md) / [Editors](docs/site/src/docs/tools.md) | Agent and editor integration |
 
-Capability descriptions reflect the Rust workspace as of October 13, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
+Capability descriptions reflect the Rust workspace as of October 14, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
 
 ## License
 
@@ -507,24 +508,62 @@ reviews; they never adopt the development project's tasks. See
 
 ## Static Site and Task Live View
 
+Generate a read-only React companion for **any dctx0 project**, independently of
+its implementation language or framework. Cinema is an example, not a special
+mode. The project needs a valid published specification in its history database:
+
+```sh
+# Replace this path with your project's specification directory.
+dctx0 check path/to/project/dctx0
+
+# Optional: create a task plan to populate the Tasks view.
+dctx0 tasks plan path/to/project/dctx0
+
+# Choose an offline export or a local live view.
+dctx0 site export path/to/project/dctx0 --output target/project-site
+dctx0 site serve path/to/project/dctx0
+```
+
+**Static Site:** open `target/project-site/index.html` directly under `file://`,
+or host the export as a static website. The HTML embeds its assets and captured
+data; browsing needs no runtime server, network, Bun or Node.
+
+**Task Live View:** follow the loopback URL printed by `site serve`. Task starts,
+completions and newly stored evidence appear on a three-second refresh while the
+tab is visible. Selection, filters, scroll and graph positions are preserved.
+The UI reads changes made through the CLI; it does not execute or edit tasks.
+Missing task plans or verification runs appear as empty sections.
+
+The views cover Overview, Spec, Behavior, Architecture, Tasks, Changes, Evidence
+and Stats. Architecture offers:
+
+- **Implementation / All spec nodes:** keep surfaces, ports, operations and types
+  visible, or include examples, tests and reviews.
+- **Searchable focus and depth slider:** inspect children, outgoing Uses / calls,
+  incoming Used / called by, or Both directions. Operations retain their owning
+  surface/port as context. Focus and filters are linkable through hash URLs.
+- **Floating Inspector:** node and connection details stay above the graph in a
+  narrow panel. Drag its header or use arrow keys; minimize or close it while
+  continuing to pan, zoom and arrange nodes. Its contents scroll internally.
+
+Task graphs offer expandable waves and focus on actual prerequisite chains;
+historical links remain separate. Light and dark modes are available.
+
+![DCTX0 architecture with implementation filtering, dependency focus and a floating Inspector](docs/site/src/assets/dctx0-static-site.png)
+
+Cinema example:
+
 ```sh
 dctx0 site export examples/cinema/dctx0 --output target/cinema-site
 dctx0 site serve examples/cinema/dctx0
 ```
 
-**Static Site:** open the exported `index.html` directly, including under
-`file://`, or host the export as a static website. All assets and data are embedded;
-no network service is needed to browse the frozen snapshot.
-
-**Task Live View:** follow the loopback URL printed by `site serve`. Task starts,
-completions and newly stored evidence appear on a three-second refresh. Selection,
-scroll position and graph positions are preserved. Task waves expand into individual
-tasks, and focus shows the actual prerequisite chain. The interface includes
-Overview, Spec, Behavior, Architecture, Tasks, Changes, Evidence and Stats.
-
-The React companion reads published spec/task/evidence history; it never creates
-or migrates a database. Export supports `--snapshot`, `--plan`, and `--as-of`;
-both commands honor global `--db`. Live mode accepts `--port` and stops on Ctrl-C.
+Site commands never create or migrate a database or compile the specification.
+Run `check` explicitly when publishing new requirements. Both commands honor
+global `--db`; export also supports `--snapshot`, `--plan` and `--as-of`.
+Live mode accepts `--port` and stops on Ctrl-C. Stored evidence describes its
+captured implementation, not the current working tree; Done and PASS remain
+separate. See the [Static Site and Task Live View guide](docs/site/src/docs/site-companion.md).
 
 Contributor assets: `bun install --frozen-lockfile --cwd ui/site`,
 `bun run --cwd ui/site check`, `bun run --cwd ui/site build`, then

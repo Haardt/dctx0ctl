@@ -43,3 +43,10 @@ export function reviewedAssessment(run:Run,data:SiteSnapshot):Run|undefined {
 export function evidenceDisplayStatus(run:Run,data:SiteSnapshot) {return reviewedAssessment(run,data)?'REVIEWED':evidenceStatus(run,data)}
 
 function containsArtifacts(actual:Json[],required:Json[]) {const hashes=new Set(actual.map(a=>JSON.stringify(a)));return required.every(a=>hashes.has(JSON.stringify(a)))}
+
+// Containment follows declared parents, independently of semantic dependency cycles.
+export function descendantIds(root:string,depth:number,symbols:Record<string,Symbol>):Set<string> {
+ const visible=new Set<string>();if(!symbols[root])return visible;
+ const children=new Map<string,string[]>();for(const symbol of Object.values(symbols)){if(symbol.parent){const ids=children.get(symbol.parent)??[];ids.push(symbol.id);children.set(symbol.parent,ids)}}
+ visible.add(root);let frontier=[root];for(let level=0;level<depth&&frontier.length;level++){const next:string[]=[];for(const parent of frontier)for(const id of children.get(parent)??[])if(!visible.has(id)){visible.add(id);next.push(id)}frontier=next}return visible;
+}

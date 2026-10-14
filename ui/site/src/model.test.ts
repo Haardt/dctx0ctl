@@ -45,3 +45,31 @@ test('reviewed presentation requires exact native provenance, cases and inspecti
  effective.run.provenance.implementation={file:'changed'};expect(reviewedAssessment(native,data)).toBeUndefined();effective.run.provenance=native.run.provenance;
  native.run.open_obligations=[{code:'UNSUPPORTED_EXECUTION',message:'Not executed'}];expect(reviewedAssessment(native,data)).toBeUndefined();
 });
+
+test('architecture focus follows real parents and limits child depth independently of names',async()=>{
+ const {descendantIds}=await import('./model');const symbols=Object.fromEntries([{id:'root',parent:null},{id:'child',parent:'root'},{id:'deep',parent:'child'},{id:'root.fake',parent:null}].map(s=>[s.id,s])) as SiteSnapshot['records']['snapshot']['ir']['symbols'];
+ expect([...descendantIds('root',0,symbols)]).toEqual(['root']);expect([...descendantIds('root',1,symbols)]).toEqual(['root','child']);expect([...descendantIds('root',2,symbols)]).toEqual(['root','child','deep']);expect([...descendantIds('missing',Infinity,symbols)]).toEqual([]);
+ symbols.root.parent='deep';expect([...descendantIds('root',Infinity,symbols)]).toEqual(['root','child','deep']);
+});
+
+test('dependency focus traverses outgoing, incoming and both directions without containment hops',async()=>{
+ const {dependencyNeighborhood}=await import('./relations');const symbols=Object.fromEntries([{id:'Module',parent:null},{id:'operation',parent:'Module'},{id:'Used',parent:null},{id:'Caller',parent:null},{id:'Next',parent:null}].map(s=>[s.id,s]));
+ const snapshot={ir:{symbols,nodes:[]},graph:{edges:[{from:'operation',to:'Used',kind:{dependency:'calls'}},{from:'Caller',to:'operation',kind:{dependency:'uses-type'}},{from:'Used',to:'Next',kind:{dependency:'reads'}},{from:'Next',to:'Used',kind:{dependency:'calls'}},{from:'Module',to:'Caller',kind:'contains'}]}} as unknown as SiteSnapshot['records']['snapshot'];
+ expect([...dependencyNeighborhood('Module',0,'both',snapshot).ids]).toEqual(['Module']);expect([...dependencyNeighborhood('Module',1,'outgoing',snapshot).ids]).toEqual(['Module','Used']);expect([...dependencyNeighborhood('Module',1,'incoming',snapshot).ids]).toEqual(['Module','Caller']);expect([...dependencyNeighborhood('Module',1,'both',snapshot).ids]).toEqual(['Module','Used','Caller']);expect([...dependencyNeighborhood('Module',Infinity,'outgoing',snapshot).ids]).toEqual(['Module','Used','Next']);
+ expect(dependencyNeighborhood('Module',1,'outgoing',snapshot).relations[0].from).toBe('operation');expect(dependencyNeighborhood('missing',2,'both',snapshot).ids.size).toBe(0);
+});
+
+test('implementation architecture excludes test nodes and their edges before dependency traversal',async()=>{
+ const {architectureSnapshot}=await import('./architecture');const {dependencyNeighborhood}=await import('./relations');
+ const symbols=Object.fromEntries([{id:'M',kind:'module',parent:null},{id:'M.api',kind:'surface',parent:'M'},{id:'M.op',kind:'operation',parent:'M.api'},{id:'M.test',kind:'test',parent:'M'},{id:'M.review',kind:'review',parent:'M'},{id:'Type',kind:'type',parent:null}].map(s=>[s.id,s]));
+ const snapshot={ir:{symbols,nodes:[{id:'M.test#assert',parent:'M.test'}]},graph:{nodes:symbols,edges:[{from:'M.op',to:'Type',kind:{dependency:'uses-type'}},{from:'M.test#assert',to:'M.op',kind:{dependency:'calls'}},{from:'M.review',to:'M.api',kind:'governs'}]}} as unknown as SiteSnapshot['records']['snapshot'];
+ const filtered=architectureSnapshot(snapshot,'implementation');expect(Object.keys(filtered.ir.symbols)).toEqual(['M','M.api','M.op','Type']);expect(filtered.ir.nodes).toEqual([]);expect(filtered.graph.edges).toHaveLength(1);expect([...dependencyNeighborhood('M.op',1,'incoming',filtered).ids]).toEqual(['M.op']);expect(architectureSnapshot(snapshot,'all')).toBe(snapshot);expect(snapshot.graph.edges).toHaveLength(3);
+});
+
+test('surface dependency focus retains its operations and operation focus shows the declaring surface',async()=>{
+ const {focusedDependencies}=await import('./architecture');
+ const symbols=Object.fromEntries([{id:'Surface',kind:'surface',parent:null},{id:'Surface.getFilmRating',kind:'operation',parent:'Surface'},{id:'RatingStore',kind:'port',parent:null},{id:'RatingStore.summary',kind:'operation',parent:'RatingStore'}].map(s=>[s.id,s]));
+ const snapshot={ir:{symbols,nodes:[]},graph:{nodes:symbols,edges:[{from:'Surface',to:'Surface.getFilmRating',kind:'contains'},{from:'RatingStore',to:'RatingStore.summary',kind:'contains'},{from:'Surface.getFilmRating',to:'RatingStore.summary',kind:{dependency:'calls'}}]}} as unknown as SiteSnapshot['records']['snapshot'];
+ const surface=focusedDependencies(snapshot,'Surface',1,'outgoing');expect(surface.ids.has('Surface.getFilmRating')).toBe(true);expect(surface.relations.some(r=>r.source==='Surface.getFilmRating'&&r.target==='RatingStore.summary')).toBe(true);expect(surface.relations.some(r=>r.source==='Surface'&&r.target==='Surface.getFilmRating'&&r.kind==='contains')).toBe(true);
+ const operation=focusedDependencies(snapshot,'Surface.getFilmRating',1,'both');expect(operation.ids.has('Surface')).toBe(true);expect(operation.ids.has('RatingStore')).toBe(true);expect([...focusedDependencies(snapshot,'Surface.getFilmRating',0,'outgoing').ids]).toEqual(['Surface.getFilmRating']);
+});

@@ -1,5 +1,108 @@
 # Static Site and Task Live View
 
+The companion works with **any dctx0 project** that has a valid published
+specification. It reads the language-neutral spec, task and evidence history;
+it does not depend on the application's target language or framework. Cinema
+illustrates the interface below.
+
+![Architecture with implementation filtering, dependency focus and a floating Inspector](../assets/dctx0-static-site.png)
+
+## Generate a site for your project
+
+Replace `path/to/project/dctx0` with the directory containing your specification:
+
+```sh
+# Publish a valid spec snapshot first.
+dctx0 check path/to/project/dctx0
+
+# Optional: populate task navigation and the task graph.
+dctx0 tasks plan path/to/project/dctx0
+
+# Export a frozen, portable site.
+dctx0 site export path/to/project/dctx0 --output target/project-site
+
+# Or start the local live companion.
+dctx0 site serve path/to/project/dctx0
+```
+
+Open `target/project-site/index.html` directly, or publish the exported directory
+on a static host. All assets and captured data are embedded in the HTML, so
+`file://` and offline browsing work without Bun, Node or a runtime service.
+
+For live mode, open the printed `http://127.0.0.1:…` URL. An available port is
+chosen by default; use `--port 4179` for a fixed port. Task and evidence updates
+made through the CLI appear every three seconds while the tab is visible.
+Selection, filters and graph positions survive refresh. Ctrl-C stops the server.
+
+The site only reads history: it does not run checks, create plans, execute work,
+repair databases or approve evidence. Missing plans or stored runs leave the
+corresponding sections empty. A missing published spec produces an error; run
+`check` explicitly first. For a custom database, use the same global `--db`
+path for publication and site commands. Existing CLI snapshot/history commands
+remain the source of publication and task transitions.
+
+## Explore the architecture
+
+Start with **Implementation** to see domain/module groups, surfaces, ports,
+operations and data contracts. Examples, tests, proofs, reviews, policies and
+other spec-only declarations are hidden along with their connections. Choose
+**All spec nodes** to include them again. The filter also applies to focus search
+and selected-node details.
+
+Use the search inside **Focus node**, or select a graph node and choose
+**Focus selected**. **Direction** controls what appears around the focus:
+
+| Direction | Visible neighborhood |
+| --- | --- |
+| Children | The node and descendants following declared parent links |
+| Uses / calls | Outgoing semantic dependencies |
+| Used / called by | Incoming semantic dependencies |
+| Both directions | Incoming and outgoing dependencies |
+
+The **Depth** slider selects 0–5 levels, with **All** at its last stop. Zero shows
+only the focus node. Children mode counts hierarchy levels; dependency modes
+count relationship hops. A group's own children remain visible to the chosen
+depth, and operations show their declaring surface/port as context above depth
+zero. For example, focusing `FilmCommunityApi` retains `getFilmRating`; focusing
+that operation retains its owning surface. Semantic cycles are allowed.
+
+**Show all** returns to the expanded overview. Drag nodes to arrange them; use
+pan, zoom and Fit to navigate. Parallel connections are bundled, with their
+counts and original relations available in the Inspector. Focus, direction,
+depth and node filter are stored in the URL hash, so views can be shared.
+Personal node positions and viewports are kept in browser storage.
+
+## Inspect without leaving the graph
+
+Select a node or connection to open the narrow, modeless **Inspector** over the
+graph, or reopen it with the **Inspector** button. Its contents scroll internally,
+so you do not need to scroll below the architecture view to read details.
+
+Drag the header to move it, or focus the header and use arrow keys (Shift moves
+in larger steps). The right-aligned **−** and **×** buttons minimize and close
+it; **+** restores a minimized Inspector. Position is kept locally and constrained
+to the graph area when the screen is resized. The panel does not block the rest
+of the graph or trap keyboard focus.
+
+**Selection** shows the selected declaration or connection. **Connections**
+offers a list of connection buttons, also reachable by keyboard, with each
+individual relationship and reason. Child declaration links select within the
+architecture view; source links open the exact pinned source and line.
+
+## Tasks and evidence
+
+Task graphs start with compact, expandable waves. Task focus follows actual
+prerequisites, with delivered results and blockers; optional history links are
+separate from scheduling dependencies. Work completion does not imply testing
+PASS. Saved native runs, imported assessments and source-bound reviews preserve
+their own provenance. Historical evidence never proves working-tree freshness.
+
+Overview, Spec, Behavior, Changes, Evidence and Stats expose the same published
+project data in both export and live modes. Offline exports stay frozen; live
+connection failures leave the last snapshot visible with a stale status.
+
+## Data, export and capability boundaries
+
 `dctx0 site export <spec-root> --output <directory>` writes a self-contained React
 companion, `snapshot.json`, and installed dependency notices. Open `index.html`
 directly with `file://`; no runtime server, Bun, Node, CDN, or network is needed.
@@ -171,3 +274,54 @@ Evidence correction checks (eight model tests, typecheck, actual Cinema records,
 offline browser navigation and export) pass with time/RSS samples in
 [`docs/site-evidence-correction-validation.json`](../../../site-evidence-correction-validation.json).
 Artifact inclusion uses a set lookup to keep inspection matching linear.
+
+Architecture focus is separate from group expansion. The **Focus node** combobox
+includes search with Arrow/Enter/Escape keyboard navigation; **Focus selected**
+uses the selected graph node. **Direction** offers Children, Uses / calls,
+Used / called by, and Both directions. Dependency views follow actual semantic
+dependency edges, preserving their original kinds and endpoints in details;
+containment and governing-fact edges do not count as dependency hops. A focused group keeps its own children to the selected depth. Dependency
+endpoints are expanded to visible declarations; focused operations also show
+their declaring surface/port as context at depth greater than zero. Explicit
+contains edges preserve this ownership without adding dependency hops.
+
+The **Depth** slider provides 0–5 levels and All at its last stop. Children mode
+counts declared parent levels; dependency modes count directed relationship hops.
+Cycles terminate through visited-node tracking. **Show all** restores the expanded
+overview. Focus, direction and depth are stored in hash URLs; positions and
+viewports are retained separately for each scope.
+
+Focus validation and time/RSS measurements are retained in
+[`docs/site-focus-validation.json`](../../../site-focus-validation.json). The coupled
+Site runner includes `ui/site/focus-browser.ts` and retains its screenshot.
+
+Direction/search/slider validation and measured time/RSS are retained in
+[`docs/site-focus-relations-validation.json`](../../../site-focus-relations-validation.json).
+
+Architecture defaults to the **Implementation** node filter: workspace/domain/module
+groups, surfaces, ports, operations, entities, types, values, messages, events,
+failures and externals. Examples, tests, proofs, reviews, policies, invariants,
+lifecycles and decisions remain available through **All spec nodes**. Filtering
+applies before dependency traversal, excluding verification edges rather than
+folding them into implementation parents. Search and selected-node details use
+the same filtered projection. Switching filters clears a focus/selection that is
+no longer visible. The `nodes` hash parameter preserves the filter on reload.
+
+Filter checks and actual time/RSS measurements are retained in
+[`docs/site-architecture-filter-validation.json`](../../../site-architecture-filter-validation.json).
+
+The Cinema regression checks both `FilmCommunityApi` → `getFilmRating` visibility
+and the owning surface when focusing `getFilmRating` directly. Recorded validation
+and time/RSS measurements: [surface focus evidence](../../../site-surface-focus-validation.json).
+
+Architecture details open in a narrow, modeless **Inspector** over the graph.
+Select a node or connection to inspect it; **Connections** provides keyboard-reachable
+connection buttons under a familiar label. The inspector
+scrolls its own contents. Drag its header, or focus the header and use arrow keys
+(Shift for larger steps), to move it. Position is kept locally where storage is
+available and clamped to the graph bounds after resizing. Minimize/expand and
+close/reopen controls leave the graph usable. Child declaration links select within
+Architecture; pinned source links still open the source view.
+
+Inspector interaction checks and actual speed/RSS samples are retained in
+[inspector validation](../../../site-inspector-validation.json).

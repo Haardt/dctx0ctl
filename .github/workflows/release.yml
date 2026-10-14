@@ -82,12 +82,14 @@ jobs:
           PY
 
   validation:
-    # Explicitly authorized validation exceptions for releases 0.1.0, 0.1.1 and 0.2.0.
-    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0' && github.ref != 'refs/tags/v0.1.1' && github.ref != 'refs/tags/v0.2.0'
+    # Explicitly authorized validation exceptions for releases 0.1.0, 0.1.1, 0.2.0 and 0.2.1.
+    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0' && github.ref != 'refs/tags/v0.1.1' && github.ref != 'refs/tags/v0.2.0' && github.ref != 'refs/tags/v0.2.1'
     needs: version
     uses: ./.github/workflows/validate.yml
 
   build:
+    # Explicit release commits skip redundant branch builds; tag builds remain mandatory.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip validation]')
     needs: version
     strategy:
       fail-fast: false
@@ -148,7 +150,7 @@ jobs:
             cargo build --release --locked --all-features -p dctx0-cli --bin dctx0 --target "$RELEASE_TARGET"
           fi
       - name: Test distribution and installer; measure speed and RAM
-        if: needs.version.outputs.tag != 'v0.1.1' && needs.version.outputs.tag != 'v0.2.0'
+        if: needs.version.outputs.tag != 'v0.1.1' && needs.version.outputs.tag != 'v0.2.0' && needs.version.outputs.tag != 'v0.2.1'
         run: python scripts/release_acceptance.py --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --platform-tests
       - name: Reject redistributable VC runtime dependencies
         if: runner.os == 'Windows'
@@ -188,7 +190,7 @@ jobs:
       always() && startsWith(github.ref, 'refs/tags/') &&
       needs.version.result == 'success' && needs.build.result == 'success' &&
       (needs.validation.result == 'success' ||
-       ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0') && needs.validation.result == 'skipped'))
+       ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0' || github.ref == 'refs/tags/v0.2.1') && needs.validation.result == 'skipped'))
     needs: [version, validation, build]
     runs-on: ubuntu-latest
     permissions:
@@ -221,7 +223,7 @@ jobs:
           tag = os.environ['RELEASE_TAG']
           repo = os.environ['GH_REPO']
           Path('target/release-notes.md').write_text(
-              ('CI validation and distribution tests were skipped for v0.2.0 by explicit maintainer request. Existing local validation evidence is retained in the repository.\n\n## Static Site and Task Live View\n\nRead published specs, architecture, task prerequisites, changes and stored evidence in an embedded React companion. Export a portable offline site with `dctx0 site export examples/cinema/dctx0 --output target/cinema-site`, then open `index.html`. Start the local Task Live View with `dctx0 site serve examples/cinema/dctx0`; it refreshes every three seconds and preserves selection and graph positions. Both modes are read-only and require no Bun or Node.\n\n' if tag == 'v0.2.0' else 'Published without a new test run by explicit maintainer request. The CaseCli evidence-mapping fix was verified locally before the version bump.\n\n' if tag == 'v0.1.1' else 'Full workspace validation is not a publication gate for v0.1.0; platform distribution checks passed.\n\n' if tag == 'v0.1.0' else '') +
+              ('CI validation and distribution tests were skipped for v0.2.1 following the maintainer request to avoid duplicate validation. Local UI, model and browser validation evidence is retained in the repository.\n\n## Architecture focus and floating Inspector\n\nThe read-only project companion now includes searchable node focus, incoming/outgoing/both dependency directions, a depth slider and an Implementation filter that hides examples and verification nodes. Surface operations and their declaring surface/port stay visible in focused views. A narrow, movable Inspector shows node and connection details above the graph, with minimize/close controls and keyboard movement.\n\nREADME and the guide document offline export and live task views for any dctx0 project with a published spec, and include an architecture screenshot.\n\n' if tag == 'v0.2.1' else 'CI validation and distribution tests were skipped for v0.2.0 by explicit maintainer request. Existing local validation evidence is retained in the repository.\n\n## Static Site and Task Live View\n\nRead published specs, architecture, task prerequisites, changes and stored evidence in an embedded React companion. Export a portable offline site with `dctx0 site export examples/cinema/dctx0 --output target/cinema-site`, then open `index.html`. Start the local Task Live View with `dctx0 site serve examples/cinema/dctx0`; it refreshes every three seconds and preserves selection and graph positions. Both modes are read-only and require no Bun or Node.\n\n' if tag == 'v0.2.0' else 'Published without a new test run by explicit maintainer request. The CaseCli evidence-mapping fix was verified locally before the version bump.\n\n' if tag == 'v0.1.1' else 'Full workspace validation is not a publication gate for v0.1.0; platform distribution checks passed.\n\n' if tag == 'v0.1.0' else '') +
               f'## Install DCTX0 {tag}\n\n'
               f'```sh\ncurl -fsSL https://github.com/{repo}/releases/download/{tag}/install.sh | bash -s -- --version {tag}\n```\n\n'
               'Linux x86_64/ARM64 (glibc 2.35+) and macOS Intel/Apple Silicon (14+). Installs to `~/.local/bin` without sudo.\n\n'

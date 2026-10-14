@@ -40,4 +40,4 @@
 - [DCTX0's own specification](docs/self-verification.md)
 - [Architecture and contributing](docs/contributing.md)
 
-- [Read-only spec companion](docs/site-companion.md)
+- [Static Site and Task Live View](docs/site-companion.md)

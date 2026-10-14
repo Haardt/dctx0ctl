@@ -27,12 +27,12 @@ Each installer selects one stable tag, checks the archive's SHA-256 and executab
 ## Pin a version
 
 ```sh
-curl -fsSL https://github.com/Haardt/dctx0ctl/releases/download/v0.2.0/install.sh \
-  | bash -s -- --version v0.2.0 --bin-dir "$HOME/.local/bin"
+curl -fsSL https://github.com/Haardt/dctx0ctl/releases/download/v0.2.1/install.sh \
+  | bash -s -- --version v0.2.1 --bin-dir "$HOME/.local/bin"
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm https://github.com/Haardt/dctx0ctl/releases/download/v0.2.0/install.ps1))) -Version v0.2.0 -BinDir "$env:LOCALAPPDATA\DCTX0\bin"
+& ([scriptblock]::Create((irm https://github.com/Haardt/dctx0ctl/releases/download/v0.2.1/install.ps1))) -Version v0.2.1 -BinDir "$env:LOCALAPPDATA\DCTX0\bin"
 ```
 
 The executable includes the CLI, language server, target profiles, agent skills and testing templates. Releases contain four tar archives, one Windows ZIP, both installers and `SHA256SUMS`. Archives include the MIT license and a source/toolchain receipt. The manifest covers every archive and installer.
@@ -42,15 +42,15 @@ The executable includes the CLI, language server, target profiles, agent skills 
 A pushed `v<SemVer>` tag matching the Cargo workspace version triggers publication after full validation and all five distribution jobs pass. Stable tags become the latest release; prereleases are marked explicitly and skipped by the default installer.
 
 ```sh
-git tag -a v0.2.0 -m "DCTX0 v0.2.0"
-git push origin v0.2.0
+git tag -a v0.2.1 -m "DCTX0 v0.2.1"
+git push origin v0.2.1
 ```
 
 Tag the reviewed, committed version and matching lockfile. The installer URLs become available after the first successful release. CI uses GitHub's native runners; systemd memory limits apply only on Linux. Local distribution validation records test results and packaging/startup speed/RAM in the latest 20 measurement reports.
 
 See the repository's [release maintainer guide](releases.md) for commands, provenance and platform boundaries.
 
-For v0.2.0, the maintainer explicitly requested skipping CI workspace validation
+For v0.2.1, the maintainer explicitly requested skipping CI workspace validation
 and distribution tests. Five native builds, version guards, packaging and checksums
 remain required. Later releases retain normal validation. The release includes
 [Static Site and Task Live View](site-companion.md), with embedded assets and no

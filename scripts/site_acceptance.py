@@ -84,7 +84,9 @@ def main():
             browser_report=tmp/'browser.json'
             run('browser-checks',['bun','ui/site/browser.ts',out,url,binary,spec,browser_report],timeout=180)
             report['browser']=json.loads(browser_report.read_text());assert report['browser']['passed'];
-            for screenshot in ('cinema-site.png','architecture-graph.png','task-graph.png'):shutil.copyfile(out/screenshot,ROOT/'target/site'/screenshot)
+            run('architecture-focus-browser',['bun','ui/site/focus-browser.ts',out],timeout=180)
+            report['checks'].append('architecture subtree focus, depth, hash navigation and small viewport')
+            for screenshot in ('cinema-site.png','architecture-graph.png','task-graph.png','architecture-focus.png'):shutil.copyfile(out/screenshot,ROOT/'target/site'/screenshot)
             assert sources=={str(p.relative_to(spec)):hashlib.sha256(p.read_bytes()).hexdigest() for p in spec.glob('*.dctx0')};report['checks'].append('Cinema sources unchanged through browser transitions')
             # Explicit relevant change, follow-up and rename in this isolated test history only.
             file=next(p for p in spec.glob('*.dctx0') if 'range 1888' in p.read_text());text=file.read_text();assert '1888..2100' in text;file.write_text(text.replace('1888..2100','1889..2100'))
