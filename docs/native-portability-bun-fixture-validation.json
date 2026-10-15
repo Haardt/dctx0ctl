@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "complete local Bun SDK conformance and paired release phases pass; native retry pending",
+  "failed_run": 38782065408,
+  "failed_job": 116585000077,
+  "artifact": {
+    "id": 11997590026,
+    "sha256": "038082ed8725b968eabaee597687dbb831b8e083e3a01860a15640aacb989519"
+  },
+  "native_results_before_failure": "Go SDK resource probes pass on Windows. Bun delayed cleanup, malformed protocol and cleanup-error probes also pass. One import/require export-condition test fails with a Unix-form URL pathname.",
+  "change": "Use fileURLToPath for the importer, and native isAbsolute/basename assertions for resolved module files. Preserve all final protocol packets, including failures, for Rust decoding. No production helper/executor change.",
+  "local": {
+    "bun-transport": {
+      "elapsed_ms": 1041.489322000416,
+      "peak_rss_bytes": 247496704,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 41.542928003764246,
+      "peak_rss_bytes": 26189824,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-projection": {
+      "elapsed_ms": 20.53148100094404,
+      "peak_rss_bytes": 18108416,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "baseline": "unassessed; existing baseline unchanged"
+}
