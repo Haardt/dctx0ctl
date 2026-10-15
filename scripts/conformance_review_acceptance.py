@@ -5,6 +5,7 @@ This is workflow acceptance, not a newly generated architectural approval.
 Performance measurements are run separately at the end by validate.py.
 """
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -68,6 +69,10 @@ def main():
             # Claiming the first task publishes editable profiles before source binding.
             invoke('profile', target, 'create', '--project', project, '--default')
             native = invoke('verify', 'run', spec, '--project', project, success=False)
+            # Retain the actual failed cases and provenance even if an assertion
+            # below rejects this host, before the isolated application is removed.
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.with_name(f'{args.report.stem}-{variant}-native.json').write_text(json.dumps(native, indent=2) + '\n')
             run = native['evidence']['run']
             assert len(run['cases']) == len(run['required_cases']) == 5674, f'{variant}: {len(run["cases"])}/{len(run["required_cases"])} cases; {run["result"]}; {run["provenance"]["incomplete"]}'
             assert all(case['result']['status'] == 'PASS' for case in run['cases']), f'{variant}: failing cases: {[(case["id"], case["result"]) for case in run["cases"] if case["result"]["status"] != "PASS"][:5]}'
@@ -139,7 +144,7 @@ def main():
             # Preserve host identity, supervision and separate native build/worker
             # metrics before the isolated database is removed.
             retained = {}
-            with sqlite3.connect(spec / '.dctx0ctl/state.sqlite3') as connection:
+            with closing(sqlite3.connect(spec / '.dctx0ctl/state.sqlite3')) as connection:
                 for media, contents, expected in connection.execute('SELECT a.media_type,a.bytes,a.hash FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?', (native['evidence']['id'],)):
                     assert hashlib.sha256(contents).hexdigest() == expected
                     if media in ('application/vnd.dctx0.runtime-identity+json', 'application/vnd.dctx0.native-audit+json', 'application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):

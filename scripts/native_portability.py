@@ -54,10 +54,12 @@ def main():
     environment = {**os.environ, 'DCTX0_TEST_PYTHON': sys.executable, 'DCTX0_MEMORY_GUARD': '0', 'DCTX0_COMPLETE_MEMORY_GUARDED': '1'}
 
     def run(label, command, timeout=1800, allowed=(0,)):
+        print(f'Native acceptance: {label}', flush=True)
         sample, text = measured(list(map(str, command)), ROOT, timeout=timeout, env=environment)
         record['measurements'][label] = sample
         (output / f'{label}.log').write_text(text, encoding='utf-8')
         record['checks'].append({'label': label, 'exit_code': sample['exit_code'], 'expected_exit_codes': allowed})
+        print(f'Native acceptance: {label}: exit {sample["exit_code"]}, {sample["elapsed_ms"]:.1f} ms, peak RSS {sample["peak_rss_bytes"]}', flush=True)
         if sample['exit_code'] not in allowed:
             raise RuntimeError(f'{label}: exit {sample["exit_code"]}; {text[-5000:]}')
         return text

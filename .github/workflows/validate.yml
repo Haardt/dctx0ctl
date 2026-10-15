@@ -46,6 +46,7 @@ jobs:
           UI_SCREENSHOT=target/tutorial-ui.png bun examples/tutorial/ui-browser-check.ts > examples/tutorial/validation/browser.json
       - name: Prepare locked Cinema application dependencies
         run: |
+          cargo fetch --locked
           bun install --frozen-lockfile --cwd examples/cinema
           go -C examples/cinema-go mod download
           cargo fetch --locked --manifest-path examples/cinema-rust/.dctx0/testing/rust/Cargo.toml
