@@ -201,6 +201,8 @@ jobs:
           name: native-verification-${{ matrix.target }}
           path: |
             target/native-portability/
+            target/native-executor-conformance/
+            target/cinema-native-coverage/
             benchmarks/history/native-portability/
           if-no-files-found: error
       - name: Reject redistributable VC runtime dependencies

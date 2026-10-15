@@ -93,15 +93,60 @@ fn walk(root: &Path, files: &mut BTreeMap<String, String>, depth: usize) -> Resu
             if actual.is_file() {
                 add(&actual, files)?;
             } else {
-                return Err(Error::Invalid(
-                    "Rust dependency directory symlink unsupported".into(),
-                ));
+                return Err(Error::Invalid(format!(
+                    "Rust dependency directory symlink unsupported: {}",
+                    entry.path().display()
+                )));
             }
         } else {
             return Err(Error::Invalid("Nonregular Rust dependency input".into()));
         }
     }
     Ok(())
+}
+/// SDK/toolchain directories may contain aliases (notably Xcode headers).
+/// Follow physical directories once, retaining strict application capture rules.
+fn walk_toolchain(root: &Path, files: &mut BTreeMap<String, String>) -> Result<()> {
+    fn visit(
+        root: &Path,
+        files: &mut BTreeMap<String, String>,
+        visited: &mut BTreeSet<PathBuf>,
+        depth: usize,
+    ) -> Result<()> {
+        let root = fs::canonicalize(root).map_err(|error| {
+            Error::Invalid(format!("Toolchain input {}: {error}", root.display()))
+        })?;
+        if !visited.insert(root.clone()) {
+            return Ok(());
+        }
+        if depth > 64 || visited.len() > 30_000 {
+            return Err(Error::Invalid(
+                "Toolchain directory inventory exceeds bounds".into(),
+            ));
+        }
+        let mut entries = fs::read_dir(root)?.collect::<std::io::Result<Vec<_>>>()?;
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let metadata = fs::metadata(entry.path()).map_err(|error| {
+                Error::Invalid(format!(
+                    "Toolchain input {}: {error}",
+                    entry.path().display()
+                ))
+            })?;
+            if metadata.is_dir() {
+                visit(&entry.path(), files, visited, depth + 1)?;
+            } else if metadata.is_file() {
+                add(&entry.path(), files)?;
+            } else {
+                return Err(Error::Invalid(format!(
+                    "Nonregular toolchain input {}",
+                    entry.path().display()
+                )));
+            }
+        }
+        Ok(())
+    }
+    visit(root, files, &mut BTreeSet::new(), 0)
 }
 /// Validate Cargo's required package identities and capture boundaries before I/O.
 fn package_roots(
@@ -199,11 +244,11 @@ async fn capture_c_toolchain(
         }
         let path = Path::new("/usr/include").join(multiarch);
         if path.is_dir() {
-            walk(&path, files, 0)?;
+            walk_toolchain(&path, files)?;
         }
     }
     let compiler_include = output("cc", &["-print-file-name=include"], directory, cancel).await?;
-    walk(Path::new(compiler_include.trim()), files, 0)?;
+    walk_toolchain(Path::new(compiler_include.trim()), files)?;
     for entry in fs::read_dir("/usr/include")? {
         let entry = entry?;
         if entry.file_type()?.is_file() {
@@ -213,7 +258,7 @@ async fn capture_c_toolchain(
     for name in ["bits", "sys", "gnu", "asm", "asm-generic", "linux"] {
         let path = Path::new("/usr/include").join(name);
         if path.is_dir() {
-            walk(&path, files, 0)?;
+            walk_toolchain(&path, files)?;
         }
     }
     Ok(())
@@ -229,9 +274,9 @@ async fn capture_c_toolchain(
         add(Path::new(path.trim()), files)?;
     }
     let sdk = output("xcrun", &["--show-sdk-path"], directory, cancel).await?;
-    walk(&Path::new(sdk.trim()).join("usr/include"), files, 0)?;
+    walk_toolchain(&Path::new(sdk.trim()).join("usr/include"), files)?;
     let resource = output("clang", &["-print-resource-dir"], directory, cancel).await?;
-    walk(&Path::new(resource.trim()).join("include"), files, 0)?;
+    walk_toolchain(&Path::new(resource.trim()).join("include"), files)?;
     Ok(())
 }
 #[cfg(windows)]
@@ -247,11 +292,10 @@ async fn capture_c_toolchain(
             .map_err(|e| Error::Invalid(e.to_string()))?;
         add(&path, files)?;
         if name == "cl.exe" {
-            walk(
+            walk_toolchain(
                 path.parent()
                     .ok_or_else(|| Error::Invalid("MSVC compiler lacks parent".into()))?,
                 files,
-                0,
             )?;
         }
     }
@@ -261,7 +305,7 @@ async fn capture_c_toolchain(
         )
     })?;
     for root in std::env::split_paths(&include) {
-        walk(&root, files, 0)?;
+        walk_toolchain(&root, files)?;
     }
     Ok(())
 }
@@ -345,11 +389,11 @@ pub(crate) async fn prepare(
     }
     let targetlib = output("rustc", &["--print", "target-libdir"], directory, cancel).await?;
     let targetlib = Path::new(targetlib.trim());
-    walk(targetlib, &mut files, 0)?;
+    walk_toolchain(targetlib, &mut files)?;
     if let Some(parent) = targetlib.parent() {
         let tools = parent.join("bin");
         if tools.is_dir() {
-            walk(&tools, &mut files, 0)?;
+            walk_toolchain(&tools, &mut files)?;
         }
     }
     capture_c_toolchain(directory, cancel, &mut files).await?;
@@ -558,6 +602,40 @@ mod tests {
     }
     #[cfg(unix)]
     #[test]
+    fn sdk_directory_aliases_bind_physical_files_terminate_cycles_and_reject_broken_inputs() {
+        let root = std::env::temp_dir().join(format!("dctx0-sdk-aliases-{}", std::process::id()));
+        let include = root.join("include");
+        fs::create_dir_all(&include).unwrap();
+        fs::write(include.join("actual.h"), "#define ACTUAL 1").unwrap();
+        std::os::unix::fs::symlink(&include, root.join("alias")).unwrap();
+        std::os::unix::fs::symlink(&root, include.join("cycle")).unwrap();
+        let mut files = BTreeMap::new();
+        assert!(
+            walk_toolchain(&root.join("missing-sdk"), &mut files)
+                .unwrap_err()
+                .to_string()
+                .contains("missing-sdk")
+        );
+        walk_toolchain(&root, &mut files).unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(
+            files[&fs::canonicalize(include.join("actual.h"))
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()],
+            hash(&include.join("actual.h")).unwrap()
+        );
+        std::os::unix::fs::symlink(root.join("missing"), root.join("broken")).unwrap();
+        assert!(
+            walk_toolchain(&root, &mut files)
+                .unwrap_err()
+                .to_string()
+                .contains("broken")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[cfg(unix)]
+    #[test]
     fn cargo_physical_paths_accept_application_aliases_and_reject_escaping_local_aliases() {
         let root =
             std::env::temp_dir().join(format!("dctx0-cargo-physical-{}", std::process::id()));
@@ -569,6 +647,14 @@ mod tests {
         fs::write(outside.join("Cargo.toml"), "external").unwrap();
         let alias = root.join("application-alias");
         std::os::unix::fs::symlink(&app, &alias).unwrap();
+        for invalid in [
+            serde_json::json!({}),
+            serde_json::json!({"packages":[]}),
+            serde_json::json!({"packages":[{}]}),
+            serde_json::json!({"packages":[{"manifest_path":app.join("missing.toml")} ]}),
+        ] {
+            assert!(physical_package_roots(invalid, &alias).is_err());
+        }
         let metadata = |manifest: PathBuf| serde_json::json!({"packages":[{"manifest_path":manifest,"id":"local","source":null}]});
         let roots = physical_package_roots(
             metadata(fs::canonicalize(app.join("Cargo.toml")).unwrap()),

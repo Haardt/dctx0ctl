@@ -24,9 +24,9 @@ HISTORY = ROOT / 'benchmarks/history/native-portability'
 
 def content_hash():
     digest = hashlib.sha256()
-    paths = subprocess.check_output(['git', 'ls-files', '-z', 'Cargo.toml', 'Cargo.lock', 'crates', 'targets', 'scripts', 'examples/cinema', 'examples/cinema-go', 'examples/cinema-rust', '.github/workflows/release.yml', '.gitattributes'], cwd=ROOT).decode().split('\0')
+    paths = subprocess.check_output(['git', 'ls-files', '-z', 'Cargo.toml', 'Cargo.lock', 'crates', 'targets', 'scripts', 'fixtures', 'examples/cinema', 'examples/cinema-go', 'examples/cinema-rust', '.github/workflows/release.yml', '.gitattributes'], cwd=ROOT).decode().split('\0')
     # The contributor runner may itself be new in a dirty checkout.
-    paths += ['scripts/native_portability.py', 'crates/dctx0-engine/tests/native_portable.rs']
+    paths += ['scripts/native_portability.py', 'crates/dctx0-engine/tests/native_portable.rs', 'crates/dctx0-engine/tests/support/native_process.rs']
     for name in sorted(set(paths) - {''}):
         path = ROOT / name
         digest.update(name.encode()); digest.update(path.read_bytes())
@@ -46,7 +46,7 @@ def main():
               'scope': 'transport development' if args.transport_only else 'native three-target verification and Cinema acceptance',
               'metadata': {'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                            'dirty_worktree': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True)),
-                           'target': native_target(), 'platform': platform.platform(), 'machine': platform.machine(), 'cpu': platform.processor(),
+                           'target': native_target(), 'platform': platform.platform(), 'machine': platform.machine(), 'cpu': platform.processor() or 'unknown', 'logical_cpus': os.cpu_count(),
                            'content_hash_before': content_hash(), 'python': sys.version, 'binary_hash': None, 'toolchains': {}},
               'baseline': {'status': 'unassessed', 'reason': 'No accepted native portability baseline; existing baselines unchanged'},
               'cache': 'prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution',
@@ -70,7 +70,7 @@ def main():
             record['metadata']['toolchains'][name] = run('toolchain-' + name, command).strip()
         binary = args.binary.resolve()
         record['metadata']['binary_hash'] = hashlib.sha256(binary.read_bytes()).hexdigest()
-        run('portable-transport', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'native_portable'])
+        run('portable-transport', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'native_portable', '--test', 'native'])
         run('small-compiled-targets', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'verification_go', '--test', 'verification_rust'])
         run('small-typescript-and-replay', ['bun', ROOT / 'scripts/release_platform.ts', binary])
         run('complete-guards-and-reviews', ['cargo', 'test', '--locked', '--all-features', '-p', 'dctx0-cli', '--test', 'verification_complete'])
