@@ -100,6 +100,7 @@ impl Actual {
                     .map_err(error)?;
                 let report = NativeVerificationReport {
                     evidence: saved,
+                    supervision: None,
                     adopted_tasks: vec![],
                     adoption_issues: vec![],
                     adoption_proposal: None,
