@@ -45,7 +45,7 @@ export const adapter:ProjectAdapter={
    },
    async validate(_subject,value){try{return {kind:'accepted',value:integer(decodeIncrement(value.kind==='integer'?Number(value.value):value))};}catch(error){return {kind:'rejected',reason:String(error)};}},
    async observe(entities){return Object.fromEntries(entities.map(e=>[e,[{kind:'record',value:{count:integer(counter.value)}}]]));},
-   async close(){if(caseId==='cleanup-error')throw new Error('Cleanup unavailable');},
+   async close(){if(caseId.startsWith('cleanup-order-')){await new Promise(resolve=>setTimeout(resolve,100));await Bun.write(caseId+'.closed','closed');}if((caseId==='cleanup-error'||caseId==='cleanup-order-close-error'))throw new Error('Cleanup unavailable');},
   };
  },
 };

@@ -122,3 +122,15 @@ earlier fixture/measurement mistakes as well as the corrected results. The
 shared native test stage executes these probes on each host; a new five-host
 matrix is required for this helper change. Existing Cinema source reviews are
 unchanged because application source did not change.
+
+
+Delayed-close probes also reproduced a Bun/Go reporting race: a technical frame
+could reach the executor before the adapter finished releasing its resources.
+Both helpers now complete session cleanup before fault publication. Protocol
+fault cleanup runs in the same serialized execution path; pending collaborator
+calls are released before it. Go catches cleanup panic. The delayed probes fail
+before these changes and pass afterward, alongside existing transport tests.
+Bun/Go cleanup probes are mandatory in each native host job, and Bun helper
+coverage/packet reports are archived. See
+`docs/native-portability-sdk-cleanup-validation.json`. These helper deltas require
+a new complete matrix; results from preceding revisions remain historical.

@@ -959,3 +959,36 @@ fn go_dependency_resolution_uses_the_module_aware_toolchain() {
     fs::remove_dir_all(&root).unwrap();
     assert!(success, "resolution session must exit: {stderr}");
 }
+
+#[test]
+fn adapter_and_protocol_faults_wait_for_session_resource_release() {
+    for kind in ["adapter", "protocol", "panic"] {
+        let (root, bundle) = counter_root("cleanup-order");
+        let mut worker = Worker::spawn(&root, &bundle);
+        let case_id = format!("cleanup-order-{kind}");
+        assert!(matches!(
+            worker.request(begin(&case_id)),
+            WorkerReply::Begun { .. }
+        ));
+        let response = if kind == "adapter" {
+            worker.exchange(invoke(Invocation {
+                subject: "operation".into(),
+                arguments: vec![text("adapter-error")],
+            }))
+        } else if kind == "protocol" {
+            worker.raw("{broken}");
+            worker.next_message()
+        } else {
+            worker.exchange(WorkerRequest::End)
+        };
+        assert!(matches!(response, WorkerMessage::TechnicalError { .. }));
+        assert_eq!(
+            fs::read_to_string(root.join(format!("{case_id}.closed"))).unwrap(),
+            "closed"
+        );
+        worker.stdin = None;
+        let (success, stderr) = worker.wait_exit();
+        assert!(success, "{stderr}");
+        fs::remove_dir_all(root).unwrap();
+    }
+}

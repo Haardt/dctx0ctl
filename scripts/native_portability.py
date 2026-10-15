@@ -73,6 +73,8 @@ def main():
         binary = args.binary.resolve()
         record['metadata']['binary_hash'] = hashlib.sha256(binary.read_bytes()).hexdigest()
         run('native-unit-contracts', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--lib', 'native::'])
+        run('go-sdk-resource-cleanup', ['cargo', 'test', '--locked', '-p', 'dctx0-target-go', '--test', 'harness', 'adapter_and_protocol_faults_wait_for_session_resource_release'])
+        run('bun-sdk-transport', ['cargo', 'test', '--locked', '-p', 'dctx0-target-typescript', '--test', 'harness', 'real_bun_worker_conforms_to_sessions_observation_mock_transport_and_failures'])
         run('portable-transport', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'native_portable', '--test', 'native'])
         run('small-compiled-targets', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'verification_go', '--test', 'verification_rust'])
         run('small-typescript-and-replay', ['bun', ROOT / 'scripts/release_platform.ts', binary])

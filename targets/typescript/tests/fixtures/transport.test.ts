@@ -14,7 +14,7 @@ afterAll(async()=>{
   expect(report.raw).not.toBeNull();let source:string|undefined;
   for(const line of report.raw!.split('\n')){
    if(line.startsWith('SF:')){
-    source=line.slice(3);if(!['worker.ts','scaffold-worker.ts','contract.ts'].some(name=>source!.endsWith('/'+name)||source===name)){source=undefined;continue;}
+    source=line.slice(3);if(!['worker.ts','scaffold-worker.ts','contract.ts'].includes(source.split(/[/\\]/).at(-1)!)){source=undefined;continue;}
     if(!sources.has(source))sources.set(source,{sha256:createHash('sha256').update(readFileSync(source)).digest('hex'),lines:new Map(),functions:new Map(),function_samples:[]});
    }else if(source&&line.startsWith('DA:')){const [number,hits]=line.slice(3).split(',').map(Number);const counts=sources.get(source)!.lines;counts.set(number,(counts.get(number)??0)+hits);
    }else if(source&&line.startsWith('FNF:')){sources.get(source)!.function_samples.push({report:report.directory,found:Number(line.slice(4)),hit:null});
@@ -27,8 +27,8 @@ afterAll(async()=>{
  raw.samples_instrumentation='Native worker coverage instrumentation; not release benchmark evidence';
  await Bun.write('native-performance.json',JSON.stringify(raw));
 });
-const samples:Record<string,{elapsed_ms:number;peak_rss_bytes:number;runtime_version:string}>={};
-async function measure(c:Client,name:string,start:number){const elapsed_ms=performance.now()-start;const metrics=(await c.request({kind:'metrics'})).reply;expect(metrics.peak_rss_bytes).toBeGreaterThan(0);samples[name]={elapsed_ms,peak_rss_bytes:metrics.peak_rss_bytes,runtime_version:metrics.runtime_version};}
+const samples:Record<string,{elapsed_ms:number;peak_rss_bytes:number|null;runtime_version:string}>={};
+async function measure(c:Client,name:string,start:number){const elapsed_ms=performance.now()-start;const metrics=(await c.request({kind:'metrics'})).reply;if(process.platform==='linux')expect(metrics.peak_rss_bytes).toBeGreaterThan(0);else expect(metrics.peak_rss_bytes).toBeNull();samples[name]={elapsed_ms,peak_rss_bytes:metrics.peak_rss_bytes,runtime_version:metrics.runtime_version};}
 
 class Client {
  process:Subprocess<'pipe','pipe','pipe'>;
@@ -153,4 +153,21 @@ test('native dependency resolution preserves import and require export condition
   expect((await c.request({kind:'resolve-dependency',mode:'import',specifier:'missing-package',importer})).reply.kind).toBe('dependency-unresolved');
   expect((await c.request({kind:'describe'})).reply.kind).toBe('described');
  }finally{await c.stop();}
+},{timeout:10000});
+
+
+test('adapter and protocol faults are reported only after asynchronous session cleanup',async()=>{
+ for(const kind of ['adapter','protocol','close-error']){
+  const caseId='cleanup-order-'+kind,marker=caseId+'.closed';
+  const c=new Client();try{
+   await c.request({kind:'begin',case_id:caseId});
+   let response;
+   if(kind!=='protocol')response=await c.request(call({kind:'string',value:'adapter-error'}));
+   else {c.process.stdin.write('{broken}\n');response=await c.next();}
+   expect(response.kind).toBe('technical-error');
+   if(kind==='close-error')expect((await c.next()).category).toBe('cleanup');
+   expect(existsSync(marker)).toBe(true);
+   expect(readFileSync(marker,'utf8')).toBe('closed');
+  }finally{await c.stop();}
+ }
 },{timeout:10000});

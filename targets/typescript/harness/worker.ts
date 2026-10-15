@@ -139,10 +139,16 @@ input.on('line',(line:string)=>{
   if(request?.kind==='shutdown')stopped=true;
   chain=chain.then(async()=>{
    try{await execute(envelope.id,request);}catch(error){
-    technical(envelope.id,'adapter-or-request',error);
-    try{await end();}catch(cleanup){technical(envelope.id,'cleanup',cleanup);}
+    let cleanupError:{value:unknown}|undefined;try{await end();}catch(cleanup){cleanupError={value:cleanup};}
+    technical(envelope.id,'adapter-or-request',error);if(cleanupError)technical(envelope.id,'cleanup',cleanupError.value);
    }
   });
- }catch(error){technical(envelope?.id??null,'protocol',error);rejectPending('Protocol violation');}
+ }catch(error){
+  rejectPending('Protocol violation');
+  chain=chain.then(async()=>{
+   let cleanupError:{value:unknown}|undefined;try{await end();}catch(cleanup){cleanupError={value:cleanup};}
+   technical(envelope?.id??null,'protocol',error);if(cleanupError)technical(envelope?.id??null,'cleanup',cleanupError.value);
+  });
+ }
 });
 input.on('close',()=>{rejectPending('Worker input closed');void chain.finally(async()=>{try{await end();}catch(error){technical(null,'cleanup',error);}await flushProtocol();}).then(()=>resolveFinished());});
