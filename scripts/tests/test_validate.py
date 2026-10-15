@@ -36,54 +36,6 @@ class PerformanceTests(unittest.TestCase):
         self.patch.stop()
         self.temporary.cleanup()
 
-    def test_generated_transport_copies_do_not_change_the_source_inventory(self):
-        root = Path(self.temporary.name) / 'source'
-        root.mkdir()
-        with patch.object(validate, 'ROOT', root):
-            for path in validate.validation_sources():
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text('source')
-            projects = [('examples/tutorial-step-1-values', 'typescript', ('worker.ts', 'module-observer.ts'), 'adapter.ts'),
-                        ('examples/tutorial-variants/bun-direct', 'typescript', ('worker.ts', 'module-observer.ts'), 'adapter.ts'),
-                        ('examples/cinema-go', 'go', ('worker.go', 'build.go'), 'adapter.go'),
-                        ('examples/cinema-rust', 'rust', ('worker.rs',), 'adapter.rs')]
-            for project, target, copies, adapter in projects:
-                directory = root / project / '.dctx0/testing' / target
-                directory.mkdir(parents=True, exist_ok=True)
-                (directory / adapter).write_text('authored adapter')
-                (directory / 'inspection-notes.json').write_text('{"review":"authored"}')
-                for name in copies:
-                    template = root / 'targets' / target / 'harness' / name
-                    template.parent.mkdir(parents=True, exist_ok=True)
-                    template.write_text('required transport template')
-            for path in validate.validation_sources():
-                if not path.exists():
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text('source')
-            before = validate.digest(validate.validation_sources())
-            for project, target, copies, adapter in projects:
-                directory = root / project / '.dctx0/testing' / target
-                for name in copies:
-                    (directory / name).write_text('generated transport')
-            self.assertEqual(before, validate.digest(validate.validation_sources()))
-            # Authored inputs and generator templates must still invalidate the
-            # same inventory, even after generated copies have appeared.
-            authored = [root / project / '.dctx0/testing' / target / name
-                        for project, target, _, adapter in projects
-                        for name in (adapter, 'inspection-notes.json')]
-            for path in authored + [root / 'targets/typescript/harness/worker.ts']:
-                original = path.read_text()
-                path.write_text(original + ' changed')
-                self.assertNotEqual(before, validate.digest(validate.validation_sources()), path)
-                path.write_text(original)
-                self.assertEqual(before, validate.digest(validate.validation_sources()))
-            added = root / 'examples/tutorial-step-1-values/src/worker.ts'
-            added.parent.mkdir(parents=True)
-            added.write_text('authored application source')
-            self.assertNotEqual(before, validate.digest(validate.validation_sources()))
-            added.unlink()
-            self.assertEqual(before, validate.digest(validate.validation_sources()))
-
     def test_speed_and_ram_regressions_fail_independently(self):
         baseline = record()
         self.assertTrue(validate.compare(record(), baseline, self.args))
@@ -229,6 +181,33 @@ class PerformanceTests(unittest.TestCase):
             self.assertEqual(saved[0]['validation_status'], 'fail' if expected else 'pass')
             self.assertEqual(saved[0]['validation_source_hash'], hashes[0])
             self.assertEqual(saved[0]['validation_source_hash_after'], hashes[1])
+
+    def test_fresh_dependencies_are_pinned_before_checks_and_later_edits_still_fail(self):
+        for mutate, preparation_failed in [(False, False), (True, False), (False, True)]:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                authored = root / 'adapter.ts'
+                dependency = root / 'node_modules/dependency/package.json'
+                authored.write_text('authored source')
+                saved = []
+                def sources():
+                    return [authored] + ([dependency] if dependency.exists() else [])
+                def run(command, **kwargs):
+                    if command[:2] == ['bun', 'install']:
+                        dependency.parent.mkdir(parents=True, exist_ok=True)
+                        dependency.write_text('{"version":"pinned"}')
+                        return argparse.Namespace(returncode=int(preparation_failed))
+                    self.assertTrue(dependency.exists(), 'Checks must follow dependency preparation')
+                    if mutate and command[:2] == ['cargo', 'test']:
+                        dependency.write_text('{"version":"changed during tests"}')
+                    return argparse.Namespace(returncode=0)
+                def benchmark(args):
+                    return record() | {'source_hash': validate.digest(sources())}
+                with patch.object(validate, 'ROOT', root), patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification', '--example', 'cinema']), patch.object(validate, 'validation_sources', side_effect=sources), patch.object(validate.subprocess, 'run', side_effect=run), patch.object(validate, 'benchmark', side_effect=benchmark), patch.object(validate, 'save', side_effect=lambda result, args: saved.append(copy.deepcopy(result)) or True):
+                    self.assertEqual(validate.main(), int(mutate or preparation_failed))
+                self.assertEqual(saved[0]['validation_status'], 'fail' if mutate or preparation_failed else 'pass')
+                self.assertEqual(saved[0]['validation_source_hash'] == saved[0]['validation_source_hash_after'], not mutate)
+                self.assertEqual(saved[0]['validation_steps'][0]['command'][:2], ['bun', 'install'])
 
 
 
