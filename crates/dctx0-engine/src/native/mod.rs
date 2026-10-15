@@ -967,7 +967,7 @@ mod tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "linux"))]
 mod cleanup_retry_tests {
     use super::*;
     struct UnavailableWait;
