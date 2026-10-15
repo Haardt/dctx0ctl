@@ -89,8 +89,8 @@ mutation detection and broken/repaired replay. Twelve source-bound inspections
 complete the manual requirements separately; the saved automatic run retains
 UNKNOWN for those requirements.
 
-[Retained validation evidence](../../../self-verification-validation.json)
-and [authored inspection reports](../../../self-verification-reviews.json)
+[Retained validation evidence](https://github.com/Haardt/dctx0ctl/blob/main/docs/self-verification-validation.json)
+and [authored inspection reports](https://github.com/Haardt/dctx0ctl/blob/main/docs/self-verification-reviews.json)
 record the exact run and artifact bindings. Preparation, cold build, warm finite
 execution and replay include separate time/RSS measurements. These new workloads
 remain unassessed against a baseline.

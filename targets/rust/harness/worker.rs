@@ -23,13 +23,32 @@ fn run() -> Result<(), String> {
     let subjects: Vec<String> = serde_json::from_str(__SUBJECTS__).map_err(|e| e.to_string())?;
     let mut session: Option<Box<dyn Session>> = None;
     let mut context = Context::default();
+    let result = run_requests(&subjects, &mut session, &mut context);
+    let cleanup = close_session(&mut session, &context);
+    match (result, cleanup) {
+        (Err(error), Err(cleanup)) => Err(format!("{error}; cleanup: {cleanup}")),
+        (Err(error), Ok(())) | (Ok(()), Err(error)) => Err(error),
+        (Ok(()), Ok(())) => Ok(()),
+    }
+}
+fn close_session(session: &mut Option<Box<dyn Session>>, context: &Context) -> Result<(), String> {
+    let Some(mut current) = session.take() else {
+        return Ok(());
+    };
+    let closed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| current.close()))
+        .map_err(|_| "Adapter panicked during cleanup".to_owned())
+        .and_then(|result| result);
+    let finished = context.finish();
+    closed.and(finished)
+}
+fn run_requests(
+    subjects: &[String],
+    session: &mut Option<Box<dyn Session>>,
+    context: &mut Context,
+) -> Result<(), String> {
     let mut last_id = 0;
     loop {
         let Some(envelope) = read()? else {
-            if let Some(mut session) = session.take() {
-                session.close()?;
-                context.finish()?;
-            }
             return Err("Worker input closed without shutdown".into());
         };
         let id = envelope["id"]
@@ -53,9 +72,9 @@ fn run() -> Result<(), String> {
                         if session.is_some() {
                             return Err("Session already active".into());
                         }
-                        context = Context::default();
+                        *context = Context::default();
                         let case = field(request, "case_id")?;
-                        session = Some(adapter::begin(case, context.clone())?);
+                        *session = Some(adapter::begin(case, context.clone())?);
                         Ok(json!({"kind":"begun","case_id":case}))
                     }
                     "invoke" => {
@@ -108,18 +127,14 @@ fn run() -> Result<(), String> {
                         )
                     }
                     "end" => {
-                        let mut current = session.take().ok_or("No active session")?;
-                        let closed = current.close();
-                        context.finish()?;
-                        closed?;
+                        if session.is_none() {
+                            return Err("No active session".into());
+                        }
+                        close_session(session, context)?;
                         Ok(json!({"kind":"ended"}))
                     }
                     "shutdown" => {
-                        if let Some(mut current) = session.take() {
-                            let closed = current.close();
-                            context.finish()?;
-                            closed?;
-                        }
+                        close_session(session, context)?;
                         Ok(json!({"kind":"bye"}))
                     }
                     "resolve-dependency" => Ok(
@@ -131,12 +146,21 @@ fn run() -> Result<(), String> {
         ));
         match result {
             Ok(Ok(reply)) => send(json!({"kind":"reply","id":id,"reply":reply}))?,
-            Ok(Err(message)) => send(
-                json!({"kind":"technical-error","id":id,"category":"adapter","message":message.chars().take(4096).collect::<String>()}),
-            )?,
-            Err(_) => send(
-                json!({"kind":"technical-error","id":id,"category":"adapter","message":"Adapter panicked outside application boundary"}),
-            )?,
+            error => {
+                let message = match error {
+                    Ok(Err(message)) => message,
+                    _ => "Adapter panicked outside application boundary".into(),
+                };
+                let cleanup = close_session(session, context);
+                send(
+                    json!({"kind":"technical-error","id":id,"category":"adapter","message":message.chars().take(4096).collect::<String>()}),
+                )?;
+                if let Err(cleanup) = cleanup {
+                    send(
+                        json!({"kind":"technical-error","id":id,"category":"cleanup","message":cleanup.chars().take(4096).collect::<String>()}),
+                    )?;
+                }
+            }
         }
         if kind == "shutdown" {
             return Ok(());

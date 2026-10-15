@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "status": "correction integrated; full CI acceptance pending",
+  "problem": "Focus direction can be changed before the preceding picker selection is rendered; the next callback retains the previous Catalog root.",
+  "before": {
+    "directory": "/tmp/dctx0-native-focus-yzy32lop",
+    "measurements": {
+      "release-check": {
+        "elapsed_ms": 41.24571399734123,
+        "peak_rss_bytes": 26087424,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "release-plan": {
+        "elapsed_ms": 72.19368000369286,
+        "peak_rss_bytes": 27533312,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "release-export": {
+        "elapsed_ms": 192.79142399318516,
+        "peak_rss_bytes": 183476224,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    },
+    "attempts": [
+      {
+        "elapsed_ms": 3600.3626590027125,
+        "peak_rss_bytes": 235409408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 33018.64825999655,
+        "peak_rss_bytes": 234844160,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "diagnostic": {
+    "browser": [
+      {
+        "elapsed_ms": 33019.35241699539,
+        "peak_rss_bytes": 236744704,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "release_export": {
+      "elapsed_ms": 172.34332399675623,
+      "peak_rss_bytes": 183689216,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "after": {
+    "browser": [
+      {
+        "elapsed_ms": 3690.0846320058918,
+        "peak_rss_bytes": 234622976,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3675.2215060041635,
+        "peak_rss_bytes": 236052480,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3535.795372001303,
+        "peak_rss_bytes": 236183552,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3491.4928969956236,
+        "peak_rss_bytes": 236695552,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3679.6947690017987,
+        "peak_rss_bytes": 237375488,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3727.68475599878,
+        "peak_rss_bytes": 236912640,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3515.17633000185,
+        "peak_rss_bytes": 235556864,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3642.8691260007326,
+        "peak_rss_bytes": 235646976,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 3732.8252580045955,
+        "peak_rss_bytes": 237219840,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 4400.884916998621,
+        "peak_rss_bytes": 235495424,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "release_export": {
+      "elapsed_ms": 284.5958329999121,
+      "peak_rss_bytes": 184033280,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "correction": "Await the Focus node combobox displaying the chosen surface before changing direction. No production UI change; all original assertions remain.",
+  "patched_diagnostic_sha256": "c46a890ee07e1d88276c7486f9e28c8e0585565989038f90f8b1e8b50b01edcd",
+  "baseline": "unassessed; existing baseline unchanged",
+  "test_correction_commit": "0693a2715ebcb7e13e0e228f9e4747f88bf64b40"
+}
