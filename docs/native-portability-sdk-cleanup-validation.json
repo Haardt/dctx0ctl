@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "status": "local regression, Clippy and release measurements pass; native matrix pending",
+  "defect": "Bun and Go could report a technical fault before asynchronous/delayed Session.close completed, allowing the managing executor to kill the process first. Protocol parse faults did not schedule session cleanup.",
+  "change": "Await/complete session cleanup before fault publication; serialize protocol cleanup with session execution; release pending collaborator calls before queued cleanup. Go cleanup panic becomes a technical error.",
+  "regressions": "Both new delayed-close probes fail on the previous helpers and pass after the fix. Go also checks close panic; Bun checks preservation of cleanup failure. Normal, EOF and mock-transport conformance remains covered.",
+  "native_acceptance": "Both SDK cleanup probes now run in every required host job. Bun helper coverage/packet reports are archived separately from Rust core coverage. Optional RSS remains null on unsupported hosts.",
+  "baseline": "unassessed; no baseline promotion",
+  "before": {
+    "go-before": {
+      "elapsed_ms": 6082.020119996741,
+      "peak_rss_bytes": 333086720,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "bun-before": {
+      "elapsed_ms": 1305.460679999669,
+      "peak_rss_bytes": 218533888,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "after_initial": {
+    "go-after": {
+      "elapsed_ms": 6283.508453998365,
+      "peak_rss_bytes": 178536448,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "bun-after": {
+      "elapsed_ms": 1012.9536009990261,
+      "peak_rss_bytes": 186540032,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "clippy": {
+      "elapsed_ms": 3099.430903996108,
+      "peak_rss_bytes": 357646336,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-build": {
+      "elapsed_ms": 34761.248217000684,
+      "peak_rss_bytes": 662228992,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 51.188297002227046,
+      "peak_rss_bytes": 26288128,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-projection": {
+      "elapsed_ms": 31.167549001111183,
+      "peak_rss_bytes": 18026496,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "final": {
+    "go-final": {
+      "elapsed_ms": 5587.843028995849,
+      "peak_rss_bytes": 191459328,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "bun-final": {
+      "elapsed_ms": 1173.7529649981298,
+      "peak_rss_bytes": 187236352,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "clippy-final": {
+      "elapsed_ms": 396.00985599827254,
+      "peak_rss_bytes": 152219648,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check-final": {
+      "elapsed_ms": 61.00537200109102,
+      "peak_rss_bytes": 26357760,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-projection-final": {
+      "elapsed_ms": 31.003095995401964,
+      "peak_rss_bytes": 18247680,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "source_sha256": {
+    "targets/typescript/harness/worker.ts": "b879b322ade4ec87518f9d9decae26200927b67d2de3e5ea7e3537038f2f15da",
+    "targets/go/harness/worker.go": "c7d2f58940d2dda298d195c12f42aa96ce5b843a64121f2b0d17688132ece7b0",
+    "targets/rust/harness/worker.rs": "d037b513c22a0b285c79081b257e301c89c94d9c27056f0d08000a488ffe97a7"
+  }
+}

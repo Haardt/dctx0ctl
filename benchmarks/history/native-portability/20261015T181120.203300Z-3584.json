@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "id": "20261015T181120.203300Z-3584",
+  "timestamp": "2026-10-15T18:11:20.203300+00:00",
+  "status": "failed",
+  "scope": "native three-target verification and Cinema acceptance",
+  "metadata": {
+    "revision": "036ba1ef294f80f3ea0eb99d1ac4b958d90bc167",
+    "dirty_worktree": false,
+    "target": "x86_64-pc-windows-msvc",
+    "platform": "Windows-2022Server-10.0.20348-SP0",
+    "machine": "AMD64",
+    "cpu": "AMD64 Family 25 Model 17 Stepping 1, AuthenticAMD",
+    "logical_cpus": 4,
+    "content_hash_before": "7c7e1dec26c4c7a1108df2db949a606dd4e0f6a5fb8946790bcc67a6747eaf6f",
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "binary_hash": "ccfc75ca4f3498a0a873d0ff9e584e363e6ed63a27f37c752e810087889fdba6",
+    "toolchains": {
+      "bun": "1.4.2",
+      "go": "go version go1.25.0 windows/amd64",
+      "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-pc-windows-msvc\nrelease: 1.99.1\nLLVM version: 23.1.1"
+    },
+    "content_hash_after": "7c7e1dec26c4c7a1108df2db949a606dd4e0f6a5fb8946790bcc67a6747eaf6f"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "No accepted native portability baseline; existing baselines unchanged"
+  },
+  "cache": "prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution",
+  "seed": 42,
+  "generated_cases": 100,
+  "features": "all-features",
+  "checks": [
+    {
+      "label": "toolchain-bun",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-go",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-rust",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "native-unit-contracts",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "go-sdk-resource-cleanup",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "bun-sdk-transport",
+      "exit_code": 101,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-check",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-generation",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-first-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-warm-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    }
+  ],
+  "measurements": {
+    "toolchain-bun": {
+      "elapsed_ms": 66.48189999998522,
+      "peak_rss_bytes": 3522560,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "toolchain-go": {
+      "elapsed_ms": 34.05659999998534,
+      "peak_rss_bytes": 8916992,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "toolchain-rust": {
+      "elapsed_ms": 74.96890000004441,
+      "peak_rss_bytes": 9261056,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "native-unit-contracts": {
+      "elapsed_ms": 87294.4109,
+      "peak_rss_bytes": 9224192,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "go-sdk-resource-cleanup": {
+      "elapsed_ms": 33926.0567,
+      "peak_rss_bytes": 9224192,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "bun-sdk-transport": {
+      "elapsed_ms": 2800.742200000059,
+      "peak_rss_bytes": 9269248,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-check": {
+      "elapsed_ms": 26.278399999910107,
+      "peak_rss_bytes": 6856704,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-generation": {
+      "elapsed_ms": 22.818400000005568,
+      "peak_rss_bytes": 4648960,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-execution-first-project": {
+      "elapsed_ms": 466.65219999999863,
+      "peak_rss_bytes": 11833344,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-execution-warm-project": {
+      "elapsed_ms": 320.45880000009674,
+      "peak_rss_bytes": 11866112,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    }
+  },
+  "failure": "bun-sdk-transport: exit 101; \u001b[1m\u001b[92m   Compiling\u001b[0m dctx0-target-typescript v0.2.2 (D:\\a\\dctx0ctl\\dctx0ctl\\targets\\typescript)\n\u001b[1m\u001b[92m    Finished\u001b[0m `test` profile [unoptimized + debuginfo] target(s) in 1.48s\n\u001b[1m\u001b[92m     Running\u001b[0m tests\\harness.rs (target\\debug\\deps\\harness-fa33288cf37cb89d.exe)\n\nrunning 1 test\ntest real_bun_worker_conforms_to_sessions_observation_mock_transport_and_failures ... FAILED\n\nfailures:\n\n---- real_bun_worker_conforms_to_sessions_observation_mock_transport_and_failures stdout ----\n\nthread 'real_bun_worker_conforms_to_sessions_observation_mock_transport_and_failures' (6012) panicked at targets\\typescript\\tests\\harness.rs:133:5:\nbun test v1.4.2 (744846f84)\n\n\n::group::transport.test.ts:\n(pass) actual source, isolated state, events, central mock responses and cleanup [67.69ms]\n(pass) scaffolds, initialization, missing session, unsupported scope and cleanup never report success [286.91ms]\n(pass) bad versions, corrupt frames, unexpected success flags and mock replies are technical failures [171.18ms]\n(pass) EOF releases a pending collaborator and closes its session [47.52ms]\n(pass) recorded observations retain their value at the actual observation time [48.60ms]\n(pass) observation overflow is explicit and a new session starts with a fresh budget [59.69ms]\n136 |  await Bun.write('node_modules/conditional-example/required.cjs','throw Error(\"resolution must not execute this module\");');\n137 |  const c=new Client();try{\n138 |   const importer=new URL('./adapter.ts',import.meta.url).pathname;\n139 |   const imported=await c.request({kind:'resolve-dependency',mode:'import',specifier:'conditional-example',importer});\n140 |   const required=await c.request({kind:'resolve-dependency',mode:'require',specifier:'conditional-example',importer});\n141 |   expect(imported.reply.kind).toBe('dependency-resolved');\n                                    ^\nerror: expect(received).toBe(expected)\n\nExpected: \"dependency-resolved\"\nReceived: \"dependency-unresolved\"\n\n      at <anonymous> (C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\dctx0-bun-worker-3972\\transport.test.ts:141:31)\n\n::error file=C%3A\\Users\\RUNNER~1\\AppData\\Local\\Temp\\dctx0-bun-worker-3972\\transport.test.ts,line=141,col=31,title=error: expect(received).toBe(expected)::Expected: \"dependency-resolved\"%0AReceived: \"dependency-unresolved\"%0A%0A      at <anonymous> (C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\dctx0-bun-worker-3972\\transport.test.ts:141:31)\n(fail) native dependency resolution preserves import and require export conditions [48.72ms]\n(pass) adapter and protocol faults are reported only after asynchronous session cleanup [468.54ms]\n\n::endgroup::\n\n 7 pass\n 1 fail\n 104 expect() calls\nRan 8 tests across 1 file. [1234.00ms]\n\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    real_bun_worker_conforms_to_sessions_observation_mock_transport_and_failures\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 1.27s\n\n\u001b[1m\u001b[91merror\u001b[0m: test failed, to rerun pass `-p dctx0-target-typescript --test harness`\n"
+}

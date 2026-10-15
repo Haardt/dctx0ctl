@@ -315,6 +315,7 @@ def accept(selected):
 
 
 def main():
+    os.environ.setdefault("DCTX0_TEST_PYTHON", sys.executable)
     os.chdir(ROOT)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--accept-baseline', metavar='RUN', help='latest or a history filename; performs no tests')
@@ -397,8 +398,6 @@ def main():
         ])
     if args.focus != 'conformance-reviews':
         commands.append([sys.executable, 'scripts/editor_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--functional-only'])
-    validation_source_hash = digest(validation_sources())
-    validation_started_ns = time.time_ns()
     if args.coverage:
         commands.append([sys.executable, 'scripts/coverage.py'] + (['--skip-performance'] if args.skip_performance else []))
     passed = True
@@ -410,6 +409,18 @@ def main():
     temporary_base.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='validation-', dir=temporary_base) as temporary:
         functional_environment = {**os.environ, 'TMPDIR': temporary}
+        # Fresh installs materialize dependency inputs that the provenance
+        # inventory deliberately hashes. Prepare them before pinning that
+        # inventory, then retain the same source-change guard for every check.
+        preparation = [command for command in commands if command[:2] == ['bun', 'install']]
+        commands = [command for command in commands if command[:2] != ['bun', 'install']]
+        for command in preparation:
+            print('+ ' + ' '.join(command), flush=True)
+            returncode = subprocess.run(command, cwd=ROOT, env=functional_environment).returncode
+            validation_steps.append({'command': command, 'returncode': returncode})
+            passed = passed and returncode == 0
+        validation_source_hash = digest(validation_sources())
+        validation_started_ns = time.time_ns()
         for command in commands:
             print('+ ' + ' '.join(command), flush=True)
             returncode = subprocess.run(command, cwd=ROOT, env=functional_environment).returncode

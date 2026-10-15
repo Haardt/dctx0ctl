@@ -184,9 +184,11 @@ var (
 )
 
 type queuedRequest struct {
-	id       uint64
-	request  json.RawMessage
-	shutdown bool
+	id            uint64
+	request       json.RawMessage
+	shutdown      bool
+	protocolID    *uint64
+	protocolError error
 }
 
 type requestQueue struct {
@@ -322,7 +324,13 @@ func rejectAll(reason string) {
 	}
 }
 
-func end() error {
+func end() (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("Adapter panicked during cleanup: %v", recovered)
+		}
+	}()
+
 	previous := session
 	session = nil
 	events = nil
@@ -751,11 +759,15 @@ func runRequest(id uint64, raw json.RawMessage) error {
 	}
 }
 
+func protocolFailure(id *uint64, err error) {
+	rejectAll("Protocol violation")
+	queue.push(queuedRequest{protocolID: id, protocolError: err})
+}
+
 func handleLine(line string) {
 	var envelope requestEnvelope
 	if err := decodeStrict([]byte(line), &envelope); err != nil {
-		technical(nil, "protocol", err)
-		rejectAll("Protocol violation")
+		protocolFailure(nil, err)
 		return
 	}
 	id, idErr := parseID(envelope.ID)
@@ -764,32 +776,27 @@ func handleLine(line string) {
 		if idErr == nil {
 			report = &id
 		}
-		technical(report, "protocol", errors.New("Invalid protocol version/request ID"))
-		rejectAll("Protocol violation")
+		protocolFailure(report, errors.New("Invalid protocol version/request ID"))
 		return
 	}
 	if len(envelope.Request) == 0 {
-		technical(&id, "protocol", errors.New("Unexpected protocol fields"))
-		rejectAll("Protocol violation")
+		protocolFailure(&id, errors.New("Unexpected protocol fields"))
 		return
 	}
 	kind := probeKind(envelope.Request)
 	if kind == "mock-reply" {
 		var request mockReplyRequest
 		if err := decodeStrict(envelope.Request, &request); err != nil {
-			technical(&id, "protocol", err)
-			rejectAll("Protocol violation")
+			protocolFailure(&id, err)
 			return
 		}
 		if !deliverMock(request.RequestID, request.Observation) {
-			technical(&id, "protocol", errors.New("Unknown collaborator response"))
-			rejectAll("Protocol violation")
+			protocolFailure(&id, errors.New("Unknown collaborator response"))
 		}
 		return
 	}
 	if stopped {
-		technical(&id, "protocol", errors.New("Worker already shutting down"))
-		rejectAll("Protocol violation")
+		protocolFailure(&id, errors.New("Worker already shutting down"))
 		return
 	}
 	if kind == "shutdown" {
@@ -805,8 +812,7 @@ func readInput() {
 		content := strings.TrimSuffix(line, "\n")
 		content = strings.TrimSuffix(content, "\r")
 		if len(content) > maxMessageBytes {
-			technical(nil, "protocol", errors.New("Incoming protocol message exceeds byte limit"))
-			rejectAll("Protocol violation")
+			protocolFailure(nil, errors.New("Incoming protocol message exceeds byte limit"))
 		} else if len(content) > 0 || err == nil {
 			handleLine(content)
 		}
@@ -824,10 +830,19 @@ func runExecutor() {
 		if !ok {
 			break
 		}
+		if item.protocolError != nil {
+			cleanup := end()
+			technical(item.protocolID, "protocol", item.protocolError)
+			if cleanup != nil {
+				technical(item.protocolID, "cleanup", cleanup)
+			}
+			continue
+		}
 		if err := execute(item); err != nil {
 			id := item.id
+			cleanup := end()
 			technical(&id, "adapter-or-request", err)
-			if cleanup := end(); cleanup != nil {
+			if cleanup != nil {
 				technical(&id, "cleanup", cleanup)
 			}
 			continue

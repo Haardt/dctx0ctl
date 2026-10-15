@@ -9,6 +9,8 @@ import sqlite3
 import subprocess
 import tempfile
 import time
+import sys
+from release_support import measured
 
 from rust_cinema_acceptance import ROOT, SOURCE, copy_application
 
@@ -75,8 +77,12 @@ def main():
             report['samples'][cache]['native_engine_elapsed_ms'] = result['elapsed_us'] / 1000
             report['samples'][cache]['rust_version'] = receipt['runtime_version']
             report['samples'][cache]['worker_hash'] = receipt['binary_hash']
+        review_sample, review_log = measured([sys.executable, str(ROOT / 'scripts/conformance_review_acceptance.py'), '--binary', str(binary), '--target', 'rust', '--project', str(project), '--report', str(project.parent / 'reviews.json')], ROOT, timeout=900, env={**os.environ, 'DCTX0_MEMORY_GUARD':'0'})
+        if review_sample['exit_code']:
+            raise RuntimeError(review_log)
+        report['samples']['source-bound-review-and-delivery'] = review_sample
         completed = run('complete-and-adoption', 'verify', 'complete', project / 'dctx0', '--project', project)
-        if completed['result']['status'] != 'PASS' or completed['open_tasks'] or completed['non_pass_tasks']:
+        if completed['result']['status'] != 'PASS' or completed['open_tasks'] or completed['non_pass_tasks'] != 4 or len(completed['reviewed_tasks']) != 4:
             raise RuntimeError('Measured complete acceptance failed')
         report['samples']['complete-and-adoption']['native_adopted_tasks'] = len(completed['adopted_tasks'])
         report['samples']['complete-and-adoption']['inspected_tasks'] = len(completed['inspected_tasks'])

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "local Go SDK conformance and paired release measurements pass; native Windows retry pending",
+  "failed_run": 38779867686,
+  "failed_job": 116577670511,
+  "artifact": {
+    "id": 11996362004,
+    "sha256": "677acd98205edb8b867bf44f7ca6a16c039f2885186d78247ca3dc5d9852008a"
+  },
+  "cause": "The SDK fixture used Command::new with a relative worker executable plus current_dir. On Windows the executable was resolved against the parent directory. Go was installed and its build succeeded.",
+  "change": "Resolve the generated worker path against the absolute fixture root before spawning. No production executor or helper change.",
+  "local": {
+    "go-transport": {
+      "elapsed_ms": 5235.381910999422,
+      "peak_rss_bytes": 272093184,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 41.48206800164189,
+      "peak_rss_bytes": 25935872,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-projection": {
+      "elapsed_ms": 20.89891299692681,
+      "peak_rss_bytes": 18186240,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "baseline": "unassessed; existing baseline unchanged"
+}

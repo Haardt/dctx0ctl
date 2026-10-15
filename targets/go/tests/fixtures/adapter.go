@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func integer(value int) Value {
@@ -104,6 +107,7 @@ func (counterAdapter) Begin(caseID string, context TestContext) (TestSession, er
 		counter: counter,
 		context: context,
 		cleanup: caseID == "cleanup-error",
+		caseID:  caseID,
 	}, nil
 }
 
@@ -111,6 +115,7 @@ type counterSession struct {
 	counter *Counter
 	context TestContext
 	cleanup bool
+	caseID  string
 }
 
 func (session *counterSession) Invoke(invocation Invocation) (Observation, error) {
@@ -200,6 +205,16 @@ func (session *counterSession) Observe(entities []string) (map[string][]Value, e
 }
 
 func (session *counterSession) Close() error {
+	if strings.HasPrefix(session.caseID, "cleanup-order-") {
+		time.Sleep(100 * time.Millisecond)
+		if err := os.WriteFile(session.caseID+".closed", []byte("closed"), 0600); err != nil {
+			return err
+		}
+	}
+
+	if session.caseID == "cleanup-order-panic" {
+		panic("Cleanup panicked")
+	}
 	if session.cleanup {
 		return errors.New("Cleanup unavailable")
 	}

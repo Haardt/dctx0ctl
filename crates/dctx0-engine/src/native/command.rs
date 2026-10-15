@@ -9,21 +9,11 @@ impl NativeCommand {
         directory: &Path,
         limits: NativeLimits,
     ) -> Result<Self, NativeFailure> {
-        #[cfg(target_os = "linux")]
-        {
-            Ok(Self {
-                worker: NativeWorker::spawn_streams(recipe, directory, limits, false).await?,
-            })
-        }
-        #[cfg(not(target_os = "linux"))]
-        {
-            let _ = (recipe, directory, limits);
-            Err(NativeFailure::new(
-                NativeFailureKind::Unsupported,
-                "Native commands require Linux process-group ownership",
-            ))
-        }
+        Ok(Self {
+            worker: NativeWorker::spawn_streams(recipe, directory, limits, false).await?,
+        })
     }
+
     pub async fn write_input(&mut self, bytes: &[u8]) -> Result<(), NativeFailure> {
         if bytes.len() > self.worker.limits.message_bytes {
             return Err(NativeFailure::new(
@@ -82,7 +72,7 @@ impl NativeCommand {
             biased;
             _=cancel.cancelled()=>Err(NativeFailure::new(NativeFailureKind::Cancelled,"Native command cancelled")),
             error=stream_fault=>error,
-            result=wait_exit(self.worker.pid,self.worker.deadline.saturating_duration_since(Instant::now()))=>result,
+            result=wait_owned(self.worker.child.as_mut().expect("owned child"),self.worker.supervised,self.worker.pid,self.worker.deadline.saturating_duration_since(Instant::now()))=>result,
         };
         if let Err(mut error) = result {
             if let Err(cleanup) = self.worker.abort().await {
@@ -94,21 +84,18 @@ impl NativeCommand {
     }
 }
 
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(test)]
 mod tests {
     use super::*;
     #[tokio::test]
     async fn command_status_preserves_separate_streams_and_nonzero_exit() {
-        let recipe = ExecutionRecipe {
-            program: "sh".into(),
-            arguments: vec![
-                "-c".into(),
-                "printf actual-output; printf actual-error >&2; exit 7".into(),
-            ],
-        };
-        let mut command = NativeCommand::spawn(&recipe, Path::new("/tmp"), NativeLimits::default())
-            .await
-            .unwrap();
+        let recipe = python_fixture(
+            "import sys;sys.stdout.write('actual-output');sys.stderr.write('actual-error');sys.exit(7)",
+        );
+        let mut command =
+            NativeCommand::spawn(&recipe, &std::env::temp_dir(), NativeLimits::default())
+                .await
+                .unwrap();
         let audit = command
             .wait_status(&NativeCancellation::default())
             .await
@@ -123,6 +110,7 @@ mod tests {
                 .is_err()
         );
     }
+    #[cfg(target_os = "linux")]
     #[tokio::test]
     async fn cancellation_reaps_descendants_that_create_independent_groups() {
         let root =
@@ -159,18 +147,17 @@ mod tests {
     }
 }
 
-#[cfg(all(test, target_os = "linux"))]
+#[cfg(test)]
 mod input_tests {
     use super::*;
     #[tokio::test]
     async fn bounded_command_input_round_trips_and_rejects_oversize_and_closed_pipes() {
-        let recipe = ExecutionRecipe {
-            program: "cat".into(),
-            arguments: vec![],
-        };
+        let recipe = python_fixture(
+            "import sys;sys.stdout.buffer.write(sys.stdin.buffer.read());sys.stdout.buffer.flush()",
+        );
         let mut command = NativeCommand::spawn(
             &recipe,
-            Path::new("/tmp"),
+            &std::env::temp_dir(),
             NativeLimits {
                 message_bytes: 8,
                 ..Default::default()
@@ -178,7 +165,16 @@ mod input_tests {
         )
         .await
         .unwrap();
-        assert!(Path::new(&format!("/proc/{}", command.pid())).exists());
+        assert!(
+            command
+                .worker
+                .child
+                .as_mut()
+                .unwrap()
+                .try_wait()
+                .unwrap()
+                .is_none()
+        );
         assert_eq!(
             command.write_input(b"123456789").await.unwrap_err().kind,
             NativeFailureKind::MessageLimit

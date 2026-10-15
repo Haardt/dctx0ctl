@@ -166,6 +166,10 @@ pub(super) async fn execute(
         "application/vnd.dctx0.native-limits+json",
         serde_json::to_vec(&serde_json::json!({"schema_version":1,"limits":limits}))?,
     ));
+    artifacts.push(VerificationArtifact::new(
+        "application/vnd.dctx0.native-supervision+json",
+        serde_json::to_vec(&limits.supervision_capabilities())?,
+    ));
     let mut worker = match NativeWorker::spawn(recipe, directory, limits).await {
         Ok(worker) => worker,
         Err(error) => {

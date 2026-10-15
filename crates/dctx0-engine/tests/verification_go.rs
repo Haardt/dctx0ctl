@@ -38,12 +38,16 @@ func(actualSession)Invoke(invocation Invocation)(Observation,error){var digits s
 "#;
     fs::write(app.join(".dctx0/testing/go/adapter.go"), adapter).unwrap();
     let report = project
-        .run_verification(
+        .run_verification_with_native_limits(
             Some(&app),
             Default::default(),
             &GoHarness,
             &NativeCancellation::default(),
             true,
+            NativeLimits {
+                supervision: NativeSupervision::Child,
+                ..Default::default()
+            },
         )
         .await
         .unwrap();
@@ -63,6 +67,66 @@ func(actualSession)Invoke(invocation Invocation)(Observation,error){var digits s
             .cases
             .iter()
             .all(|case| case.result == VerificationResult::Pass)
+    );
+    let actual = fs::read_to_string(app.join("production/next.go")).unwrap();
+    fs::write(
+        app.join("production/next.go"),
+        actual.replace("big.NewInt(1)", "big.NewInt(2)"),
+    )
+    .unwrap();
+    let broken = project
+        .run_verification(
+            Some(&app),
+            Default::default(),
+            &GoHarness,
+            &NativeCancellation::default(),
+            true,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        broken.evidence.run.result,
+        VerificationResult::Fail { .. }
+    ));
+    let case = broken
+        .evidence
+        .run
+        .cases
+        .iter()
+        .find(|case| matches!(case.result, VerificationResult::Fail { .. }))
+        .unwrap();
+    let saved = project.saved_verification_run(&broken.evidence.id).unwrap();
+    let replay = project
+        .replay_verification(
+            Some(&app),
+            &broken.evidence.id,
+            &case.id,
+            &GoHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        replay.case_result,
+        Some(VerificationResult::Fail { .. })
+    ));
+    fs::write(app.join("production/next.go"), &actual).unwrap();
+    let repaired = project
+        .replay_verification(
+            Some(&app),
+            &broken.evidence.id,
+            &case.id,
+            &GoHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(repaired.case_result, Some(VerificationResult::Pass));
+    assert!(!repaired.changes.is_empty());
+    assert!(repaired.evidence.adopted_tasks.is_empty());
+    assert_eq!(
+        project.saved_verification_run(&broken.evidence.id).unwrap(),
+        saved
     );
     fs::write(
         app.join("production/next.go"),

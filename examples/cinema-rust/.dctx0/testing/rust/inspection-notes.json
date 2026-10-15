@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "actor": "codex-rust-cinema-review",
-  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default.",
+  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. Explicit transport delta inspected on 2026-10-15: accepted connections are normalized to blocking mode with the existing five-second timeouts, and delayed HTTP header/body fragments are covered by the real application test. See docs/native-portability-rust-http-review.md for the source inspection and old/new hashes; requirement judgements are unchanged.",
   "reviewed_hashes": {
     ".dctx0/testing/rust/Cargo.lock": "4d21819855e28d9fe77d93a357790da9b68655d77c6189e96b5015d4b7e655fb",
     ".dctx0/testing/rust/Cargo.toml": "42afbdc3cee33145bcb0049ece5aea11da78b2c79b7ace85b8f04ef29508bf1b",
@@ -20,13 +20,13 @@
     "src/application.rs": "ad696e408af21b9afcab3ed38dae287537f107103e9136acad23b9a7777bbdaa",
     "src/axumapi.rs": "8576cafd06dfbb320ed860babc3ae74533036e5a89edbb666d59070b50e49929",
     "src/domain.rs": "f7b17b81d446f26defb58e90b091a6098ceaf1fc3ef118af9b765aa4abbf6235",
-    "src/httpapi.rs": "1ac7a9e19de917797989438a3e5eaa37bd5bba5454bd3421bde9d8cd5cbe4bc0",
+    "src/httpapi.rs": "c7379b3a17125c30a48f80170fa7a1a84d496898c2d2e0fb41ce3921691f751c",
     "src/lib.rs": "2b27f49f5da4db52a6c81c3a8c74317f06f253e81d05252f53768482597fbdc1",
     "src/main.rs": "995a7614a0d13b883fbf0257346192d3dfc7dc25cc60808dd14eaccdbe37c7e3",
     "src/persistence.rs": "96743af023c674cfe526d0425fbee223c29049853ed5d3be10dfb42f948e947d",
     "tests/axum.rs": "a15a02f41374a75d4b10d3cf056a1ffb973ef17f2b5816bb23060b499638a452",
     "tests/domain.rs": "640d970de9a2cf1a69bfacdb9c0b51224078ef37d4c65655a21eb31fca7e1d41",
-    "tests/production.rs": "45fe4ae1d74a1d481fee5a87ed32a91be45ca890671d6109fca5285a6a788726"
+    "tests/production.rs": "3d8a27d8edcd97917e8499118ad070381098a134d8ba17da13ba8d372554c21a"
   },
   "subjects": {
     "HomeCinema.MovieNight.Catalog.CatalogReadModel": {
@@ -150,7 +150,7 @@
       ]
     },
     "HomeCinema.MovieNight.SurfaceConformance": {
-      "report": "src/axumapi.rs explicitly registers Cinema routes and invokes the actual service. Path/query/body translation and typed domain errors preserve the existing mapping. The additional middleware emits X-Cinema-Framework and the adapter observes it. Unknown routes/methods and body limits are transport decisions, not invented spec requirements. Independent native HTTP tests and spec-driven calls are separate evidence. The captured adapter also routes generated real Surface operation cases through the selected framework; mocked consumer cases remain distinct direct-service checks.",
+      "report": "src/axumapi.rs explicitly registers Cinema routes and invokes the actual service. Path/query/body translation and typed domain errors preserve the existing mapping. The additional middleware emits X-Cinema-Framework and the adapter observes it. Unknown routes/methods and body limits are transport decisions, not invented spec requirements. Independent native HTTP tests and spec-driven calls are separate evidence. The captured adapter also routes generated real Surface operation cases through the selected framework; mocked consumer cases remain distinct direct-service checks. Transport delta inspection 2026-10-15: the built-in server explicitly clears inherited nonblocking mode on accepted streams before its existing bounded HTTP parser. Delayed header/body fragments reach the same validated service and persisted film. Routes and domain semantics are unchanged.",
       "limitations": [
         "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
       ]

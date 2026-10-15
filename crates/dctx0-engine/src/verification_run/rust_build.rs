@@ -58,7 +58,8 @@ fn hash(path: &Path) -> Result<String> {
     Ok(format!("{:x}", digest.finalize()))
 }
 fn add(path: &Path, files: &mut BTreeMap<String, String>) -> Result<()> {
-    let path = fs::canonicalize(path)?;
+    let path = fs::canonicalize(path)
+        .map_err(|error| Error::Invalid(format!("Rust build input {}: {error}", path.display())))?;
     if files.len() >= 30_000 {
         return Err(Error::Invalid(
             "Rust build input count exceeds 30000".into(),
@@ -92,15 +93,60 @@ fn walk(root: &Path, files: &mut BTreeMap<String, String>, depth: usize) -> Resu
             if actual.is_file() {
                 add(&actual, files)?;
             } else {
-                return Err(Error::Invalid(
-                    "Rust dependency directory symlink unsupported".into(),
-                ));
+                return Err(Error::Invalid(format!(
+                    "Rust dependency directory symlink unsupported: {}",
+                    entry.path().display()
+                )));
             }
         } else {
             return Err(Error::Invalid("Nonregular Rust dependency input".into()));
         }
     }
     Ok(())
+}
+/// SDK/toolchain directories may contain aliases (notably Xcode headers).
+/// Follow physical directories once, retaining strict application capture rules.
+fn walk_toolchain(root: &Path, files: &mut BTreeMap<String, String>) -> Result<()> {
+    fn visit(
+        root: &Path,
+        files: &mut BTreeMap<String, String>,
+        visited: &mut BTreeSet<PathBuf>,
+        depth: usize,
+    ) -> Result<()> {
+        let root = fs::canonicalize(root).map_err(|error| {
+            Error::Invalid(format!("Toolchain input {}: {error}", root.display()))
+        })?;
+        if !visited.insert(root.clone()) {
+            return Ok(());
+        }
+        if depth > 64 || visited.len() > 30_000 {
+            return Err(Error::Invalid(
+                "Toolchain directory inventory exceeds bounds".into(),
+            ));
+        }
+        let mut entries = fs::read_dir(root)?.collect::<std::io::Result<Vec<_>>>()?;
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let metadata = fs::metadata(entry.path()).map_err(|error| {
+                Error::Invalid(format!(
+                    "Toolchain input {}: {error}",
+                    entry.path().display()
+                ))
+            })?;
+            if metadata.is_dir() {
+                visit(&entry.path(), files, visited, depth + 1)?;
+            } else if metadata.is_file() {
+                add(&entry.path(), files)?;
+            } else {
+                return Err(Error::Invalid(format!(
+                    "Nonregular toolchain input {}",
+                    entry.path().display()
+                )));
+            }
+        }
+        Ok(())
+    }
+    visit(root, files, &mut BTreeSet::new(), 0)
 }
 /// Validate Cargo's required package identities and capture boundaries before I/O.
 fn package_roots(
@@ -152,6 +198,117 @@ fn package_roots(
     Ok(roots)
 }
 
+fn physical_package_roots(
+    mut metadata: serde_json::Value,
+    application: &Path,
+) -> Result<Vec<(String, PathBuf)>> {
+    // Cargo reports physical paths (/private/var on macOS; expanded/verbatim
+    // paths on Windows). Compare both boundaries in that same namespace.
+    let application = fs::canonicalize(application)?;
+    for package in metadata["packages"]
+        .as_array_mut()
+        .ok_or_else(|| Error::Invalid("Cargo metadata lacks packages".into()))?
+    {
+        let manifest = package["manifest_path"]
+            .as_str()
+            .ok_or_else(|| Error::Invalid("Cargo package lacks manifest".into()))?;
+        let manifest = fs::canonicalize(manifest)?;
+        package["manifest_path"] =
+            serde_json::Value::String(manifest.to_string_lossy().into_owned());
+    }
+    package_roots(&metadata, &application)
+}
+
+#[cfg(target_os = "linux")]
+async fn capture_c_toolchain(
+    directory: &Path,
+    cancel: &NativeCancellation,
+    files: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    // Bundled SQLite's host C toolchain and standard system header closure.
+    for tool in ["/usr/bin/cc", "/usr/bin/as", "/usr/bin/ld", "/usr/bin/ar"] {
+        add(Path::new(tool), files)?;
+    }
+    for name in ["cc1", "collect2"] {
+        let argument = format!("-print-prog-name={name}");
+        let tool = output("cc", &[&argument], directory, cancel).await?;
+        add(Path::new(tool.trim()), files)?;
+    }
+    let multiarch = output("cc", &["-print-multiarch"], directory, cancel).await?;
+    let multiarch = multiarch.trim();
+    if !multiarch.is_empty() {
+        if multiarch.contains('/') || multiarch.contains('\\') {
+            return Err(Error::Invalid(
+                "Invalid C compiler multiarch include directory".into(),
+            ));
+        }
+        let path = Path::new("/usr/include").join(multiarch);
+        if path.is_dir() {
+            walk_toolchain(&path, files)?;
+        }
+    }
+    let compiler_include = output("cc", &["-print-file-name=include"], directory, cancel).await?;
+    walk_toolchain(Path::new(compiler_include.trim()), files)?;
+    for entry in fs::read_dir("/usr/include")? {
+        let entry = entry?;
+        if entry.file_type()?.is_file() {
+            add(&entry.path(), files)?;
+        }
+    }
+    for name in ["bits", "sys", "gnu", "asm", "asm-generic", "linux"] {
+        let path = Path::new("/usr/include").join(name);
+        if path.is_dir() {
+            walk_toolchain(&path, files)?;
+        }
+    }
+    Ok(())
+}
+#[cfg(target_os = "macos")]
+async fn capture_c_toolchain(
+    directory: &Path,
+    cancel: &NativeCancellation,
+    files: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    for name in ["clang", "as", "ld", "ar"] {
+        let path = output("xcrun", &["--find", name], directory, cancel).await?;
+        add(Path::new(path.trim()), files)?;
+    }
+    let sdk = output("xcrun", &["--show-sdk-path"], directory, cancel).await?;
+    walk_toolchain(&Path::new(sdk.trim()).join("usr/include"), files)?;
+    let resource = output("clang", &["-print-resource-dir"], directory, cancel).await?;
+    walk_toolchain(&Path::new(resource.trim()).join("include"), files)?;
+    Ok(())
+}
+#[cfg(windows)]
+async fn capture_c_toolchain(
+    _directory: &Path,
+    _cancel: &NativeCancellation,
+    files: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    // The native runner initializes the Visual Studio developer environment.
+    // Capture the selected compiler binaries and effective header search roots.
+    for name in ["cl.exe", "link.exe", "lib.exe"] {
+        let path = crate::native::identity::resolve_program(name, _directory)
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        add(&path, files)?;
+        if name == "cl.exe" {
+            walk_toolchain(
+                path.parent()
+                    .ok_or_else(|| Error::Invalid("MSVC compiler lacks parent".into()))?,
+                files,
+            )?;
+        }
+    }
+    let include = std::env::var_os("INCLUDE").ok_or_else(|| {
+        Error::Invalid(
+            "MSVC INCLUDE is required; initialize the Visual Studio developer environment".into(),
+        )
+    })?;
+    for root in std::env::split_paths(&include) {
+        walk_toolchain(&root, files)?;
+    }
+    Ok(())
+}
 pub(crate) async fn prepare(
     directory: &Path,
     application: &Path,
@@ -186,12 +343,13 @@ pub(crate) async fn prepare(
     )
     .await?;
     let metadata: serde_json::Value = serde_json::from_str(&text)?;
+    let application = fs::canonicalize(application)?;
     let mut files = BTreeMap::new();
     let mut names = Vec::new();
     // Workspace-level embedded assets are real compiler inputs outside package roots.
-    walk(application, &mut files, 0)?;
-    for (name, root) in package_roots(&metadata, application)? {
-        if !root.starts_with(application) {
+    walk(&application, &mut files, 0)?;
+    for (name, root) in physical_package_roots(metadata, &application)? {
+        if !root.starts_with(&application) {
             walk(&root, &mut files, 0)?;
         }
         names.push(name);
@@ -200,56 +358,52 @@ pub(crate) async fn prepare(
     names.dedup();
     let sysroot = output("rustc", &["--print", "sysroot"], directory, cancel).await?;
     let sysroot = Path::new(sysroot.trim());
-    walk(&sysroot.join("bin"), &mut files, 0)?;
+    // A system toolchain may use /usr as its sysroot. Inventory Rust tools,
+    // not every unrelated program and library installed on the host.
+    for name in ["rustc", "cargo"] {
+        let tool = sysroot
+            .join("bin")
+            .join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
+        add(&tool, &mut files)?;
+    }
+    for entry in fs::read_dir(sysroot.join("bin"))? {
+        let entry = entry?;
+        if entry
+            .path()
+            .extension()
+            .is_some_and(|extension| extension == "dll")
+        {
+            add(&entry.path(), &mut files)?;
+        }
+    }
     // Compiler dynamic libraries and the complete selected standard-library directory.
     for entry in fs::read_dir(sysroot.join("lib"))? {
         let entry = entry?;
-        if entry.file_type()?.is_file() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if entry.path().is_file()
+            && (name.starts_with("librustc_driver") || name.starts_with("libLLVM"))
+        {
             add(&entry.path(), &mut files)?;
         }
     }
     let targetlib = output("rustc", &["--print", "target-libdir"], directory, cancel).await?;
-    walk(Path::new(targetlib.trim()), &mut files, 0)?;
-    // Bundled SQLite's host C toolchain and standard system header closure.
-    for tool in ["/usr/bin/cc", "/usr/bin/as", "/usr/bin/ld", "/usr/bin/ar"] {
-        add(Path::new(tool), &mut files)?;
-    }
-    for name in ["cc1", "collect2"] {
-        let argument = format!("-print-prog-name={name}");
-        let tool = output("cc", &[&argument], directory, cancel).await?;
-        add(Path::new(tool.trim()), &mut files)?;
-    }
-    let multiarch = output("cc", &["-print-multiarch"], directory, cancel).await?;
-    let multiarch = multiarch.trim();
-    if !multiarch.is_empty() {
-        if multiarch.contains('/') || multiarch.contains('\\') {
-            return Err(Error::Invalid(
-                "Invalid C compiler multiarch include directory".into(),
-            ));
-        }
-        let path = Path::new("/usr/include").join(multiarch);
-        if path.is_dir() {
-            walk(&path, &mut files, 0)?;
+    let targetlib = Path::new(targetlib.trim());
+    walk_toolchain(targetlib, &mut files)?;
+    if let Some(parent) = targetlib.parent() {
+        let tools = parent.join("bin");
+        if tools.is_dir() {
+            walk_toolchain(&tools, &mut files)?;
         }
     }
-    let compiler_include = output("cc", &["-print-file-name=include"], directory, cancel).await?;
-    walk(Path::new(compiler_include.trim()), &mut files, 0)?;
-    for entry in fs::read_dir("/usr/include")? {
-        let entry = entry?;
-        if entry.file_type()?.is_file() {
-            add(&entry.path(), &mut files)?;
-        }
-    }
-    for name in ["bits", "sys", "gnu", "asm", "asm-generic", "linux"] {
-        let path = Path::new("/usr/include").join(name);
-        if path.is_dir() {
-            walk(&path, &mut files, 0)?;
-        }
-    }
+    capture_c_toolchain(directory, cancel, &mut files).await?;
     let cache_root = std::env::var_os("XDG_CACHE_HOME")
         .map(PathBuf::from)
+        .or_else(|| std::env::var_os("LOCALAPPDATA").map(PathBuf::from))
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".cache")))
-        .ok_or_else(|| Error::Invalid("Rust build cache needs HOME or XDG_CACHE_HOME".into()))?;
+        .ok_or_else(|| {
+            Error::Invalid("Rust build cache needs LOCALAPPDATA, HOME or XDG_CACHE_HOME".into())
+        })?;
     fs::create_dir_all(&cache_root)?;
     let (cache_parent, cache_path) =
         crate::verification_setup::safe_file(&cache_root, "dctx0ctl/native-rust-v1/cache-marker")?;
@@ -299,7 +453,12 @@ pub(crate) async fn prepare(
     })
 }
 pub(super) fn finish(receipt: RustBuildReceipt, directory: &Path) -> Result<RustBuildReceipt> {
-    finish_named(receipt, directory, "dctx0-worker", ".bin/worker")
+    finish_named(
+        receipt,
+        directory,
+        "dctx0-worker",
+        &format!(".bin/worker{}", std::env::consts::EXE_SUFFIX),
+    )
 }
 pub(crate) fn finish_named(
     mut receipt: RustBuildReceipt,
@@ -333,7 +492,8 @@ pub(crate) fn finish_named(
             )));
         }
     }
-    let executable = Path::new(&receipt.target_directory).join(format!("release/{name}"));
+    let executable = Path::new(&receipt.target_directory)
+        .join(format!("release/{name}{}", std::env::consts::EXE_SUFFIX));
     receipt.binary_hash = hash(&executable)?;
     fs::create_dir_all(
         directory
@@ -368,12 +528,20 @@ fn dependency_paths(text: &str) -> Result<Vec<String>> {
     let mut values = Vec::new();
     let mut item = String::new();
     let mut escaped = false;
-    for character in text.chars() {
+    let mut characters = text.chars().peekable();
+    while let Some(character) = characters.next() {
         if escaped {
             item.push(character);
             escaped = false;
         } else if character == '\\' {
-            escaped = true;
+            if characters
+                .peek()
+                .is_none_or(|c| matches!(c, ' ' | '\\' | '#'))
+            {
+                escaped = true;
+            } else {
+                item.push(character);
+            }
         } else if character.is_whitespace() {
             if !item.is_empty() {
                 values.push(std::mem::take(&mut item));
@@ -406,6 +574,10 @@ mod tests {
             dependency_paths("/a.rs /with\\ space/lib.rs").unwrap(),
             ["/a.rs", "/with space/lib.rs"]
         );
+        assert_eq!(
+            dependency_paths(r"C:\work\src\lib.rs C:\with\ space\a.rs").unwrap(),
+            [r"C:\work\src\lib.rs", r"C:\with space\a.rs"]
+        );
         assert!(dependency_paths("/incomplete\\").is_err());
         assert!(dependency_paths(" ").is_err());
     }
@@ -427,6 +599,77 @@ mod tests {
         }
         let valid = json!({"packages":[{"manifest_path":"/captured/app/Cargo.toml","source":null,"id":"local"},{"manifest_path":"/registry/dependency/Cargo.toml","source":"registry+https://example.invalid/index","id":"dependency"}]});
         assert_eq!(package_roots(&valid, app).unwrap().len(), 2);
+    }
+    #[cfg(unix)]
+    #[test]
+    fn sdk_directory_aliases_bind_physical_files_terminate_cycles_and_reject_broken_inputs() {
+        let root = std::env::temp_dir().join(format!("dctx0-sdk-aliases-{}", std::process::id()));
+        let include = root.join("include");
+        fs::create_dir_all(&include).unwrap();
+        fs::write(include.join("actual.h"), "#define ACTUAL 1").unwrap();
+        std::os::unix::fs::symlink(&include, root.join("alias")).unwrap();
+        std::os::unix::fs::symlink(&root, include.join("cycle")).unwrap();
+        let mut files = BTreeMap::new();
+        assert!(
+            walk_toolchain(&root.join("missing-sdk"), &mut files)
+                .unwrap_err()
+                .to_string()
+                .contains("missing-sdk")
+        );
+        walk_toolchain(&root, &mut files).unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(
+            files[&fs::canonicalize(include.join("actual.h"))
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()],
+            hash(&include.join("actual.h")).unwrap()
+        );
+        std::os::unix::fs::symlink(root.join("missing"), root.join("broken")).unwrap();
+        assert!(
+            walk_toolchain(&root, &mut files)
+                .unwrap_err()
+                .to_string()
+                .contains("broken")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[cfg(unix)]
+    #[test]
+    fn cargo_physical_paths_accept_application_aliases_and_reject_escaping_local_aliases() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-cargo-physical-{}", std::process::id()));
+        let app = root.join("application");
+        let outside = root.join("external");
+        fs::create_dir_all(&app).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(app.join("Cargo.toml"), "fixture").unwrap();
+        fs::write(outside.join("Cargo.toml"), "external").unwrap();
+        let alias = root.join("application-alias");
+        std::os::unix::fs::symlink(&app, &alias).unwrap();
+        for invalid in [
+            serde_json::json!({}),
+            serde_json::json!({"packages":[]}),
+            serde_json::json!({"packages":[{}]}),
+            serde_json::json!({"packages":[{"manifest_path":app.join("missing.toml")} ]}),
+        ] {
+            assert!(physical_package_roots(invalid, &alias).is_err());
+        }
+        let metadata = |manifest: PathBuf| serde_json::json!({"packages":[{"manifest_path":manifest,"id":"local","source":null}]});
+        let roots = physical_package_roots(
+            metadata(fs::canonicalize(app.join("Cargo.toml")).unwrap()),
+            &alias,
+        )
+        .unwrap();
+        assert_eq!(roots[0].1, fs::canonicalize(&app).unwrap());
+        std::os::unix::fs::symlink(&outside, app.join("escape")).unwrap();
+        assert!(
+            physical_package_roots(metadata(app.join("escape/Cargo.toml")), &alias)
+                .unwrap_err()
+                .to_string()
+                .contains("escapes")
+        );
+        fs::remove_dir_all(root).unwrap();
     }
     #[tokio::test]
     async fn unavailable_and_failed_inspection_tools_return_technical_errors() {
@@ -472,11 +715,18 @@ mod tests {
         fs::write(&depinfo, format!("worker: {}", external.display())).unwrap();
         assert!(finish(make_receipt(), &root).is_err());
         fs::write(&depinfo, format!("worker: {}", source.display())).unwrap();
-        fs::write(target.join("release/dctx0-worker"), b"fixture binary").unwrap();
+        fs::write(
+            target.join(format!(
+                "release/dctx0-worker{}",
+                std::env::consts::EXE_SUFFIX
+            )),
+            b"fixture binary",
+        )
+        .unwrap();
         let receipt = finish(make_receipt(), &root).unwrap();
         assert_eq!(
             receipt.binary_hash,
-            hash(&root.join(".bin/worker")).unwrap()
+            hash(&root.join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX))).unwrap()
         );
         fs::write(&source, "changed").unwrap();
         assert!(validate(&receipt).is_err());

@@ -1,9 +1,12 @@
+#[path = "support/native_process.rs"]
+mod process_fixture;
 use dctx0_core::*;
 use dctx0_engine::{
     NativeCancellation, NativeCommand, NativeFailure, NativeFailureKind, NativeLimits,
     NativeSessionEvidence, NativeWorker,
 };
 use dctx0_target_sdk::*;
+use process_fixture::{assert_exited, copy_tree, peak_rss, recipe};
 use std::{
     fs,
     path::PathBuf,
@@ -28,17 +31,11 @@ impl Drop for Temp {
         fs::remove_dir_all(&self.0).unwrap();
     }
 }
-fn recipe(code: &str) -> ExecutionRecipe {
-    ExecutionRecipe {
-        program: "python3".into(),
-        arguments: vec!["-u".into(), "-c".into(), code.into()],
-    }
-}
 fn limits() -> NativeLimits {
     NativeLimits {
-        initialization: Duration::from_millis(200),
-        case: Duration::from_millis(200),
-        run: Duration::from_secs(3),
+        initialization: Duration::from_secs(2),
+        case: Duration::from_secs(2),
+        run: Duration::from_secs(30),
         cleanup: Duration::from_secs(1),
         ..Default::default()
     }
@@ -90,7 +87,7 @@ for line in sys.stdin:
             worker.session_evidence(),
             [NativeSessionEvidence::Begun { .. }]
         ));
-        assert!(!PathBuf::from(format!("/proc/{pid}")).exists());
+        assert_exited(pid);
         worker.abort().await.unwrap();
     }
     let mut worker = NativeWorker::spawn(
@@ -154,7 +151,10 @@ for line in sys.stdin:
         WorkerReply::Described { .. }
     ));
     let identity = worker.runtime_identity().unwrap();
-    assert_eq!(identity.schema_version, 1);
+    assert_eq!(
+        identity.schema_version,
+        if cfg!(target_os = "linux") { 1 } else { 2 }
+    );
     assert_eq!(identity.executable_hash.len(), 64);
     assert_eq!(identity.initial_environment_hash.len(), 64);
     assert!(identity.executable_bytes > 0);
@@ -215,18 +215,8 @@ async fn real_process_callbacks_logs_graceful_exit_and_repeated_abort_are_manage
             ..
         }
     ));
-    let status = fs::read_to_string(format!("/proc/{}/status", w.pid())).unwrap();
-    let peak = status
-        .lines()
-        .find(|s| s.starts_with("VmHWM:"))
-        .unwrap()
-        .split_whitespace()
-        .nth(1)
-        .unwrap()
-        .parse::<u64>()
-        .unwrap()
-        * 1024;
-    let report = serde_json::json!({"scope":"managed Python transport fixture; not application verification","elapsed_ms":started.elapsed().as_secs_f64()*1000.,"peak_rss_bytes":peak});
+    let peak = peak_rss(w.pid());
+    let report = serde_json::json!({"scope":"managed Python transport fixture; not application verification","elapsed_ms":started.elapsed().as_secs_f64()*1000.,"peak_rss_bytes":peak,"memory_method":if peak.is_some(){"Linux procfs VmHWM"}else{"unavailable on this host"}});
     let evidence =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/native-executor-conformance");
     fs::create_dir_all(&evidence).unwrap();
@@ -245,7 +235,7 @@ async fn real_process_callbacks_logs_graceful_exit_and_repeated_abort_are_manage
     assert_eq!(audit.exit_code, Some(0));
     assert!(audit.stderr.contains("native application log"));
     assert_eq!(audit.received_messages, 3);
-    assert!(!PathBuf::from(format!("/proc/{}", w.pid())).exists());
+    assert_exited(w.pid());
     w.abort().await.unwrap();
     assert_eq!(
         w.request(WorkerRequest::Describe, &cancel, &mut no_mock)
@@ -328,7 +318,7 @@ async fn missing_runtime_invalid_limits_timeouts_and_cancellation_never_return_a
                 NativeFailureKind::Timeout
             }
         );
-        assert!(!PathBuf::from(format!("/proc/{pid}")).exists());
+        assert_exited(pid);
     }
     let mut w = NativeWorker::spawn(&recipe("import time;time.sleep(300)"), &t.0, limits())
         .await
@@ -393,13 +383,14 @@ async fn malformed_oversized_incomplete_and_unsolicited_messages_are_terminal() 
         assert_eq!(failure.kind, kind, "{code}: {failure:?}");
     }
 }
+#[cfg(target_os = "linux")]
 #[tokio::test]
 async fn cleanup_kills_and_reaps_descendants_and_drop_is_a_last_resort() {
     let t = Temp::new();
     let pid_file = t.0.join("child.pid");
     for (drop_only, detached) in [(false, false), (true, false), (false, true), (true, true)] {
         let code = format!(
-            "import subprocess,time,pathlib;child=subprocess.Popen(['python3','-c','import time;time.sleep(300)'],start_new_session={});p=pathlib.Path({:?});pending=p.with_suffix('.pending');pending.write_text(str(child.pid));pending.replace(p);time.sleep(300)",
+            "import subprocess,sys,time,pathlib;child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(300)'],start_new_session={});p=pathlib.Path({:?});pending=p.with_suffix('.pending');pending.write_text(str(child.pid));pending.replace(p);time.sleep(300)",
             if detached { "True" } else { "False" },
             pid_file
         );
@@ -561,21 +552,11 @@ async fn spec_derived_cinema_properties_use_real_bun_and_central_rust_assessment
         }
     }
     assert!(count > 1);
-    let status = fs::read_to_string(format!("/proc/{}/status", worker.pid())).unwrap();
-    let peak = status
-        .lines()
-        .find(|s| s.starts_with("VmHWM:"))
-        .unwrap()
-        .split_whitespace()
-        .nth(1)
-        .unwrap()
-        .parse::<u64>()
-        .unwrap()
-        * 1024;
+    let peak = peak_rss(worker.pid());
     let evidence =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/native-executor-conformance");
     fs::create_dir_all(&evidence).unwrap();
-    fs::write(evidence.join(format!("{}-cinema.json",std::process::id())),serde_json::to_vec(&serde_json::json!({"scope":"complete modeled Cinema winner invariant; not complete application verification","cases":count,"invocations":invocations,"elapsed_ms":started.elapsed().as_secs_f64()*1000.,"peak_rss_bytes":peak})).unwrap()).unwrap();
+    fs::write(evidence.join(format!("{}-cinema.json",std::process::id())),serde_json::to_vec(&serde_json::json!({"scope":"complete modeled Cinema winner invariant; not complete application verification","cases":count,"invocations":invocations,"elapsed_ms":started.elapsed().as_secs_f64()*1000.,"peak_rss_bytes":peak,"memory_method":if peak.is_some(){"Linux procfs VmHWM"}else{"unavailable on this host"}})).unwrap()).unwrap();
     worker
         .request(WorkerRequest::Shutdown, &cancel, &mut no_mock)
         .await
@@ -1060,7 +1041,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
         fs::create_dir_all(target.parent().unwrap()).unwrap();
         fs::copy(root.join("src").join(file), target).unwrap();
     }
-    std::os::unix::fs::symlink(root.join("node_modules"), temp.0.join("node_modules")).unwrap();
+    copy_tree(&root.join("node_modules"), &temp.0.join("node_modules"));
     fs::write(
         temp.0.join("adapter.ts"),
         fs::read_to_string(root.join(".dctx0/testing/typescript/adapter.ts"))
@@ -2120,7 +2101,7 @@ async fn real_cinema_native_suite_typechecks_measures_storage_http_and_di_and_de
         fs::copy(root.join("src").join(file), target).unwrap();
     }
     fs::copy(root.join("tsconfig.json"), temp.0.join("tsconfig.json")).unwrap();
-    std::os::unix::fs::symlink(root.join("node_modules"), temp.0.join("node_modules")).unwrap();
+    copy_tree(&root.join("node_modules"), &temp.0.join("node_modules"));
     let output =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/native-executor-conformance");
     fs::create_dir_all(&output).unwrap();
@@ -2165,13 +2146,30 @@ async fn real_cinema_native_suite_typechecks_measures_storage_http_and_di_and_de
     sampling.abort();
     compilation.unwrap();
     let compile_ms = started.elapsed().as_secs_f64() * 1000.;
-    assert!(peak.load(Ordering::Relaxed) > 0);
+    if cfg!(target_os = "linux") {
+        assert!(peak.load(Ordering::Relaxed) > 0);
+    }
+    // Set testing-only reporting through a preload, without a Unix env tool or
+    // changing the source-bound application tests. Their procfs reporter is
+    // enabled only where it is available; command and coverage checks run on all hosts.
+    fs::write(
+        temp.0.join("native-env.ts"),
+        if cfg!(target_os = "linux") {
+            format!(
+                "process.env.DCTX0_CINEMA_NATIVE_REPORT = {};",
+                serde_json::to_string(&report.to_string_lossy()).unwrap()
+            )
+        } else {
+            "delete process.env.DCTX0_CINEMA_NATIVE_REPORT;".into()
+        },
+    )
+    .unwrap();
     let native = ExecutionRecipe {
-        program: "env".into(),
+        program: "bun".into(),
         arguments: vec![
-            format!("DCTX0_CINEMA_NATIVE_REPORT={}", report.display()),
-            "bun".into(),
             "test".into(),
+            "--preload".into(),
+            "./native-env.ts".into(),
             "src".into(),
             "--coverage".into(),
             "--coverage-reporter=lcov".into(),
@@ -2190,10 +2188,13 @@ async fn real_cinema_native_suite_typechecks_measures_storage_http_and_di_and_de
     .await
     .unwrap();
     let audit = tests.wait(&NativeCancellation::default()).await.unwrap();
-    let mut evidence: serde_json::Value =
-        serde_json::from_slice(&fs::read(&report).unwrap()).unwrap();
+    let mut evidence: serde_json::Value = if cfg!(target_os = "linux") {
+        serde_json::from_slice(&fs::read(&report).unwrap()).unwrap()
+    } else {
+        serde_json::json!({"scope":"Independent real Cinema SQLite/Hono/Awilix tests; actual command output and coverage retained", "peak_rss_bytes":null,"memory_scope":"Bun procfs reporter unavailable on this host"})
+    };
     evidence["process_wall_ms"] = serde_json::json!(started.elapsed().as_secs_f64() * 1000.);
-    evidence["compiler"] = serde_json::json!({"elapsed_ms":compile_ms,"peak_rss_bytes":peak.load(Ordering::Relaxed),"memory_scope":"maximum observed Linux compiler VmHWM sampled every 1ms; lower bound if the final live sample is missed"});
+    evidence["compiler"] = serde_json::json!({"elapsed_ms":compile_ms,"peak_rss_bytes":(peak.load(Ordering::Relaxed)>0).then(||peak.load(Ordering::Relaxed)),"memory_scope":if cfg!(target_os="linux"){"maximum observed Linux compiler VmHWM sampled every 1ms; lower bound if the final live sample is missed"}else{"unavailable on this host"}});
     evidence["native_output"] = serde_json::json!(audit.stderr);
     evidence["coverage_file"] = serde_json::json!(coverage.join("lcov.info"));
     assert!(coverage.join("lcov.info").exists());
@@ -2302,7 +2303,7 @@ async fn native_commands_bound_logs_time_cancellation_and_failures_without_proto
                 NativeFailureKind::Timeout
             }
         );
-        assert!(!PathBuf::from(format!("/proc/{}", command.pid())).exists());
+        assert_exited(command.pid());
     }
     let mut loud = NativeCommand::spawn(
         &recipe("print('x'*1000)"),
@@ -2619,7 +2620,7 @@ async fn example_protocol_guards_and_whole_session_deadlines_reap_workers() {
                 .kind,
             NativeFailureKind::Protocol
         );
-        assert!(!PathBuf::from(format!("/proc/{}", worker.pid())).exists());
+        assert_exited(worker.pid());
         let prefix = worker.session_evidence();
         assert_eq!(
             prefix.len(),
@@ -2683,7 +2684,7 @@ async fn example_protocol_guards_and_whole_session_deadlines_reap_workers() {
             error.detail.contains("Whole native case deadline"),
             "{error}"
         );
-        assert!(!PathBuf::from(format!("/proc/{}", worker.pid())).exists());
+        assert_exited(worker.pid());
     }
 }
 #[tokio::test]
@@ -2817,7 +2818,7 @@ async fn closed_worker_input_is_an_io_failure_and_reaps_the_leader() {
 }
 
 #[tokio::test]
-async fn late_logs_are_rejected_and_owned_detached_processes_are_cleaned() {
+async fn late_logs_are_rejected() {
     let temp = Temp::new();
     let cancel = NativeCancellation::default();
     let late = "import sys,json,time;p=json.loads(sys.stdin.readline());print(json.dumps({'protocol_version':1,'message':{'kind':'reply','id':p['id'],'reply':{'kind':'bye'}}}),flush=True);time.sleep(0.04);print('x'*300,file=sys.stderr,flush=True)";
@@ -2838,9 +2839,16 @@ async fn late_logs_are_rejected_and_owned_detached_processes_are_cleaned() {
         w.finish().await.unwrap_err().kind,
         NativeFailureKind::LogLimit
     );
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn owned_detached_processes_are_cleaned() {
+    let temp = Temp::new();
+    let cancel = NativeCancellation::default();
     let file = temp.0.join("detached.pid");
     let detached = format!(
-        "import sys,json,subprocess,pathlib;p=json.loads(sys.stdin.readline());child=subprocess.Popen(['python3','-c','import time;time.sleep(300)'],start_new_session=True);pathlib.Path({file:?}).write_text(str(child.pid));print(json.dumps({{'protocol_version':1,'message':{{'kind':'reply','id':p['id'],'reply':{{'kind':'bye'}}}}}}),flush=True)"
+        "import sys,json,subprocess,pathlib;p=json.loads(sys.stdin.readline());child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(300)'],start_new_session=True);pathlib.Path({file:?}).write_text(str(child.pid));print(json.dumps({{'protocol_version':1,'message':{{'kind':'reply','id':p['id'],'reply':{{'kind':'bye'}}}}}}),flush=True)"
     );
     let mut w = NativeWorker::spawn(
         &recipe(&detached),

@@ -11,8 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"runtime"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -66,12 +67,27 @@ func command(args ...string) error {
 	err := cmd.Run()
 	compileElapsed = uint64(time.Since(started).Microseconds())
 	if cmd.ProcessState != nil {
-		if usage, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage); ok && usage.Maxrss > 0 {
-			bytes := uint64(usage.Maxrss) * 1024
-			compileRSS = &bytes
+		// Rusage is Unix-only. Reflection keeps this single generated helper
+		// buildable on Windows; unavailable metrics are explicitly null.
+		usage := reflect.ValueOf(cmd.ProcessState.SysUsage())
+		if (runtime.GOOS == "linux" || runtime.GOOS == "darwin") && usage.IsValid() && usage.Kind() == reflect.Pointer && !usage.IsNil() {
+			value := usage.Elem().FieldByName("Maxrss")
+			if value.IsValid() && value.CanInt() && value.Int() > 0 {
+				bytes := uint64(value.Int())
+				if runtime.GOOS == "linux" {
+					bytes *= 1024
+				}
+				compileRSS = &bytes
+			}
 		}
 	}
 	return err
+}
+func exeSuffix() string {
+	if runtime.GOOS == "windows" {
+		return ".exe"
+	}
+	return ""
 }
 func prepare() error {
 	if err := os.MkdirAll(".bin", 0700); err != nil {
@@ -202,7 +218,7 @@ func prepare() error {
 		return err
 	}
 	for _, tool := range []string{"compile", "asm", "link"} {
-		if err = capture(filepath.Join(strings.TrimSpace(string(tools)), tool)); err != nil {
+		if err = capture(filepath.Join(strings.TrimSpace(string(tools)), tool+exeSuffix())); err != nil {
 			return err
 		}
 	}
@@ -235,7 +251,7 @@ func prepare() error {
 		return err
 	}
 	r.GoVersion = strings.TrimSpace(string(version))
-	if err = command("build", "-trimpath", "-mod=vendor", "-o", ".bin/worker", "."); err != nil {
+	if err = command("build", "-trimpath", "-mod=vendor", "-o", ".bin/worker"+exeSuffix(), "."); err != nil {
 		return err
 	}
 	for path, before := range r.Files {
@@ -249,7 +265,7 @@ func prepare() error {
 	}
 	r.BuildElapsedUS = compileElapsed
 	r.BuildPeakRSS = compileRSS
-	r.BinaryHash, err = hash(".bin/worker")
+	r.BinaryHash, err = hash(".bin/worker" + exeSuffix())
 	if err != nil {
 		return err
 	}

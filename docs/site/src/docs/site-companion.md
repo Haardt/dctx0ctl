@@ -210,7 +210,7 @@ notices. Rebuilding must reproduce every byte. Dependencies include OSS HeroUI
 3.2.6, React Flow Community 12.12.0 and Dagre 3.1.1, with no Pro packages. Installed
 version metadata, rather than current website descriptions, determines licenses.
 The locked Cargo dependency inventory is recorded separately in
-[`docs/site-rust-licenses.json`](../../../site-rust-licenses.json).
+[`docs/site-rust-licenses.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-rust-licenses.json).
 The export includes the installed UI dependency license texts.
 
 The coupled runner uses isolated unchanged Cinema sources, actual checks/task
@@ -251,7 +251,7 @@ and its sampled process-tree RSS peaked at 1,216,069,632 bytes. Browser and expo
 metrics use different memory scopes and must not be compared directly.
 
 The retained acceptance and workspace evidence is linked from
-[`docs/site-companion-validation.json`](../../../site-companion-validation.json).
+[`docs/site-companion-validation.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-companion-validation.json).
 
 Final fresh workspace coverage passes 31,886/32,669 merged source lines (97.60%)
 and 2,599/2,677 LLVM functions (97.09%), with matching source hashes. Raw LLVM
@@ -285,7 +285,7 @@ view. Its failed/incomplete record is retained. After correcting that test
 assumption, only the remaining browser scenario and unreached history checks
 continued; passed Rust/model/build stages were not repeated. Combined correction
 evidence and actual speed/RSS samples are retained in
-[`docs/site-graph-correction-validation.json`](../../../site-graph-correction-validation.json).
+[`docs/site-graph-correction-validation.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-graph-correction-validation.json).
 
 Evidence scope uses the published `not_selected` inventory rather than comparing
 one selected module with the number of declarations it contains. An original
@@ -297,7 +297,7 @@ review is never relabeled native testing PASS.
 
 Evidence correction checks (eight model tests, typecheck, actual Cinema records,
 offline browser navigation and export) pass with time/RSS samples in
-[`docs/site-evidence-correction-validation.json`](../../../site-evidence-correction-validation.json).
+[`docs/site-evidence-correction-validation.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-evidence-correction-validation.json).
 Artifact inclusion uses a set lookup to keep inspection matching linear.
 
 Architecture focus is separate from group expansion. The **Focus node** combobox
@@ -317,11 +317,11 @@ overview. Focus, direction and depth are stored in hash URLs; positions and
 viewports are retained separately for each scope.
 
 Focus validation and time/RSS measurements are retained in
-[`docs/site-focus-validation.json`](../../../site-focus-validation.json). The coupled
+[`docs/site-focus-validation.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-focus-validation.json). The coupled
 Site runner includes `ui/site/focus-browser.ts` and retains its screenshot.
 
 Direction/search/slider validation and measured time/RSS are retained in
-[`docs/site-focus-relations-validation.json`](../../../site-focus-relations-validation.json).
+[`docs/site-focus-relations-validation.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-focus-relations-validation.json).
 
 Architecture defaults to the **Implementation** node filter: workspace/domain/module
 groups, surfaces, ports, operations, entities, types, values, messages, events,
@@ -333,11 +333,11 @@ the same filtered projection. Switching filters clears a focus/selection that is
 no longer visible. The `nodes` hash parameter preserves the filter on reload.
 
 Filter checks and actual time/RSS measurements are retained in
-[`docs/site-architecture-filter-validation.json`](../../../site-architecture-filter-validation.json).
+[`docs/site-architecture-filter-validation.json`](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-architecture-filter-validation.json).
 
 The Cinema regression checks both `FilmCommunityApi` → `getFilmRating` visibility
 and the owning surface when focusing `getFilmRating` directly. Recorded validation
-and time/RSS measurements: [surface focus evidence](../../../site-surface-focus-validation.json).
+and time/RSS measurements: [surface focus evidence](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-surface-focus-validation.json).
 
 Architecture details open in a narrow, modeless **Inspector** over the graph.
 Select a node or connection to inspect it; **Connections** provides keyboard-reachable
@@ -349,10 +349,10 @@ close/reopen controls leave the graph usable. Child declaration links select wit
 Architecture; pinned source links still open the source view.
 
 Inspector interaction checks and actual speed/RSS samples are retained in
-[inspector validation](../../../site-inspector-validation.json).
+[inspector validation](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-inspector-validation.json).
 
 Task focus/dialog validation and actual time/RSS samples are retained in
-[task UI validation](../../../site-task-ui-validation.json). Markdown rendering uses
+[task UI validation](https://github.com/Haardt/dctx0ctl/blob/main/docs/site-task-ui-validation.json). Markdown rendering uses
 MIT-licensed react-markdown 10.1.0; its installed transitive licenses are included
 in the embedded dependency inventory. Raw HTML is omitted and Markdown images
 are displayed as alt text, preserving offline browsing without remote asset loads.

@@ -40,6 +40,11 @@ impl Server {
             while !flag.load(Ordering::Acquire) {
                 match listener.accept() {
                     Ok((mut stream, _)) => {
+                        // BSD and Windows may inherit the listener's nonblocking
+                        // mode. Request parsing waits for bounded, complete input.
+                        if stream.set_nonblocking(false).is_err() {
+                            continue;
+                        }
                         let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
                         let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
                         let result = read_request(&mut stream).and_then(|(method, path, body)| {

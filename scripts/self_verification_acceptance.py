@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+import sys
 import time
 import threading
 
@@ -35,6 +36,7 @@ def measured(command, directory=ROOT):
 
 
 def main():
+    os.environ.setdefault('DCTX0_TEST_PYTHON', sys.executable)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, default=ROOT/'target/debug/dctx0')
     parser.add_argument('--checks', action='store_true', help='run the affected Rust regression tests first')
@@ -61,6 +63,8 @@ def main():
                 if result['exit_code']:raise RuntimeError(f"Regression check failed: {' '.join(command)}\n{result['stderr'][-4000:]}")
         functional=measured([str(binary),'verify','self',str(ROOT),'--json'])
         report['checks'].append({key:value for key,value in functional.items() if key!='stdout'})
+        if not functional['stdout'].strip():
+            raise RuntimeError(f"Self-verification produced no report (exit {functional['exit_code']}): {functional['stderr'][-4000:]}")
         self_report=json.loads(functional['stdout'])
         report['self_report']=self_report
         report['source_hash']=hashlib.sha256(json.dumps(self_report['source_files'],sort_keys=True).encode()).hexdigest()

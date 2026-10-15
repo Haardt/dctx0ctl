@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "status": "local regression and release checks pass; native acceptance pending",
+  "problem": "Rust worker skipped the Session.close hook on terminal protocol/read/write failures, and retained the active session after adapter errors or panic. OS process cleanup did not prove explicit adapter cleanup.",
+  "change": "Close the active session on all Result exit paths and before reporting adapter errors. Take ownership before cleanup; catch cleanup panic; finish the observation context; preserve the original error alongside a terminal cleanup error.",
+  "test_cases": [
+    "EOF",
+    "malformed protocol",
+    "duplicate request ID",
+    "regular end",
+    "shutdown",
+    "adapter error followed by a new session",
+    "adapter panic followed by a new session",
+    "cleanup error cannot emit bye",
+    "cleanup panic cannot emit bye"
+  ],
+  "measurement_scope": "Uninstrumented all-feature release CLI; standalone test/Clippy processes include compilation; named wait4 peaks are not collective RSS.",
+  "baseline": "unassessed; existing baseline unchanged",
+  "worker_sha256": "d037b513c22a0b285c79081b257e301c89c94d9c27056f0d08000a488ffe97a7",
+  "validation": {
+    "rust_regression": {
+      "elapsed_ms": 237498.970354005,
+      "peak_rss_bytes": 765792256,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "clippy": {
+      "elapsed_ms": 41929.99873300141,
+      "peak_rss_bytes": 556732416,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release_build": {
+      "elapsed_ms": 234838.62739100005,
+      "peak_rss_bytes": 677519360,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release_phases": {
+      "release-check-final": {
+        "elapsed_ms": 71.39354100218043,
+        "peak_rss_bytes": 26324992,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "release-projection-final": {
+        "elapsed_ms": 31.105804999242537,
+        "peak_rss_bytes": 18051072,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    }
+  },
+  "earlier_attempts": {
+    "test_fixture_error": "The initial probe looked for the captured worker in the editable adapter directory. It now uses the archived executable from the successful real build. One obsolete retry was stopped.",
+    "measurement_error": "The initial projection omitted the mandatory subject selection; the corrected release projection selects ReleaseYear.",
+    "initial": {
+      "rust-engine-regression": {
+        "elapsed_ms": 117591.71162499842,
+        "peak_rss_bytes": 772169728,
+        "exit_code": 101,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "release-build": {
+        "elapsed_ms": 234838.62739100005,
+        "peak_rss_bytes": 677519360,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    },
+    "obsolete_retry": {
+      "elapsed_ms": 64097.52695499628,
+      "peak_rss_bytes": 169820160,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "initial_validation": {
+      "baseline": "unassessed; no baseline promotion",
+      "worker_sha256": "d037b513c22a0b285c79081b257e301c89c94d9c27056f0d08000a488ffe97a7",
+      "measurements": {
+        "clippy": {
+          "elapsed_ms": 41929.99873300141,
+          "peak_rss_bytes": 556732416,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "release-check": {
+          "elapsed_ms": 71.27639799728058,
+          "peak_rss_bytes": 26296320,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "release-projection": {
+          "elapsed_ms": 10.628038995491806,
+          "peak_rss_bytes": 23126016,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      },
+      "complete": false
+    }
+  }
+}

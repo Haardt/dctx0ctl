@@ -74,7 +74,9 @@ pub(super) fn go_receipt(directory: &Path) -> Result<GoBuildReceipt> {
         return Err(Error::Invalid("Incomplete Go build input receipt".into()));
     }
     validate(&receipt)?;
-    if file_hash(&directory.join(".bin/worker"))? != receipt.binary_hash {
+    if file_hash(&directory.join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)))?
+        != receipt.binary_hash
+    {
         return Err(Error::Invalid(
             "Go worker does not match build receipt".into(),
         ));
@@ -100,7 +102,11 @@ mod tests {
         fs::create_dir_all(root.join(".bin")).unwrap();
         let source = root.join("source.go");
         fs::write(&source, b"package main").unwrap();
-        fs::write(root.join(".bin/worker"), b"native binary").unwrap();
+        fs::write(
+            root.join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)),
+            b"native binary",
+        )
+        .unwrap();
         let receipt = GoBuildReceipt {
             schema_version: 1,
             go_version: "go test fixture".into(),
@@ -127,7 +133,11 @@ mod tests {
                 .contains("changed")
         );
         fs::write(&source, b"package main").unwrap();
-        fs::write(root.join(".bin/worker"), b"other binary").unwrap();
+        fs::write(
+            root.join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)),
+            b"other binary",
+        )
+        .unwrap();
         assert!(
             go_receipt(&root)
                 .unwrap_err()

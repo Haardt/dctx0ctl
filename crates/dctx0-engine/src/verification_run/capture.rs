@@ -112,7 +112,11 @@ impl Capture {
                 "Verification capture exceeds 20000 files".into(),
             ));
         }
-        let helper = relative == Path::new(".dctx0/testing/rust/executables/dctx0");
+        let helper = relative
+            == Path::new(&format!(
+                ".dctx0/testing/rust/executables/dctx0{}",
+                std::env::consts::EXE_SUFFIX
+            ));
         let file_limit = if helper {
             268_435_456
         } else {

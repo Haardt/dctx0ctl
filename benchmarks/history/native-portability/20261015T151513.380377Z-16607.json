@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "id": "20261015T151513.380377Z-16607",
+  "timestamp": "2026-10-15T15:15:13.380377+00:00",
+  "status": "failed",
+  "scope": "native three-target verification and Cinema acceptance",
+  "metadata": {
+    "revision": "5eb3b16d03aeb4acabf728d6f184fafa5ec1b90c",
+    "dirty_worktree": false,
+    "target": "x86_64-apple-darwin",
+    "platform": "macOS-15.7.9-x86_64-i386-64bit",
+    "machine": "x86_64",
+    "cpu": "i386",
+    "logical_cpus": 4,
+    "content_hash_before": "b141aa5bb84434face0645eedf02c80babce5eec5a0adc6bd79920ade0b12003",
+    "python": "3.12.10 (v3.12.10:0cc81280367, Apr  8 2025, 08:47:00) [Clang 13.0.0 (clang-1300.0.29.30)]",
+    "binary_hash": "666ba8c0a4f2cbea5306226507a0d151088282db869b6c1e25b8fa9f2a571ba4",
+    "toolchains": {
+      "bun": "1.4.2",
+      "go": "go version go1.25.0 darwin/amd64",
+      "rust": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-apple-darwin\nrelease: 1.99.0\nLLVM version: 23.1.1"
+    },
+    "content_hash_after": "b141aa5bb84434face0645eedf02c80babce5eec5a0adc6bd79920ade0b12003"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "No accepted native portability baseline; existing baselines unchanged"
+  },
+  "cache": "prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution",
+  "seed": 42,
+  "generated_cases": 100,
+  "features": "all-features",
+  "checks": [
+    {
+      "label": "toolchain-bun",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-go",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-rust",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "portable-transport",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "small-compiled-targets",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "small-typescript-and-replay",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "complete-guards-and-reviews",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-reviews",
+      "exit_code": 1,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-check",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-generation",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-first-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-warm-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    }
+  ],
+  "measurements": {
+    "toolchain-bun": {
+      "elapsed_ms": 69.47782499992172,
+      "peak_rss_bytes": 1064960,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "toolchain-go": {
+      "elapsed_ms": 57.71010900002693,
+      "peak_rss_bytes": 6946816,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "toolchain-rust": {
+      "elapsed_ms": 146.11932399998295,
+      "peak_rss_bytes": 16416768,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "portable-transport": {
+      "elapsed_ms": 401588.9745680001,
+      "peak_rss_bytes": 492068864,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "small-compiled-targets": {
+      "elapsed_ms": 1002841.030464,
+      "peak_rss_bytes": 273154048,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "small-typescript-and-replay": {
+      "elapsed_ms": 5156.531127999642,
+      "peak_rss_bytes": 54833152,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "complete-guards-and-reviews": {
+      "elapsed_ms": 225262.2387010001,
+      "peak_rss_bytes": 518422528,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-reviews": {
+      "elapsed_ms": 401076.653179,
+      "peak_rss_bytes": 1160462336,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 39.108439999836264,
+      "peak_rss_bytes": 4096000,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-generation": {
+      "elapsed_ms": 200.38526899998033,
+      "peak_rss_bytes": 2363392,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-execution-first-project": {
+      "elapsed_ms": 1302.83693399997,
+      "peak_rss_bytes": 24707072,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-execution-warm-project": {
+      "elapsed_ms": 1001.9584970000324,
+      "peak_rss_bytes": 24649728,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "failure": "cinema-reviews: exit 1; Traceback (most recent call last):\n  File \"/Users/runner/work/dctx0ctl/dctx0ctl/scripts/conformance_review_acceptance.py\", line 158, in <module>\n    main()\n  File \"/Users/runner/work/dctx0ctl/dctx0ctl/scripts/conformance_review_acceptance.py\", line 73, in main\n    assert all(case['result']['status'] == 'PASS' for case in run['cases']), f'{variant}: failing cases: {[(case[\"id\"], case[\"result\"]) for case in run[\"cases\"] if case[\"result\"][\"status\"] != \"PASS\"][:5]}'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: rust: failing cases: [('HomeCinema.MovieNight.Catalog.FilmCatalogApi.changeFilmAvailability:contract:http-entry', {'status': 'FAIL', 'issue': {'code': 'APPLICATION_EXCEPTION', 'message': 'HomeCinema.MovieNight.Catalog.FilmCatalogApi.changeFilmAvailability: Unexpected HTTP status 400: {\"error\":\"Cannot read request\"}', 'span': None}}), ('HomeCinema.MovieNight.Community.FilmCommunityApi.addComment:contract:http-entry', {'status': 'FAIL', 'issue': {'code': 'APPLICATION_EXCEPTION', 'message': 'HomeCinema.MovieNight.Community.FilmCommunityApi.addComment: Unexpected HTTP status 400: {\"error\":\"Cannot read request\"}', 'span': None}}), ('HomeCinema.MovieNight.Community.FilmCommunityApi.listComments:contract:http-entry', {'status': 'FAIL', 'issue': {'code': 'APPLICATION_EXCEPTION', 'message': 'HomeCinema.MovieNight.Community.FilmCommunityApi.listComments: Unexpected HTTP status 400: {\"error\":\"Cannot read request\"}', 'span': None}}), ('HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote:contract:success:http-route', {'status': 'FAIL', 'issue': {'code': 'APPLICATION_EXCEPTION', 'message': 'HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting: Unexpected HTTP status 400: {\"error\":\"Cannot read request\"}', 'span': None}}), ('HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.closeVoting:contract:closed:http-route', {'status': 'FAIL', 'issue': {'code': 'APPLICATION_EXCEPTION', 'message': 'HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm: Unexpected HTTP status 400: {\"error\":\"Cannot read request\"}', 'span': None}})]\n"
+}

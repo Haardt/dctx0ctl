@@ -8,6 +8,14 @@ on:
       - 'install.sh'
       - 'install.ps1'
       - 'scripts/release_platform.ts'
+      - 'scripts/native_portability.py'
+      - 'scripts/*cinema*'
+      - 'scripts/conformance_review_acceptance.py'
+      - 'examples/cinema/**'
+      - 'examples/cinema-go/**'
+      - 'examples/cinema-rust/**'
+      - 'fixtures/conformance/**'
+      - '.gitattributes'
       - 'scripts/release.py'
       - 'scripts/release_acceptance.py'
       - 'scripts/release_support.py'
@@ -27,6 +35,14 @@ on:
       - 'install.sh'
       - 'install.ps1'
       - 'scripts/release_platform.ts'
+      - 'scripts/native_portability.py'
+      - 'scripts/*cinema*'
+      - 'scripts/conformance_review_acceptance.py'
+      - 'examples/cinema/**'
+      - 'examples/cinema-go/**'
+      - 'examples/cinema-rust/**'
+      - 'fixtures/conformance/**'
+      - '.gitattributes'
       - 'scripts/release.py'
       - 'scripts/release_acceptance.py'
       - 'scripts/release_support.py'
@@ -134,6 +150,25 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: examples/cinema-go/go.mod
+          cache-dependency-path: examples/cinema-go/go.sum
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Prepare native verification dependencies
+        # Launch tools directly: Git Bash prepends its Unix link.exe on Windows.
+        shell: python {0}
+        run: |
+          import subprocess
+          for command in [
+              ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'],
+              ['go', '-C', 'examples/cinema-go', 'mod', 'download'],
+              ['cargo', 'fetch', '--locked', '--manifest-path', 'examples/cinema-rust/.dctx0/testing/rust/Cargo.toml'],
+              ['rustup', 'component', 'add', 'llvm-tools-preview'],
+              ['cargo', 'install', 'cargo-llvm-cov', '--locked'],
+          ]:
+              subprocess.run(command, check=True)
       - name: Enable bounded user scopes
         if: runner.os == 'Linux'
         run: |
@@ -143,15 +178,34 @@ jobs:
           echo "XDG_RUNTIME_DIR=/run/user/$uid" >> "$GITHUB_ENV"
           echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus" >> "$GITHUB_ENV"
       - name: Build the native release executable
+        shell: python {0}
         run: |
-          if [[ "$RUNNER_OS" == Linux ]]; then
-            python scripts/memory_guard.py cargo build --release --locked --all-features -p dctx0-cli --bin dctx0 --target "$RELEASE_TARGET"
-          else
-            cargo build --release --locked --all-features -p dctx0-cli --bin dctx0 --target "$RELEASE_TARGET"
-          fi
+          import os, subprocess, sys
+          command = ['cargo', 'build', '--release', '--locked', '--all-features', '-p', 'dctx0-cli', '--bin', 'dctx0', '--target', os.environ['RELEASE_TARGET']]
+          if sys.platform == 'linux':
+              command = [sys.executable, 'scripts/memory_guard.py', *command]
+          subprocess.run(command, check=True)
       - name: Test distribution and installer; measure speed and RAM
         if: needs.version.outputs.tag != 'v0.1.1' && needs.version.outputs.tag != 'v0.2.0' && needs.version.outputs.tag != 'v0.2.1' && needs.version.outputs.tag != 'v0.2.2'
         run: python scripts/release_acceptance.py --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --platform-tests
+      - name: Native verification, replay, Cinema completion and release time/RAM
+        shell: python {0}
+        run: |
+          import os, subprocess, sys
+          binary = f"target/{os.environ['RELEASE_TARGET']}/release/{os.environ['RELEASE_EXECUTABLE']}"
+          subprocess.run([sys.executable, 'scripts/native_portability.py', '--binary', binary, '--coverage'], check=True)
+      - name: Retain native verification and platform coverage even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-verification-${{ matrix.target }}
+          path: |
+            target/native-portability/
+            target/native-executor-conformance/
+            target/native-harness-conformance/
+            target/cinema-native-coverage/
+            benchmarks/history/native-portability/
+          if-no-files-found: error
       - name: Reject redistributable VC runtime dependencies
         if: runner.os == 'Windows'
         shell: pwsh
@@ -185,13 +239,42 @@ jobs:
             target/release-assets/*.zip
           if-no-files-found: error
 
+  platform-verification:
+    if: always()
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every native matrix job
+        env:
+          MATRIX_RESULT: ${{ needs.build.result }}
+        run: test "$MATRIX_RESULT" = success
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-verification-*
+          path: target/native-evidence
+      - name: Require five complete native reports
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          roots = list(Path('target/native-evidence').glob('native-verification-*'))
+          expected = {'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-apple-darwin', 'aarch64-apple-darwin', 'x86_64-pc-windows-msvc'}
+          assert {root.name.removeprefix('native-verification-') for root in roots} == expected, f'Missing platform jobs: {roots}'
+          for root in roots:
+              reports = list(root.glob('target/native-portability/*/report.json'))
+              assert len(reports) == 1, f'Missing or ambiguous report: {root}'
+              report = json.loads(reports[0].read_text())
+              assert report['metadata']['target'] == root.name.removeprefix('native-verification-')
+              assert report['status'] == 'complete', (root, report.get('failure'))
+          PY
+
   publish:
     if: >-
       always() && startsWith(github.ref, 'refs/tags/') &&
-      needs.version.result == 'success' && needs.build.result == 'success' &&
+      needs.version.result == 'success' && needs.build.result == 'success' && needs.platform-verification.result == 'success' &&
       (needs.validation.result == 'success' ||
        ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0' || github.ref == 'refs/tags/v0.2.1' || github.ref == 'refs/tags/v0.2.2') && needs.validation.result == 'skipped'))
-    needs: [version, validation, build]
+    needs: [version, validation, build, platform-verification]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -232,8 +315,9 @@ jobs:
               'The installer verifies SHA-256 and the executable version before atomic replacement. '
               'The binary includes the CLI, language server, profiles, agent skills and offline/live React companion. '
               'Native verification additionally requires Bun, Go or Rust and prepared application dependencies.\n\n'
-              'Managed verification/adoption currently requires Linux. Normal macOS/Windows validation checks CLI, LSP, installation, '
-              'Bun SDK transport and test-process cancellation; it also rejects unsupported managed execution without PASS.\n\n'
+              'Native verification, replay and guarded adoption support all five release platforms for TypeScript/Bun, Go and Rust. '
+              'Native CI requires actual application success/failure, repaired replay, task/review guards and Cinema persistence/HTTP. '
+              'Linux retains process-tree supervision; macOS/Windows use bounded direct-child cleanup.\n\n'
               'Archives include a source/toolchain receipt. `SHA256SUMS` covers all five archives and both installers.\n'
           )
           PY

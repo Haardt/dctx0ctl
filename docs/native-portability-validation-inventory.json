@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "scope": "Dependency preparation before validation source pinning; no executor or target behavior change",
+  "status": "local checks passed; fresh full Linux CI required",
+  "cause": "Fresh fixture Bun installs materialize dependency JSON inputs after the initial validation hash. The inventory intentionally includes these dependencies. A clean archive reproduces the exact CI initial hash and actual installs change that hash.",
+  "correction": "Run the existing frozen Bun installs before pinning inputs. Keep all existing source and dependency inputs, source-change guards, failed preparation results and paired measurements. No paths are excluded.",
+  "regression": "Old runner fails the fresh-dependency ordering test. The corrected runner passes all 19 Python tests, including rejection of dependency edits during tests and preservation of failed preparation.",
+  "failed_ci": {
+    "run": 38773613692,
+    "job": 116555495820,
+    "revision": "0693a2715ebcb7e13e0e228f9e4747f88bf64b40",
+    "record": "benchmarks/history/20261015T184022.281691Z-30679.json",
+    "artifact": 11998143924,
+    "artifact_sha256": "f8f356c421e3da0789dbe483f5db761868970b5abc798ae135ddeef1c714f56f",
+    "validation_status": "fail",
+    "all_command_exit_codes": 0,
+    "coverage": {
+      "merged_source_lines": {
+        "covered": 32267,
+        "total": 33051
+      },
+      "llvm_function_percent_as_logged": 97.01
+    },
+    "note": "Earlier source revision; no final-tree acceptance claim. Original failed source hashes and measurements are retained unchanged."
+  },
+  "actual_fixture_install_reproduction": {
+    "revision": "0693a2715ebcb7e13e0e228f9e4747f88bf64b40",
+    "initial": "1ffed2e78fe31e7d23d0691b9d1637266ec93288119f8b94a79bb65209163a02",
+    "after_fixture_installs": "252674baf49ce351755baaa44f212125e747b2ae24822eefdce1c6cf60a59de6",
+    "ci_before": "1ffed2e78fe31e7d23d0691b9d1637266ec93288119f8b94a79bb65209163a02",
+    "ci_after": "8e756ab57196cf6700961b7ea850a881e7e67dff90df02f70f198f3aa0a9e606",
+    "measurements": {
+      "direct": {
+        "elapsed_ms": 21.22469300229568,
+        "peak_rss_bytes": 68526080,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "service": {
+        "elapsed_ms": 41.163080000842456,
+        "peak_rss_bytes": 68526080,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    },
+    "exact_ci_hash_reproduction": false
+  },
+  "measurements": {
+    "red-dependency-order": {
+      "elapsed_ms": 81.77711100142915,
+      "peak_rss_bytes": 32595968,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "green-python-suite": {
+      "elapsed_ms": 579.9866160014062,
+      "peak_rss_bytes": 35696640,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 51.1338930009515,
+      "peak_rss_bytes": 26673152,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-plan": {
+      "elapsed_ms": 31.31300899985945,
+      "peak_rss_bytes": 23138304,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "baseline": "unassessed; unchanged",
+  "inputs": {
+    "scripts/validate.py": "e159581d25ad92c028b7eee3ab068c5fea7ab80c6cb4ea9d8b615427b1720543",
+    "scripts/tests/test_validate.py": "573253264dc0ccfe5efb82550d40d373ad266bd4cfde30e90db377dd78a2d25a"
+  },
+  "rejected_initial_hypothesis": {
+    "revision": "6043632",
+    "claim": "Generated tutorial transport copies changed the inventory",
+    "counterevidence": "Actual fresh-project verify complete passes without materializing those copies or changing the old inventory. The path exclusions from that intermediate revision are removed. The original failed record remains unchanged.",
+    "note": "The exact final CI hash has not been reproduced locally; fresh full CI remains required."
+  }
+}

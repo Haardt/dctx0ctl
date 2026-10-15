@@ -1,8 +1,8 @@
-//! Managed Linux native transport. No worker reply constitutes verification PASS.
+//! Managed native transport with optional Linux process-tree supervision. No worker reply constitutes verification PASS.
 mod descendants;
-mod identity;
-pub use identity::NativeRuntimeIdentity;
+pub(crate) mod identity;
 pub(crate) use identity::VerifierIdentity;
+pub use identity::{NativeLaunchInputs, NativeRuntimeIdentity};
 mod cases;
 mod command;
 mod lifecycles;
@@ -86,8 +86,17 @@ impl NativeCancellation {
         let _ = receiver.wait_for(|value| *value).await;
     }
 }
+/// Auto retains Linux process-tree ownership; Child manages only the direct child.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NativeSupervision {
+    #[default]
+    Auto,
+    Child,
+}
 #[derive(Debug, Clone, Serialize)]
 pub struct NativeLimits {
+    pub supervision: NativeSupervision,
     pub initialization: Duration,
     pub case: Duration,
     pub run: Duration,
@@ -100,6 +109,7 @@ pub struct NativeLimits {
 impl Default for NativeLimits {
     fn default() -> Self {
         Self {
+            supervision: NativeSupervision::Auto,
             initialization: Duration::from_secs(30),
             case: Duration::from_secs(5),
             run: Duration::from_secs(120),
@@ -112,6 +122,14 @@ impl Default for NativeLimits {
     }
 }
 impl NativeLimits {
+    pub fn supervision_capabilities(&self) -> NativeSupervisionCapabilities {
+        let process_tree = cfg!(target_os = "linux") && self.supervision == NativeSupervision::Auto;
+        NativeSupervisionCapabilities {
+            process_tree,
+            detached_descendants: process_tree,
+            collective_memory_limit: false,
+        }
+    }
     pub(crate) fn validate(&self) -> Result<(), NativeFailure> {
         if [self.initialization, self.case, self.run, self.cleanup]
             .iter()
@@ -131,7 +149,15 @@ impl NativeLimits {
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NativeSupervisionCapabilities {
+    pub process_tree: bool,
+    pub detached_descendants: bool,
+    pub collective_memory_limit: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NativeAudit {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supervision: Option<NativeSupervisionCapabilities>,
     pub pid: u32,
     pub stderr: String,
     #[serde(default)]
@@ -142,6 +168,8 @@ pub struct NativeAudit {
 /// Call `finish` or `abort` explicitly. Drop also kills the owned process group.
 pub struct NativeWorker {
     child: Option<Child>,
+    supervised: bool,
+    launch_identity: NativeRuntimeIdentity,
     group_active: bool,
     descendants: descendants::Descendants,
     groups: std::sync::Arc<dyn GroupControl>,
@@ -163,7 +191,7 @@ pub type NativeMockHandler<'a> =
     dyn FnMut(&Invocation) -> Result<Observation, NativeFailure> + Send + 'a;
 impl NativeWorker {
     pub fn supported() -> bool {
-        cfg!(target_os = "linux")
+        true
     }
     async fn expired_case(&mut self) -> NativeFailure {
         let mut error = NativeFailure::new(
@@ -175,7 +203,6 @@ impl NativeWorker {
         }
         error
     }
-    #[cfg(target_os = "linux")]
     pub async fn spawn(
         recipe: &ExecutionRecipe,
         directory: &Path,
@@ -183,7 +210,6 @@ impl NativeWorker {
     ) -> Result<Self, NativeFailure> {
         Self::spawn_streams(recipe, directory, limits, true).await
     }
-    #[cfg(target_os = "linux")]
     async fn spawn_streams(
         recipe: &ExecutionRecipe,
         directory: &Path,
@@ -191,10 +217,15 @@ impl NativeWorker {
         protocol: bool,
     ) -> Result<Self, NativeFailure> {
         limits.validate()?;
-        subreaper_result(rustix::process::set_child_subreaper(Some(
-            rustix::process::Pid::INIT,
-        )))?;
-        let mut command = Command::new(&recipe.program);
+        let supervised = limits.supervision_capabilities().process_tree;
+        #[cfg(target_os = "linux")]
+        if supervised {
+            subreaper_result(rustix::process::set_child_subreaper(Some(
+                rustix::process::Pid::INIT,
+            )))?;
+        }
+        let program = identity::resolve_program(&recipe.program, directory)?;
+        let mut command = Command::new(&program);
         if recipe.program == "cargo" {
             command
                 .env("CARGO_NET_OFFLINE", "true")
@@ -242,7 +273,12 @@ impl NativeWorker {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        command.as_std_mut().process_group(0);
+        #[cfg(target_os = "linux")]
+        if supervised {
+            command.as_std_mut().process_group(0);
+        }
+        let launch_identity =
+            NativeRuntimeIdentity::capture_launch(&program, recipe, directory, &mut command)?;
         let mut child = command
             .spawn()
             .map_err(|e| NativeFailure::new(NativeFailureKind::Unavailable, e.to_string()))?;
@@ -282,9 +318,19 @@ impl NativeWorker {
         let deadline = Instant::now() + limits.run;
         Ok(Self {
             child: Some(child),
+            supervised,
+            launch_identity,
             group_active: true,
-            descendants: descendants::Descendants::start(pid, owner),
-            groups: std::sync::Arc::new(LinuxGroups),
+            descendants: if supervised {
+                descendants::Descendants::start(pid, owner)
+            } else {
+                Default::default()
+            },
+            groups: if supervised {
+                std::sync::Arc::new(LinuxGroups)
+            } else {
+                std::sync::Arc::new(ChildOnly)
+            },
             input: Some(input),
             pid,
             next_id: 1,
@@ -300,22 +346,16 @@ impl NativeWorker {
             evidence_bytes: 0,
         })
     }
-    #[cfg(not(target_os = "linux"))]
-    pub async fn spawn(
-        _recipe: &ExecutionRecipe,
-        _directory: &Path,
-        _limits: NativeLimits,
-    ) -> Result<Self, NativeFailure> {
-        Err(NativeFailure::new(
-            NativeFailureKind::Unsupported,
-            "Managed native processes currently require Linux",
-        ))
-    }
     pub fn pid(&self) -> u32 {
         self.pid
     }
     pub fn audit(&self) -> NativeAudit {
         NativeAudit {
+            supervision: Some(NativeSupervisionCapabilities {
+                process_tree: self.supervised,
+                detached_descendants: self.supervised,
+                collective_memory_limit: false,
+            }),
             pid: self.pid,
             stderr: String::from_utf8_lossy(
                 &self
@@ -463,7 +503,8 @@ impl NativeWorker {
         let child = self.child.as_mut().ok_or_else(|| {
             NativeFailure::new(NativeFailureKind::WorkerExit, "Worker already closed")
         })?;
-        if let Err(error) = wait_exit(self.pid, self.limits.cleanup).await {
+        if let Err(error) = wait_owned(child, self.supervised, self.pid, self.limits.cleanup).await
+        {
             self.abort().await?;
             return Err(error);
         }
@@ -524,9 +565,11 @@ impl NativeWorker {
         self.input.take();
         self.descendants.kill(self.pid)?;
         self.groups.kill(self.pid)?;
-        if let Some(mut child) = self.child.take() {
+        if let Some(child) = self.child.as_mut() {
+            child.start_kill().map_err(NativeFailure::io)?;
             bounded_reap(child.wait(), self.limits.cleanup).await?;
         }
+        self.child.take();
         reap_group_with(self.pid, self.limits.cleanup, self.groups.as_ref()).await?;
         self.descendants.reap(self.limits.cleanup).await?;
         self.group_active = false;
@@ -542,6 +585,15 @@ trait GroupControl: Send + Sync {
     fn reap(&self, pid: u32) -> Result<ReapStep, NativeFailure>;
 }
 struct LinuxGroups;
+struct ChildOnly;
+impl GroupControl for ChildOnly {
+    fn kill(&self, _pid: u32) -> Result<(), NativeFailure> {
+        Ok(())
+    }
+    fn reap(&self, _pid: u32) -> Result<ReapStep, NativeFailure> {
+        Ok(ReapStep::Empty)
+    }
+}
 enum ReapStep {
     Reaped,
     Empty,
@@ -639,16 +691,21 @@ impl Drop for NativeWorker {
             // Discover children before killing their parent. A group-only wait
             // can see ECHILD during the short interval before reparenting.
             let _ = self.descendants.kill(self.pid);
-            let _ = LinuxGroups.kill(self.pid);
+            let _ = self.groups.kill(self.pid);
+            if let Some(child) = self.child.as_mut() {
+                let _ = child.start_kill();
+            }
             self.child.take();
             let pid = self.pid;
             let timeout = self.limits.cleanup;
             let descendants = std::mem::take(&mut self.descendants);
             #[cfg(target_os = "linux")]
+            let groups = self.groups.clone();
+            #[cfg(target_os = "linux")]
             std::thread::spawn(move || {
                 let deadline = Instant::now() + timeout;
                 loop {
-                    let group_empty = matches!(LinuxGroups.reap(pid), Ok(ReapStep::Empty));
+                    let group_empty = matches!(groups.reap(pid), Ok(ReapStep::Empty));
                     let descendants_empty = matches!(descendants.reap_pending(), Ok(false));
                     if (group_empty && descendants_empty) || Instant::now() >= deadline {
                         break;
@@ -694,12 +751,41 @@ async fn wait_exit(pid: u32, timeout: Duration) -> Result<(), NativeFailure> {
         tokio::time::sleep(Duration::from_millis(1)).await;
     }
 }
-#[cfg(not(target_os = "linux"))]
-async fn wait_exit(_pid: u32, _timeout: Duration) -> Result<(), NativeFailure> {
+async fn wait_owned(
+    child: &mut Child,
+    supervised: bool,
+    pid: u32,
+    timeout: Duration,
+) -> Result<(), NativeFailure> {
+    #[cfg(target_os = "linux")]
+    if supervised {
+        return wait_exit(pid, timeout).await;
+    }
+    let _ = (supervised, pid);
+    tokio::time::timeout(timeout, child.wait())
+        .await
+        .map_err(|_| {
+            NativeFailure::new(
+                NativeFailureKind::Timeout,
+                "Worker did not exit before deadline",
+            )
+        })?
+        .map_err(NativeFailure::io)?;
     Ok(())
 }
 
 #[cfg(test)]
+fn python_fixture(source: &str) -> ExecutionRecipe {
+    let program = std::env::var("DCTX0_TEST_PYTHON")
+        .expect("Run process tests with the runner's absolute DCTX0_TEST_PYTHON interpreter");
+    assert!(Path::new(&program).is_absolute());
+    ExecutionRecipe {
+        program,
+        arguments: vec!["-u".into(), "-c".into(), source.into()],
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
 mod tests {
     use super::*;
     struct UnavailableGroups {
@@ -881,7 +967,7 @@ mod tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "linux"))]
 mod cleanup_retry_tests {
     use super::*;
     struct UnavailableWait;

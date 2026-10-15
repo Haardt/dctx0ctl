@@ -592,6 +592,9 @@ pub(crate) fn run(
                     crate::render::json(output, &report)?;
                 } else {
                     writeln!(output,"# Native verification\n\nRun: `{}`\nSnapshot: `{}`; check occurrence: {}\nResult: {:?}\n\n{} mandatory cases; {} recorded cases; {} open obligations.\n",report.evidence.id,report.evidence.run.provenance.snapshot,report.evidence.run.provenance.check_occurrence,report.evidence.run.result,report.evidence.run.required_cases.len(),report.evidence.run.cases.len(),report.evidence.run.open_obligations.len()).map_err(crate::error_message)?;
+                    if let Some(supervision) = &report.supervision {
+                        writeln!(output, "Process-tree supervision: {}; detached descendants: {}; collective memory limit: {}.\n", supervision.process_tree, supervision.detached_descendants, supervision.collective_memory_limit).map_err(crate::error_message)?;
+                    }
                     outcome_summary(output, &report.evidence.run)?;
                     for issue in report
                         .evidence

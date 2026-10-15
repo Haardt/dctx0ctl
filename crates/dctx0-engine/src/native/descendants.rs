@@ -65,6 +65,9 @@ impl Descendants {
         }
     }
     pub fn kill(&mut self, leader: u32) -> Result<(), NativeFailure> {
+        if self.owner.is_empty() {
+            return Ok(());
+        }
         #[cfg(target_os = "linux")]
         {
             let mut identities = self.identities.lock().expect("descendant guard");

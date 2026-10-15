@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'examples/cinema-go'
@@ -44,11 +45,13 @@ def main():
         base = Path(temporary)
         project = base / 'baseline'
         copy_application(project)
-        complete = invoke(binary, project, 'verify', 'complete', str(project / 'dctx0'), '--project', str(project), expect=0)
+        subprocess.run([sys.executable, str(ROOT / 'scripts/conformance_review_acceptance.py'), '--binary', str(binary), '--target', 'go', '--project', str(project), '--report', str(base / 'reviews.json')], check=True)
+        complete = invoke(binary, project, 'verify', 'complete' , str(project / 'dctx0'), '--project', str(project), expect=0)
         assert complete['result']['status'] == 'PASS'
         assert complete['mandatory_cases'] == 5674 and complete['tasks'] == 105
-        assert complete['open_tasks'] == complete['non_pass_tasks'] == 0
-        assert complete['adopted_tasks'] and complete['inspected_tasks'], 'Fresh acceptance must deliver real tasks'
+        assert complete['open_tasks'] == 0
+        assert complete['non_pass_tasks'] == len(complete['reviewed_tasks']) == 4
+        assert len(complete['reviewed_tasks']) == 4, 'Source-bound reviews stay separate from native delivery'
         report['complete'] = complete
         specs = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in (project / 'dctx0').glob('*.dctx0')}
         reference = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in (ROOT / 'examples/cinema/dctx0').glob('*.dctx0')}

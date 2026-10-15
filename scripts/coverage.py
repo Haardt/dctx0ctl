@@ -60,6 +60,7 @@ def merged_lines(lcov):
 
 
 def main():
+    os.environ.setdefault("DCTX0_TEST_PYTHON", sys.executable)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--skip-performance', action='store_true', help='partial development coverage; defer benchmark conformance')
     args = parser.parse_args()

@@ -1,6 +1,8 @@
 import {test,expect,afterAll} from 'bun:test';
 import {mkdirSync,writeFileSync,readFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {basename,isAbsolute} from 'node:path';
 import type {Subprocess} from 'bun';
 const protocolSamples:unknown[]=[];
 const collectCoverage=process.env.DCTX0_NATIVE_COVERAGE==='1';
@@ -14,7 +16,7 @@ afterAll(async()=>{
   expect(report.raw).not.toBeNull();let source:string|undefined;
   for(const line of report.raw!.split('\n')){
    if(line.startsWith('SF:')){
-    source=line.slice(3);if(!['worker.ts','scaffold-worker.ts','contract.ts'].some(name=>source!.endsWith('/'+name)||source===name)){source=undefined;continue;}
+    source=line.slice(3);if(!['worker.ts','scaffold-worker.ts','contract.ts'].includes(source.split(/[/\\]/).at(-1)!)){source=undefined;continue;}
     if(!sources.has(source))sources.set(source,{sha256:createHash('sha256').update(readFileSync(source)).digest('hex'),lines:new Map(),functions:new Map(),function_samples:[]});
    }else if(source&&line.startsWith('DA:')){const [number,hits]=line.slice(3).split(',').map(Number);const counts=sources.get(source)!.lines;counts.set(number,(counts.get(number)??0)+hits);
    }else if(source&&line.startsWith('FNF:')){sources.get(source)!.function_samples.push({report:report.directory,found:Number(line.slice(4)),hit:null});
@@ -24,11 +26,12 @@ afterAll(async()=>{
  }
  const raw=await Bun.file('native-performance.json').json();
  raw.native_helper_coverage={schema_version:1,scope:'Generated Bun worker variants and testing contract; transport conformance only',instrumentation:'bun test --coverage --coverage-reporter lcov',instrumentation_headers:instrumentationHeaders,reports:coverageReports,sources:[...sources].map(([source,counts])=>({source,sha256:counts.sha256,lines:counts.lines.size,covered_lines:[...counts.lines.values()].filter(hits=>hits>0).length,functions:counts.functions.size||null,covered_functions:counts.functions.size?[...counts.functions.values()].filter(hits=>hits>0).length:null,function_samples:counts.function_samples,function_coverage_status:counts.functions.size?'identified functions':'unavailable: Bun reports per-run totals without function identities; totals can vary between executions',uncovered_lines:[...counts.lines].filter(([,hits])=>hits===0).map(([line])=>line)}))};
+ raw.protocolSamples=protocolSamples;
  raw.samples_instrumentation='Native worker coverage instrumentation; not release benchmark evidence';
  await Bun.write('native-performance.json',JSON.stringify(raw));
 });
-const samples:Record<string,{elapsed_ms:number;peak_rss_bytes:number;runtime_version:string}>={};
-async function measure(c:Client,name:string,start:number){const elapsed_ms=performance.now()-start;const metrics=(await c.request({kind:'metrics'})).reply;expect(metrics.peak_rss_bytes).toBeGreaterThan(0);samples[name]={elapsed_ms,peak_rss_bytes:metrics.peak_rss_bytes,runtime_version:metrics.runtime_version};}
+const samples:Record<string,{elapsed_ms:number;peak_rss_bytes:number|null;runtime_version:string}>={};
+async function measure(c:Client,name:string,start:number){const elapsed_ms=performance.now()-start;const metrics=(await c.request({kind:'metrics'})).reply;if(process.platform==='linux')expect(metrics.peak_rss_bytes).toBeGreaterThan(0);else expect(metrics.peak_rss_bytes).toBeNull();samples[name]={elapsed_ms,peak_rss_bytes:metrics.peak_rss_bytes,runtime_version:metrics.runtime_version};}
 
 class Client {
  process:Subprocess<'pipe','pipe','pipe'>;
@@ -135,12 +138,12 @@ test('native dependency resolution preserves import and require export condition
  await Bun.write('node_modules/conditional-example/imported.js','throw Error("resolution must not execute this module");');
  await Bun.write('node_modules/conditional-example/required.cjs','throw Error("resolution must not execute this module");');
  const c=new Client();try{
-  const importer=new URL('./adapter.ts',import.meta.url).pathname;
+  const importer=fileURLToPath(new URL('./adapter.ts',import.meta.url));
   const imported=await c.request({kind:'resolve-dependency',mode:'import',specifier:'conditional-example',importer});
   const required=await c.request({kind:'resolve-dependency',mode:'require',specifier:'conditional-example',importer});
   expect(imported.reply.kind).toBe('dependency-resolved');
-  expect(imported.reply.path.endsWith('/imported.js')).toBe(true);
-  expect(required.reply.path.endsWith('/required.cjs')).toBe(true);
+  expect(isAbsolute(imported.reply.path)).toBe(true);expect(basename(imported.reply.path)).toBe('imported.js');
+  expect(required.reply.kind).toBe('dependency-resolved');expect(isAbsolute(required.reply.path)).toBe(true);expect(basename(required.reply.path)).toBe('required.cjs');
   for(const mode of ['import','require']){
    expect((await c.request({kind:'resolve-dependency',mode,specifier:'path',importer})).reply.path).toBe('node:path');
    expect((await c.request({kind:'resolve-dependency',mode,specifier:'node:fs',importer})).reply.path).toBe('node:fs');
@@ -153,4 +156,21 @@ test('native dependency resolution preserves import and require export condition
   expect((await c.request({kind:'resolve-dependency',mode:'import',specifier:'missing-package',importer})).reply.kind).toBe('dependency-unresolved');
   expect((await c.request({kind:'describe'})).reply.kind).toBe('described');
  }finally{await c.stop();}
+},{timeout:10000});
+
+
+test('adapter and protocol faults are reported only after asynchronous session cleanup',async()=>{
+ for(const kind of ['adapter','protocol','close-error']){
+  const caseId='cleanup-order-'+kind,marker=caseId+'.closed';
+  const c=new Client();try{
+   await c.request({kind:'begin',case_id:caseId});
+   let response;
+   if(kind!=='protocol')response=await c.request(call({kind:'string',value:'adapter-error'}));
+   else {c.process.stdin.write('{broken}\n');response=await c.next();}
+   expect(response.kind).toBe('technical-error');
+   if(kind==='close-error')expect((await c.next()).category).toBe('cleanup');
+   expect(existsSync(marker)).toBe(true);
+   expect(readFileSync(marker,'utf8')).toBe('closed');
+  }finally{await c.stop();}
+ }
 },{timeout:10000});

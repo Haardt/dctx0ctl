@@ -11,7 +11,7 @@ use std::{
 fn executable() -> Result<PathBuf, String> {
     std::env::current_dir()
         .map_err(error)
-        .map(|p| p.join("executables/dctx0"))
+        .map(|p| p.join(format!("executables/dctx0{}", std::env::consts::EXE_SUFFIX)))
 }
 fn runtime() -> Result<tokio::runtime::Runtime, String> {
     tokio::runtime::Builder::new_current_thread()

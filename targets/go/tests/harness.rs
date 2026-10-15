@@ -111,14 +111,14 @@ impl Worker {
                 String::from_utf8_lossy(&output.stderr)
             );
         }
-        let mut child = Command::new(&bundle.recipe.program)
+        let mut child = Command::new(root.join(&bundle.recipe.program))
             .args(&bundle.recipe.arguments)
             .current_dir(root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("Go toolchain is required for executable target conformance");
+            .expect("The generated Go worker must be executable from its fixture directory");
         let stdin = child.stdin.take().unwrap();
         let stdout = child.stdout.take().unwrap();
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -958,4 +958,37 @@ fn go_dependency_resolution_uses_the_module_aware_toolchain() {
     let (success, stderr) = worker.wait_exit();
     fs::remove_dir_all(&root).unwrap();
     assert!(success, "resolution session must exit: {stderr}");
+}
+
+#[test]
+fn adapter_and_protocol_faults_wait_for_session_resource_release() {
+    for kind in ["adapter", "protocol", "panic"] {
+        let (root, bundle) = counter_root("cleanup-order");
+        let mut worker = Worker::spawn(&root, &bundle);
+        let case_id = format!("cleanup-order-{kind}");
+        assert!(matches!(
+            worker.request(begin(&case_id)),
+            WorkerReply::Begun { .. }
+        ));
+        let response = if kind == "adapter" {
+            worker.exchange(invoke(Invocation {
+                subject: "operation".into(),
+                arguments: vec![text("adapter-error")],
+            }))
+        } else if kind == "protocol" {
+            worker.raw("{broken}");
+            worker.next_message()
+        } else {
+            worker.exchange(WorkerRequest::End)
+        };
+        assert!(matches!(response, WorkerMessage::TechnicalError { .. }));
+        assert_eq!(
+            fs::read_to_string(root.join(format!("{case_id}.closed"))).unwrap(),
+            "closed"
+        );
+        worker.stdin = None;
+        let (success, stderr) = worker.wait_exit();
+        assert!(success, "{stderr}");
+        fs::remove_dir_all(root).unwrap();
+    }
 }
