@@ -72,6 +72,7 @@ def main():
             record['metadata']['toolchains'][name] = run('toolchain-' + name, command).strip()
         binary = args.binary.resolve()
         record['metadata']['binary_hash'] = hashlib.sha256(binary.read_bytes()).hexdigest()
+        run('native-unit-contracts', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--lib', 'native::'])
         run('portable-transport', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'native_portable', '--test', 'native'])
         run('small-compiled-targets', ['cargo', 'test', '--locked', '-p', 'dctx0-engine', '--test', 'verification_go', '--test', 'verification_rust'])
         run('small-typescript-and-replay', ['bun', ROOT / 'scripts/release_platform.ts', binary])

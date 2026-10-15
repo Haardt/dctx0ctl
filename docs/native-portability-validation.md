@@ -42,7 +42,10 @@ python scripts/native_portability.py --binary target/release/dctx0 --coverage
 The runner requires Bun, Go, Rust, Python and the host C toolchain. It passes an
 absolute Python interpreter to portable process fixtures; production has no
 Python dependency. `--transport-only` explicitly records partial development
-validation, still with release measurements. Each run retains logs, raw samples,
+validation. For direct Cargo process tests, set `DCTX0_TEST_PYTHON` to an absolute
+interpreter path; the project-owned validation runners supply it automatically.
+Each validation run is still paired with release measurements. Each run retains
+logs, raw samples,
 toolchains, platform, binary/source hashes and revision. Native build audits and
 worker metrics are retained separately in Cinema reports. Peak memory uses the
 portable distribution runner's named wait4/PeakWorkingSetSize methods; null means

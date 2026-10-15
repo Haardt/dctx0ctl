@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+import sys
 import time
 import threading
 
@@ -35,6 +36,7 @@ def measured(command, directory=ROOT):
 
 
 def main():
+    os.environ.setdefault('DCTX0_TEST_PYTHON', sys.executable)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, default=ROOT/'target/debug/dctx0')
     parser.add_argument('--checks', action='store_true', help='run the affected Rust regression tests first')

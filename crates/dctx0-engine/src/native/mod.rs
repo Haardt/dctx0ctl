@@ -774,6 +774,17 @@ async fn wait_owned(
     Ok(())
 }
 
+#[cfg(test)]
+fn python_fixture(source: &str) -> ExecutionRecipe {
+    let program = std::env::var("DCTX0_TEST_PYTHON")
+        .expect("Run process tests with the runner's absolute DCTX0_TEST_PYTHON interpreter");
+    assert!(Path::new(&program).is_absolute());
+    ExecutionRecipe {
+        program,
+        arguments: vec!["-u".into(), "-c".into(), source.into()],
+    }
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod tests {
     use super::*;
