@@ -77,6 +77,7 @@ def main():
         run('small-typescript-and-replay', ['bun', ROOT / 'scripts/release_platform.ts', binary])
         run('complete-guards-and-reviews', ['cargo', 'test', '--locked', '--all-features', '-p', 'dctx0-cli', '--test', 'verification_complete'])
         if not args.transport_only:
+            run('cinema-rust-production', ['cargo', 'test', '--locked', '--all-features', '--manifest-path', ROOT / 'examples/cinema-rust/Cargo.toml'])
             run('cinema-reviews', [sys.executable, ROOT / 'scripts/conformance_review_acceptance.py', '--binary', binary, '--report', output / 'cinema-reviews.json'])
             with tempfile.TemporaryDirectory(prefix='cinema-ts-', dir=output) as scratch:
                 app = Path(scratch) / 'application with spaces'

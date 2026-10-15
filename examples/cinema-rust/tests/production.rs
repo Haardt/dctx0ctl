@@ -153,3 +153,42 @@ fn real_http_routes_validate_input_and_handle_parallel_requests() {
     assert_eq!(overview["total"], 20);
     server.shutdown().unwrap();
 }
+
+#[test]
+fn real_http_waits_for_fragmented_headers_and_body_before_persisting_the_request() {
+    let service = Service::new(
+        Store::open(":memory:", Fixed, NoObserver).unwrap(),
+        Events(vec![]),
+    );
+    let mut server = Server::start("127.0.0.1:0", service).unwrap();
+    let mut socket = TcpStream::connect(server.address()).unwrap();
+    socket
+        .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+        .unwrap();
+    let body = serde_json::to_vec(&film(FILM, "Fragmented")).unwrap();
+    let headers = format!(
+        "lms HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        body.len()
+    );
+    for fragment in [
+        b"POST /fi".as_slice(),
+        headers.as_bytes(),
+        &body[..body.len() / 2],
+        &body[body.len() / 2..],
+    ] {
+        socket.write_all(fragment).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(30));
+    }
+    let mut response = String::new();
+    socket.read_to_string(&mut response).unwrap();
+    assert!(response.starts_with("HTTP/1.1 200 "), "{response}");
+    let (status, stored) = request(
+        server.address(),
+        "GET",
+        &format!("/films/{FILM}"),
+        Value::Null,
+    );
+    assert_eq!(status, 200);
+    assert_eq!(stored["film"]["title"], "Fragmented");
+    server.shutdown().unwrap();
+}
