@@ -2,7 +2,8 @@
 
 This inspection follows the resource-release concern during native portability
 acceptance. It does not grant a new task review approval or substitute for the
-pending five-host execution evidence.
+five-host execution evidence. The complete native matrix now passes; its exact
+reports and scope are indexed in `native-portability-native-matrix.json`.
 
 | Layer | Observed ownership and release |
 | --- | --- |

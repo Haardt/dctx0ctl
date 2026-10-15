@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "id": "20261015T150903.662998Z-2468",
+  "timestamp": "2026-10-15T15:09:03.662998+00:00",
+  "status": "failed",
+  "scope": "native three-target verification and Cinema acceptance",
+  "metadata": {
+    "revision": "5eb3b16d03aeb4acabf728d6f184fafa5ec1b90c",
+    "dirty_worktree": false,
+    "target": "x86_64-pc-windows-msvc",
+    "platform": "Windows-2022Server-10.0.20348-SP0",
+    "machine": "AMD64",
+    "cpu": "AMD64 Family 26 Model 2 Stepping 1, AuthenticAMD",
+    "logical_cpus": 4,
+    "content_hash_before": "b141aa5bb84434face0645eedf02c80babce5eec5a0adc6bd79920ade0b12003",
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "binary_hash": "31b31b25f4df95cfb584b9b2736e50a98d3908bb2c0cd5dab1198c7e0629d85a",
+    "toolchains": {
+      "bun": "1.4.2",
+      "go": "go version go1.25.0 windows/amd64",
+      "rust": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-pc-windows-msvc\nrelease: 1.99.0\nLLVM version: 23.1.1"
+    },
+    "content_hash_after": "b141aa5bb84434face0645eedf02c80babce5eec5a0adc6bd79920ade0b12003"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "No accepted native portability baseline; existing baselines unchanged"
+  },
+  "cache": "prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution",
+  "seed": 42,
+  "generated_cases": 100,
+  "features": "all-features",
+  "checks": [
+    {
+      "label": "toolchain-bun",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-go",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-rust",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "portable-transport",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "small-compiled-targets",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "small-typescript-and-replay",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "complete-guards-and-reviews",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-reviews",
+      "exit_code": 1,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-check",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-generation",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-first-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-warm-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    }
+  ],
+  "measurements": {
+    "toolchain-bun": {
+      "elapsed_ms": 39.59529999997358,
+      "peak_rss_bytes": 3506176,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "toolchain-go": {
+      "elapsed_ms": 34.659400000009555,
+      "peak_rss_bytes": 8810496,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "toolchain-rust": {
+      "elapsed_ms": 63.413500000024214,
+      "peak_rss_bytes": 9293824,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "portable-transport": {
+      "elapsed_ms": 154438.15119999988,
+      "peak_rss_bytes": 9211904,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "small-compiled-targets": {
+      "elapsed_ms": 394801.0778,
+      "peak_rss_bytes": 9093120,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "small-typescript-and-replay": {
+      "elapsed_ms": 1713.949599999978,
+      "peak_rss_bytes": 61210624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "complete-guards-and-reviews": {
+      "elapsed_ms": 71740.12210000001,
+      "peak_rss_bytes": 9306112,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "cinema-reviews": {
+      "elapsed_ms": 182933.98120000007,
+      "peak_rss_bytes": 174628864,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-check": {
+      "elapsed_ms": 12.421600000152466,
+      "peak_rss_bytes": 6668288,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-generation": {
+      "elapsed_ms": 12.125299999979688,
+      "peak_rss_bytes": 4710400,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-execution-first-project": {
+      "elapsed_ms": 238.03369999995994,
+      "peak_rss_bytes": 11718656,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-execution-warm-project": {
+      "elapsed_ms": 239.27200000002813,
+      "peak_rss_bytes": 11718656,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    }
+  },
+  "failure": "cinema-reviews: exit 1; Traceback (most recent call last):\r\n  File \"D:\\a\\dctx0ctl\\dctx0ctl\\scripts\\conformance_review_acceptance.py\", line 73, in main\r\n    assert all(case['result']['status'] == 'PASS' for case in run['cases']), f'{variant}: failing cases: {[(case[\"id\"], case[\"result\"]) for case in run[\"cases\"] if case[\"result\"][\"status\"] != \"PASS\"][:5]}'\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: rust: failing cases: [('HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.closeVoting:contract:closed:http-route', {'status': 'FAIL', 'issue': {'code': 'APPLICATION_EXCEPTION', 'message': 'HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting: error sending request for url (http://127.0.0.1:59806/voting)', 'span': None}})]\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\shutil.py\", line 633, in _rmtree_unsafe\r\n    os.unlink(fullname)\r\nPermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\dctx0-conformance-review-sk2npaft\\\\go\\\\dctx0\\\\.dctx0ctl\\\\state.sqlite3'\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"D:\\a\\dctx0ctl\\dctx0ctl\\scripts\\conformance_review_acceptance.py\", line 158, in <module>\r\n    main()\r\n  File \"D:\\a\\dctx0ctl\\dctx0ctl\\scripts\\conformance_review_acceptance.py\", line 32, in main\r\n    with tempfile.TemporaryDirectory(prefix='dctx0-conformance-review-') as temporary:\r\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\tempfile.py\", line 950, in __exit__\r\n    self.cleanup()\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\tempfile.py\", line 954, in cleanup\r\n    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\tempfile.py\", line 934, in _rmtree\r\n    _shutil.rmtree(name, onexc=onexc)\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\shutil.py\", line 781, in rmtree\r\n    return _rmtree_unsafe(path, onexc)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\shutil.py\", line 635, in _rmtree_unsafe\r\n    onexc(os.unlink, fullname, err)\r\n  File \"C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\tempfile.py\", line 909, in onexc\r\n    _os.unlink(path)\r\nPermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\\\Users\\\\RUNNER~1\\\\AppData\\\\Local\\\\Temp\\\\dctx0-conformance-review-sk2npaft\\\\go\\\\dctx0\\\\.dctx0ctl\\\\state.sqlite3'\r\n"
+}

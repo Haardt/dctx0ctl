@@ -985,7 +985,7 @@ failed records remain retained. Speed/RSS and scope are documented in
 `docs/site-graph-correction-validation.json`. Previous workspace coverage remains
 historical; no Rust logic, specs, compiler goldens or accepted baselines changed.
 
-## Native portability increment (2026-10-15, acceptance pending)
+## Native portability increment (2026-10-15, native matrix accepted)
 
 The executor now shares launch/protocol/streams across hosts. Auto keeps Linux
 process groups/subreaper/descendant ownership; macOS and Windows manage the direct
@@ -1000,8 +1000,23 @@ remain readable. No SQLite migration or change to PASS/adoption/review guards.
 portable transport, three real targets, mutation/replay, current Cinema review
 workflow and release time/RAM. The existing five-host release matrix now requires
 these checks on relevant PRs and before new releases, retains failed logs/native
-coverage and rejects missing platform reports. Native acceptance is pending;
-do not replace historical Linux-only support claims until five native jobs pass.
+coverage and rejects missing platform reports. All five native jobs and the final
+platform gate passed in run 38784717147 for implementation 5d34fbc6f066c5bf251904184493b8a770c95f88.
+Each host completed all 25 stages, including real Bun/Go cleanup probes and nine
+compiled Rust cleanup probes. Current support covers all five hosts; historical
+Linux-only results remain historical. Exact reports, artifact digests, separate
+coverage and release speed/RAM samples are in docs/native-portability-native-matrix.json.
 Keep four Cinema review tasks Done/Unverified among 105 tasks. The self-testing
 CLI path now uses the host executable suffix; existing source reviews are not
 silently rebound after that source change.
+
+Current coupled Linux validation passes all checks and tutorials with 85 complete
+release workloads in benchmarks/history/20261015T195713.967729Z-330837.json,
+matching checked/measured source hashes, 32,262/33,051 merged source lines
+(97.613%) and 2,630/2,711 LLVM functions (97.012%). Preserve raw metrics separately
+in docs/native-portability-linux-final.json; no branch-completeness claim,
+exclusion or threshold reduction is introduced. One-sample/iteration development
+measurements remain unassessed; no baseline was promoted. Frozen fixture
+dependencies are now prepared before pinning the validation inventory; all
+dependency/source inputs and later-change guards remain present. Fresh full CI
+for this runner correction is pending, separately from the passed native matrix.

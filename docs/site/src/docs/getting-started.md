@@ -12,7 +12,7 @@ dctx0 --version
 
 The installer supports Linux x86_64/ARM64 and macOS Intel/Apple Silicon with glibc 2.35+, verifies checksums and the executable version, and replaces the binary atomically. Installing the CLI requires no Rust compiler, Python, or sudo. See [releases and installation](releases.md) for pinned versions and custom destinations.
 
-Windows x64 users can use the [PowerShell installer](releases.md). Install the toolchains for your chosen application target yourself before native verification. Managed native execution currently requires Linux.
+Windows x64 users can use the [PowerShell installer](releases.md). Install the toolchains for your chosen application target yourself before native verification. Managed native execution supports all five release platforms; macOS and Windows manage the direct child with bounded termination and waiting.
 
 ## Build from source
 
@@ -30,7 +30,7 @@ Or install from the checkout:
 cargo install --path crates/dctx0-cli --locked
 ```
 
-All four target features are enabled by default. Parsing, compilation, and task planning require no native application toolchain. Native verification currently uses Linux and the selected runtime/compiler: Bun, Go, or Cargo. Java profiles do not provide execution.
+All four target features are enabled by default. Parsing, compilation, and task planning require no native application toolchain. Native verification uses the selected runtime/compiler on Linux, macOS or Windows: Bun, Go, or Cargo. Rust also needs a host C toolchain: Xcode Command Line Tools on macOS or an MSVC developer environment with the Windows SDK on Windows. Java profiles do not provide execution.
 
 ## Install agent skills
 

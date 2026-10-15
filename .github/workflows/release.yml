@@ -315,8 +315,9 @@ jobs:
               'The installer verifies SHA-256 and the executable version before atomic replacement. '
               'The binary includes the CLI, language server, profiles, agent skills and offline/live React companion. '
               'Native verification additionally requires Bun, Go or Rust and prepared application dependencies.\n\n'
-              'Managed verification/adoption currently requires Linux. Normal macOS/Windows validation checks CLI, LSP, installation, '
-              'Bun SDK transport and test-process cancellation; it also rejects unsupported managed execution without PASS.\n\n'
+              'Native verification, replay and guarded adoption support all five release platforms for TypeScript/Bun, Go and Rust. '
+              'Native CI requires actual application success/failure, repaired replay, task/review guards and Cinema persistence/HTTP. '
+              'Linux retains process-tree supervision; macOS/Windows use bounded direct-child cleanup.\n\n'
               'Archives include a source/toolchain receipt. `SHA256SUMS` covers all five archives and both installers.\n'
           )
           PY

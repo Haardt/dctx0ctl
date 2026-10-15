@@ -132,7 +132,9 @@ try {
     checks.push('Code blocks expose copy controls');
     assert.deepEqual(failures, []);
     checks.push('No runtime exceptions or failed asset requests');
-    console.log(JSON.stringify({status: 'PASS', checks, screenshots: ['target/docs-site-desktop.png', 'target/docs-site-mobile.png'], memory_scope: 'Coupled runner wait4 peak of the child process/reaped descendants; not collective simultaneous RSS'}));
+    const report = {status: 'PASS', checks, screenshots: ['target/docs-site-desktop.png', 'target/docs-site-mobile.png'], memory_scope: 'Coupled runner wait4 peak of the child process/reaped descendants; not collective simultaneous RSS'};
+    if (process.argv[2]) await Bun.write(process.argv[2], JSON.stringify(report) + '\n');
+    console.log(JSON.stringify(report));
 } finally {
     if (socket?.readyState === WebSocket.OPEN) {
         if (targetId) await send('Target.closeTarget', {targetId}).catch(() => {});

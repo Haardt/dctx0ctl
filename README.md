@@ -121,7 +121,7 @@ The CLI is written in Rust and runs independently. It does not invoke an LLM; an
 
 The Rust core owns input generation, expectations, assessment, shrinking, and replay semantics. Target workers call actual application code and report observations; they do not assign their own PASS verdicts. Production applications remain independent of the DCTX0 runtime, with adapters kept in a separate testing area.
 
-Managed native execution currently targets Linux. Target-specific limits and supported representations are documented in the [TypeScript harness](docs/site/src/docs/typescript-adapters.md), [Go target](docs/site/src/docs/targets.md), and [Rust target](docs/site/src/docs/targets.md) guides.
+Managed native execution supports Linux x86_64/ARM64, macOS Intel/Apple Silicon and Windows x64 for TypeScript/Bun, Go and Rust. Linux retains process-tree supervision; macOS and Windows use bounded direct-child termination and waiting. Target-specific limits and supported representations are documented in the [TypeScript harness](docs/site/src/docs/typescript-adapters.md), [Go target](docs/site/src/docs/targets.md), and [Rust target](docs/site/src/docs/targets.md) guides.
 
 ## Quick start
 
@@ -147,7 +147,7 @@ $env:PATH = "$env:LOCALAPPDATA\DCTX0\bin;$env:PATH"
 dctx0 --version
 ```
 
-The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **Managed native verification and automatic adoption currently require Linux**. macOS/Windows CI exercises the testing SDK harness and process cancellation separately and checks that unsupported managed execution never reports PASS.
+The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **Managed native verification, replay and guarded automatic adoption are verified on all five release platforms** for TypeScript/Bun, Go and Rust. The native CI matrix exercises successful applications, real failures, repaired replay, task/review guards and Cinema persistence/HTTP.
 
 ### Install your application toolchains
 
@@ -155,7 +155,7 @@ Install the toolchains for your selected target yourself and make them available
 
 - **TypeScript:** Bun.
 - **Go:** Go; the Cinema Go example requires Go 1.25+.
-- **Rust:** Rust/Cargo and a C compiler for bundled SQLite.
+- **Rust:** Rust/Cargo and a C compiler for bundled SQLite. Use Xcode Command Line Tools on macOS and an MSVC developer environment with the Windows SDK on Windows.
 
 Prepare your application's dependencies with its package manager, such as `bun install`, `go mod download`, or `cargo fetch`. The release installer installs DCTX0 only. Parsing specifications and planning tasks require only the DCTX0 binary.
 
@@ -478,7 +478,7 @@ Build the release CLI first using the quick-start instructions. The runner check
 | [Static Site and Task Live View](docs/site/src/docs/site-companion.md) | Project export, architecture focus, floating Inspector, live tasks |
 | [Skills](docs/site/src/docs/tools.md) / [Editors](docs/site/src/docs/tools.md) | Agent and editor integration |
 
-Capability descriptions reflect the Rust workspace as of October 14, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
+Capability descriptions reflect the Rust workspace as of October 15, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
 
 ## License
 
@@ -578,7 +578,7 @@ and release speed/RSS measurements; Chromium must be locally installed. Run
 `python3 scripts/validate.py --coverage` for required full-workspace validation.
 See [site capability and provenance details](docs/site/src/docs/site-companion.md).
 
-Native portability development acceptance (five-host CI pending): build the
+Native portability acceptance: build the
 all-feature release CLI, then run
 `python scripts/native_portability.py --binary target/release/dctx0 --coverage`
 (`dctx0.exe` on Windows). This pairs transport/target/Cinema checks with release

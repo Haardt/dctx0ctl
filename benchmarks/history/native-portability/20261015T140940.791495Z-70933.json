@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "20261015T140940.791495Z-70933",
+  "timestamp": "2026-10-15T14:09:40.791495+00:00",
+  "status": "failed",
+  "scope": "transport development",
+  "metadata": {
+    "revision": "7fb02772fc13d7c2e0216467341c5ab4edeeffe0",
+    "dirty_worktree": true,
+    "target": "x86_64-unknown-linux-gnu",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "cpu": "",
+    "python": "3.14.7 (main, Aug 10 2026, 07:46:56) [GCC 16.1.1 20260728]",
+    "binary_hash": "1af1d48bf1496bcaf2b4c80aa4edbf7aab3a0769912731ed3a1cfdd271f6fc48",
+    "toolchains": {
+      "bun": "1.4.2",
+      "go": "go version go1.27.1-X:nodwarf5 linux/amd64",
+      "rust": "rustc 1.99.0 (b940084d7 2026-09-28) (Arch Linux rust 1:1.99.0-1)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1"
+    }
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "No accepted native portability baseline; existing baselines unchanged"
+  },
+  "cache": "prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution",
+  "seed": 42,
+  "generated_cases": 100,
+  "features": "all-features",
+  "checks": [
+    {
+      "label": "toolchain-bun",
+      "exit_code": 0
+    },
+    {
+      "label": "toolchain-go",
+      "exit_code": 0
+    },
+    {
+      "label": "toolchain-rust",
+      "exit_code": 0
+    },
+    {
+      "label": "portable-transport",
+      "exit_code": 0
+    },
+    {
+      "label": "small-compiled-targets",
+      "exit_code": 101
+    },
+    {
+      "label": "release-check",
+      "exit_code": 0
+    },
+    {
+      "label": "release-generation",
+      "exit_code": 0
+    },
+    {
+      "label": "release-execution-first-project",
+      "exit_code": 0
+    },
+    {
+      "label": "release-execution-warm-project",
+      "exit_code": 0
+    }
+  ],
+  "measurements": {
+    "toolchain-bun": {
+      "elapsed_ms": 11.49196600090363,
+      "peak_rss_bytes": 26386432,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "toolchain-go": {
+      "elapsed_ms": 32.32117200241191,
+      "peak_rss_bytes": 26517504,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "toolchain-rust": {
+      "elapsed_ms": 20.943930998328142,
+      "peak_rss_bytes": 118079488,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "portable-transport": {
+      "elapsed_ms": 3373.408688999916,
+      "peak_rss_bytes": 711204864,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "small-compiled-targets": {
+      "elapsed_ms": 19677.812207999523,
+      "peak_rss_bytes": 822861824,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 20.894321998639498,
+      "peak_rss_bytes": 58208256,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-generation": {
+      "elapsed_ms": 20.930586997565115,
+      "peak_rss_bytes": 58208256,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-execution-first-project": {
+      "elapsed_ms": 213.8040040008491,
+      "peak_rss_bytes": 58208256,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-execution-warm-project": {
+      "elapsed_ms": 203.39254700229503,
+      "peak_rss_bytes": 58208256,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "failure": "small-compiled-targets: exit 101;    Compiling dctx0-engine v0.2.2 (/home/held/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.05s\n     Running tests/verification_go.rs (target/debug/deps/verification_go-867fa659e2ad2235)\n\nrunning 1 test\ntest go_builds_real_application_records_exact_results_and_preserves_failed_build_cases ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.21s\n\n     Running tests/verification_rust.rs (target/debug/deps/verification_rust-edccce406e0d3663)\n\nrunning 1 test\ntest rust_builds_actual_code_detects_mutations_and_preserves_failed_build_cases ... FAILED\n\nfailures:\n\n---- rust_builds_actual_code_detects_mutations_and_preserves_failed_build_cases stdout ----\n\nthread 'rust_builds_actual_code_detects_mutations_and_preserves_failed_build_cases' (72548) panicked at crates/dctx0-engine/tests/verification_rust.rs:72:5:\nassertion `left == right` failed: [VerificationIssue { code: \"PACKAGE_DEPENDENCY_UNASSESSED\", message: \".dctx0/testing/rust/adapter.rs imports contract; package resolution is not yet verified\", span: None }, VerificationIssue { code: \"PACKAGE_DEPENDENCY_UNASSESSED\", message: \".dctx0/testing/rust/adapter.rs imports contract::*; package resolution is not yet verified\", span: None }, VerificationIssue { code: \"PACKAGE_DEPENDENCY_UNASSESSED\", message: \".dctx0/testing/rust/adapter.rs imports serde_json::json; package resolution is not yet verified\", span: None }, VerificationIssue { code: \"PACKAGE_DEPENDENCY_UNASSESSED\", message: \"src/lib.rs imports num_bigint::BigInt; package resolution is not yet verified\", span: None }, VerificationIssue { code: \"RUST_BUILD_INPUTS_UNAVAILABLE\", message: \"Filesystem: No such file or directory (os error 2)\", span: None }, VerificationIssue { code: \"RUNTIME_IDENTITY_CHANGED_OR_UNAVAILABLE\", message: \"Actual runtime executable or launch environment cannot be pinned at publication: None\", span: None }]\n  left: Unknown { issue: VerificationIssue { code: \"INCOMPLETE_RUN\", message: \"Not every mandatory case was executed\", span: None } }\n right: Pass\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    rust_builds_actual_code_detects_mutations_and_preserves_failed_build_cases\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.38s\n\nerror: test failed, to rerun pass `-p dctx0-engine --test verification_rust`\n"
+}

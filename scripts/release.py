@@ -87,7 +87,7 @@ def package(binary, target, tag, output, epoch=None):
     executable = 'dctx0.exe' if TARGETS[target][0] == 'pe' else 'dctx0'
     files = {executable: data, 'LICENSE': (ROOT / 'LICENSE').read_bytes(),
              'release.json': (json.dumps(receipt, indent=2) + '\n').encode(),
-             "README.txt": f"DCTX0 {tag}\n\nRun {executable} --version.\nCLI, LSP, profiles and agent skills are embedded in the binary.\nNative verification additionally requires Bun, Go or Rust and application dependencies.\nTarget: {target}; {receipt['minimum_platform']}.\nManaged verification/adoption requires Linux; other platform distributions include CLI/LSP and testing SDK transport.\nhttps://github.com/Haardt/dctx0ctl\n".encode()}
+             "README.txt": f"DCTX0 {tag}\n\nRun {executable} --version.\nCLI, LSP, profiles and agent skills are embedded in the binary.\nNative verification additionally requires Bun, Go or Rust and application dependencies.\nTarget: {target}; {receipt['minimum_platform']}.\nNative verification, replay and guarded adoption support all five release platforms for TypeScript/Bun, Go and Rust. Linux retains process-tree supervision; macOS/Windows use bounded direct-child cleanup. Rust needs Xcode tools on macOS or an MSVC developer environment with Windows SDK on Windows.\nhttps://github.com/Haardt/dctx0ctl\n".encode()}
     output.mkdir(parents=True, exist_ok=True)
     archive = output / asset_name(tag, target)
     temporary = archive.with_suffix('.tmp')

@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "id": "20261015T150430.079772Z-134697",
+  "timestamp": "2026-10-15T15:04:30.079772+00:00",
+  "status": "complete",
+  "scope": "native three-target verification and Cinema acceptance",
+  "metadata": {
+    "revision": "7fb02772fc13d7c2e0216467341c5ab4edeeffe0",
+    "dirty_worktree": true,
+    "target": "x86_64-unknown-linux-gnu",
+    "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "cpu": "unknown",
+    "logical_cpus": 12,
+    "content_hash_before": "b141aa5bb84434face0645eedf02c80babce5eec5a0adc6bd79920ade0b12003",
+    "python": "3.14.7 (main, Aug 10 2026, 07:46:56) [GCC 16.1.1 20260728]",
+    "binary_hash": "198fa298a3aecc26c4de532fb50c5d0a5d4a3ed94425d7633ec9cf7e63563fe7",
+    "toolchains": {
+      "bun": "1.4.2",
+      "go": "go version go1.27.1-X:nodwarf5 linux/amd64",
+      "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6"
+    },
+    "content_hash_after": "b141aa5bb84434face0645eedf02c80babce5eec5a0adc6bd79920ade0b12003"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "No accepted native portability baseline; existing baselines unchanged"
+  },
+  "cache": "prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution",
+  "seed": 42,
+  "generated_cases": 100,
+  "features": "all-features",
+  "checks": [
+    {
+      "label": "toolchain-bun",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-go",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-rust",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "portable-transport",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "small-compiled-targets",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "small-typescript-and-replay",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "complete-guards-and-reviews",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-reviews",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-ts-check",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-ts-mutation",
+      "exit_code": 1,
+      "expected_exit_codes": [
+        1
+      ]
+    },
+    {
+      "label": "cinema-ts-broken-replay",
+      "exit_code": 1,
+      "expected_exit_codes": [
+        1
+      ]
+    },
+    {
+      "label": "cinema-ts-repaired-replay",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-go",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "cinema-rust",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-check",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-generation",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-first-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-warm-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    }
+  ],
+  "measurements": {
+    "toolchain-bun": {
+      "elapsed_ms": 11.22465799926431,
+      "peak_rss_bytes": 26980352,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "toolchain-go": {
+      "elapsed_ms": 10.752357997262152,
+      "peak_rss_bytes": 27086848,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "toolchain-rust": {
+      "elapsed_ms": 20.921082999848295,
+      "peak_rss_bytes": 42176512,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "portable-transport": {
+      "elapsed_ms": 114684.08713900135,
+      "peak_rss_bytes": 754704384,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "small-compiled-targets": {
+      "elapsed_ms": 314826.54731900035,
+      "peak_rss_bytes": 772308992,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "small-typescript-and-replay": {
+      "elapsed_ms": 29641.629907000606,
+      "peak_rss_bytes": 278351872,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "complete-guards-and-reviews": {
+      "elapsed_ms": 75222.582882001,
+      "peak_rss_bytes": 791486464,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-reviews": {
+      "elapsed_ms": 122206.71537299859,
+      "peak_rss_bytes": 413040640,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-ts-check": {
+      "elapsed_ms": 101.77382600159035,
+      "peak_rss_bytes": 58138624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-ts-mutation": {
+      "elapsed_ms": 6938.422959003219,
+      "peak_rss_bytes": 297078784,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-ts-broken-replay": {
+      "elapsed_ms": 6919.28933699819,
+      "peak_rss_bytes": 297000960,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-ts-repaired-replay": {
+      "elapsed_ms": 6257.724995000899,
+      "peak_rss_bytes": 297349120,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-go": {
+      "elapsed_ms": 70786.36209999968,
+      "peak_rss_bytes": 415318016,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "cinema-rust": {
+      "elapsed_ms": 213122.15006000042,
+      "peak_rss_bytes": 314732544,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 41.07330099941464,
+      "peak_rss_bytes": 58138624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-generation": {
+      "elapsed_ms": 20.77398700203048,
+      "peak_rss_bytes": 58138624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-execution-first-project": {
+      "elapsed_ms": 314.60861999948975,
+      "peak_rss_bytes": 58138624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-execution-warm-project": {
+      "elapsed_ms": 294.1276140008995,
+      "peak_rss_bytes": 58138624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  }
+}

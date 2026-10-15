@@ -182,6 +182,33 @@ class PerformanceTests(unittest.TestCase):
             self.assertEqual(saved[0]['validation_source_hash'], hashes[0])
             self.assertEqual(saved[0]['validation_source_hash_after'], hashes[1])
 
+    def test_fresh_dependencies_are_pinned_before_checks_and_later_edits_still_fail(self):
+        for mutate, preparation_failed in [(False, False), (True, False), (False, True)]:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                authored = root / 'adapter.ts'
+                dependency = root / 'node_modules/dependency/package.json'
+                authored.write_text('authored source')
+                saved = []
+                def sources():
+                    return [authored] + ([dependency] if dependency.exists() else [])
+                def run(command, **kwargs):
+                    if command[:2] == ['bun', 'install']:
+                        dependency.parent.mkdir(parents=True, exist_ok=True)
+                        dependency.write_text('{"version":"pinned"}')
+                        return argparse.Namespace(returncode=int(preparation_failed))
+                    self.assertTrue(dependency.exists(), 'Checks must follow dependency preparation')
+                    if mutate and command[:2] == ['cargo', 'test']:
+                        dependency.write_text('{"version":"changed during tests"}')
+                    return argparse.Namespace(returncode=0)
+                def benchmark(args):
+                    return record() | {'source_hash': validate.digest(sources())}
+                with patch.object(validate, 'ROOT', root), patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification', '--example', 'cinema']), patch.object(validate, 'validation_sources', side_effect=sources), patch.object(validate.subprocess, 'run', side_effect=run), patch.object(validate, 'benchmark', side_effect=benchmark), patch.object(validate, 'save', side_effect=lambda result, args: saved.append(copy.deepcopy(result)) or True):
+                    self.assertEqual(validate.main(), int(mutate or preparation_failed))
+                self.assertEqual(saved[0]['validation_status'], 'fail' if mutate or preparation_failed else 'pass')
+                self.assertEqual(saved[0]['validation_source_hash'] == saved[0]['validation_source_hash_after'], not mutate)
+                self.assertEqual(saved[0]['validation_steps'][0]['command'][:2], ['bun', 'install'])
+
 
 
 if __name__ == '__main__':

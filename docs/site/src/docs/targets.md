@@ -73,4 +73,4 @@ Native manual/suite UNKNOWN and source-bound authored review remain separate. Cu
 
 ## Process limits
 
-Managed native execution currently requires Linux. Workers/builds have deadlines, cancellation, output limits, and cleanup. When available, a Linux systemd user scope provides an optional collective memory cap. These limits are not a security sandbox. Unavailable tools, unsupported representations, or incomplete provenance remain explicit gaps.
+Managed native execution supports Linux x86_64/ARM64, macOS Intel/Apple Silicon and Windows x64. Workers/builds have deadlines, cancellation, output limits, and cleanup. Linux retains process-tree supervision; macOS and Windows use direct-child kill/wait and bounded stream draining. Reports explicitly identify these capabilities. Unavailable RSS remains unknown; missing mandatory results still prevent PASS. When available, a Linux systemd user scope provides an optional collective memory cap. These limits are not a security sandbox. Unavailable tools, unsupported representations, or incomplete provenance remain explicit gaps.

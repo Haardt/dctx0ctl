@@ -1,19 +1,23 @@
 {
   "schema_version": 1,
-  "id": "20261012T111929.959518Z-1118839",
-  "timestamp": "2026-10-12T11:19:29.959518+00:00",
+  "id": "20261015T163139.533176Z-219413",
+  "timestamp": "2026-10-15T16:31:39.533176+00:00",
   "workload": "documentation-site",
   "status": "complete",
   "metadata": {
-    "revision": "b067c928f4044477bb4b8f14e53af41457b93887",
+    "revision": "7fb02772fc13d7c2e0216467341c5ab4edeeffe0",
     "dirty_worktree": true,
-    "content_hash": "823ffd2cffbe0318d9bbf1fa7acc4259f4f58b0da2826a15a18c6e72a13a1446",
+    "content_hash": "ff9286c5c32fe0f580390c33d3515ca485683d4dc70bab672ca972c93fd6b3f8",
     "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
     "machine": "x86_64",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 16696470186
+    },
     "cpu": "12th Gen Intel(R) Core(TM) i7-1265U"
   },
   "mdbook": "mdbook v0.5.4",
-  "dctx0_sha256": "34a75b9fa8e78478b9e124aa950ac0d8172fe26b2153136ed9213210a1ebcd02",
+  "dctx0_sha256": "7381477b2b360b1b6e2f397e0f838b07b3483a92480199f185a61cb0a0eb4e4d",
   "memory_scope": "Linux wait4 ru_maxrss of each child process in bytes; excludes Python/orchestration; other platforms report null",
   "cache": "one warm-up build, fresh mdBook process per sample, warm filesystem cache",
   "seed": null,
@@ -25,73 +29,73 @@
   "measurements": {
     "build-validation": [
       {
-        "elapsed_ms": 112.83342499518767,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 72.12592800351558,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       }
     ],
     "specification-check": [
       {
-        "elapsed_ms": 30.755109997699037,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 20.614556000509765,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       },
       {
-        "elapsed_ms": 20.54505900014192,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 20.562212004733738,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       },
       {
-        "elapsed_ms": 20.657636006944813,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 20.984798000426963,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       },
       {
-        "elapsed_ms": 20.573545989464037,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 20.890444997348823,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       },
       {
-        "elapsed_ms": 30.648992003989406,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 31.009961996460333,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       }
     ],
     "browser-ui": [
       {
-        "elapsed_ms": 1924.9015880050138,
-        "peak_rss_bytes": 254427136,
+        "elapsed_ms": 1824.0462340036174,
+        "peak_rss_bytes": 255471616,
         "exit_code": 0
       }
     ],
     "build-warmup": [
       {
-        "elapsed_ms": 101.3567019981565,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 71.56537599803414,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       }
     ],
     "release-build": [
       {
-        "elapsed_ms": 91.53819199127611,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 71.45492600102443,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       },
       {
-        "elapsed_ms": 101.36438100016676,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 71.7757829988841,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       },
       {
-        "elapsed_ms": 101.61553700163495,
-        "peak_rss_bytes": 55656448,
+        "elapsed_ms": 71.59573300305055,
+        "peak_rss_bytes": 58851328,
         "exit_code": 0
       }
     ]
   },
   "validation": {
-    "html_pages": 28,
-    "local_links_and_assets": 900,
+    "html_pages": 33,
+    "local_links_and_assets": 1063,
     "external_links": "not fetched; repository/source references are authored URLs",
     "complete_specs": [
       "src/docs/getting-started.md:1",
@@ -104,6 +108,7 @@
       "status": "PASS",
       "checks": [
         "Desktop landing renders without horizontal overflow under project subpath",
+        "Landing has one navigation bar and readable primary actions",
         "DCTX0 syntax highlighting is active",
         "Landing CTA opens the guide with documentation navigation",
         "Local full-text search returns lifecycle documentation",
@@ -111,6 +116,7 @@
         "Mobile landing fits a 390px viewport",
         "Mobile documentation sidebar opens",
         "Mobile documentation sidebar closes",
+        "Mobile guide fits without page overflow",
         "Code blocks expose copy controls",
         "No runtime exceptions or failed asset requests"
       ],
@@ -123,7 +129,7 @@
   },
   "summary": {
     "samples": 3,
-    "median_elapsed_ms": 101.36438100016676,
-    "peak_rss_bytes": 55656448
+    "median_elapsed_ms": 71.59573300305055,
+    "peak_rss_bytes": 58851328
   }
 }

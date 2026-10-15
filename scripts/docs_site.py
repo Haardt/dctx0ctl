@@ -209,9 +209,15 @@ def main():
         record['validation'] = validate_html()
         record['validation']['complete_specs'] = validate_specs(args.dctx0, record['measurements'])
         if args.browser:
-            output = require(['bun', str(ROOT / 'scripts/docs_site_browser.ts')], 'browser-ui', record['measurements'])
-            record['validation']['browser'] = json.loads(output.strip().splitlines()[-1])
-    except (OSError, RuntimeError, TimeoutError) as error:
+            with tempfile.TemporaryDirectory(prefix='docs-browser-', dir=ROOT / 'target') as directory:
+                browser_report = Path(directory) / 'report.json'
+                require(['bun', str(ROOT / 'scripts/docs_site_browser.ts'), str(browser_report)],
+                        'browser-ui', record['measurements'])
+                result = json.loads(browser_report.read_text())
+                if not isinstance(result, dict) or result.get('status') != 'PASS':
+                    raise RuntimeError('Browser acceptance did not supply a successful report')
+                record['validation']['browser'] = result
+    except (OSError, RuntimeError, TimeoutError, ValueError) as error:
         failure = str(error)
     try:
         # Functional checks first; dedicated release performance samples last, including failed validation.

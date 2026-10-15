@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "id": "20261015T175525.075787Z-4496",
+  "timestamp": "2026-10-15T17:55:25.075787+00:00",
+  "status": "failed",
+  "scope": "native three-target verification and Cinema acceptance",
+  "metadata": {
+    "revision": "ae7f73919f06cc33fe0a6378b1ce81c9203ae90f",
+    "dirty_worktree": false,
+    "target": "x86_64-pc-windows-msvc",
+    "platform": "Windows-2022Server-10.0.20348-SP0",
+    "machine": "AMD64",
+    "cpu": "AMD64 Family 25 Model 1 Stepping 1, AuthenticAMD",
+    "logical_cpus": 4,
+    "content_hash_before": "6ecbbf1b34c42aa54d0dba2d233a7dc1e694f68ddeba21b604926c4aedffafec",
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "binary_hash": "3b46d25cc86d6ad12fdeb6fa40b4c8dde68d9c1629f6c4fa883d6bc4bb88b296",
+    "toolchains": {
+      "bun": "1.4.2",
+      "go": "go version go1.25.0 windows/amd64",
+      "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-pc-windows-msvc\nrelease: 1.99.1\nLLVM version: 23.1.1"
+    },
+    "content_hash_after": "6ecbbf1b34c42aa54d0dba2d233a7dc1e694f68ddeba21b604926c4aedffafec"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "No accepted native portability baseline; existing baselines unchanged"
+  },
+  "cache": "prepared offline dependencies; prebuilt release CLI; existing compiler caches; one cold project and one warm execution",
+  "seed": 42,
+  "generated_cases": 100,
+  "features": "all-features",
+  "checks": [
+    {
+      "label": "toolchain-bun",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-go",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "toolchain-rust",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "native-unit-contracts",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "go-sdk-resource-cleanup",
+      "exit_code": 101,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-check",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-generation",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-first-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    },
+    {
+      "label": "release-execution-warm-project",
+      "exit_code": 0,
+      "expected_exit_codes": [
+        0
+      ]
+    }
+  ],
+  "measurements": {
+    "toolchain-bun": {
+      "elapsed_ms": 40.73959999982435,
+      "peak_rss_bytes": 3522560,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "toolchain-go": {
+      "elapsed_ms": 35.56570000000647,
+      "peak_rss_bytes": 8802304,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "toolchain-rust": {
+      "elapsed_ms": 56.1565000000428,
+      "peak_rss_bytes": 9113600,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "native-unit-contracts": {
+      "elapsed_ms": 96773.27820000004,
+      "peak_rss_bytes": 9199616,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "go-sdk-resource-cleanup": {
+      "elapsed_ms": 33442.730999999636,
+      "peak_rss_bytes": 9216000,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-check": {
+      "elapsed_ms": 25.07110000033208,
+      "peak_rss_bytes": 6868992,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-generation": {
+      "elapsed_ms": 23.21280000023762,
+      "peak_rss_bytes": 4661248,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-execution-first-project": {
+      "elapsed_ms": 329.6056999997745,
+      "peak_rss_bytes": 11907072,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    },
+    "release-execution-warm-project": {
+      "elapsed_ms": 304.2169999998805,
+      "peak_rss_bytes": 11878400,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants"
+    }
+  },
+  "failure": "go-sdk-resource-cleanup: exit 101; \u001b[1m\u001b[92m   Compiling\u001b[0m memchr v2.8.3\n\u001b[1m\u001b[92m   Compiling\u001b[0m syn v3.0.6\n\u001b[1m\u001b[92m   Compiling\u001b[0m serde_core v1.0.229\n\u001b[1m\u001b[92m   Compiling\u001b[0m equivalent v1.0.2\n\u001b[1m\u001b[92m   Compiling\u001b[0m hashbrown v0.17.1\n\u001b[1m\u001b[92m   Compiling\u001b[0m indexmap v2.14.2\n\u001b[1m\u001b[92m   Compiling\u001b[0m serde_derive v1.0.229\n\u001b[1m\u001b[92m   Compiling\u001b[0m serde_json v1.0.151\n\u001b[1m\u001b[92m   Compiling\u001b[0m aho-corasick v1.1.5\n\u001b[1m\u001b[92m   Compiling\u001b[0m tree-sitter v0.25.10\n\u001b[1m\u001b[92m   Compiling\u001b[0m serde v1.0.229\n\u001b[1m\u001b[92m   Compiling\u001b[0m regex-automata v0.4.18\n\u001b[1m\u001b[92m   Compiling\u001b[0m thiserror-impl v2.0.21\n\u001b[1m\u001b[92m   Compiling\u001b[0m thiserror v2.0.21\n\u001b[1m\u001b[92m   Compiling\u001b[0m regex v1.13.1\n\u001b[1m\u001b[92m   Compiling\u001b[0m dctx0-core v0.2.2 (D:\\a\\dctx0ctl\\dctx0ctl\\crates\\dctx0-core)\n\u001b[1m\u001b[92m   Compiling\u001b[0m dctx0-target-sdk v0.2.2 (D:\\a\\dctx0ctl\\dctx0ctl\\crates\\dctx0-target-sdk)\n\u001b[1m\u001b[92m   Compiling\u001b[0m dctx0-target-go v0.2.2 (D:\\a\\dctx0ctl\\dctx0ctl\\targets\\go)\n\u001b[1m\u001b[92m    Finished\u001b[0m `test` profile [unoptimized + debuginfo] target(s) in 18.72s\n\u001b[1m\u001b[92m     Running\u001b[0m tests\\harness.rs (target\\debug\\deps\\harness-e2c618b9fd81ccdc.exe)\n\nrunning 1 test\ntest adapter_and_protocol_faults_wait_for_session_resource_release ... FAILED\n\nfailures:\n\n---- adapter_and_protocol_faults_wait_for_session_resource_release stdout ----\n\nthread 'adapter_and_protocol_faults_wait_for_session_resource_release' (988) panicked at targets\\go\\tests\\harness.rs:121:14:\nGo toolchain is required for executable target conformance: Os { code: 3, kind: NotFound, message: \"The system cannot find the path specified.\" }\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    adapter_and_protocol_faults_wait_for_session_resource_release\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 14.67s\n\n\u001b[1m\u001b[91merror\u001b[0m: test failed, to rerun pass `-p dctx0-target-go --test harness`\n"
+}
