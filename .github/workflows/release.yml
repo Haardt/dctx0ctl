@@ -158,6 +158,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
       - name: Prepare native verification dependencies
+        if: github.ref != 'refs/tags/v0.2.3'
         # Launch tools directly: Git Bash prepends its Unix link.exe on Windows.
         shell: python {0}
         run: |
