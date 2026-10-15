@@ -58,7 +58,8 @@ fn hash(path: &Path) -> Result<String> {
     Ok(format!("{:x}", digest.finalize()))
 }
 fn add(path: &Path, files: &mut BTreeMap<String, String>) -> Result<()> {
-    let path = fs::canonicalize(path)?;
+    let path = fs::canonicalize(path)
+        .map_err(|error| Error::Invalid(format!("Rust build input {}: {error}", path.display())))?;
     if files.len() >= 30_000 {
         return Err(Error::Invalid(
             "Rust build input count exceeds 30000".into(),
@@ -152,6 +153,97 @@ fn package_roots(
     Ok(roots)
 }
 
+#[cfg(target_os = "linux")]
+async fn capture_c_toolchain(
+    directory: &Path,
+    cancel: &NativeCancellation,
+    files: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    // Bundled SQLite's host C toolchain and standard system header closure.
+    for tool in ["/usr/bin/cc", "/usr/bin/as", "/usr/bin/ld", "/usr/bin/ar"] {
+        add(Path::new(tool), files)?;
+    }
+    for name in ["cc1", "collect2"] {
+        let argument = format!("-print-prog-name={name}");
+        let tool = output("cc", &[&argument], directory, cancel).await?;
+        add(Path::new(tool.trim()), files)?;
+    }
+    let multiarch = output("cc", &["-print-multiarch"], directory, cancel).await?;
+    let multiarch = multiarch.trim();
+    if !multiarch.is_empty() {
+        if multiarch.contains('/') || multiarch.contains('\\') {
+            return Err(Error::Invalid(
+                "Invalid C compiler multiarch include directory".into(),
+            ));
+        }
+        let path = Path::new("/usr/include").join(multiarch);
+        if path.is_dir() {
+            walk(&path, files, 0)?;
+        }
+    }
+    let compiler_include = output("cc", &["-print-file-name=include"], directory, cancel).await?;
+    walk(Path::new(compiler_include.trim()), files, 0)?;
+    for entry in fs::read_dir("/usr/include")? {
+        let entry = entry?;
+        if entry.file_type()?.is_file() {
+            add(&entry.path(), files)?;
+        }
+    }
+    for name in ["bits", "sys", "gnu", "asm", "asm-generic", "linux"] {
+        let path = Path::new("/usr/include").join(name);
+        if path.is_dir() {
+            walk(&path, files, 0)?;
+        }
+    }
+    Ok(())
+}
+#[cfg(target_os = "macos")]
+async fn capture_c_toolchain(
+    directory: &Path,
+    cancel: &NativeCancellation,
+    files: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    for name in ["clang", "as", "ld", "ar"] {
+        let path = output("xcrun", &["--find", name], directory, cancel).await?;
+        add(Path::new(path.trim()), files)?;
+    }
+    let sdk = output("xcrun", &["--show-sdk-path"], directory, cancel).await?;
+    walk(&Path::new(sdk.trim()).join("usr/include"), files, 0)?;
+    let resource = output("clang", &["-print-resource-dir"], directory, cancel).await?;
+    walk(&Path::new(resource.trim()).join("include"), files, 0)?;
+    Ok(())
+}
+#[cfg(windows)]
+async fn capture_c_toolchain(
+    _directory: &Path,
+    _cancel: &NativeCancellation,
+    files: &mut BTreeMap<String, String>,
+) -> Result<()> {
+    // The native runner initializes the Visual Studio developer environment.
+    // Capture the selected compiler binaries and effective header search roots.
+    for name in ["cl.exe", "link.exe", "lib.exe"] {
+        let path = crate::native::identity::resolve_program(name, _directory)
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        add(&path, files)?;
+        if name == "cl.exe" {
+            walk(
+                path.parent()
+                    .ok_or_else(|| Error::Invalid("MSVC compiler lacks parent".into()))?,
+                files,
+                0,
+            )?;
+        }
+    }
+    let include = std::env::var_os("INCLUDE").ok_or_else(|| {
+        Error::Invalid(
+            "MSVC INCLUDE is required; initialize the Visual Studio developer environment".into(),
+        )
+    })?;
+    for root in std::env::split_paths(&include) {
+        walk(&root, files, 0)?;
+    }
+    Ok(())
+}
 pub(crate) async fn prepare(
     directory: &Path,
     application: &Path,
@@ -200,56 +292,52 @@ pub(crate) async fn prepare(
     names.dedup();
     let sysroot = output("rustc", &["--print", "sysroot"], directory, cancel).await?;
     let sysroot = Path::new(sysroot.trim());
-    walk(&sysroot.join("bin"), &mut files, 0)?;
+    // A system toolchain may use /usr as its sysroot. Inventory Rust tools,
+    // not every unrelated program and library installed on the host.
+    for name in ["rustc", "cargo"] {
+        let tool = sysroot
+            .join("bin")
+            .join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
+        add(&tool, &mut files)?;
+    }
+    for entry in fs::read_dir(sysroot.join("bin"))? {
+        let entry = entry?;
+        if entry
+            .path()
+            .extension()
+            .is_some_and(|extension| extension == "dll")
+        {
+            add(&entry.path(), &mut files)?;
+        }
+    }
     // Compiler dynamic libraries and the complete selected standard-library directory.
     for entry in fs::read_dir(sysroot.join("lib"))? {
         let entry = entry?;
-        if entry.file_type()?.is_file() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if entry.path().is_file()
+            && (name.starts_with("librustc_driver") || name.starts_with("libLLVM"))
+        {
             add(&entry.path(), &mut files)?;
         }
     }
     let targetlib = output("rustc", &["--print", "target-libdir"], directory, cancel).await?;
-    walk(Path::new(targetlib.trim()), &mut files, 0)?;
-    // Bundled SQLite's host C toolchain and standard system header closure.
-    for tool in ["/usr/bin/cc", "/usr/bin/as", "/usr/bin/ld", "/usr/bin/ar"] {
-        add(Path::new(tool), &mut files)?;
-    }
-    for name in ["cc1", "collect2"] {
-        let argument = format!("-print-prog-name={name}");
-        let tool = output("cc", &[&argument], directory, cancel).await?;
-        add(Path::new(tool.trim()), &mut files)?;
-    }
-    let multiarch = output("cc", &["-print-multiarch"], directory, cancel).await?;
-    let multiarch = multiarch.trim();
-    if !multiarch.is_empty() {
-        if multiarch.contains('/') || multiarch.contains('\\') {
-            return Err(Error::Invalid(
-                "Invalid C compiler multiarch include directory".into(),
-            ));
-        }
-        let path = Path::new("/usr/include").join(multiarch);
-        if path.is_dir() {
-            walk(&path, &mut files, 0)?;
+    let targetlib = Path::new(targetlib.trim());
+    walk(targetlib, &mut files, 0)?;
+    if let Some(parent) = targetlib.parent() {
+        let tools = parent.join("bin");
+        if tools.is_dir() {
+            walk(&tools, &mut files, 0)?;
         }
     }
-    let compiler_include = output("cc", &["-print-file-name=include"], directory, cancel).await?;
-    walk(Path::new(compiler_include.trim()), &mut files, 0)?;
-    for entry in fs::read_dir("/usr/include")? {
-        let entry = entry?;
-        if entry.file_type()?.is_file() {
-            add(&entry.path(), &mut files)?;
-        }
-    }
-    for name in ["bits", "sys", "gnu", "asm", "asm-generic", "linux"] {
-        let path = Path::new("/usr/include").join(name);
-        if path.is_dir() {
-            walk(&path, &mut files, 0)?;
-        }
-    }
+    capture_c_toolchain(directory, cancel, &mut files).await?;
     let cache_root = std::env::var_os("XDG_CACHE_HOME")
         .map(PathBuf::from)
+        .or_else(|| std::env::var_os("LOCALAPPDATA").map(PathBuf::from))
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".cache")))
-        .ok_or_else(|| Error::Invalid("Rust build cache needs HOME or XDG_CACHE_HOME".into()))?;
+        .ok_or_else(|| {
+            Error::Invalid("Rust build cache needs LOCALAPPDATA, HOME or XDG_CACHE_HOME".into())
+        })?;
     fs::create_dir_all(&cache_root)?;
     let (cache_parent, cache_path) =
         crate::verification_setup::safe_file(&cache_root, "dctx0ctl/native-rust-v1/cache-marker")?;
@@ -299,7 +387,12 @@ pub(crate) async fn prepare(
     })
 }
 pub(super) fn finish(receipt: RustBuildReceipt, directory: &Path) -> Result<RustBuildReceipt> {
-    finish_named(receipt, directory, "dctx0-worker", ".bin/worker")
+    finish_named(
+        receipt,
+        directory,
+        "dctx0-worker",
+        &format!(".bin/worker{}", std::env::consts::EXE_SUFFIX),
+    )
 }
 pub(crate) fn finish_named(
     mut receipt: RustBuildReceipt,
@@ -333,7 +426,8 @@ pub(crate) fn finish_named(
             )));
         }
     }
-    let executable = Path::new(&receipt.target_directory).join(format!("release/{name}"));
+    let executable = Path::new(&receipt.target_directory)
+        .join(format!("release/{name}{}", std::env::consts::EXE_SUFFIX));
     receipt.binary_hash = hash(&executable)?;
     fs::create_dir_all(
         directory
@@ -368,12 +462,20 @@ fn dependency_paths(text: &str) -> Result<Vec<String>> {
     let mut values = Vec::new();
     let mut item = String::new();
     let mut escaped = false;
-    for character in text.chars() {
+    let mut characters = text.chars().peekable();
+    while let Some(character) = characters.next() {
         if escaped {
             item.push(character);
             escaped = false;
         } else if character == '\\' {
-            escaped = true;
+            if characters
+                .peek()
+                .is_none_or(|c| matches!(c, ' ' | '\\' | '#'))
+            {
+                escaped = true;
+            } else {
+                item.push(character);
+            }
         } else if character.is_whitespace() {
             if !item.is_empty() {
                 values.push(std::mem::take(&mut item));
@@ -405,6 +507,10 @@ mod tests {
         assert_eq!(
             dependency_paths("/a.rs /with\\ space/lib.rs").unwrap(),
             ["/a.rs", "/with space/lib.rs"]
+        );
+        assert_eq!(
+            dependency_paths(r"C:\work\src\lib.rs C:\with\ space\a.rs").unwrap(),
+            [r"C:\work\src\lib.rs", r"C:\with space\a.rs"]
         );
         assert!(dependency_paths("/incomplete\\").is_err());
         assert!(dependency_paths(" ").is_err());
@@ -472,11 +578,18 @@ mod tests {
         fs::write(&depinfo, format!("worker: {}", external.display())).unwrap();
         assert!(finish(make_receipt(), &root).is_err());
         fs::write(&depinfo, format!("worker: {}", source.display())).unwrap();
-        fs::write(target.join("release/dctx0-worker"), b"fixture binary").unwrap();
+        fs::write(
+            target.join(format!(
+                "release/dctx0-worker{}",
+                std::env::consts::EXE_SUFFIX
+            )),
+            b"fixture binary",
+        )
+        .unwrap();
         let receipt = finish(make_receipt(), &root).unwrap();
         assert_eq!(
             receipt.binary_hash,
-            hash(&root.join(".bin/worker")).unwrap()
+            hash(&root.join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX))).unwrap()
         );
         fs::write(&source, "changed").unwrap();
         assert!(validate(&receipt).is_err());

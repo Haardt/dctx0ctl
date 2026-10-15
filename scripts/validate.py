@@ -315,6 +315,7 @@ def accept(selected):
 
 
 def main():
+    os.environ.setdefault("DCTX0_TEST_PYTHON", sys.executable)
     os.chdir(ROOT)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--accept-baseline', metavar='RUN', help='latest or a history filename; performs no tests')

@@ -1,4 +1,4 @@
-/** Real, bounded distribution checks on the runner OS; this is not a managed-executor port. */
+/** Real, bounded distribution and managed TypeScript checks on the runner OS. */
 import {spawn, type ChildProcess} from 'node:child_process';
 import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, cpSync, rmSync} from 'node:fs';
 import {join, resolve} from 'node:path';
@@ -166,7 +166,7 @@ return {async invoke(call){const v=call.arguments[0];return {kind:'returned',val
     if(live){try{process.kill(pid!,'SIGKILL');}catch{}}
     assert(!live,'Descendant survived cancellation');
   });
-  if (process.platform !== 'linux') await timed('managed executor rejects unsupported platform without PASS or adoption', async () => {
+  await timed('managed TypeScript finite plan, actual mutation, stored failure and repaired replay', async () => {
     const app=join(root,'managed-boundary');
     cpSync(resolve('fixtures/conformance/adaptive-typescript/direct'),app,{recursive:true});
     const specs=join(app,'spec');mkdirSync(specs);
@@ -174,12 +174,26 @@ return {async invoke(call){const v=call.arguments[0];return {kind:'returned',val
     const checked=await command(binary,['check',specs,'--json']);assert.equal(checked.code,0,checked.stderr);
     const initialized=await command(binary,['verify','init',specs,'--project',app,'--target','typescript','--subject','Adaptive.Counter.next','--json']);
     assert.equal(initialized.code,0,initialized.stderr);
-    const attempted=await command(binary,['verify','run',specs,'--project',app,'--no-adopt','--json']);
-    assert.notEqual(attempted.code,0,'Unsupported execution must fail acceptance');
-    const report=JSON.parse(attempted.stdout);
-    assert.notEqual(report.evidence.run.result.status,'PASS');
-    assert.equal(report.adopted_tasks.length,0);
-    assert.match(attempted.stdout,/Linux|Unsupported|unsupported/);
+    const invoke=async(args:string[],success=true)=>{const result=await command(binary,[...args,'--json']);if(success)assert.equal(result.code,0,result.stderr+'\n'+result.stdout.slice(0,1000));return JSON.parse(result.stdout);};
+    const run=await invoke(['verify','run',specs,'--project',app,'--no-adopt']);
+    assert.equal(run.evidence.run.result.status,'PASS');
+    assert(run.evidence.run.cases.length>0);
+    assert.equal(run.evidence.run.cases.length,run.evidence.run.required_cases.length);
+    assert.deepEqual(run.evidence.run.provenance.incomplete,[]);
+    const source=join(app,'src/counter.ts');const original=readFileSync(source,'utf8');
+    writeFileSync(source,original.replace('return value + 1;','return value + 2;'));
+    const broken=await invoke(['verify','run',specs,'--project',app,'--no-adopt'],false);
+    assert.equal(broken.evidence.run.result.status,'FAIL');
+    const failed=broken.evidence.run.cases.find((c:any)=>c.result.status==='FAIL');assert(failed);
+    const args=['verify','replay',specs,broken.evidence.id,'--case',failed.id,'--project',app];
+    const replay=await invoke(args,false);assert.equal(replay.case_result.status,'FAIL');
+    writeFileSync(source,original);
+    const repaired=await invoke(args);assert.equal(repaired.case_result.status,'PASS');assert(repaired.changes.length>0);
+    assert.equal(repaired.evidence.adopted_tasks.length,0);
+    writeFileSync(source,'export function broken( {');
+    const invalid=await invoke(['verify','run',specs,'--project',app,'--no-adopt'],false);
+    assert.notEqual(invalid.evidence.run.result.status,'PASS');assert.equal(invalid.adopted_tasks.length,0);
+
   });
 } catch(error) {
   failure=String(error); throw error;
@@ -188,7 +202,7 @@ return {async invoke(call){const v=call.arguments[0];return {kind:'returned',val
   for(let i=0;i<100 && owned.size;i++)await sleep(50);
   const report={schema_version:1,status:failure ? 'FAIL' : 'PASS',failure,platform:process.platform,architecture:process.arch,
     binary_sha256:createHash('sha256').update(readFileSync(binary)).digest('hex'),bun:Bun.version,checks,
-    scope:'Standalone CLI/LSP and testing-only Bun SDK transport with owned test-process cancellation; no managed verification/adoption claim on macOS or Windows',
+    scope:'Native CLI/LSP, Bun SDK transport, managed TypeScript finite plan with mutation and replay; Go/Rust and full Cinema are checked by native_portability.py',
     memory:{peak_rss_bytes:process.platform==='linux' ? (process.resourceUsage().maxRSS*1024 || null) : null,
       scope:'Linux Bun runner self peak RSS; other OS self metrics unavailable here; the Python distribution runner measures child peak memory separately'}};
   mkdirSync(resolve('target'),{recursive:true});

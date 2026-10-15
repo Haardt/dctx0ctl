@@ -52,6 +52,8 @@ pub struct VerificationLifecycleFixtures {
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NativeVerificationReport {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supervision: Option<crate::NativeSupervisionCapabilities>,
     pub evidence: StoredVerificationRun,
     pub adopted_tasks: Vec<i64>,
     pub adoption_issues: Vec<VerificationIssue>,
@@ -104,6 +106,28 @@ impl Project {
         .await
     }
     #[allow(clippy::too_many_arguments)]
+    /// Execute current requirements with explicit process budgets and supervision.
+    pub async fn run_verification_with_native_limits(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        no_adopt: bool,
+        limits: NativeLimits,
+    ) -> Result<NativeVerificationReport> {
+        self.run_verification_with_limits(
+            application,
+            selection,
+            generator,
+            cancellation,
+            no_adopt,
+            None,
+            limits,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn run_verification_with_limits(
         &self,
         application: Option<&Path>,
@@ -114,6 +138,7 @@ impl Project {
         pinned: Option<(ProgramPlan, VerificationLifecycleFixtures)>,
         limits: NativeLimits,
     ) -> Result<NativeVerificationReport> {
+        let supervision = limits.supervision_capabilities();
         let historical = selection.historical_check.is_some() || pinned.is_some();
         let no_adopt = no_adopt || historical;
         let (application, config) = self.verification_configuration(application)?;
@@ -366,8 +391,11 @@ impl Project {
                             "application/vnd.dctx0.rust-build-inputs+json",
                             serde_json::to_vec(&receipt)?,
                         ));
-                        let relative =
-                            format!(".dctx0ctl/native/rust/{}/worker", receipt.binary_hash);
+                        let relative = format!(
+                            ".dctx0ctl/native/rust/{}/worker{}",
+                            receipt.binary_hash,
+                            std::env::consts::EXE_SUFFIX
+                        );
                         let (parent, executable) =
                             crate::verification_setup::safe_file(&application, &relative)?;
                         fs::create_dir_all(parent)?;
@@ -379,7 +407,10 @@ impl Project {
                             }
                         } else {
                             fs::copy(
-                                capture.root.join(directory).join(".bin/worker"),
+                                capture
+                                    .root
+                                    .join(directory)
+                                    .join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)),
                                 &executable,
                             )?;
                         }
@@ -398,8 +429,11 @@ impl Project {
                             "application/vnd.dctx0.go-build-inputs+json",
                             serde_json::to_vec(&receipt)?,
                         ));
-                        let relative =
-                            format!(".dctx0ctl/native/go/{}/worker", receipt.binary_hash);
+                        let relative = format!(
+                            ".dctx0ctl/native/go/{}/worker{}",
+                            receipt.binary_hash,
+                            std::env::consts::EXE_SUFFIX
+                        );
                         let (parent, executable) =
                             crate::verification_setup::safe_file(&application, &relative)?;
                         fs::create_dir_all(parent)?;
@@ -411,7 +445,10 @@ impl Project {
                             }
                         } else {
                             fs::copy(
-                                capture.root.join(directory).join(".bin/worker"),
+                                capture
+                                    .root
+                                    .join(directory)
+                                    .join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)),
                                 &executable,
                             )?;
                         }
@@ -666,6 +703,7 @@ impl Project {
             adoption::publish(self, &application, &plan, &saved, &artifacts)?
         };
         Ok(NativeVerificationReport {
+            supervision: Some(supervision),
             evidence: saved,
             adopted_tasks,
             adoption_issues,

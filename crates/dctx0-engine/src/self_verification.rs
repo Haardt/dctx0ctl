@@ -148,11 +148,6 @@ pub async fn verify_self(
     provider: &dyn dctx0_core::TargetProfileProvider,
     cancellation: &NativeCancellation,
 ) -> Result<SelfVerificationReport> {
-    if !crate::NativeWorker::supported() {
-        return Err(Error::Invalid(
-            "Self-verification currently requires Linux".into(),
-        ));
-    }
     let start = Instant::now();
     let root = fs::canonicalize(root)?;
     let files = inventory(&root)?;
@@ -222,7 +217,10 @@ pub async fn verify_self(
         receipt,
         &destination,
         "dctx0",
-        ".dctx0/testing/rust/executables/dctx0",
+        &format!(
+            ".dctx0/testing/rust/executables/dctx0{}",
+            std::env::consts::EXE_SUFFIX
+        ),
     )?;
     let cli_hash = receipt.binary_hash.clone();
     fs::write(

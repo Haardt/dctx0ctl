@@ -9,21 +9,11 @@ impl NativeCommand {
         directory: &Path,
         limits: NativeLimits,
     ) -> Result<Self, NativeFailure> {
-        #[cfg(target_os = "linux")]
-        {
-            Ok(Self {
-                worker: NativeWorker::spawn_streams(recipe, directory, limits, false).await?,
-            })
-        }
-        #[cfg(not(target_os = "linux"))]
-        {
-            let _ = (recipe, directory, limits);
-            Err(NativeFailure::new(
-                NativeFailureKind::Unsupported,
-                "Native commands require Linux process-group ownership",
-            ))
-        }
+        Ok(Self {
+            worker: NativeWorker::spawn_streams(recipe, directory, limits, false).await?,
+        })
     }
+
     pub async fn write_input(&mut self, bytes: &[u8]) -> Result<(), NativeFailure> {
         if bytes.len() > self.worker.limits.message_bytes {
             return Err(NativeFailure::new(
@@ -82,7 +72,7 @@ impl NativeCommand {
             biased;
             _=cancel.cancelled()=>Err(NativeFailure::new(NativeFailureKind::Cancelled,"Native command cancelled")),
             error=stream_fault=>error,
-            result=wait_exit(self.worker.pid,self.worker.deadline.saturating_duration_since(Instant::now()))=>result,
+            result=wait_owned(self.worker.child.as_mut().expect("owned child"),self.worker.supervised,self.worker.pid,self.worker.deadline.saturating_duration_since(Instant::now()))=>result,
         };
         if let Err(mut error) = result {
             if let Err(cleanup) = self.worker.abort().await {

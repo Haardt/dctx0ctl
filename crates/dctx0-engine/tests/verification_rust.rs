@@ -56,12 +56,16 @@ fn close(&mut self)->Result<(),String>{Ok(())}}
         String::from_utf8_lossy(&output.stderr)
     );
     let report = project
-        .run_verification(
+        .run_verification_with_native_limits(
             Some(&app),
             Default::default(),
             &RustHarness,
             &NativeCancellation::default(),
             true,
+            NativeLimits {
+                supervision: NativeSupervision::Child,
+                ..Default::default()
+            },
         )
         .await
         .unwrap();
@@ -89,6 +93,46 @@ fn close(&mut self)->Result<(),String>{Ok(())}}
         VerificationResult::Fail { .. }
     ));
     assert!(broken.adopted_tasks.is_empty());
+    let case = broken
+        .evidence
+        .run
+        .cases
+        .iter()
+        .find(|case| matches!(case.result, VerificationResult::Fail { .. }))
+        .unwrap();
+    let saved = project.saved_verification_run(&broken.evidence.id).unwrap();
+    let replay = project
+        .replay_verification(
+            Some(&app),
+            &broken.evidence.id,
+            &case.id,
+            &RustHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        replay.case_result,
+        Some(VerificationResult::Fail { .. })
+    ));
+    fs::write(app.join("src/lib.rs"), actual).unwrap();
+    let repaired = project
+        .replay_verification(
+            Some(&app),
+            &broken.evidence.id,
+            &case.id,
+            &RustHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(repaired.case_result, Some(VerificationResult::Pass));
+    assert!(!repaired.changes.is_empty());
+    assert!(repaired.evidence.adopted_tasks.is_empty());
+    assert_eq!(
+        project.saved_verification_run(&broken.evidence.id).unwrap(),
+        saved
+    );
     fs::write(app.join("src/lib.rs"), "pub fn broken(").unwrap();
     let unbuilt = project
         .run_verification(

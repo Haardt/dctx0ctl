@@ -55,7 +55,7 @@ impl HarnessGenerator for RustHarness {
                 ],
             }),
             recipe: ExecutionRecipe {
-                program: "./.bin/worker".into(),
+                program: format!("./.bin/worker{}", std::env::consts::EXE_SUFFIX),
                 arguments: vec![],
             },
         })

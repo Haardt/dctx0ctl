@@ -984,3 +984,24 @@ scenario continued without repeating passed Rust/model/build stages; original
 failed records remain retained. Speed/RSS and scope are documented in
 `docs/site-graph-correction-validation.json`. Previous workspace coverage remains
 historical; no Rust logic, specs, compiler goldens or accepted baselines changed.
+
+## Native portability increment (2026-10-15, acceptance pending)
+
+The executor now shares launch/protocol/streams across hosts. Auto keeps Linux
+process groups/subreaper/descendant ownership; macOS and Windows manage the direct
+child with real status, kill/wait and bounded draining. NativeLimits can select
+Child explicitly for Linux conformance. Disabled optional supervision and null
+RSS are capability limitations, outside functional provenance gaps. Portable
+runtime identity schema 2 identifies captured-launch evidence, with executable,
+arguments, directory and effective environment digest; schema-1 procfs receipts
+remain readable. No SQLite migration or change to PASS/adoption/review guards.
+
+`python scripts/native_portability.py --binary <release-cli> --coverage` couples
+portable transport, three real targets, mutation/replay, current Cinema review
+workflow and release time/RAM. The existing five-host release matrix now requires
+these checks on relevant PRs and before new releases, retains failed logs/native
+coverage and rejects missing platform reports. Native acceptance is pending;
+do not replace historical Linux-only support claims until five native jobs pass.
+Keep four Cinema review tasks Done/Unverified among 105 tasks. The self-testing
+CLI path now uses the host executable suffix; existing source reviews are not
+silently rebound after that source change.

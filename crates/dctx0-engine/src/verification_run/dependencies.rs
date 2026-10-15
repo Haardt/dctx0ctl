@@ -206,6 +206,7 @@ pub(super) async fn resolve_native(
         }
         return Ok(());
     }
+    let canonical_root = fs::canonicalize(root)?;
     let Some(description) = artifacts.iter().find(|artifact| {
         artifact.reference.media_type == "application/vnd.dctx0.adapter-description+json"
     }) else {
@@ -317,16 +318,18 @@ pub(super) async fn resolve_native(
                         });
                         continue;
                     }
-                    let captured = Path::new(&path)
-                        .strip_prefix(root)
-                        .ok()
+                    let canonical_path = fs::canonicalize(&path).ok();
+                    let captured = canonical_path
+                        .as_deref()
+                        .and_then(|path| path.strip_prefix(&canonical_root).ok())
                         .and_then(|path| path.to_str())
+                        .map(|path| path.replace('\\', "/"))
                         .filter(|path| {
-                            run.provenance.implementation.contains_key(*path)
-                                || run.provenance.dependencies.contains_key(*path)
-                                || generated.contains(*path)
+                            run.provenance.implementation.contains_key(path)
+                                || run.provenance.dependencies.contains_key(path)
+                                || generated.contains(path)
                         });
-                    if let Some(path) = captured {
+                    if let Some(path) = captured.as_deref() {
                         if path.starts_with("node_modules/") {
                             let mut directory = Path::new(path).parent();
                             let mut manifest = false;
@@ -384,7 +387,12 @@ pub(super) async fn resolve_native(
                         source: reference.source.clone(),
                         specifier: specifier.clone(),
                         mode,
-                        path: Some(captured.map(str::to_owned).unwrap_or(path.clone())),
+                        path: Some(
+                            captured
+                                .as_deref()
+                                .map(str::to_owned)
+                                .unwrap_or(path.clone()),
+                        ),
                         captured: captured.is_some(),
                     });
                 }

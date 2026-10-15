@@ -577,3 +577,12 @@ Run `python3 scripts/site_acceptance.py` for coupled Rust/UI/Chromium acceptance
 and release speed/RSS measurements; Chromium must be locally installed. Run
 `python3 scripts/validate.py --coverage` for required full-workspace validation.
 See [site capability and provenance details](docs/site/src/docs/site-companion.md).
+
+Native portability development acceptance (five-host CI pending): build the
+all-feature release CLI, then run
+`python scripts/native_portability.py --binary target/release/dctx0 --coverage`
+(`dctx0.exe` on Windows). This pairs transport/target/Cinema checks with release
+time and peak-memory measurements; see
+[scope and evidence](docs/native-portability-validation.md). Native CI requires
+Bun, Go, Rust and the host C toolchain, with a Visual Studio developer environment
+on Windows. Existing source-bound reviews must still match their source bytes.

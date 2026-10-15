@@ -6,10 +6,136 @@ use std::io::Read;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NativeRuntimeIdentity {
     pub schema_version: u32,
+    #[serde(default = "live_method")]
+    pub method: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch: Option<NativeLaunchInputs>,
     pub executable_hash: String,
     pub executable_path: String,
     pub executable_bytes: u64,
     pub initial_environment_hash: String,
+}
+
+fn live_method() -> String {
+    "procfs-live-image".into()
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeLaunchInputs {
+    pub arguments: Vec<String>,
+    pub directory: String,
+    pub parent_environment_hash: String,
+}
+
+/// Resolve once and launch this path. Keep the final symlink name: rustup uses
+/// argv[0] to select rustc/cargo, so canonicalizing that name changes the program.
+pub(crate) fn resolve_program(
+    program: &str,
+    directory: &Path,
+) -> Result<std::path::PathBuf, NativeFailure> {
+    let path = Path::new(program);
+    let roots = if path.components().count() > 1 || path.is_absolute() {
+        vec![directory.to_path_buf()]
+    } else {
+        std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
+            .map(|root| {
+                if root.is_absolute() {
+                    root
+                } else {
+                    directory.join(root)
+                }
+            })
+            .collect()
+    };
+    for root in roots {
+        let candidate = root.join(path);
+        #[cfg(windows)]
+        let candidates = if candidate.extension().is_none() {
+            vec![candidate.with_extension("exe"), candidate]
+        } else {
+            vec![candidate]
+        };
+        #[cfg(not(windows))]
+        let candidates = vec![candidate];
+        for candidate in candidates {
+            if candidate.is_file() {
+                return Ok(if candidate.is_absolute() {
+                    candidate
+                } else {
+                    std::env::current_dir()
+                        .map_err(NativeFailure::io)?
+                        .join(candidate)
+                });
+            }
+        }
+    }
+    Err(NativeFailure::new(
+        NativeFailureKind::Unavailable,
+        format!("Executable unavailable: {program}"),
+    ))
+}
+fn parent_environment() -> Result<String, NativeFailure> {
+    environment_entries(std::env::vars_os().collect())
+}
+// as_encoded_bytes is the platform-native, lossless OsStr encoding. Hash sorted
+// entries with NUL delimiters; values are never persisted. Windows names compare
+// case-insensitively when applying Command overrides.
+fn environment_entries(
+    entries: std::collections::BTreeMap<std::ffi::OsString, std::ffi::OsString>,
+) -> Result<String, NativeFailure> {
+    let mut bytes = Vec::new();
+    for (key, value) in entries {
+        bytes.extend(key.as_encoded_bytes());
+        bytes.push(b'=');
+        bytes.extend(value.as_encoded_bytes());
+        bytes.push(0);
+    }
+    environment_hash(bytes.as_slice())
+}
+impl NativeRuntimeIdentity {
+    pub(super) fn capture_launch(
+        program: &Path,
+        recipe: &ExecutionRecipe,
+        directory: &Path,
+        command: &mut Command,
+    ) -> Result<Self, NativeFailure> {
+        let mut environment = std::env::vars_os().collect::<std::collections::BTreeMap<_, _>>();
+        for (key, value) in command.as_std().get_envs() {
+            #[cfg(windows)]
+            environment.retain(|name, _| {
+                !name
+                    .to_string_lossy()
+                    .eq_ignore_ascii_case(&key.to_string_lossy())
+            });
+            if let Some(value) = value {
+                environment.insert(key.to_owned(), value.to_owned());
+            } else {
+                environment.remove(key);
+            }
+        }
+        let initial_environment_hash = environment_entries(environment.clone())?;
+        // Freeze the exact effective environment used to compute the digest.
+        command.env_clear().envs(environment);
+        let (executable_hash, executable_bytes) = hash_bounded(
+            std::fs::File::open(program).map_err(NativeFailure::io)?,
+            268_435_456,
+        )?;
+        Ok(Self {
+            schema_version: 2,
+            method: "captured-launch".into(),
+            launch: Some(NativeLaunchInputs {
+                arguments: recipe.arguments.clone(),
+                directory: std::fs::canonicalize(directory)
+                    .map_err(NativeFailure::io)?
+                    .to_string_lossy()
+                    .into_owned(),
+                parent_environment_hash: parent_environment()?,
+            }),
+            executable_hash,
+            executable_bytes,
+            executable_path: program.to_string_lossy().into_owned(),
+            initial_environment_hash,
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,7 +150,11 @@ impl VerifierIdentity {
         if let Some(identity) = VERIFIER_IDENTITY.get() {
             return Ok(identity.clone());
         }
-        let file = std::fs::File::open("/proc/self/exe").map_err(NativeFailure::io)?;
+        #[cfg(target_os = "linux")]
+        let path = std::path::PathBuf::from("/proc/self/exe");
+        #[cfg(not(target_os = "linux"))]
+        let path = std::env::current_exe().map_err(NativeFailure::io)?;
+        let file = std::fs::File::open(path).map_err(NativeFailure::io)?;
         let (executable_hash, executable_bytes) = hash_bounded(file, 268_435_456)?;
         let identity = Self {
             schema_version: 1,
@@ -74,6 +204,9 @@ impl NativeWorker {
                 "Runtime identity requires an acknowledged worker request",
             ));
         }
+        if !self.supervised {
+            return Ok(self.launch_identity.clone());
+        }
         let executable =
             std::fs::File::open(format!("/proc/{}/exe", self.pid)).map_err(NativeFailure::io)?;
         let (executable_hash, executable_bytes) = hash_bounded(executable, 268_435_456)?;
@@ -86,6 +219,8 @@ impl NativeWorker {
             .into_owned();
         Ok(NativeRuntimeIdentity {
             schema_version: 1,
+            method: live_method(),
+            launch: None,
             executable_hash,
             executable_path,
             executable_bytes,
@@ -122,11 +257,21 @@ fn environment_hash(input: impl Read) -> Result<String, NativeFailure> {
 }
 impl NativeRuntimeIdentity {
     pub fn still_current(&self) -> Result<bool, NativeFailure> {
-        if self.schema_version != 1 || self.executable_path.is_empty() {
+        if !matches!(self.schema_version, 1 | 2) || self.executable_path.is_empty() {
             return Ok(false);
         }
         let file = std::fs::File::open(&self.executable_path).map_err(NativeFailure::io)?;
         let (hash, bytes) = hash_bounded(file, 268_435_456)?;
+        if self.schema_version == 2 {
+            let Some(launch) = &self.launch else {
+                return Ok(false);
+            };
+            return Ok(self.method == "captured-launch"
+                && Path::new(&launch.directory).is_absolute()
+                && hash == self.executable_hash
+                && bytes == self.executable_bytes
+                && parent_environment()? == launch.parent_environment_hash);
+        }
         let mut environment = Vec::new();
         for (key, value) in std::env::vars_os() {
             environment.extend(key.as_encoded_bytes());

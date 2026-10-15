@@ -52,7 +52,7 @@ impl HarnessGenerator for GoHarness {
                 },
             ],
             recipe: ExecutionRecipe {
-                program: "./.bin/worker".into(),
+                program: format!("./.bin/worker{}", std::env::consts::EXE_SUFFIX),
                 arguments: vec![],
             },
         })
