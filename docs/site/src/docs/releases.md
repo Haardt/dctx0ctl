@@ -41,6 +41,13 @@ The executable includes the CLI, language server, target profiles, agent skills 
 
 A pushed `v<SemVer>` tag matching the Cargo workspace version triggers publication after full validation and all five distribution jobs pass. Stable tags become the latest release; prereleases are marked explicitly and skipped by the default installer.
 
+For v0.2.3, the maintainer requested reusing the completed full Linux validation
+and native five-platform acceptance. Its release gate checks pinned report hashes
+and unchanged runtime inputs, allowing only the package version update. All five
+new release binaries and installers still pass fresh distribution checks with
+time/RAM measurements. The exception is limited to v0.2.3; later releases retain
+the full validation and native acceptance stages.
+
 ```sh
 git tag -a v0.2.1 -m "DCTX0 v0.2.1"
 git push origin v0.2.1

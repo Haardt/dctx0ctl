@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "release": "v0.2.3",
+  "mode": "reuse accepted verification; rebuild and check all five distributions",
+  "reason": "Maintainer requested avoiding duplicate long validation after completed local workspace validation and five-host native acceptance.",
+  "accepted_native_commit": "5d34fbc6f066c5bf251904184493b8a770c95f88",
+  "accepted_native_run": "https://github.com/Haardt/dctx0ctl/actions/runs/38784717147",
+  "native_evidence": "docs/native-portability-native-matrix.json",
+  "workspace_evidence": "docs/native-portability-linux-final.json",
+  "source_guard": "All 701 recorded runtime inputs must match the accepted implementation. Only workspace package versions may change from 0.2.2 to 0.2.3. Missing/modified native reports fail the gate.",
+  "gate_checks": [
+    "Actual accepted workflow conclusion and revision",
+    "All five pinned native reports with exactly 25 successful stages each",
+    "All 85 measured workspace workloads, successful validation steps and unchanged validation inputs",
+    "97% merged source-line and LLVM function thresholds",
+    "Negative local check: changed runtime source rejected",
+    "Negative local check: changed archived report bytes rejected"
+  ],
+  "linux_distribution": {
+    "record": "benchmarks/history/release/20261015T212659.524564Z-426683.json",
+    "sha256": "b3fe04625374c22b278b19de30fc9e6712878f960e56bf2f4510247234657e78",
+    "status": "complete",
+    "summary": {
+      "package-release": {
+        "samples": 3,
+        "median_elapsed_ms": 2450.7895540009486,
+        "peak_rss_bytes": 58781696
+      },
+      "startup-release": {
+        "samples": 3,
+        "median_elapsed_ms": 10.85345200408483,
+        "peak_rss_bytes": 58605568
+      }
+    },
+    "binary_sha256": "cfdd7a3f07ab98423dcbbf2ec3e081bf57049ec352aff4ade9d2fe63d343ae2f"
+  },
+  "fresh_ci_requirements": [
+    "Five native release builds",
+    "Five distribution/installer and portable CLI/LSP/harness/cancellation checks",
+    "Fresh packaging/startup time and RAM samples",
+    "Windows static CRT inspection",
+    "Version-matched archives and exact SHA256SUMS"
+  ],
+  "pending_ci": "The independent complete Linux follow-up is not represented as passed.",
+  "performance_baseline": "Unchanged; development and distribution measurements remain unassessed against the accepted core baseline.",
+  "scope": "This evidence reuse is limited to v0.2.3. Later release tags keep full workspace and native validation."
+}

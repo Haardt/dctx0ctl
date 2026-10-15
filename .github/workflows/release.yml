@@ -98,8 +98,9 @@ jobs:
           PY
 
   validation:
-    # Explicitly authorized validation exceptions for releases 0.1.0, 0.1.1, 0.2.0, 0.2.1 and 0.2.2.
-    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0' && github.ref != 'refs/tags/v0.1.1' && github.ref != 'refs/tags/v0.2.0' && github.ref != 'refs/tags/v0.2.1' && github.ref != 'refs/tags/v0.2.2'
+    # v0.2.3 reuses the accepted workspace and five-host evidence below at maintainer request.
+    # Earlier explicitly authorized exceptions remain scoped to their original tags.
+    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0' && github.ref != 'refs/tags/v0.1.1' && github.ref != 'refs/tags/v0.2.0' && github.ref != 'refs/tags/v0.2.1' && github.ref != 'refs/tags/v0.2.2' && github.ref != 'refs/tags/v0.2.3'
     needs: version
     uses: ./.github/workflows/validate.yml
 
@@ -189,13 +190,14 @@ jobs:
         if: needs.version.outputs.tag != 'v0.1.1' && needs.version.outputs.tag != 'v0.2.0' && needs.version.outputs.tag != 'v0.2.1' && needs.version.outputs.tag != 'v0.2.2'
         run: python scripts/release_acceptance.py --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --platform-tests
       - name: Native verification, replay, Cinema completion and release time/RAM
+        if: github.ref != 'refs/tags/v0.2.3'
         shell: python {0}
         run: |
           import os, subprocess, sys
           binary = f"target/{os.environ['RELEASE_TARGET']}/release/{os.environ['RELEASE_EXECUTABLE']}"
           subprocess.run([sys.executable, 'scripts/native_portability.py', '--binary', binary, '--coverage'], check=True)
       - name: Retain native verification and platform coverage even on failure
-        if: always()
+        if: always() && github.ref != 'refs/tags/v0.2.3'
         uses: actions/upload-artifact@v4
         with:
           name: native-verification-${{ matrix.target }}
@@ -243,16 +245,87 @@ jobs:
     if: always()
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Require every native matrix job
         env:
           MATRIX_RESULT: ${{ needs.build.result }}
         run: test "$MATRIX_RESULT" = success
+      - uses: actions/checkout@v4
+        if: github.ref == 'refs/tags/v0.2.3'
+        with:
+          fetch-depth: 0
+      - name: Reuse accepted workspace and five-platform verification for v0.2.3
+        if: github.ref == 'refs/tags/v0.2.3'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess, urllib.request
+          from pathlib import Path
+          evidence = json.loads(Path('docs/native-portability-native-matrix.json').read_text())
+          accepted = '5d34fbc6f066c5bf251904184493b8a770c95f88'
+          assert evidence['status'] == 'complete' and evidence['implementation_commit'] == accepted
+          assert evidence['workflow_run'] == 38784717147
+          source = evidence['runtime_source_equivalence']
+          paths = source['prefixes'] + source['additional_files']
+          def inventory(revision):
+              return subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', revision, '--', *paths], text=True).splitlines()
+          names = inventory(accepted)
+          assert names == inventory('HEAD') and len(names) == source['versioned_files']
+          def normalize(name, data):
+              if name == 'Cargo.toml':
+                  return data.replace(b'version = "0.2.3"', b'version = "0.2.2"', 1)
+              if name in ('Cargo.lock', '.dctx0/testing/rust/Cargo.lock'):
+                  def package(match):
+                      block = match.group(0)
+                      if re.search(rb'^name = "dctx0-[^"]+"$', block, re.M):
+                          block = block.replace(b'\nversion = "0.2.3"', b'\nversion = "0.2.2"', 1)
+                      return block
+                  return re.sub(rb'\[\[package\]\][\s\S]*?(?=\[\[package\]\]|\Z)', package, data)
+              return data
+          digest = hashlib.sha256()
+          for name in names:
+              before = subprocess.check_output(['git', 'show', accepted + ':' + name])
+              after = subprocess.check_output(['git', 'show', 'HEAD:' + name])
+              assert before == normalize(name, after), f'Runtime input changed: {name}'
+              digest.update(name.encode() + b'\0' + before)
+          assert digest.hexdigest() == source['sha256']
+          expected = {'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu', 'x86_64-apple-darwin', 'aarch64-apple-darwin', 'x86_64-pc-windows-msvc'}
+          assert set(evidence['hosts']) == expected and not evidence['remaining_hosts']
+          for target, host in evidence['hosts'].items():
+              raw = Path(host['report']).read_bytes()
+              assert hashlib.sha256(raw).hexdigest() == host['report_sha256']
+              report = json.loads(raw)
+              assert report['status'] == 'complete' and report['metadata']['target'] == target
+              assert report['metadata']['revision'] == evidence['tested_merge_commit']
+              assert report['metadata']['content_hash_before'] == report['metadata']['content_hash_after']
+              assert len(report['checks']) == 25
+              assert all(check['exit_code'] in check['expected_exit_codes'] for check in report['checks'])
+          local = json.loads(Path('docs/native-portability-linux-final.json').read_text())
+          raw = Path(local['record']).read_bytes()
+          assert hashlib.sha256(raw).hexdigest() == local['record_sha256']
+          report = json.loads(raw)
+          assert report['status'] == 'complete' and report['validation_status'] == 'pass'
+          assert report['validation_source_hash'] == report['validation_source_hash_after'] == report['source_hash'] == report['source_hash_after']
+          assert len(report['measurements']) == 85 and all(step['returncode'] == 0 for step in report['validation_steps'])
+          assert local['coverage']['line_percent'] >= 97 and local['coverage']['llvm_totals']['functions']['percent'] >= 97
+          headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN']} if os.environ.get('GH_TOKEN') else {}
+          request = urllib.request.Request('https://api.github.com/repos/Haardt/dctx0ctl/actions/runs/38784717147', headers=headers)
+          with urllib.request.urlopen(request, timeout=60) as response:
+              run = json.load(response)
+          assert run['conclusion'] == 'success' and run['head_sha'] == accepted
+          print('Accepted full Linux validation and five native hosts reused; runtime inputs match except the package version. New binaries and installers passed all five distribution jobs.')
+          PY
       - uses: actions/download-artifact@v4
+        if: github.ref != 'refs/tags/v0.2.3'
         with:
           pattern: native-verification-*
           path: target/native-evidence
       - name: Require five complete native reports
+        if: github.ref != 'refs/tags/v0.2.3'
         run: |
           python3 - <<'PY'
           import json
@@ -273,7 +346,7 @@ jobs:
       always() && startsWith(github.ref, 'refs/tags/') &&
       needs.version.result == 'success' && needs.build.result == 'success' && needs.platform-verification.result == 'success' &&
       (needs.validation.result == 'success' ||
-       ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0' || github.ref == 'refs/tags/v0.2.1' || github.ref == 'refs/tags/v0.2.2') && needs.validation.result == 'skipped'))
+       ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0' || github.ref == 'refs/tags/v0.2.1' || github.ref == 'refs/tags/v0.2.2' || github.ref == 'refs/tags/v0.2.3') && needs.validation.result == 'skipped'))
     needs: [version, validation, build, platform-verification]
     runs-on: ubuntu-latest
     permissions:
@@ -306,6 +379,7 @@ jobs:
           tag = os.environ['RELEASE_TAG']
           repo = os.environ['GH_REPO']
           Path('target/release-notes.md').write_text(
+              ('## Native verification on all five platforms\n\nTypeScript/Bun, Go and Rust now support verify run, replay and guarded task completion on Linux x64/ARM64, macOS Intel/Apple Silicon and Windows x64. Harnesses release resources before terminal errors. Linux retains process-tree supervision; macOS and Windows use bounded direct-child cleanup.\n\nFor v0.2.3, the maintainer requested reuse of the completed full Linux validation and native five-host acceptance rather than repeating them. The release gate checks the pinned report hashes and unchanged runtime inputs except for the package version. All five new release binaries and installers are checked with fresh time/RAM measurements. See [native acceptance](https://github.com/Haardt/dctx0ctl/actions/runs/38784717147) and the committed evidence in docs/native-portability-native-matrix.json. The separate Linux follow-up CI run was still pending when these release checks were selected.\n\n' if tag == 'v0.2.3' else '') +
               ('CI validation and distribution tests were skipped by maintainer request; local typecheck, model and browser evidence with time/RSS measurements is retained in docs/site-task-ui-validation.json. Native builds and packaging are required.\n\n## Task focus and shared Inspectors\n\nTasks open in Waves by default, with labels above filters and Markdown assignment/result details. The DAG now shares the movable, modeless architecture Inspector. Node selection stays highlighted; focus depth is controlled in the Inspector and remembered per node. Searchable task focus supports prerequisites, dependents and both directions. All task filters, including Kind, update the DAG. Result fields and artifact paths use the available panel width. Selected cards have prominent blue highlighting in both themes.\n\n' if tag == 'v0.2.2' else 'CI validation and distribution tests were skipped for v0.2.1 following the maintainer request to avoid duplicate validation. Local UI, model and browser validation evidence is retained in the repository.\n\n## Architecture focus and floating Inspector\n\nThe read-only project companion now includes searchable node focus, incoming/outgoing/both dependency directions, a depth slider and an Implementation filter that hides examples and verification nodes. Surface operations and their declaring surface/port stay visible in focused views. A narrow, movable Inspector shows node and connection details above the graph, with minimize/close controls and keyboard movement.\n\nREADME and the guide document offline export and live task views for any dctx0 project with a published spec, and include an architecture screenshot.\n\n' if tag == 'v0.2.1' else 'CI validation and distribution tests were skipped for v0.2.0 by explicit maintainer request. Existing local validation evidence is retained in the repository.\n\n## Static Site and Task Live View\n\nRead published specs, architecture, task prerequisites, changes and stored evidence in an embedded React companion. Export a portable offline site with `dctx0 site export examples/cinema/dctx0 --output target/cinema-site`, then open `index.html`. Start the local Task Live View with `dctx0 site serve examples/cinema/dctx0`; it refreshes every three seconds and preserves selection and graph positions. Both modes are read-only and require no Bun or Node.\n\n' if tag == 'v0.2.0' else 'Published without a new test run by explicit maintainer request. The CaseCli evidence-mapping fix was verified locally before the version bump.\n\n' if tag == 'v0.1.1' else 'Full workspace validation is not a publication gate for v0.1.0; platform distribution checks passed.\n\n' if tag == 'v0.1.0' else '') +
               f'## Install DCTX0 {tag}\n\n'
               f'```sh\ncurl -fsSL https://github.com/{repo}/releases/download/{tag}/install.sh | bash -s -- --version {tag}\n```\n\n'
