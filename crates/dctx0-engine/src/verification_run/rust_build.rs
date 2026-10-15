@@ -153,6 +153,27 @@ fn package_roots(
     Ok(roots)
 }
 
+fn physical_package_roots(
+    mut metadata: serde_json::Value,
+    application: &Path,
+) -> Result<Vec<(String, PathBuf)>> {
+    // Cargo reports physical paths (/private/var on macOS; expanded/verbatim
+    // paths on Windows). Compare both boundaries in that same namespace.
+    let application = fs::canonicalize(application)?;
+    for package in metadata["packages"]
+        .as_array_mut()
+        .ok_or_else(|| Error::Invalid("Cargo metadata lacks packages".into()))?
+    {
+        let manifest = package["manifest_path"]
+            .as_str()
+            .ok_or_else(|| Error::Invalid("Cargo package lacks manifest".into()))?;
+        let manifest = fs::canonicalize(manifest)?;
+        package["manifest_path"] =
+            serde_json::Value::String(manifest.to_string_lossy().into_owned());
+    }
+    package_roots(&metadata, &application)
+}
+
 #[cfg(target_os = "linux")]
 async fn capture_c_toolchain(
     directory: &Path,
@@ -278,12 +299,13 @@ pub(crate) async fn prepare(
     )
     .await?;
     let metadata: serde_json::Value = serde_json::from_str(&text)?;
+    let application = fs::canonicalize(application)?;
     let mut files = BTreeMap::new();
     let mut names = Vec::new();
     // Workspace-level embedded assets are real compiler inputs outside package roots.
-    walk(application, &mut files, 0)?;
-    for (name, root) in package_roots(&metadata, application)? {
-        if !root.starts_with(application) {
+    walk(&application, &mut files, 0)?;
+    for (name, root) in physical_package_roots(metadata, &application)? {
+        if !root.starts_with(&application) {
             walk(&root, &mut files, 0)?;
         }
         names.push(name);
@@ -533,6 +555,35 @@ mod tests {
         }
         let valid = json!({"packages":[{"manifest_path":"/captured/app/Cargo.toml","source":null,"id":"local"},{"manifest_path":"/registry/dependency/Cargo.toml","source":"registry+https://example.invalid/index","id":"dependency"}]});
         assert_eq!(package_roots(&valid, app).unwrap().len(), 2);
+    }
+    #[cfg(unix)]
+    #[test]
+    fn cargo_physical_paths_accept_application_aliases_and_reject_escaping_local_aliases() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-cargo-physical-{}", std::process::id()));
+        let app = root.join("application");
+        let outside = root.join("external");
+        fs::create_dir_all(&app).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(app.join("Cargo.toml"), "fixture").unwrap();
+        fs::write(outside.join("Cargo.toml"), "external").unwrap();
+        let alias = root.join("application-alias");
+        std::os::unix::fs::symlink(&app, &alias).unwrap();
+        let metadata = |manifest: PathBuf| serde_json::json!({"packages":[{"manifest_path":manifest,"id":"local","source":null}]});
+        let roots = physical_package_roots(
+            metadata(fs::canonicalize(app.join("Cargo.toml")).unwrap()),
+            &alias,
+        )
+        .unwrap();
+        assert_eq!(roots[0].1, fs::canonicalize(&app).unwrap());
+        std::os::unix::fs::symlink(&outside, app.join("escape")).unwrap();
+        assert!(
+            physical_package_roots(metadata(app.join("escape/Cargo.toml")), &alias)
+                .unwrap_err()
+                .to_string()
+                .contains("escapes")
+        );
+        fs::remove_dir_all(root).unwrap();
     }
     #[tokio::test]
     async fn unavailable_and_failed_inspection_tools_return_technical_errors() {

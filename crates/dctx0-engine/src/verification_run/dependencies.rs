@@ -844,6 +844,13 @@ mod native_resolution_tests {
                 NEXT.fetch_add(1, Ordering::Relaxed)
             ));
             fs::create_dir(&root).unwrap();
+            // Resolver replies must refer to physical captured inputs, including
+            // generated testing artifacts, rather than inventory labels alone.
+            fs::write(root.join("value.json"), "{}").unwrap();
+            fs::write(root.join("library.wasm"), b"\0asm").unwrap();
+            fs::create_dir_all(root.join(".dctx0/testing")).unwrap();
+            fs::write(root.join(".dctx0/testing/contract.ts"), "export {};").unwrap();
+
             Self(root)
         }
         async fn worker(&self) -> NativeWorker {
