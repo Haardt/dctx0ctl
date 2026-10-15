@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "scope": "Validation source inventory; no executor or target behavior change",
+  "status": "local checks passed; fresh full Linux CI required",
+  "cause": "Fresh tutorial verify complete materializes ignored application-side worker/module-observer copies after the initial source inventory. The source guard correctly rejected the changed inventory although all check commands and 97% coverage passed.",
+  "correction": "Exclude only generated copies under .dctx0/testing/{typescript,go,rust}. Keep target-owned templates, authored adapters, reviewed evidence and application files as mandatory hashed inputs.",
+  "regression": "Old inventory fails the generated-copy probe; new inventory passes all 19 Python tests. The same probe checks authored adapter/review edits, template edits, and adding/removing an application src/worker.ts.",
+  "failed_ci": {
+    "run": 38773613692,
+    "job": 116555495820,
+    "revision": "0693a2715ebcb7e13e0e228f9e4747f88bf64b40",
+    "record": "benchmarks/history/20261015T184022.281691Z-30679.json",
+    "artifact": 11998143924,
+    "artifact_sha256": "f8f356c421e3da0789dbe483f5db761868970b5abc798ae135ddeef1c714f56f",
+    "validation_status": "fail",
+    "all_command_exit_codes": 0,
+    "coverage": {
+      "merged_source_lines": {
+        "covered": 32267,
+        "total": 33051
+      },
+      "llvm_function_percent_as_logged": 97.01
+    },
+    "note": "Earlier source revision; no final-tree acceptance claim. Original failed source hashes and measurements are retained unchanged."
+  },
+  "measurements": {
+    "red-generated-copy-drift": {
+      "elapsed_ms": 81.49078199494397,
+      "peak_rss_bytes": 30986240,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "green-python-suite": {
+      "elapsed_ms": 610.4035009993822,
+      "peak_rss_bytes": 36270080,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-check": {
+      "elapsed_ms": 51.08072499569971,
+      "peak_rss_bytes": 26771456,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "release-plan": {
+      "elapsed_ms": 30.829966999590397,
+      "peak_rss_bytes": 23126016,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "baseline": "unassessed; unchanged",
+  "inputs": {
+    "scripts/validate.py": "d4f47a0aa4f3c403987c61123e9e916a9913b9afa8cfa5141dc844965a7b4275",
+    "scripts/tests/test_validate.py": "9cb37999375cdcae2fb44419f5b483f5e0df2f34e56cbc4dd0e34f5666b9c76e"
+  }
+}

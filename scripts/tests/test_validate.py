@@ -36,6 +36,54 @@ class PerformanceTests(unittest.TestCase):
         self.patch.stop()
         self.temporary.cleanup()
 
+    def test_generated_transport_copies_do_not_change_the_source_inventory(self):
+        root = Path(self.temporary.name) / 'source'
+        root.mkdir()
+        with patch.object(validate, 'ROOT', root):
+            for path in validate.validation_sources():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('source')
+            projects = [('examples/tutorial-step-1-values', 'typescript', ('worker.ts', 'module-observer.ts'), 'adapter.ts'),
+                        ('examples/tutorial-variants/bun-direct', 'typescript', ('worker.ts', 'module-observer.ts'), 'adapter.ts'),
+                        ('examples/cinema-go', 'go', ('worker.go', 'build.go'), 'adapter.go'),
+                        ('examples/cinema-rust', 'rust', ('worker.rs',), 'adapter.rs')]
+            for project, target, copies, adapter in projects:
+                directory = root / project / '.dctx0/testing' / target
+                directory.mkdir(parents=True, exist_ok=True)
+                (directory / adapter).write_text('authored adapter')
+                (directory / 'inspection-notes.json').write_text('{"review":"authored"}')
+                for name in copies:
+                    template = root / 'targets' / target / 'harness' / name
+                    template.parent.mkdir(parents=True, exist_ok=True)
+                    template.write_text('required transport template')
+            for path in validate.validation_sources():
+                if not path.exists():
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text('source')
+            before = validate.digest(validate.validation_sources())
+            for project, target, copies, adapter in projects:
+                directory = root / project / '.dctx0/testing' / target
+                for name in copies:
+                    (directory / name).write_text('generated transport')
+            self.assertEqual(before, validate.digest(validate.validation_sources()))
+            # Authored inputs and generator templates must still invalidate the
+            # same inventory, even after generated copies have appeared.
+            authored = [root / project / '.dctx0/testing' / target / name
+                        for project, target, _, adapter in projects
+                        for name in (adapter, 'inspection-notes.json')]
+            for path in authored + [root / 'targets/typescript/harness/worker.ts']:
+                original = path.read_text()
+                path.write_text(original + ' changed')
+                self.assertNotEqual(before, validate.digest(validate.validation_sources()), path)
+                path.write_text(original)
+                self.assertEqual(before, validate.digest(validate.validation_sources()))
+            added = root / 'examples/tutorial-step-1-values/src/worker.ts'
+            added.parent.mkdir(parents=True)
+            added.write_text('authored application source')
+            self.assertNotEqual(before, validate.digest(validate.validation_sources()))
+            added.unlink()
+            self.assertEqual(before, validate.digest(validate.validation_sources()))
+
     def test_speed_and_ram_regressions_fail_independently(self):
         baseline = record()
         self.assertTrue(validate.compare(record(), baseline, self.args))
