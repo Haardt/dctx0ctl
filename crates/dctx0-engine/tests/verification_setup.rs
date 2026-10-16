@@ -166,6 +166,9 @@ fn configuration_is_strict_bounded_and_never_silently_reassigns_a_project() {
         serde_json::json!({"unknown":true}),
         serde_json::json!({"adapter":"../escape.ts"}),
         serde_json::json!({"fixtures":"./invalid.json"}),
+        serde_json::json!({"dependency_resolution":{"max_references":0}}),
+        serde_json::json!({"dependency_resolution":{"max_references":1000001}}),
+        serde_json::json!({"dependency_resolution":{"max_references":1,"unknown":true}}),
     ] {
         let mut value = serde_json::to_value(&original).unwrap();
         for (key, value2) in bad.as_object().unwrap() {

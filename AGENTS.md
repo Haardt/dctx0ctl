@@ -1020,3 +1020,38 @@ measurements remain unassessed; no baseline was promoted. Frozen fixture
 dependencies are now prepared before pinning the validation inventory; all
 dependency/source inputs and later-change guards remain present. Fresh full CI
 for this runner correction is pending, separately from the passed native matrix.
+
+
+## Native dependency reference budget continuation (2026-10-16)
+
+Native TypeScript resolution now accepts optional
+`dependency_resolution.max_references` in the testing configuration: default
+10,000, inclusive bounds 1 through 1,000,000. Repeated references still count and
+retain individual evidence; a run-local importer/specifier/import-mode cache
+reduces native requests. Effective limits and resolver version are immutable
+artifacts, participate in adoption identity and are compared during replay.
+Budget exhaustion preserves the observed prefix and blocks adoption.
+
+The 73 engine unit tests and all 40 native-verification integration tests pass,
+including a real 1,200-file dependency chain/cycle, small-budget rejection,
+guarded adoption and legacy/changed-limit replay. An isolated Company Manager
+platform-runners comparison captures 1,018 references completely with 62 cache
+hits and all 6,246 cases PASS. Budget 1,000 retains exactly 1,000 observations
+and the incompleteness diagnosis. Nineteen manual obligations and 45 stale
+source-review bindings remain open; whole Company Manager acceptance is not
+claimed. The corrected release development binary is installed locally; the
+package version remains 0.2.3.
+
+Full all-features workspace tests pass with 540 Rust test executions; CLI
+no-default-features, Rust-only and Go-only combinations also pass.
+Tutorial steps 1–15 also passed. Remaining acceptance, fresh coverage and final
+release measurements were stopped at the maintainer’s explicit request to release
+v0.2.4 without further tests. Go Race rejected this host’s 39-bit VMA layout;
+Rust debug acceptance exceeded its existing 240-second timeout. The supplemental
+release-mode acceptance was stopped before completion. The v0.2.4 exception
+skips new CI tests and native acceptance, retaining five builds and packaging;
+later tags retain normal gates. Do not infer fresh coverage or performance acceptance from
+this checkpoint. Preserve the 97% gates, historical LLVM
+metrics, compiler goldens and accepted baseline. See
+`docs/dependency-resolution-validation.json` and
+`docs/dependency-resolution-company-manager.json` for actual scope and evidence.

@@ -36,7 +36,7 @@ dctx0 verify replay <spec-root> <run-id> --case <case-id> --project <app-root>
 dctx0 verify replay <spec-root> <run-id> --case <case-id> --minimized --project <app-root>
 ```
 
-Replay executes saved inputs against a new capture, records the comparison, and never adopts tasks. The original failure remains in history. A repaired implementation should pass the saved counterexample and the relevant full scope.
+Replay executes saved inputs against a new capture, records the comparison, and never adopts tasks. Native dependency resolution uses the current configuration; effective reference limits and resolver version are separately pinned and compared, including when a default was applied. Older runs remain readable without inventing missing limits evidence. The original failure remains in history. A repaired implementation should pass the saved counterexample and the relevant full scope.
 
 ## Reviews and effective evidence
 

@@ -22,6 +22,8 @@ pub struct ConfiguredVerificationScope {
 #[serde(deny_unknown_fields)]
 pub struct VerificationConfiguration {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dependency_resolution: Option<DependencyResolutionBudget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution: Option<VerificationExecutionBudgets>,
     pub schema_version: u32,
     pub target: String,
@@ -30,6 +32,29 @@ pub struct VerificationConfiguration {
     pub fixtures: String,
     pub scope: ConfiguredVerificationScope,
     pub budgets: VerificationBudgets,
+}
+/// Native literal-reference budget, independent of generated test corpora.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DependencyResolutionBudget {
+    pub max_references: usize,
+}
+impl Default for DependencyResolutionBudget {
+    fn default() -> Self {
+        Self {
+            max_references: 10_000,
+        }
+    }
+}
+impl DependencyResolutionBudget {
+    pub(crate) fn validate(self) -> Result<()> {
+        if !(1..=1_000_000).contains(&self.max_references) {
+            return Err(Error::Invalid(
+                "Native dependency max_references must be between 1 and 1000000".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 /// Per-application process budgets; omitted configurations retain global defaults.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -117,6 +142,10 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     Ok(serde_json::from_reader(file)?)
 }
 fn validate(config: &VerificationConfiguration) -> Result<()> {
+    config
+        .dependency_resolution
+        .unwrap_or_default()
+        .validate()?;
     if let Some(execution) = &config.execution {
         execution
             .native_limits()
@@ -213,6 +242,7 @@ impl Project {
         }
         let base = format!(".dctx0/testing/{}", bundle.target);
         let config = VerificationConfiguration {
+            dependency_resolution: Some(Default::default()),
             execution: None,
             schema_version: 1,
             target: bundle.target.clone(),
@@ -314,10 +344,45 @@ impl Project {
 mod execution_budget_tests {
     use super::*;
     #[test]
+    fn dependency_reference_budgets_are_explicit_bounded_and_strict() {
+        assert_eq!(DependencyResolutionBudget::default().max_references, 10_000);
+        for limit in [1, 10_000, 1_000_000] {
+            assert!(
+                DependencyResolutionBudget {
+                    max_references: limit
+                }
+                .validate()
+                .is_ok()
+            );
+        }
+        for limit in [0, 1_000_001, usize::MAX] {
+            assert!(
+                DependencyResolutionBudget {
+                    max_references: limit
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        for json in [
+            r#"{"max_references":-1}"#,
+            r#"{"max_references":1.5}"#,
+            r#"{"max_references":18446744073709551616}"#,
+            r#"{"max_references":1,"unknown":true}"#,
+            "{}",
+        ] {
+            assert!(
+                serde_json::from_str::<DependencyResolutionBudget>(json).is_err(),
+                "{json}"
+            );
+        }
+    }
+    #[test]
     fn scoped_execution_budgets_are_optional_and_reject_zero_or_overflowing_deadlines() {
         let text = r#"{"schema_version":1,"target":"rust","runtime":"cargo","adapter":".dctx0/testing/rust/adapter.rs","fixtures":".dctx0/testing/rust/examples.json","scope":{"subjects":["W"],"tasks":[]},"budgets":{"seed":42,"generated_cases":16,"collection_size":2,"recursion_depth":8,"value_bytes":65536,"shrink_steps":100,"evaluation_steps":100000}}"#;
         let mut config: VerificationConfiguration = serde_json::from_str(text).unwrap();
         assert!(config.execution.is_none());
+        assert!(config.dependency_resolution.is_none());
         assert!(validate(&config).is_ok());
         config.execution = Some(VerificationExecutionBudgets {
             initialization_seconds: 60,

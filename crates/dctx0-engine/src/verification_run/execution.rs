@@ -119,6 +119,7 @@ pub(super) struct Input<'a> {
     pub lifecycles: &'a VerificationLifecycleFixtures,
     pub cancel: &'a NativeCancellation,
     pub limits: NativeLimits,
+    pub dependency_budget: DependencyResolutionBudget,
 }
 async fn aborted(run: &mut VerificationRun, worker: &mut NativeWorker, id: &str) {
     let cleanup = worker.abort().await;
@@ -143,6 +144,7 @@ pub(super) async fn execute(
         lifecycles,
         cancel,
         limits,
+        dependency_budget,
     } = input;
     let manifest = dctx0_verification::case_manifest(plan);
     run.required_cases = manifest.required_cases.clone();
@@ -262,6 +264,7 @@ pub(super) async fn execute(
         root,
         adapter,
         generated,
+        dependency_budget,
         run,
         artifacts,
         cancel,

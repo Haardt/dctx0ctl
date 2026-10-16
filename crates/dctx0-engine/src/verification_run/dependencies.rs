@@ -57,6 +57,10 @@ pub(super) fn inspect(
         .iter()
         .map(|source| source.path.as_str())
         .collect::<BTreeSet<_>>();
+    let source_text = sources
+        .iter()
+        .map(|source| (source.path.as_str(), source.text.as_str()))
+        .collect::<BTreeMap<_, _>>();
     let reported_sources = report
         .sources
         .iter()
@@ -71,17 +75,18 @@ pub(super) fn inspect(
             .iter()
             .all(|path| expected_sources.contains(path.as_str()))
         && report.references.iter().all(|reference| {
-            sources.iter().any(|source| {
-                source.path == reference.source
-                    && reference.start_byte < reference.end_byte
-                    && reference.end_byte <= source.text.len()
-                    && source.text.is_char_boundary(reference.start_byte)
-                    && source.text.is_char_boundary(reference.end_byte)
-                    && reference
-                        .specifier
-                        .as_ref()
-                        .is_none_or(|specifier| !specifier.is_empty())
-            })
+            source_text
+                .get(reference.source.as_str())
+                .is_some_and(|text| {
+                    reference.start_byte < reference.end_byte
+                        && reference.end_byte <= text.len()
+                        && text.is_char_boundary(reference.start_byte)
+                        && text.is_char_boundary(reference.end_byte)
+                        && reference
+                            .specifier
+                            .as_ref()
+                            .is_none_or(|specifier| !specifier.is_empty())
+                })
         });
     if !report_valid {
         artifacts.push(VerificationArtifact::new(
@@ -156,17 +161,47 @@ struct ResolvedDependency {
     path: Option<String>,
     captured: bool,
 }
+const LIMITS_MEDIA: &str = "application/vnd.dctx0.dependency-resolution-limits+json";
+#[derive(Serialize)]
+struct ResolutionLimits {
+    schema_version: u32,
+    resolver_version: &'static str,
+    max_references: usize,
+}
+pub(super) fn limits_artifact(budget: DependencyResolutionBudget) -> Result<VerificationArtifact> {
+    budget.validate()?;
+    Ok(VerificationArtifact::new(
+        LIMITS_MEDIA,
+        serde_json::to_vec(&ResolutionLimits {
+            schema_version: 1,
+            resolver_version: "dctx0-native-resolver-2",
+            max_references: budget.max_references,
+        })?,
+    ))
+}
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct ResolutionSummary {
+    schema_version: u32,
+    processed_references: usize,
+    worker_requests: usize,
+    cache_hits: usize,
+    traversal_complete: bool,
+    stop_reason: Option<String>,
+}
 /// Native resolution is additional evidence; it does not erase unresolved
 /// expressions or establish transitive package closure by itself.
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn resolve_native(
     worker: &mut NativeWorker,
     root: &Path,
     adapter: &str,
     generated: &BTreeSet<String>,
+    budget: DependencyResolutionBudget,
     run: &mut VerificationRun,
     artifacts: &mut Vec<VerificationArtifact>,
     cancel: &NativeCancellation,
 ) -> Result<()> {
+    budget.validate()?;
     if run
         .provenance
         .incomplete
@@ -250,6 +285,31 @@ pub(super) async fn resolve_native(
                 | "DEPENDENCY_NOT_CAPTURED"
         )
     });
+    // Preserve source-local report order without rescanning every reference for every file.
+    let mut by_source = BTreeMap::<&str, Vec<&dctx0_target_sdk::DependencyReference>>::new();
+    for reference in &report.references {
+        by_source
+            .entry(&reference.source)
+            .or_default()
+            .push(reference);
+    }
+    let source_paths = report
+        .sources
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let syntax_errors = report
+        .syntax_errors
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    // Only native resolver answers are memoized; every source occurrence is assessed below.
+    let mut cache = BTreeMap::<(String, String, bool), WorkerReply>::new();
+    let mut summary = ResolutionSummary {
+        schema_version: 1,
+        ..Default::default()
+    };
+    let mut iterations = 0usize;
     let mut pending = roots.clone();
     let mut visited = BTreeSet::new();
     let mut resolved = Vec::new();
@@ -257,16 +317,25 @@ pub(super) async fn resolve_native(
         if !visited.insert(source.clone()) {
             continue;
         }
-        if report.syntax_errors.contains(&source) {
+        if syntax_errors.contains(source.as_str()) {
             run.provenance
                 .incomplete
                 .push(issue("DEPENDENCY_SYNTAX_UNRESOLVED", source.clone()));
         }
-        for reference in report
-            .references
-            .iter()
-            .filter(|reference| reference.source == source)
-        {
+        for reference in by_source.get(source.as_str()).into_iter().flatten() {
+            iterations += 1;
+            if iterations % 128 == 0 {
+                tokio::task::yield_now().await;
+            }
+            if let Err(error) = worker.check_run_limits(cancel) {
+                run.provenance.incomplete.push(issue(
+                    "NATIVE_DEPENDENCY_RESOLUTION_UNAVAILABLE",
+                    format!("{}:{}: {error}", reference.source, reference.start_byte),
+                ));
+                summary.stop_reason = Some("native-limit".into());
+                let _ = worker.abort().await;
+                break 'closure;
+            }
             let Some(specifier) = &reference.specifier else {
                 run.provenance.incomplete.push(issue(
                     "DYNAMIC_DEPENDENCY_UNRESOLVED",
@@ -274,11 +343,12 @@ pub(super) async fn resolve_native(
                 ));
                 continue;
             };
-            if resolved.len() >= 1000 {
+            if resolved.len() >= budget.max_references {
                 run.provenance.incomplete.push(issue(
                     "DEPENDENCY_RESOLUTION_BUDGET",
-                    "Native dependency resolution exceeded 1000 references",
+                    format!("Native dependency resolution exceeded {} references; processed {}; first unprocessed reference {}:{}..{}", budget.max_references, resolved.len(), reference.source, reference.start_byte, reference.end_byte),
                 ));
+                summary.stop_reason = Some("reference-budget".into());
                 break 'closure;
             }
             let mode = if reference.kind == dctx0_target_sdk::DependencyKind::Require {
@@ -287,21 +357,40 @@ pub(super) async fn resolve_native(
                 dctx0_target_sdk::DependencyResolution::Import
             };
             let importer = root.join(&reference.source).to_string_lossy().into_owned();
-            let reply = worker
-                .request(
-                    WorkerRequest::ResolveDependency {
-                        mode,
-                        specifier: specifier.clone(),
-                        importer,
-                    },
-                    cancel,
-                    &mut |_: &Invocation| {
-                        Ok(Observation::Unavailable {
-                            reason: "Dependency resolution cannot invoke collaborators".into(),
-                        })
-                    },
-                )
-                .await;
+            let key = (
+                reference.source.clone(),
+                specifier.clone(),
+                matches!(mode, dctx0_target_sdk::DependencyResolution::Require),
+            );
+            let reply = if let Some(reply) = cache.get(&key) {
+                summary.cache_hits += 1;
+                Ok(reply.clone())
+            } else {
+                summary.worker_requests += 1;
+                let reply = worker
+                    .request(
+                        WorkerRequest::ResolveDependency {
+                            mode,
+                            specifier: specifier.clone(),
+                            importer,
+                        },
+                        cancel,
+                        &mut |_: &Invocation| {
+                            Ok(Observation::Unavailable {
+                                reason: "Dependency resolution cannot invoke collaborators".into(),
+                            })
+                        },
+                    )
+                    .await;
+                if let Ok(
+                    reply @ (WorkerReply::DependencyResolved { .. }
+                    | WorkerReply::DependencyUnresolved { .. }),
+                ) = &reply
+                {
+                    cache.insert(key, reply.clone());
+                }
+                reply
+            };
             match reply {
                 Ok(WorkerReply::DependencyResolved { path }) => {
                     if (path.starts_with("node:")
@@ -363,7 +452,7 @@ pub(super) async fn resolve_native(
                                 format!("{} imports testing artifact {path}", reference.source),
                             ));
                         }
-                        if report.sources.iter().any(|source| source == path) {
+                        if source_paths.contains(path) {
                             pending.insert(path.to_owned());
                         } else if !generated.contains(path)
                             && Path::new(path).extension().and_then(|value| value.to_str())
@@ -421,11 +510,18 @@ pub(super) async fn resolve_native(
                         path: None,
                         captured: false,
                     });
+                    summary.stop_reason = Some("native-resolution-unavailable".into());
                     break 'closure;
                 }
             }
         }
     }
+    summary.processed_references = resolved.len();
+    summary.traversal_complete = summary.stop_reason.is_none();
+    artifacts.push(VerificationArtifact::new(
+        "application/vnd.dctx0.dependency-resolution-summary+json",
+        serde_json::to_vec(&summary)?,
+    ));
     artifacts.push(VerificationArtifact::new(
         "application/vnd.dctx0.dependency-scope+json",
         serde_json::to_vec(&serde_json::json!({"schema_version":1,"roots":roots,"visited":visited,"not_selected":report.sources.iter().filter(|source|!visited.contains(*source)).collect::<Vec<_>>()}))?,
@@ -981,6 +1077,7 @@ for line in sys.stdin:
                 &fixture.0,
                 "adapter.ts",
                 &BTreeSet::new(),
+                DependencyResolutionBudget::default(),
                 &mut run,
                 &mut artifacts,
                 &cancel,
@@ -1028,6 +1125,7 @@ for line in sys.stdin:
                 &fixture.0,
                 "adapter.ts",
                 &generated,
+                DependencyResolutionBudget::default(),
                 &mut run,
                 &mut artifacts,
                 &cancel,
@@ -1079,6 +1177,7 @@ for line in sys.stdin:
             &fixture.0,
             "adapter.ts",
             &BTreeSet::new(),
+            DependencyResolutionBudget::default(),
             &mut run,
             &mut artifacts,
             &cancel,
@@ -1099,6 +1198,153 @@ for line in sys.stdin:
         finish(&mut worker, &cancel).await;
     }
 
+    fn summary(artifacts: &[VerificationArtifact]) -> ResolutionSummary {
+        serde_json::from_slice(
+            &artifacts
+                .iter()
+                .find(|a| {
+                    a.reference.media_type
+                        == "application/vnd.dctx0.dependency-resolution-summary+json"
+                })
+                .unwrap()
+                .contents,
+        )
+        .unwrap()
+    }
+    #[tokio::test]
+    async fn cached_successes_and_failures_preserve_each_reference_and_resolution_context() {
+        let fixture = Fixture::new();
+        let mut worker = fixture.worker().await;
+        let mut run = run();
+        let mut artifacts = artifacts(&[
+            "value.json",
+            "value.json",
+            "value.json",
+            "unresolved",
+            "unresolved",
+        ]);
+        let mut report: DependencyInspection =
+            serde_json::from_slice(&artifacts[0].contents).unwrap();
+        report.references[2].kind = DependencyKind::Require;
+        let mut other_importer = report.references[0].clone();
+        other_importer.source = "adapter.ts".into();
+        report.references.push(other_importer);
+        artifacts[0] = VerificationArtifact::new(
+            "application/vnd.dctx0.dependencies+json",
+            serde_json::to_vec(&report).unwrap(),
+        );
+        let cancel = NativeCancellation::default();
+        resolve_native(
+            &mut worker,
+            &fixture.0,
+            "adapter.ts",
+            &BTreeSet::new(),
+            DependencyResolutionBudget { max_references: 6 },
+            &mut run,
+            &mut artifacts,
+            &cancel,
+        )
+        .await
+        .unwrap();
+        let summary = summary(&artifacts);
+        assert_eq!(
+            (
+                summary.processed_references,
+                summary.worker_requests,
+                summary.cache_hits
+            ),
+            (6, 4, 2)
+        );
+        assert!(summary.traversal_complete);
+        let resolved: Vec<ResolvedDependency> =
+            serde_json::from_slice(&artifacts.last().unwrap().contents).unwrap();
+        assert_eq!(resolved.len(), 6);
+        assert_eq!(resolved.iter().filter(|r| r.path.is_none()).count(), 2);
+        assert_eq!(
+            run.provenance
+                .incomplete
+                .iter()
+                .filter(|i| i.code == "NATIVE_DEPENDENCY_UNRESOLVED")
+                .count(),
+            2
+        );
+        assert!(
+            !run.provenance
+                .incomplete
+                .iter()
+                .any(|i| i.code == "DEPENDENCY_RESOLUTION_BUDGET")
+        );
+        finish(&mut worker, &cancel).await;
+    }
+    #[tokio::test]
+    async fn unexpected_native_reply_stops_resolution_without_losing_the_observed_prefix() {
+        let fixture = Fixture::new();
+        let mut worker = fixture.worker().await;
+        let mut run = run();
+        let mut artifacts = artifacts(&["value.json", "wrong", "unresolved"]);
+        let cancel = NativeCancellation::default();
+        resolve_native(
+            &mut worker,
+            &fixture.0,
+            "adapter.ts",
+            &BTreeSet::new(),
+            DependencyResolutionBudget::default(),
+            &mut run,
+            &mut artifacts,
+            &cancel,
+        )
+        .await
+        .unwrap();
+        let summary = summary(&artifacts);
+        assert_eq!(
+            (summary.processed_references, summary.worker_requests),
+            (2, 2)
+        );
+        assert_eq!(
+            summary.stop_reason.as_deref(),
+            Some("native-resolution-unavailable")
+        );
+        let resolved: Vec<ResolvedDependency> =
+            serde_json::from_slice(&artifacts.last().unwrap().contents).unwrap();
+        assert_eq!(resolved[0].path.as_deref(), Some("value.json"));
+        assert!(resolved[1].path.is_none());
+        assert_eq!(run.provenance.incomplete.len(), 1);
+        assert_eq!(
+            run.provenance.incomplete[0].code,
+            "NATIVE_DEPENDENCY_RESOLUTION_UNAVAILABLE"
+        );
+        finish(&mut worker, &cancel).await;
+    }
+    #[tokio::test]
+    async fn cancelled_resolution_retains_a_summary_without_using_cached_answers() {
+        let fixture = Fixture::new();
+        let mut worker = fixture.worker().await;
+        let mut run = run();
+        let mut artifacts = artifacts(&["value.json"]);
+        let cancel = NativeCancellation::default();
+        cancel.cancel();
+        resolve_native(
+            &mut worker,
+            &fixture.0,
+            "adapter.ts",
+            &BTreeSet::new(),
+            DependencyResolutionBudget::default(),
+            &mut run,
+            &mut artifacts,
+            &cancel,
+        )
+        .await
+        .unwrap();
+        let summary = summary(&artifacts);
+        assert_eq!(summary.processed_references, 0);
+        assert!(!summary.traversal_complete);
+        assert_eq!(summary.stop_reason.as_deref(), Some("native-limit"));
+        assert_eq!(
+            run.provenance.incomplete[0].code,
+            "NATIVE_DEPENDENCY_RESOLUTION_UNAVAILABLE"
+        );
+        assert!(!fixture.0.join("attempted-resolution").exists());
+    }
     #[tokio::test]
     async fn native_dependency_budget_retains_its_executed_prefix_and_reports_incompleteness() {
         let fixture = Fixture::new();
@@ -1112,6 +1358,9 @@ for line in sys.stdin:
             &fixture.0,
             "adapter.ts",
             &BTreeSet::new(),
+            DependencyResolutionBudget {
+                max_references: 1000,
+            },
             &mut run,
             &mut artifacts,
             &cancel,
@@ -1127,6 +1376,10 @@ for line in sys.stdin:
         let prefix: Vec<ResolvedDependency> =
             serde_json::from_slice(&artifacts.last().unwrap().contents).unwrap();
         assert_eq!(prefix.len(), 1000);
+        let summary = summary(&artifacts);
+        assert_eq!((summary.worker_requests, summary.cache_hits), (1, 999));
+        assert!(!summary.traversal_complete);
+        assert_eq!(summary.stop_reason.as_deref(), Some("reference-budget"));
         assert!(
             prefix
                 .iter()

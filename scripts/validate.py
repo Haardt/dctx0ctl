@@ -460,6 +460,10 @@ def main():
         validation_steps.append({'command': command, 'returncode': returncode})
         passed = passed and returncode == 0
     record = benchmark(args)
+    dependency_command = [sys.executable, 'scripts/dependency_resolution_acceptance.py', '--binary', str(ROOT / 'target/release/dctx0')]
+    dependency_code = subprocess.run(dependency_command, cwd=ROOT).returncode
+    validation_steps.append({'command': dependency_command, 'returncode': dependency_code})
+    passed = passed and dependency_code == 0
     record['validation_source_hash'] = validation_source_hash
     record['validation_source_hash_after'] = validation_source_hash_after
     if record.get('source_hash') != validation_source_hash_after:

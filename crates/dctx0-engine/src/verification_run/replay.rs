@@ -526,6 +526,23 @@ impl Project {
                 after,
             });
         }
+        let dependency_limits = |run: &VerificationRun| {
+            run.artifacts
+                .iter()
+                .find(|artifact| {
+                    artifact.media_type == "application/vnd.dctx0.dependency-resolution-limits+json"
+                })
+                .map(|artifact| artifact.hash.clone())
+        };
+        let before = dependency_limits(&original.run);
+        let after = dependency_limits(&evidence.evidence.run);
+        if before != after {
+            changes.push(ReplayChange {
+                component: "dependency-resolution-limits".into(),
+                before,
+                after,
+            });
+        }
         let before = assessment_version(&original.run);
         let after = assessment_version(&evidence.evidence.run);
         if before != after {

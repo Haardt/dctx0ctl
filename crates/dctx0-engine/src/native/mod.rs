@@ -455,6 +455,25 @@ impl NativeWorker {
             }
         }
     }
+    /// Check shared run limits even when a cached resolver answer needs no I/O.
+    pub(crate) fn check_run_limits(
+        &self,
+        cancellation: &NativeCancellation,
+    ) -> Result<(), NativeFailure> {
+        if *cancellation.signal.borrow() {
+            return Err(NativeFailure::new(
+                NativeFailureKind::Cancelled,
+                "Native execution was cancelled",
+            ));
+        }
+        if Instant::now() >= self.deadline {
+            return Err(NativeFailure::new(
+                NativeFailureKind::Timeout,
+                "Native run deadline exceeded",
+            ));
+        }
+        Ok(())
+    }
     pub async fn request(
         &mut self,
         request: WorkerRequest,
@@ -887,7 +906,19 @@ mod tests {
             .unwrap();
         worker.groups = std::sync::Arc::new(UnavailableGroups { pending: false });
         let cancel = NativeCancellation::default();
+        assert!(worker.check_run_limits(&cancel).is_ok());
+        let deadline = worker.deadline;
+        worker.deadline = Instant::now();
+        assert_eq!(
+            worker.check_run_limits(&cancel).unwrap_err().kind,
+            NativeFailureKind::Timeout
+        );
+        worker.deadline = deadline;
         cancel.cancel();
+        assert_eq!(
+            worker.check_run_limits(&cancel).unwrap_err().kind,
+            NativeFailureKind::Cancelled
+        );
         let error = worker
             .request(WorkerRequest::Describe, &cancel, &mut cases::reject_mock)
             .await

@@ -301,6 +301,9 @@ dctx0 verify init /path/to/app/dctx0 --project /path/to/app --target typescript
 
 Technical configuration lives in `.dctx0/testing/verification.json`: target, runtime, adapter, fixtures, explicit scope, seed, and budgets. An empty scope does not select the entire application. The default generated-case budget is 100 per obligation; explicit examples remain mandatory. Changed specification sources require a successful `check` before ordinary verification.
 
+Native TypeScript dependency resolution has a separate reference budget: `"dependency_resolution": { "max_references": 10000 }`. The default is 10,000, including when the field is omitted; valid integer limits are 1 through 1,000,000. Every literal reference counts, including repeated references, cached answers, builtins and unsuccessful resolutions. `DEPENDENCY_RESOLUTION_BUDGET` retains the resolved prefix, marks provenance incomplete and blocks automatic task adoption. Effective limits are saved as evidence; replay uses current configuration and reports limit changes. See [TypeScript configuration](docs/site/src/docs/typescript-adapters.md#native-dependency-budget).
+
+
 Prepared collaborator replies test consumer behavior under controlled conditions. Actual persistence and HTTP integration need real native checks and observers. See [verification setup](docs/site/src/docs/workflow.md), [planning](docs/site/src/docs/workflow.md), and the target guides for capability boundaries.
 
 ## Understand the evidence
@@ -438,6 +441,8 @@ python3 scripts/validate.py --accept-baseline latest
 python3 scripts/validate.py --accept-baseline <recorded-filename.json>
 ```
 
+Dependency-resolution acceptance is included at the end of the coupled validation runner. To repeat its release measurements independently, build with `cargo build --release -p dctx0-cli --all-features --locked`, then run `python3 scripts/dependency_resolution_acceptance.py --binary target/release/dctx0`. It exercises a real 1,200-file chain with a cycle, repeated references, and a small-budget stop with one warmup and three samples each. Latest-20 reports live in `benchmarks/history/dependency-resolution/`; new workloads are unassessed against a baseline. Reports separate sampled direct-engine RSS from worker VmHWM and explicitly label command/descendant RSS and sampling limits.
+
 Reduced samples (`--samples 1 --iterations 1`) and `--skip-performance` are development options. Deferred or partial validation does not pass final performance/coverage acceptance. See [coverage](docs/site/src/docs/contributing.md) for measured scope and limitations.
 
 ## Releases
@@ -478,7 +483,7 @@ Build the release CLI first using the quick-start instructions. The runner check
 | [Static Site and Task Live View](docs/site/src/docs/site-companion.md) | Project export, architecture focus, floating Inspector, live tasks |
 | [Skills](docs/site/src/docs/tools.md) / [Editors](docs/site/src/docs/tools.md) | Agent and editor integration |
 
-Capability descriptions reflect the Rust workspace as of October 15, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
+Capability descriptions reflect the Rust workspace as of October 16, 2026. DCTX0 is under active development; production-code generation and native Java execution remain future work.
 
 ## License
 

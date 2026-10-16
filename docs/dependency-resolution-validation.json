@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-16T21:13:52.086641+00:00",
+  "status": "partial; further validation stopped by explicit maintainer request for v0.2.4",
+  "scope": "configurable native dependency reference budget and run-local resolver cache",
+  "configuration": {
+    "path": ".dctx0/testing/verification.json",
+    "field": "dependency_resolution.max_references",
+    "default": 10000,
+    "minimum": 1,
+    "maximum": 1000000
+  },
+  "installation": {
+    "path": "/home/massenhaft/.cargo/bin/dctx0",
+    "version": "0.2.3 development build; package version unchanged",
+    "sha256": "f9744d4cd217e4c121caab35fb235a173f4758496876c6aa3abbbb1e6dc3dc1b",
+    "previous_binary": "target/toolchains/dctx0-before-dependency-budget-fix"
+  },
+  "completed": [
+    "Workspace check/build/fmt/Clippy",
+    "19 Python script tests",
+    "73 engine unit tests including native resolver regressions",
+    "40 native verification integration tests, including real 1200-file chain/cycle, configured budget stop and guarded adoption, changed limits and missing historical limits during replay",
+    "CLI self-verification and mutation/source-drift checks",
+    "Go native integration",
+    "22 managed native process/transport tests",
+    "Targeted Company Manager high/low budget comparison",
+    "Full cargo test --workspace --all-features passed, including native Rust mutation/replay and all package/doctests",
+    "CLI without default features passed",
+    "Rust-only and Go-only CLI feature combinations passed",
+    "Independent Go Cinema tests/statement coverage and go vet passed",
+    "Go Cinema native acceptance: 5674 cases, 105 tasks, 5 actual production mutations and broken/repaired replay",
+    "Independent Rust Cinema tests and Clippy passed",
+    "Tutorial series steps 1 through 15 passed before the requested stop during step 16"
+  ],
+  "pending": [
+    "Independent Cinema application acceptance; not completed, maintainer requested no further tests",
+    "Tutorial acceptance; not completed, maintainer requested no further tests",
+    "Fresh whole-workspace Rust coverage at the unchanged 97 percent line/function thresholds; not completed, maintainer requested no further tests",
+    "Final uninstrumented release speed/RSS suite and three new dependency-resolution workloads; not completed, maintainer requested no further tests"
+  ],
+  "active_command": null,
+  "active_log": "/tmp/dctx0-dependency-validation.log",
+  "company_manager_evidence": "docs/dependency-resolution-company-manager.json",
+  "toolchain_preparation": [
+    "Pinned CI Bun 1.4.2 installed under target/toolchains; global Bun unchanged",
+    "Rustfmt, Clippy, cargo-llvm-cov and pinned tree-sitter-cli 0.26.13 installed",
+    "Locked Rust native example/helper dependencies fetched"
+  ],
+  "earlier_incomplete_attempts": [
+    {
+      "log": "/tmp/dctx0-dependency-validation-bun132.log",
+      "reason": "Installed Bun 1.3.2 rejected lockfile version 2; stopped and restarted with pinned CI Bun 1.4.2."
+    },
+    {
+      "log": "/tmp/dctx0-dependency-validation-debug-symbols.log",
+      "reason": "Default debug-symbol and incremental outputs consumed 11.7 GiB; stopped before disk exhaustion, cleaned only generated dev build artifacts and restarted with debug symbols/incremental disabled."
+    }
+  ],
+  "baseline": {
+    "status": "unchanged; final performance comparison not run",
+    "sha256": "85c6efc7052fd3bef04e582a828b417c3488c86841e7a64b2f638ef236a09444"
+  },
+  "limitations": [
+    "This checkpoint is not full workspace/coverage/performance acceptance.",
+    "Historical source reviews were not refreshed, compiler goldens were not updated, and artice-medium.md was not edited."
+  ],
+  "all_features_rust_test_executions": 540,
+  "active_stage": null,
+  "known_failures": [
+    {
+      "command": "go test -C examples/cinema-go -race ./...",
+      "reason": "ThreadSanitizer on this Linux ARM64 host rejects its 39-bit VMA layout (Found 39 - Supported 48). Normal Go tests/coverage and go vet pass. The race gate is not skipped or relabeled PASS.",
+      "classification": "native host capability limitation; gate failed",
+      "requires": "A native host with a ThreadSanitizer-supported address-space layout",
+      "confirmation": {
+        "toolchain": "Official Go 1.25.0 linux/arm64, matching examples/cinema-go/go.mod",
+        "archive_sha256": "05de75d6994a2783699815ee553bd5a9327d8b79991de36e38b66862782f54ae",
+        "command": "GOTOOLCHAIN=local python3 scripts/memory_guard.py target/toolchains/go-1.25.0/go/bin/go test -C examples/cinema-go -race ./...",
+        "log": "/tmp/dctx0-dependency-go125-race.log",
+        "observed": "Same unsupported VMA range: Found 39 - Supported 48"
+      }
+    },
+    {
+      "command": "python3 scripts/rust_cinema_acceptance.py --binary target/debug/dctx0",
+      "reason": "The unoptimized native Rust verifier exceeded the existing 240-second outer timeout during the initial full run on this ARM64 host.",
+      "classification": "debug acceptance timeout; gate failed",
+      "supplemental_check": "Stopped by maintainer request before completion; initial review phase passed",
+      "log": "/tmp/dctx0-dependency-rust-cinema-release.log"
+    }
+  ],
+  "release": {
+    "version": "0.2.4",
+    "new_tests": "skipped by explicit maintainer request",
+    "required": "five native builds, version guard, packaging and checksums",
+    "full_validation": "not claimed"
+  }
+}

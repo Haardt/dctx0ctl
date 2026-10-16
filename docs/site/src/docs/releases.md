@@ -24,6 +24,13 @@ Each installer selects one stable tag, checks the archive's SHA-256 and executab
 
 **Managed native verification, replay and guarded automatic adoption are verified on all five release platforms** for TypeScript/Bun, Go and Rust. Each native job requires actual success and failure checks, repaired replay, task/review guards, Cinema persistence/HTTP and separate platform coverage. Linux retains process-tree supervision; macOS and Windows terminate and wait for the direct child with bounded stream cleanup. Optional process-tree supervision and unavailable RSS remain explicit capabilities. Rust requires Xcode Command Line Tools on macOS or an MSVC developer environment with the Windows SDK on Windows.
 
+For v0.2.4, the maintainer explicitly requested no further tests. Workspace,
+distribution and native acceptance tests are skipped only for that tag; all five
+native builds, version guards, packaging and checksums remain required. Existing
+local evidence and incomplete coverage/performance acceptance are recorded in
+`docs/dependency-resolution-validation.json`. This release introduces configurable
+native dependency resolution with a default of 10,000 references.
+
 ## Pin a version
 
 ```sh

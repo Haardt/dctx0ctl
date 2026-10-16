@@ -100,6 +100,7 @@ pub(super) fn publish(
                     | "application/vnd.dctx0.runtime-identity+json"
                     | "application/vnd.dctx0.assessment-version+json"
                     | "application/vnd.dctx0.native-limits+json"
+                    | "application/vnd.dctx0.dependency-resolution-limits+json"
             )
         })
         .map(|artifact| (&artifact.media_type, &artifact.hash))

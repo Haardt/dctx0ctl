@@ -3395,6 +3395,11 @@ async fn replay_reports_changed_or_missing_assessment_versions_without_rewriting
             "native-limits",
             None,
         ),
+        (
+            "application/vnd.dctx0.dependency-resolution-limits+json",
+            "dependency-resolution-limits",
+            None,
+        ),
     ] {
         let mut store = dctx0_store::Store::open(
             &f.root.join("spec/.dctx0ctl/state.sqlite3"),
@@ -3461,9 +3466,104 @@ async fn replay_reports_changed_or_missing_assessment_versions_without_rewriting
     );
 }
 
+fn set_dependency_budget(f: &Fixture, limit: usize) {
+    let path = f.app.join(".dctx0/testing/verification.json");
+    let mut config: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    config["dependency_resolution"] = serde_json::json!({"max_references": limit});
+    fs::write(path, serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+}
+
+#[tokio::test]
+async fn real_bun_dependency_chain_above_one_thousand_references_and_cycle_is_complete() {
+    let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    fs::create_dir(f.app.join("chain")).unwrap();
+    for index in 0..1200 {
+        let next = if index == 1199 { 600 } else { index + 1 };
+        fs::write(
+            f.app.join(format!("chain/{index}.ts")),
+            format!("import './{next}.ts'; export {{}};\n"),
+        )
+        .unwrap();
+    }
+    fs::write(f.app.join("app.ts"), "import './chain/0.ts'; export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
+    f.adapter(VALUE_ADAPTER);
+    let full = f.run(true).await;
+    assert_eq!(full.evidence.run.result, VerificationResult::Pass);
+    assert!(
+        full.evidence.run.provenance.incomplete.is_empty(),
+        "{:?}",
+        full.evidence.run.provenance.incomplete
+    );
+    let reference = full
+        .evidence
+        .run
+        .artifacts
+        .iter()
+        .find(|a| a.media_type == "application/vnd.dctx0.dependency-resolution-summary+json")
+        .unwrap();
+    let artifact = f
+        .project
+        .store(AccessMode::ReadOnly)
+        .unwrap()
+        .verification_artifact(&full.evidence.id, &reference.hash)
+        .unwrap();
+    let summary: serde_json::Value = serde_json::from_slice(&artifact.contents).unwrap();
+    assert!(summary["processed_references"].as_u64().unwrap() >= 1201);
+    assert_eq!(summary["traversal_complete"], true);
+    set_dependency_budget(&f, 16);
+    let partial = f.run(true).await;
+    assert!(
+        partial
+            .evidence
+            .run
+            .provenance
+            .incomplete
+            .iter()
+            .any(|i| i.code == "DEPENDENCY_RESOLUTION_BUDGET")
+    );
+    assert_eq!(
+        f.project.saved_verification_run(&full.evidence.id).unwrap(),
+        full.evidence
+    );
+    let before = f.project.task_session(None, None).ok().map(|s| s.event_seq);
+    let replay = f
+        .project
+        .replay_verification(
+            Some(&f.app),
+            &full.evidence.id,
+            &full.evidence.run.cases[0].id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        replay
+            .changes
+            .iter()
+            .any(|c| c.component == "dependency-resolution-limits")
+    );
+    assert!(replay.evidence.adopted_tasks.is_empty());
+    assert!(
+        replay
+            .evidence
+            .evidence
+            .run
+            .provenance
+            .incomplete
+            .iter()
+            .any(|i| i.code == "DEPENDENCY_RESOLUTION_BUDGET")
+    );
+    assert_eq!(
+        f.project.task_session(None, None).ok().map(|s| s.event_seq),
+        before
+    );
+}
+
 #[tokio::test]
 async fn exhausted_native_dependency_budget_cannot_adopt_otherwise_passing_contracts() {
     let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    set_dependency_budget(&f, 1000);
     let source = "import './helper.ts';\n".repeat(1001)
         + "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}";
     fs::write(f.app.join("app.ts"), source).unwrap();
@@ -3497,6 +3597,22 @@ async fn exhausted_native_dependency_budget_cannot_adopt_otherwise_passing_contr
             .states
             .values()
             .all(|state| state.work == dctx0_tasks::WorkState::Open)
+    );
+    set_dependency_budget(&f, 10_000);
+    let sufficient = f.run(false).await;
+    assert!(
+        sufficient.evidence.run.provenance.incomplete.is_empty(),
+        "{:?}",
+        sufficient.evidence.run.provenance.incomplete
+    );
+    assert!(
+        !sufficient.adopted_tasks.is_empty(),
+        "{:?}",
+        sufficient.adoption_issues
+    );
+    assert_eq!(
+        f.project.saved_verification_run(&run.evidence.id).unwrap(),
+        run.evidence
     );
 }
 

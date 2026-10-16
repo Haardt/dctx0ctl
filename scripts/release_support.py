@@ -63,16 +63,27 @@ def windows_peak(pid):
         kernel.CloseHandle(handle)
 
 
-def measured(command, cwd, timeout=300, env=None):
+def measured(command, cwd, timeout=300, env=None, sample_direct_rss=False):
     started = time.perf_counter()
     usage = None
     rss = None
+    direct_rss = None
     with tempfile.TemporaryFile() as output:
         child = subprocess.Popen(command, cwd=cwd, stdout=output, stderr=output,
                                  env=env, start_new_session=os.name != 'nt',
                                  creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0)
         try:
             while True:
+                if sample_direct_rss and platform.system() == 'Linux':
+                    try:
+                        with open(f'/proc/{child.pid}/status') as status_file:
+                            for line in status_file:
+                                if line.startswith('VmHWM:'):
+                                    peak = int(line.split()[1]) * 1024
+                                    direct_rss = max(direct_rss or 0, peak) if peak else direct_rss
+                                    break
+                    except (OSError, ValueError):
+                        pass  # The direct child may have exited between polls.
                 if os.name == 'nt':
                     peak = windows_peak(child.pid)
                     rss = max(rss or 0, peak) if peak else rss
@@ -100,8 +111,12 @@ def measured(command, cwd, timeout=300, env=None):
                     child.returncode = os.waitstatus_to_exitcode(status)
         output.seek(0)
         text = output.read().decode('utf-8', errors='replace')
-    return {'elapsed_ms': (time.perf_counter() - started) * 1000,
+    sample = {'elapsed_ms': (time.perf_counter() - started) * 1000,
             'peak_rss_bytes': rss, 'exit_code': child.returncode,
             'memory_status': 'measured' if rss is not None else 'unavailable: OS peak-memory query failed',
             'memory_scope': 'Windows child PeakWorkingSetSize (polled OS high-water mark); excludes descendants' if os.name == 'nt'
-                            else 'wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS'}, text
+                            else 'wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS'}
+    if sample_direct_rss:
+        sample.update(direct_process_peak_rss_bytes=direct_rss,
+                      direct_process_memory_scope='Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed' if platform.system() == 'Linux' else 'unavailable: direct-process sampling requires Linux')
+    return sample, text

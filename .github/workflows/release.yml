@@ -99,8 +99,9 @@ jobs:
 
   validation:
     # v0.2.3 reuses the accepted workspace and five-host evidence below at maintainer request.
+    # v0.2.4 skips new tests by explicit maintainer request; native builds/package guards remain.
     # Earlier explicitly authorized exceptions remain scoped to their original tags.
-    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0' && github.ref != 'refs/tags/v0.1.1' && github.ref != 'refs/tags/v0.2.0' && github.ref != 'refs/tags/v0.2.1' && github.ref != 'refs/tags/v0.2.2' && github.ref != 'refs/tags/v0.2.3'
+    if: startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/v0.1.0' && github.ref != 'refs/tags/v0.1.1' && github.ref != 'refs/tags/v0.2.0' && github.ref != 'refs/tags/v0.2.1' && github.ref != 'refs/tags/v0.2.2' && github.ref != 'refs/tags/v0.2.3' && github.ref != 'refs/tags/v0.2.4'
     needs: version
     uses: ./.github/workflows/validate.yml
 
@@ -158,7 +159,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
       - name: Prepare native verification dependencies
-        if: github.ref != 'refs/tags/v0.2.3'
+        if: github.ref != 'refs/tags/v0.2.3' && github.ref != 'refs/tags/v0.2.4'
         # Launch tools directly: Git Bash prepends its Unix link.exe on Windows.
         shell: python {0}
         run: |
@@ -188,17 +189,17 @@ jobs:
               command = [sys.executable, 'scripts/memory_guard.py', *command]
           subprocess.run(command, check=True)
       - name: Test distribution and installer; measure speed and RAM
-        if: needs.version.outputs.tag != 'v0.1.1' && needs.version.outputs.tag != 'v0.2.0' && needs.version.outputs.tag != 'v0.2.1' && needs.version.outputs.tag != 'v0.2.2'
+        if: needs.version.outputs.tag != 'v0.1.1' && needs.version.outputs.tag != 'v0.2.0' && needs.version.outputs.tag != 'v0.2.1' && needs.version.outputs.tag != 'v0.2.2' && needs.version.outputs.tag != 'v0.2.4'
         run: python scripts/release_acceptance.py --binary "target/$RELEASE_TARGET/release/$RELEASE_EXECUTABLE" --target "$RELEASE_TARGET" --platform-tests
       - name: Native verification, replay, Cinema completion and release time/RAM
-        if: github.ref != 'refs/tags/v0.2.3'
+        if: github.ref != 'refs/tags/v0.2.3' && github.ref != 'refs/tags/v0.2.4'
         shell: python {0}
         run: |
           import os, subprocess, sys
           binary = f"target/{os.environ['RELEASE_TARGET']}/release/{os.environ['RELEASE_EXECUTABLE']}"
           subprocess.run([sys.executable, 'scripts/native_portability.py', '--binary', binary, '--coverage'], check=True)
       - name: Retain native verification and platform coverage even on failure
-        if: always() && github.ref != 'refs/tags/v0.2.3'
+        if: always() && github.ref != 'refs/tags/v0.2.3' && github.ref != 'refs/tags/v0.2.4'
         uses: actions/upload-artifact@v4
         with:
           name: native-verification-${{ matrix.target }}
@@ -321,12 +322,12 @@ jobs:
           print('Accepted full Linux validation and five native hosts reused; runtime inputs match except the package version. New binaries and installers passed all five distribution jobs.')
           PY
       - uses: actions/download-artifact@v4
-        if: github.ref != 'refs/tags/v0.2.3'
+        if: github.ref != 'refs/tags/v0.2.3' && github.ref != 'refs/tags/v0.2.4'
         with:
           pattern: native-verification-*
           path: target/native-evidence
       - name: Require five complete native reports
-        if: github.ref != 'refs/tags/v0.2.3'
+        if: github.ref != 'refs/tags/v0.2.3' && github.ref != 'refs/tags/v0.2.4'
         run: |
           python3 - <<'PY'
           import json
@@ -347,7 +348,7 @@ jobs:
       always() && startsWith(github.ref, 'refs/tags/') &&
       needs.version.result == 'success' && needs.build.result == 'success' && needs.platform-verification.result == 'success' &&
       (needs.validation.result == 'success' ||
-       ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0' || github.ref == 'refs/tags/v0.2.1' || github.ref == 'refs/tags/v0.2.2' || github.ref == 'refs/tags/v0.2.3') && needs.validation.result == 'skipped'))
+       ((github.ref == 'refs/tags/v0.1.0' || github.ref == 'refs/tags/v0.1.1' || github.ref == 'refs/tags/v0.2.0' || github.ref == 'refs/tags/v0.2.1' || github.ref == 'refs/tags/v0.2.2' || github.ref == 'refs/tags/v0.2.3' || github.ref == 'refs/tags/v0.2.4') && needs.validation.result == 'skipped'))
     needs: [version, validation, build, platform-verification]
     runs-on: ubuntu-latest
     permissions:
@@ -380,6 +381,7 @@ jobs:
           tag = os.environ['RELEASE_TAG']
           repo = os.environ['GH_REPO']
           Path('target/release-notes.md').write_text(
+              ('## Configurable native dependency resolution\n\nNative TypeScript dependency resolution now defaults to 10,000 references and accepts dependency_resolution.max_references from 1 through 1,000,000. Repeated exact requests use a run-local cache while every reference retains its evidence. Effective limits are pinned for replay and guarded adoption; exhaustion still preserves the prefix and blocks adoption.\n\nThe isolated Company Manager run resolved all 1,018 references with 62 cache hits and 6,246 cases PASS; manual obligations and stale reviews remain open. Existing local workspace checks and 540 Rust test executions passed. New tests, native acceptance and coverage/performance runs were stopped or skipped by explicit maintainer request for this release. Local Go race checking is unsupported on the host VMA layout and Rust debug acceptance timed out; no complete validation claim is made. All five release builds and packaging remain required. See docs/dependency-resolution-validation.json for the exact evidence and limitations.\n\n' if tag == 'v0.2.4' else '') +
               ('## Native verification on all five platforms\n\nTypeScript/Bun, Go and Rust now support verify run, replay and guarded task completion on Linux x64/ARM64, macOS Intel/Apple Silicon and Windows x64. Harnesses release resources before terminal errors. Linux retains process-tree supervision; macOS and Windows use bounded direct-child cleanup.\n\nFor v0.2.3, the maintainer requested reuse of the completed full Linux validation and native five-host acceptance rather than repeating them. The release gate checks the pinned report hashes and unchanged runtime inputs except for the package version. All five new release binaries and installers are checked with fresh time/RAM measurements. See [native acceptance](https://github.com/Haardt/dctx0ctl/actions/runs/38784717147) and the committed evidence in docs/native-portability-native-matrix.json. The separate Linux follow-up CI run was still pending when these release checks were selected.\n\n' if tag == 'v0.2.3' else '') +
               ('CI validation and distribution tests were skipped by maintainer request; local typecheck, model and browser evidence with time/RSS measurements is retained in docs/site-task-ui-validation.json. Native builds and packaging are required.\n\n## Task focus and shared Inspectors\n\nTasks open in Waves by default, with labels above filters and Markdown assignment/result details. The DAG now shares the movable, modeless architecture Inspector. Node selection stays highlighted; focus depth is controlled in the Inspector and remembered per node. Searchable task focus supports prerequisites, dependents and both directions. All task filters, including Kind, update the DAG. Result fields and artifact paths use the available panel width. Selected cards have prominent blue highlighting in both themes.\n\n' if tag == 'v0.2.2' else 'CI validation and distribution tests were skipped for v0.2.1 following the maintainer request to avoid duplicate validation. Local UI, model and browser validation evidence is retained in the repository.\n\n## Architecture focus and floating Inspector\n\nThe read-only project companion now includes searchable node focus, incoming/outgoing/both dependency directions, a depth slider and an Implementation filter that hides examples and verification nodes. Surface operations and their declaring surface/port stay visible in focused views. A narrow, movable Inspector shows node and connection details above the graph, with minimize/close controls and keyboard movement.\n\nREADME and the guide document offline export and live task views for any dctx0 project with a published spec, and include an architecture screenshot.\n\n' if tag == 'v0.2.1' else 'CI validation and distribution tests were skipped for v0.2.0 by explicit maintainer request. Existing local validation evidence is retained in the repository.\n\n## Static Site and Task Live View\n\nRead published specs, architecture, task prerequisites, changes and stored evidence in an embedded React companion. Export a portable offline site with `dctx0 site export examples/cinema/dctx0 --output target/cinema-site`, then open `index.html`. Start the local Task Live View with `dctx0 site serve examples/cinema/dctx0`; it refreshes every three seconds and preserves selection and graph positions. Both modes are read-only and require no Bun or Node.\n\n' if tag == 'v0.2.0' else 'Published without a new test run by explicit maintainer request. The CaseCli evidence-mapping fix was verified locally before the version bump.\n\n' if tag == 'v0.1.1' else 'Full workspace validation is not a publication gate for v0.1.0; platform distribution checks passed.\n\n' if tag == 'v0.1.0' else '') +
               f'## Install DCTX0 {tag}\n\n'

@@ -1,0 +1,643 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-16T19:12:59.953814+00:00",
+  "scope": "Company Manager platform-runners only",
+  "claim": "The corrected release binary traversed more than 1000 real references with complete native provenance. This is not full Company Manager acceptance.",
+  "binary": {
+    "sha256": "f9744d4cd217e4c121caab35fb235a173f4758496876c6aa3abbbb1e6dc3dc1b",
+    "features": "all-features",
+    "profile": "release without coverage"
+  },
+  "source": {
+    "original": "/home/massenhaft/workspaces/conpinion/company-manager",
+    "isolated_copy": "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dependency-company-manager",
+    "copy_exclusions": [
+      ".git",
+      ".dctx0ctl",
+      ".artifacts",
+      ".runatron",
+      ".data",
+      "coverage",
+      "target",
+      ".bin",
+      "__pycache__"
+    ],
+    "hash_before": "38768d16e4a381a0b03c0b2d3eee243ccb9a3b2822b6b35037d3e9c491f99584",
+    "hash_after": "38768d16e4a381a0b03c0b2d3eee243ccb9a3b2822b6b35037d3e9c491f99584",
+    "hash_scope": "apps, packages, spec, .dctx0 and tools; excludes node_modules and derived .dctx0ctl/.artifacts; dependencies separately pinned by native provenance"
+  },
+  "steps": [
+    {
+      "label": "check",
+      "command": [
+        "bun",
+        "run",
+        "spec:check"
+      ],
+      "measurement": {
+        "elapsed_ms": 554.261231000055,
+        "peak_rss_bytes": 106250240,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+        "direct_process_peak_rss_bytes": 6762496,
+        "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed"
+      }
+    },
+    {
+      "label": "platform-runners",
+      "command": [
+        "bun",
+        "run",
+        "spec:verify",
+        "--scope=platform-runners"
+      ],
+      "measurement": {
+        "elapsed_ms": 22346.075001000372,
+        "peak_rss_bytes": 505257984,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+        "direct_process_peak_rss_bytes": 6856704,
+        "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed"
+      }
+    }
+  ],
+  "run_id": "0946c1fb73dd60074d6da6728581c7d8f6a26bfe0258852425e291ecb21cbb90",
+  "native_result": {
+    "status": "UNKNOWN",
+    "issue": {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Documents.Repository#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    }
+  },
+  "cases": {
+    "required": 6246,
+    "recorded": 6246,
+    "outcomes": {
+      "PASS": 6246,
+      "FAIL": 0,
+      "UNKNOWN": 0
+    }
+  },
+  "native_provenance_incomplete": [],
+  "dependency_artifacts": {
+    "application/vnd.dctx0.dependency-resolution-summary+json": {
+      "schema_version": 1,
+      "processed_references": 1018,
+      "worker_requests": 956,
+      "cache_hits": 62,
+      "traversal_complete": true,
+      "stop_reason": null
+    },
+    "application/vnd.dctx0.dependency-resolution-limits+json": {
+      "schema_version": 1,
+      "resolver_version": "dctx0-native-resolver-2",
+      "max_references": 10000
+    },
+    "application/vnd.dctx0.runtime-metrics+json": {
+      "kind": "measured",
+      "peak_rss_bytes": 95346688,
+      "runtime_version": "1.4.2",
+      "platform": "linux"
+    }
+  },
+  "manual_obligations": [
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Documents.Repository#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Plugins.Policy#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:2: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:3: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:4: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:5: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:6: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:7: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:8: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:9: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:10: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:11: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:12: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Host#constraint:13: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Runtime#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Runtime#constraint:2: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Runtime#constraint:3: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "CompanyManager.Runners.Runtime#constraint:4: Constraint has no automatically asserted meaning",
+      "span": null
+    }
+  ],
+  "authored_review_issues": [
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/typescript/adapter.ts",
+      "expectedHash": "e234219caa94a148531370d1ee8df0058eb8e98e9dac5b4ca58028abbca3462c",
+      "actualHash": "3585319727d0bdb1bf58de48e1c617bfcd7fdae90c8f880765221dcd2cd80f47",
+      "message": "Authored source review needs renewal: .dctx0/testing/typescript/adapter.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/typescript/lifecycles.json",
+      "expectedHash": "727becc9e13ca840785eeb54c1c4ceefcfab8bd92958b1baf45cf5b766695da0",
+      "actualHash": "df668f6056d0ba15036b5a7bde4848d84793d0e7c2346c2108d6a2613ae647ef",
+      "message": "Authored source review needs renewal: .dctx0/testing/typescript/lifecycles.json"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/typescript/plugin-adapter.ts",
+      "expectedHash": "cb3378819b8ffa9bece64305c7a66abcd27e8baacd28d2423c0b69bf7f816f7f",
+      "actualHash": "39e712d024f54590295afe90e4f2db8ff7c62d347ce8e86b70012a7e948bfab6",
+      "message": "Authored source review needs renewal: .dctx0/testing/typescript/plugin-adapter.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/typescript/runner-adapter.ts",
+      "expectedHash": "eeb6de47961e9550daea838d4abc2c5baa5143dcccfac77a9b915ac5e8ce6b50",
+      "actualHash": "17b3660c7c789dfbb789a1049faaa4e13ab8908593588e104b7880cebb1352d2",
+      "message": "Authored source review needs renewal: .dctx0/testing/typescript/runner-adapter.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/typescript/runner-storage-double.ts",
+      "expectedHash": "8d8462589a42029180f5f519bc993f04ea0ea5ffe697b724147cd7a4d23dded3",
+      "actualHash": "56486934e53df42711e62f1f38d720a93ef36e2ceef0470c7c925a23610ff6b7",
+      "message": "Authored source review needs renewal: .dctx0/testing/typescript/runner-storage-double.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/typescript/runner-wire-values.ts",
+      "expectedHash": "37b6216e6f4edae72add2a98bad4248c4348ef27b7002ff82b99600f009ca78c",
+      "actualHash": "6e471d00218a13402737ef624816a1ab0cb2c9d216c385ba842edbea3472bd1e",
+      "message": "Authored source review needs renewal: .dctx0/testing/typescript/runner-wire-values.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": ".dctx0/testing/verification.json",
+      "expectedHash": "6f1f69d99634b37adc5c0a0fe27ad92c871066332d24c7b19d316fefc89c522c",
+      "actualHash": "beccf73439ed0c1548824b9f6e9a1e409410609a3cf75895627d91f5449ec220",
+      "message": "Authored source review needs renewal: .dctx0/testing/verification.json"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/documents/document-contracts.ts",
+      "expectedHash": "6eb3e8321d8d0d87ce4eaf917e078781f7a10565e3c59172881d87b1e5142da1",
+      "actualHash": "8f7c0280ac18d69df565edff9fc592172eec5dd3b19fd08b7ce8bdfeef96798b",
+      "message": "Authored source review needs renewal: apps/core/src/documents/document-contracts.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/documents/document-decoder.ts",
+      "expectedHash": "e5023b1c914f6212e4300fcf65dc15713df7efc5bf7d1e7b5b6350a811456886",
+      "actualHash": "f9a3fe95d66dc03e7f21b6ac6e82bf981401fc4d11e87709994ba8a3551b9613",
+      "message": "Authored source review needs renewal: apps/core/src/documents/document-decoder.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/documents/index.ts",
+      "expectedHash": "7aa854bb46ef10d732c0fc25cf0d62bf0dcd1a6d83c934e10d6d597254c9ad98",
+      "actualHash": "d7ee04869bf2d75ce15337ac1aff33f8e083441a5bbb5b93524308b45f02bb35",
+      "message": "Authored source review needs renewal: apps/core/src/documents/index.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/plugins/__tests__/plugin-contracts.test.ts",
+      "expectedHash": "31129a6b7e6c06373094b3450d945a783d676fcc5e6ad80c8b6688bb3bf1805a",
+      "actualHash": "a9c5812f1ba7f4ed2320bd4d186c048c35c30748614cfc06cc18e7bb6ab62716",
+      "message": "Authored source review needs renewal: apps/core/src/plugins/__tests__/plugin-contracts.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/plugins/plugin-contracts.ts",
+      "expectedHash": "dff20b885366605a08b9bc0ab38cc252ba8c135431b01e98be163339eaef22e6",
+      "actualHash": "beb0006de7b462274db7c54b28e37b6daa786390de1b9e732bf7a5b29ada6054",
+      "message": "Authored source review needs renewal: apps/core/src/plugins/plugin-contracts.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/plugins/plugin-host-operations.ts",
+      "expectedHash": "df217c6ee6b4d2929cb7fd4fec6384ef426992c368b7f330eaf31d38b78dc787",
+      "actualHash": "21a5e3a498b34c5ce7f0e25df63d4947e93fd1cac76da8cfc05baab6e3261873",
+      "message": "Authored source review needs renewal: apps/core/src/plugins/plugin-host-operations.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/plugins/plugin-manifest.ts",
+      "expectedHash": "0aaa3f7b15cbfc5eec5109cb91ca2937a233e9ec3d14bd4288febc0baa62275d",
+      "actualHash": "449ebe0fa520ecc5a49da4a13873d38efffd1287844a05f6042868be3ad668bc",
+      "message": "Authored source review needs renewal: apps/core/src/plugins/plugin-manifest.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/plugins/plugin-policy.ts",
+      "expectedHash": "429bf3da3bf943cfae231a13fb5c3a38ad616293a35daf9939dce0d54e1964a6",
+      "actualHash": "75b37962787a532534d52af4346793b8d4a141e295f0c96718abe3bc4a1b86bd",
+      "message": "Authored source review needs renewal: apps/core/src/plugins/plugin-policy.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/runners/host/runner-guards.ts",
+      "expectedHash": "672fa31885f493c67c4374f0efb943c627f69990cb12d3bad88369115831321a",
+      "actualHash": "a57532e15fac6088d7ca9a8cb4b09951336f96382f98c832bfaa9f040be9b767",
+      "message": "Authored source review needs renewal: apps/core/src/runners/host/runner-guards.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/runners/host/runner-lifecycle.ts",
+      "expectedHash": "7078f85fa7a8d6760d9bb2108a049c4f8c51ac16cac703912ac544082be1de5d",
+      "actualHash": "613c090c70d017588bfc2e6cf7026b75e98404abf202079d9fa03cb4dfa47dcc",
+      "message": "Authored source review needs renewal: apps/core/src/runners/host/runner-lifecycle.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/runners/index.ts",
+      "expectedHash": "d0cc8e174cf2dd8e1dfdef059efb4e16a0337168156e6ba1a8483af80665dcd5",
+      "actualHash": "d1061c112359040f3a63ba69d8fe8f92b6fbd8917907bc3141a0dda59364f65d",
+      "message": "Authored source review needs renewal: apps/core/src/runners/index.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/runners/ports/runner-ports.ts",
+      "expectedHash": "14b0886cf7c56277f4d33e771325f6669ee5a0cb0f29b2da8c167bb883066fc1",
+      "actualHash": "fcc8181675b35e1697f0fdb4a5d382fb6b2fc66afce6aaa5e9a4820b51ffe8a2",
+      "message": "Authored source review needs renewal: apps/core/src/runners/ports/runner-ports.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/core/src/runners/ports/runner-storage.ts",
+      "expectedHash": "e10bc307664c5e1933bd7bb5b03bf511d72c69fca66238996dc6c1f9b60c6221",
+      "actualHash": "f0d48624273a19b862b38d06c94248b892c6fbb1915ad13ef983a09efce791c9",
+      "message": "Authored source review needs renewal: apps/core/src/runners/ports/runner-storage.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/company-manager-application.ts",
+      "expectedHash": "b08efeef5becb1b9353003841a32cff472c7bc90d893cd7689ab22ff31a1de9e",
+      "actualHash": "c13fce86b80e8b02482556095d44a24cfc7b6de2a41d9ba32d76f23bbf4db915",
+      "message": "Authored source review needs renewal: apps/server/src/app/company-manager-application.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/export-company-openapi.ts",
+      "expectedHash": "2c6e21e7133bfdb618f8ad71c2e27f2a36e012b7533170a42069d3ac7e050aa1",
+      "actualHash": "12caef0cc1c8a98dad6ac25a54d7368535564ccebf23c42ae98fcc40be125ba0",
+      "message": "Authored source review needs renewal: apps/server/src/app/export-company-openapi.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/plugins/__tests__/plugin-runtime.test.ts",
+      "expectedHash": "53fdcb6b71b2b17891371c724b48b6950bcc5970cc0b5f4291f27e221b37ae17",
+      "actualHash": "26767d408c0ab01530c05a37e1b65bad29219c48219686ab2e522723090e3479",
+      "message": "Authored source review needs renewal: apps/server/src/app/plugins/__tests__/plugin-runtime.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/plugins/plugin-runtime.ts",
+      "expectedHash": "a13f300c8a1227660ec09aeaffb7fa889943f133f92fe214f3c17aec7886aac2",
+      "actualHash": "204fb2bd78a1d89797aafc0b6352b574c8c71a107a8e966917a6363482246de8",
+      "message": "Authored source review needs renewal: apps/server/src/app/plugins/plugin-runtime.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/runners/__tests__/runner-application.test.ts",
+      "expectedHash": "58612992d5e2a66e5446c007f94b3eebfdff08e879c367ec19cc002d8915871b",
+      "actualHash": "0280fffb5063cf1ca12303fe37a17163a1614fe92841d803a5bf327ab6e65f3f",
+      "message": "Authored source review needs renewal: apps/server/src/app/runners/__tests__/runner-application.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/runners/__tests__/runner-supervisor.test.ts",
+      "expectedHash": "9c5c25a344ed22503c19f248bb8c8f453dd628815a0d565a836db87adbbe2d94",
+      "actualHash": "d5e3f53399c4c912b2361baf0502f7811a33a2810ee0998b8479595423e54054",
+      "message": "Authored source review needs renewal: apps/server/src/app/runners/__tests__/runner-supervisor.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/app/runners/runner-execution-supervisor.ts",
+      "expectedHash": "5785355053bd0a82b8a5ac3ce24e3893130f3378a966bd36e0a48a60a3ed6fab",
+      "actualHash": "3ea76be2f87fe8eb808d0ab091139269a95358946b609f6d82b73f03e01c3672",
+      "message": "Authored source review needs renewal: apps/server/src/app/runners/runner-execution-supervisor.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/companies/__tests__/company-http-api.test.ts",
+      "expectedHash": "ba4bab758e5ef405115614be1a5e6b34abe7f989b706ec0f42909151b34a61c5",
+      "actualHash": "5ccba66b695175d194ccd87e9eef432c1f87f445a52d918c6df13d87f78f183c",
+      "message": "Authored source review needs renewal: apps/server/src/companies/__tests__/company-http-api.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/companies/company-http-api.ts",
+      "expectedHash": "aae302d0bc1fabe0fbbfabb0c4810e0acb474b7ae3aad6f5695d87f180092322",
+      "actualHash": "a652790818b147409e26220c693ca94e4606ae6392cc9c4e3783737f9f969941",
+      "message": "Authored source review needs renewal: apps/server/src/companies/company-http-api.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/plugins/__tests__/plugin-http-api.test.ts",
+      "expectedHash": "c6d9746e6aa7bc88124e92e0581495291dd73baa270238495c24a84844a5f973",
+      "actualHash": "865989a8152473e8d7cbd169fd223eecc2bf18f2a250ff438786261b3af4d5dc",
+      "message": "Authored source review needs renewal: apps/server/src/plugins/__tests__/plugin-http-api.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/server/src/plugins/plugin-openapi-contract.ts",
+      "expectedHash": "c4f00cb607035395321527c7bc5f511c38e15d5d7c2327aac351c2cb4938e8af",
+      "actualHash": "9f6382eab43b9a9193398aacba821c0138008d81ee53775b195759ecf0e8ca39",
+      "message": "Authored source review needs renewal: apps/server/src/plugins/plugin-openapi-contract.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "docs/runner-contracts.md",
+      "expectedHash": "dc5f1a879329274de818e6a9770a6e61cb460ab7843751435358becea398ff5f",
+      "actualHash": "5a106c9dd2ca53b3427862f3efd1a516515624a2c5444fa1a94094827206dd80",
+      "message": "Authored source review needs renewal: docs/runner-contracts.md"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "packages/company-store-pglite/src/companies/pglite-company-directory.ts",
+      "expectedHash": "b99782254f3eaedb15dd2b8ecc050bb5c6035bb4b4b97380991d62c3cb374994",
+      "actualHash": "ee50ec265154a0a35d0fbbafa2cdde1c133812944152a84c368adfd3c9793204",
+      "message": "Authored source review needs renewal: packages/company-store-pglite/src/companies/pglite-company-directory.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "packages/company-store-pglite/src/index.ts",
+      "expectedHash": "98152981243845162fbe7ede02696dd27776cafc6967882b24f8bcd16314015b",
+      "actualHash": "3333274c98d31f90d2b27288324736cd8fa5ad26aabf568dab5f81cdd91020d2",
+      "message": "Authored source review needs renewal: packages/company-store-pglite/src/index.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "packages/company-store-pglite/src/runners/pglite-runner-store.ts",
+      "expectedHash": "b08b00c3765ebd7216ddd1768dce6001e013819ba9fb9745fb7b040112bd53c6",
+      "actualHash": "84a9bb8eac18557d0eb57b0ae3e37b78a298c395a83ced252658be042141ceae",
+      "message": "Authored source review needs renewal: packages/company-store-pglite/src/runners/pglite-runner-store.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "packages/company-store-pglite/src/runners/pglite-runner-transaction.ts",
+      "expectedHash": "0a9fa49e8a03fe7bbcc0a3d4236762d61a91e0f7c5f25dcb9ee5beae9dd0c543",
+      "actualHash": "1acc8dbbcc015dc0dbe1aabb6d5debb380c1b9dbfbdd61ae18bb1378a136721b",
+      "message": "Authored source review needs renewal: packages/company-store-pglite/src/runners/pglite-runner-transaction.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "spec/platform-plugins.dctx0",
+      "expectedHash": "dfa4dbe254530507bf4c8a200adcf7f5e9b23316e967efb32b09c6287a0efcc4",
+      "actualHash": "bd7ca281bf5cdeb6578e6d6e7f62af0ca13aa8a9ad00ddd6390003b23d7451f8",
+      "message": "Authored source review needs renewal: spec/platform-plugins.dctx0"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "spec/plugins/document-library.dctx0",
+      "expectedHash": "959ff49da71e792be1076810db6fb0f9765e3319d0201e3b77616fb39738ecd4",
+      "actualHash": "a8460b323b7f74dfdaab230d515edd8a491852eb6782d6e42ce12ff7894739ae",
+      "message": "Authored source review needs renewal: spec/plugins/document-library.dctx0"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "tools/dctx0/__tests__/company-verification-project.test.ts",
+      "expectedHash": "485468699cda85a1138e24aa3bc89db4f789db8fdaf6a278355b06fe53a4b45f",
+      "actualHash": "b3d61f559a086ad3a1963261a6181cd374dd4a05213f58181699ef7a4eea2508",
+      "message": "Authored source review needs renewal: tools/dctx0/__tests__/company-verification-project.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "tools/dctx0/__tests__/runner-inspection-evidence.test.ts",
+      "expectedHash": "40ce9d21c491b007035f25020ded5f1493dc767c1b10159237cb254db91470fb",
+      "actualHash": "fb67492b24f6f61db3c461f5654eea36f94f3827f669377219153a63d361c569",
+      "message": "Authored source review needs renewal: tools/dctx0/__tests__/runner-inspection-evidence.test.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "tools/dctx0/company-verification-project.ts",
+      "expectedHash": "757aa8bbc27acdcf4713e4d5df21fd910869dcad8892b0f1266ca4d1b6279fc6",
+      "actualHash": "8219ed84effab37ac49720a747bc15f6cfe880c063c356a2f6eb24e8e066aaf2",
+      "message": "Authored source review needs renewal: tools/dctx0/company-verification-project.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "tools/dctx0/runner-inspection-evidence.ts",
+      "expectedHash": "3b319e5cef2a07e16d98d66bb721f6f1fb76152b2177aa8c5b80fa1889e3d5e7",
+      "actualHash": "386c1dcd452efa572a6802460204ceb2aeedf0fa9877d93a10c049171b21c9a7",
+      "message": "Authored source review needs renewal: tools/dctx0/runner-inspection-evidence.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "tools/dctx0/verify-company-spec.ts",
+      "expectedHash": "2813595b251ab28785e7956b010acca72897ed830e99bc4757c526adae739d36",
+      "actualHash": "1ccc4791151a8bf5b1a7f5a7e38cae6768f01618f10781fa67d084a208d09141",
+      "message": "Authored source review needs renewal: tools/dctx0/verify-company-spec.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "tools/plugins/plugin-build.ts",
+      "expectedHash": "872eac04ecf416b1c1029fa49a47bb4020c308895f1cd08b1c9768bfb3885d5b",
+      "actualHash": "b8276d8909e217ce3d72621269e522184972fe0b3f6950312247d3f4e9acdad1",
+      "message": "Authored source review needs renewal: tools/plugins/plugin-build.ts"
+    },
+    {
+      "code": "SOURCE_REVIEW_STALE",
+      "file": "apps/web/playwright.config.ts",
+      "expectedHash": "74873208982f612a32a42e3028ce46f6588275df9e893f2d41e545ed1db114de",
+      "actualHash": "8b9712e08331c4f804ffe56a56d454eb57cf447bdc6ab348b90bf314a5c76c2b",
+      "message": "Authored source review needs renewal: apps/web/playwright.config.ts"
+    }
+  ],
+  "task_adoption": [],
+  "limitations": [
+    "Only platform-runners was requested/executed.",
+    "19 manual obligations and 45 stale authored source-review bindings remain open; none were refreshed or approved.",
+    "Reproduction ran concurrently with functional validation; its wall time is not an accepted performance baseline.",
+    "Whole-command RSS includes the Bun orchestration and reaped descendants; direct-process samples describe the orchestration root, not the inner Rust engine."
+  ],
+  "raw_reports": {
+    "native-scope-platform-runners.json": {
+      "path": "target/dependency-company-evidence/native-scope-platform-runners.json",
+      "sha256": "6ba41c3b63724c32bc24e4f3ebc82c57ab4ce55b66886bf798e6d7fb921aaf30"
+    },
+    "native-execution-platform-runners.json": {
+      "path": "target/dependency-company-evidence/native-execution-platform-runners.json",
+      "sha256": "b9249f579d18048ee28da31f52bd4818896cb1bbce3142a4b76aa6f1b2f3be28"
+    }
+  },
+  "earlier_incomplete_attempts": [
+    {
+      "path": "target/dependency-company-evidence/initial-help-report.json",
+      "reason": "CLI help rendered but returned exit 1; reproduction helper incorrectly treated this as a required-check failure."
+    },
+    {
+      "path": "target/dependency-company-evidence/missing-dependency-dist-report.json",
+      "reason": "An overly broad scratch-copy exclusion omitted installed dependency dist directories; adapter startup failed before any native cases. The copy was repaired with unchanged original distribution files before the retained successful traversal.",
+      "qualification": "This zero-case attempt is not dependency-budget evidence. Its early helper incorrectly inferred budget_fix_verified from absence of the budget diagnostic; the corrected helper requires a complete resolution summary with more than 1000 actually processed references. The retained successful traversal meets that condition."
+    }
+  ],
+  "small_budget_comparison": {
+    "max_references": 1000,
+    "command": "bun run spec:verify --scope=platform-runners",
+    "scope": "same isolated application, with only the reference budget explicitly changed; original configuration restored afterward",
+    "artifacts": {
+      "application/vnd.dctx0.dependency-resolution-summary+json": {
+        "schema_version": 1,
+        "processed_references": 1000,
+        "worker_requests": 940,
+        "cache_hits": 60,
+        "traversal_complete": false,
+        "stop_reason": "reference-budget"
+      },
+      "application/vnd.dctx0.runtime-metrics+json": {
+        "kind": "measured",
+        "peak_rss_bytes": 97984512,
+        "runtime_version": "1.4.2",
+        "platform": "linux"
+      },
+      "application/vnd.dctx0.dependency-resolution-limits+json": {
+        "schema_version": 1,
+        "resolver_version": "dctx0-native-resolver-2",
+        "max_references": 1000
+      }
+    },
+    "native_cases": {
+      "PASS": 6246,
+      "FAIL": 0,
+      "UNKNOWN": 0
+    },
+    "native_provenance_incomplete": [
+      {
+        "code": "DEPENDENCY_RESOLUTION_BUDGET",
+        "message": "Native dependency resolution exceeded 1000 references; processed 1000; first unprocessed reference node_modules/zod/v4/locales/tg.js:0..40",
+        "span": null
+      }
+    ],
+    "measurements": [
+      {
+        "label": "help",
+        "command": [
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+          "verify",
+          "run",
+          "--help"
+        ],
+        "measurement": {
+          "elapsed_ms": 12.367385000288778,
+          "peak_rss_bytes": 53653504,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 335872,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed"
+        }
+      },
+      {
+        "label": "check",
+        "command": [
+          "bun",
+          "run",
+          "spec:check"
+        ],
+        "measurement": {
+          "elapsed_ms": 257.0396930000243,
+          "peak_rss_bytes": 106455040,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 6791168,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed"
+        }
+      },
+      {
+        "label": "platform-runners",
+        "command": [
+          "bun",
+          "run",
+          "spec:verify",
+          "--scope=platform-runners"
+        ],
+        "measurement": {
+          "elapsed_ms": 20471.167461999812,
+          "peak_rss_bytes": 496574464,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 6836224,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed"
+        }
+      }
+    ],
+    "task_adoption": [],
+    "report": "target/dependency-company-evidence/low-budget/report.json"
+  }
+}

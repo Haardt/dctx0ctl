@@ -285,6 +285,9 @@ impl Project {
                 pin_issues.push(issue("VERIFIER_IDENTITY_UNAVAILABLE", error.to_string()))
             }
         }
+        artifacts.push(dependencies::limits_artifact(
+            config.dependency_resolution.unwrap_or_default(),
+        )?);
         let mut artifact_names = BTreeSet::new();
         for artifact in &bundle.artifacts {
             let path = Path::new(&artifact.path);
@@ -550,6 +553,7 @@ impl Project {
                     lifecycles: &lifecycles,
                     cancel: cancellation,
                     limits,
+                    dependency_budget: config.dependency_resolution.unwrap_or_default(),
                 },
                 &bundle.recipe,
                 &capture.root.join(directory),
