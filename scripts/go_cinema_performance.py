@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Final-stage release costs for Go Cinema; never promotes a benchmark baseline."""
+from verification_storage import saved_verification_artifacts
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
-import sqlite3
 import subprocess
 import tempfile
 import time
@@ -30,8 +30,7 @@ def measure(command):
 
 
 def artifacts(project, run_id):
-    with sqlite3.connect(f'file:{project / "dctx0/.dctx0ctl/state.sqlite3"}?mode=ro', uri=True) as database:
-        rows = database.execute('SELECT a.media_type,a.bytes,a.hash FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?', (run_id,)).fetchall()
+    rows = saved_verification_artifacts(project / "dctx0/.dctx0ctl/state.sqlite3", run_id)
     result = {}
     for media, raw, expected in rows:
         if hashlib.sha256(raw).hexdigest() != expected:

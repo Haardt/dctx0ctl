@@ -487,19 +487,10 @@ impl Store {
             dctx0_changes::hash(&(project, actor, pin, deliveries, profiles, run_id, reviews))
         };
         let associated_run = if let Some(run_id) = run_id {
-            let data: Option<String> = tx
-                .query_row(
-                    "SELECT data FROM verification_runs WHERE project=?1 AND id=?2",
-                    params![project, run_id],
-                    |row| row.get(0),
-                )
-                .optional()?;
-            let run: dctx0_core::VerificationRun =
-                decode(&data.ok_or_else(|| invalid("Unknown publication run"))?)?;
             let receipt: Option<String> = tx
                 .query_row(
-                    "SELECT data FROM verification_adoptions WHERE run_id=?1",
-                    [run_id],
+                    "SELECT a.data FROM verification_adoptions a JOIN verification_runs r ON r.id=a.run_id WHERE r.project=?1 AND r.id=?2",
+                    params![project,run_id],
                     |row| row.get(0),
                 )
                 .optional()?;
@@ -510,6 +501,7 @@ impl Store {
                 }
                 return Ok(receipt);
             }
+            let run = crate::verification::codec::read_run(&tx, project, run_id)?.run;
             let executed = run
                 .cases
                 .iter()
@@ -550,14 +542,13 @@ impl Store {
                 ));
             }
             let reference = references[0];
-            let bytes: Vec<u8> = tx.query_row("SELECT a.bytes FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?1 AND a.hash=?2", params![run_id, reference.hash], |row| row.get(0))?;
-            if crate::VerificationArtifact::new(&reference.media_type, bytes.clone()).reference
-                != *reference
-            {
+            let artifact = crate::verification::codec::read_artifact(&tx, run_id, &reference.hash)?;
+            if artifact.reference != *reference {
                 return Err(invalid(
                     "Mandatory case manifest artifact integrity does not match its run reference",
                 ));
             }
+            let bytes = artifact.contents;
             let manifest: dctx0_core::VerificationCaseManifest = serde_json::from_slice(&bytes)
                 .map_err(|error| invalid(format!("Invalid mandatory case manifest: {error}")))?;
             if manifest.schema_version != 1

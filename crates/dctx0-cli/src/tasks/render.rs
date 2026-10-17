@@ -7,6 +7,8 @@ pub(super) struct Output {
     pub(super) snapshot_id: Option<String>,
     pub(super) event_seq: i64,
     pub(super) body: Body,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) verification_evidence: Vec<dctx0_store::VerificationRunSummary>,
 }
 #[derive(Serialize)]
 #[serde(tag = "view", content = "data", rename_all = "kebab-case")]

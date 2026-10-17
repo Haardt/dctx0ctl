@@ -75,6 +75,24 @@ jobs:
             target/site/task-dialog.png
             target/site/logs/
             ui/site/dist/provenance.json
+      - name: Verification storage acceptance and release speed/RSS
+        run: python3 scripts/storage_acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-storage
+          path: |
+            target/storage-acceptance/
+            benchmarks/history/storage/
+      - name: Large source-bound inspection groups and release speed/RSS
+        run: python3 scripts/inspection_acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inspection-input-acceptance
+          path: |
+            target/inspection-acceptance/
+            benchmarks/history/inspection/
       - run: python3 scripts/validate.py --coverage --example cinema --tutorial
       - name: Gin and Axum coupled acceptance
         run: |

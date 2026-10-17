@@ -696,11 +696,9 @@ impl Project {
             other => run.provenance.incomplete.push(issue("RUNTIME_IDENTITY_CHANGED_OR_UNAVAILABLE",
                 format!("Actual runtime executable or launch environment cannot be pinned at publication: {other:?}"))),
         }
-        let saved = self.store(AccessMode::ReadWrite)?.record_verification_run(
-            &self.key(),
-            &run,
-            &artifacts,
-        )?;
+        let saved = self
+            .store(AccessMode::ReadWrite)?
+            .record_verification_run_owned(&self.key(), run, &artifacts)?;
         let (adopted_tasks, adoption_issues, adoption_proposal) = if no_adopt {
             (vec![], vec![], None)
         } else {

@@ -4,8 +4,8 @@
 This is workflow acceptance, not a newly generated architectural approval.
 Performance measurements are run separately at the end by validate.py.
 """
+from verification_storage import saved_verification_artifacts
 import argparse
-from contextlib import closing
 import hashlib
 import json
 import os
@@ -13,7 +13,6 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-import sqlite3
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -144,14 +143,13 @@ def main():
             # Preserve host identity, supervision and separate native build/worker
             # metrics before the isolated database is removed.
             retained = {}
-            with closing(sqlite3.connect(spec / '.dctx0ctl/state.sqlite3')) as connection:
-                for media, contents, expected in connection.execute('SELECT a.media_type,a.bytes,a.hash FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?', (native['evidence']['id'],)):
-                    assert hashlib.sha256(contents).hexdigest() == expected
-                    if media in ('application/vnd.dctx0.runtime-identity+json', 'application/vnd.dctx0.native-audit+json', 'application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):
-                        retained[media] = json.loads(contents)
-                    if media == 'application/vnd.dctx0.go-build-inputs+json':
-                        receipt = json.loads(contents)
-                        retained['go_compile'] = {key: receipt[key] for key in ('build_elapsed_us', 'build_peak_rss_bytes', 'go_version', 'binary_hash')}
+            for media, contents, expected in saved_verification_artifacts(spec / '.dctx0ctl/state.sqlite3', native['evidence']['id']):
+                assert hashlib.sha256(contents).hexdigest() == expected
+                if media in ('application/vnd.dctx0.runtime-identity+json', 'application/vnd.dctx0.native-audit+json', 'application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):
+                    retained[media] = json.loads(contents)
+                if media == 'application/vnd.dctx0.go-build-inputs+json':
+                    receipt = json.loads(contents)
+                    retained['go_compile'] = {key: receipt[key] for key in ('build_elapsed_us', 'build_peak_rss_bytes', 'go_version', 'binary_hash')}
             report['targets'][variant] = {**complete, 'native_artifacts': retained}
     report['status'] = 'pass'
     args.report.parent.mkdir(parents=True, exist_ok=True)

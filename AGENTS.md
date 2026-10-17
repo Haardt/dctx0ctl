@@ -1055,3 +1055,69 @@ this checkpoint. Preserve the 97% gates, historical LLVM
 metrics, compiler goldens and accepted baseline. See
 `docs/dependency-resolution-validation.json` and
 `docs/dependency-resolution-company-manager.json` for actual scope and evidence.
+
+
+## Verification history retention (2026-10-17)
+
+SQLite schema 5 retains three complete published verification runs per project
+across scopes and origins. Older runs retain explicit pruned historical summaries,
+identity and task/adoption links. A pruned PASS is historical, cannot authorize
+new publication and cannot replay. Exact retries may return an existing matching
+publication receipt without creating new evidence or events. Schema 1–4 readers
+remain read-only; writers migrate additively. Public complete run JSON and content
+hash identities remain unchanged.
+
+Canonical case corpora are gzip-compressed and content-addressed. Large artifacts
+are compressed when beneficial; digests refer to original bytes. Successful cases
+omit duplicate session/individual assessment diagnostics; FAIL/UNKNOWN prefixes
+remain. Paginated history avoids full corpus reads, and Site projection holds
+compressed corpora and decodes one run at a time. Task detail availability is
+separate from immutable historical work/check state.
+
+`verify gc` previews with `--dry-run`; `--compact` rebuilds and verifies a compact
+replacement with source-change guards, ordered FK copies, shared/exclusive store
+locks and recoverable staging. It creates no backup. `--exports` reduces recognized
+embedded JSON run bodies only under an explicitly selected directory and preserves
+unrecognized files and symlinks. Existing Company Manager cleanup was explicitly
+authorized without backup: 19.74 GB → 1.76 GB database, 3.53 GB → 262 MB exports;
+20 other tables/1,139,345 records have unchanged content digests. Three complete
+runs and 406 historical summaries remain. See docs/verification-storage-company-manager.json.
+
+`scripts/storage_acceptance.py` couples storage checks and release speed/RSS,
+including identical 10,000-case synthetic workloads with 24,000 payload bytes per
+case for both Cinema roots. Latest-20 storage reports are separate from accepted
+baselines; no baseline promotion is authorized by this increment. See
+README.md and docs/site/src/reference/verification-storage.md for commands and
+compatibility. Record final workspace/coverage evidence separately from earlier
+failed or source-changing development runs.
+
+Storage validation checkpoint (2026-10-17): final focused storage acceptance
+`20261017T085811.566463Z-3987.json` passes four stages and 12 release speed/RSS
+workloads against unchanged sources. All-feature workspace Rust tests and 41
+native engine tests pass; final formatting/Clippy and 20 Python tests pass.
+Complete Go/Rust Cinema release acceptance each passes 5,674 cases, 105 tasks,
+five real mutations and replay. Merged full-workspace plus supplemental test
+coverage is 97.45% source lines and 97.01% functions; preserve the separate raw
+workspace 96.76% function metric and supplemental reports. No exclusions or
+threshold changes were added. The aggregate runner remains failed/incomplete
+because of Go Race's unsupported 39-bit VMA host and source changes during
+correction; its 73 measurements cannot become a baseline. Separate Go/Rust
+native performance reports each complete 11 phases. See
+`docs/verification-storage-validation.json` and
+`docs/verification-storage-coverage.json`; baseline promotion remains unauthorized.
+
+## Large bound review inputs (2026-10-17)
+
+Inspect, Attest and Complete share the engine streaming JSON reader with a 64 MiB
+default and explicit `--max-input-bytes`. Complete's Rust API retains its default
+method and exposes `complete_verification_with_input_limit`. Program inspections
+require one exact native basis; unknown/duplicate subjects and invalid bindings
+are rejected before publication. No implicit cumulative review or imported-native
+conversion is introduced. Native failures and incomplete corpora/provenance remain
+authoritative. `scripts/inspection_acceptance.py` couples real 543-module Bun
+fixtures and 19/47 full review groups with individual release CLI speed/RSS;
+latest-20 reports live under `benchmarks/history/inspection/` and remain unassessed
+against a baseline. See `docs/site/src/reference/inspection-inputs.md`. Local
+focused tests and Complete notes above 1 MiB pass; fresh CI/release is pending.
+Self-verification acceptance must replay its latest successful warm run after
+mutations, because the original run can legitimately expire under retention.

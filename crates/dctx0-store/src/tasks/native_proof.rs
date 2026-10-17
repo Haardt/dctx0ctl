@@ -20,15 +20,13 @@ fn artifact<T: DeserializeOwned>(
             "Native task delivery requires one {media_type} artifact"
         )));
     };
-    let bytes: Vec<u8> = tx.query_row(
-        "SELECT a.bytes FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?1 AND a.hash=?2",
-        params![run_id, reference.hash], |row| row.get(0),
-    )?;
-    if crate::VerificationArtifact::new(media_type, bytes.clone()).reference != **reference {
+    let artifact = crate::verification::codec::read_artifact(tx, run_id, &reference.hash)?;
+    if artifact.reference != **reference {
         return Err(invalid(
             "Native proof artifact integrity does not match its run reference",
         ));
     }
+    let bytes = artifact.contents;
     let value = serde_json::from_slice(&bytes)
         .map_err(|error| invalid(format!("Invalid native proof artifact: {error}")))?;
     Ok((reference.hash.clone(), value))

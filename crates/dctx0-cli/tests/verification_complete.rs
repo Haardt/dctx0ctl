@@ -95,7 +95,11 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     }
     fn run(&self, json: bool) -> std::process::Output {
         let file = self.root.join("notes.json");
-        fs::write(&file, serde_json::to_vec(&self.notes).unwrap()).unwrap();
+        // Authored complete-verification notes share the same bounded reader;
+        // a valid document above the former 1 MiB cap must remain actionable.
+        let mut bytes = vec![b' '; 1_048_576];
+        bytes.extend(serde_json::to_vec(&self.notes).unwrap());
+        fs::write(&file, bytes).unwrap();
         let mut command = Command::new(env!("CARGO_BIN_EXE_dctx0"));
         command
             .args(["verify", "complete"])
@@ -183,12 +187,20 @@ fn complete_cli_executes_real_cases_delivers_reviews_and_rejects_stale_notes_and
         String::from_utf8_lossy(&repeated.stderr)
     );
     assert!(String::from_utf8_lossy(&repeated.stdout).contains("unfinished: 0"));
-    assert_eq!(
+    let summary = fixture
+        .project
+        .verification_summary(&report.native_run)
+        .unwrap();
+    assert!(!summary.details_available);
+    assert_eq!(summary.result, native.run.result);
+    assert_eq!(summary.case_count, native.run.cases.len());
+    assert!(
         fixture
             .project
             .saved_verification_run(&report.native_run)
-            .unwrap(),
-        native
+            .unwrap_err()
+            .to_string()
+            .contains("pruned")
     );
     let history = fixture.project.history().unwrap().len();
     let original_spec = fs::read(fixture.spec.join("w.dctx0")).unwrap();
@@ -229,12 +241,20 @@ fn complete_cli_executes_real_cases_delivers_reviews_and_rejects_stale_notes_and
     assert!(
         String::from_utf8_lossy(&violated.stderr).contains("Complete native evidence required")
     );
-    assert_eq!(
+    let summary = fixture
+        .project
+        .verification_summary(&report.native_run)
+        .unwrap();
+    assert!(!summary.details_available);
+    assert_eq!(summary.result, native.run.result);
+    assert_eq!(summary.case_count, native.run.cases.len());
+    assert!(
         fixture
             .project
             .saved_verification_run(&report.native_run)
-            .unwrap(),
-        native
+            .unwrap_err()
+            .to_string()
+            .contains("pruned")
     );
 }
 
@@ -418,12 +438,20 @@ async fn agent_task_reviews_close_obligations_without_notes_or_test_pass_and_rej
     assert_eq!(session.states[&task].work, WorkState::Done);
     assert_eq!(session.states[&task].check, CheckStatus::Unverified);
     assert_eq!(session.states[&task].reviews.len(), 3);
-    assert_eq!(
+    let summary = fixture
+        .project
+        .verification_summary(&native.evidence.id)
+        .unwrap();
+    assert!(!summary.details_available);
+    assert_eq!(summary.result, native.evidence.run.result);
+    assert_eq!(summary.case_count, native.evidence.run.cases.len());
+    assert!(
         fixture
             .project
             .saved_verification_run(&native.evidence.id)
-            .unwrap(),
-        native.evidence
+            .unwrap_err()
+            .to_string()
+            .contains("pruned")
     );
     fs::write(
         fixture.app.join("new-source.ts"),

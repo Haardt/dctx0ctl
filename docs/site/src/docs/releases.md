@@ -31,6 +31,27 @@ local evidence and incomplete coverage/performance acceptance are recorded in
 `docs/dependency-resolution-validation.json`. This release introduces configurable
 native dependency resolution with a default of 10,000 references.
 
+## v0.2.5: bounded storage and large review groups
+
+Verification history retains three complete runs per project and compact historical
+summaries for older runs. Cases are compressed once, large artifacts are compressed
+when beneficial, and successful cases omit duplicate diagnostic journals. New
+`verify history` and `verify gc --compact` commands expose retention and explicit
+maintenance without a backup. SQLite writers migrate additively to schema 5;
+older CLI versions cannot read that schema. Task history and old verdicts remain,
+while pruned evidence cannot authorize replay or fresh adoption.
+
+Inspect, Attest and Complete share a streaming JSON reader with a 64 MiB default
+and configurable `--max-input-bytes`. Complete 19/47-review groups with 543 source
+modules are covered by native acceptance and individual release CLI RSS samples.
+Mismatched or duplicate bound reviews are rejected before publication; no implicit
+accumulation or promotion of incomplete native evidence is introduced. See
+[large review inputs](../reference/inspection-inputs.md).
+
+This version requires fresh workspace and five-platform release checks; the
+v0.2.4 test exception does not apply. See [verification storage](../reference/verification-storage.md)
+for compatibility, commands and measured maintenance results.
+
 ## Pin a version
 
 ```sh

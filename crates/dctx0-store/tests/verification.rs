@@ -255,14 +255,14 @@ fn artifact_corruption_and_transaction_failure_never_publish_half_a_run() {
     assert!(s.verification_runs("p").is_err());
 }
 #[test]
-fn readers_accept_legacy_schemas_without_migrating_and_writers_add_schema_four() {
+fn readers_accept_legacy_schemas_without_migrating_and_writers_add_schema_five() {
     for version in 1..=3 {
         let t = Temp::new();
         let mut writer = Store::open(&t.path(), AccessMode::ReadWrite).unwrap();
         let (run, _) = fixture(&mut writer);
         drop(writer);
         let c = rusqlite::Connection::open(t.path()).unwrap();
-        c.execute_batch("DROP TABLE verification_adoptions; DROP TABLE verification_task_links; DROP TABLE verification_run_artifacts; DROP TABLE verification_runs; DROP TABLE verification_artifacts;").unwrap();
+        c.execute_batch("DROP TABLE verification_revisions; DROP TABLE verification_corpora; DROP TABLE verification_adoptions; DROP TABLE verification_task_links; DROP TABLE verification_run_artifacts; DROP TABLE verification_runs; DROP TABLE verification_artifacts;").unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
         let before = fs::read(t.path()).unwrap();
@@ -288,7 +288,7 @@ fn readers_accept_legacy_schemas_without_migrating_and_writers_add_schema_four()
                 .unwrap()
                 .pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))
                 .unwrap(),
-            4
+            5
         );
     }
 }

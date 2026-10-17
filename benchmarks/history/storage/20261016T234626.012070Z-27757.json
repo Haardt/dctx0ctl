@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261016T234626.012070Z",
+  "status": "failed",
+  "source_hash_before": "2276b66290a5ffe75ad98c6925124ff3b6df8e073c0a593ef2e18353e7c946bd",
+  "revision": "f5b75f4b13eb1f98ed497fac2d6a360b576bab05",
+  "dirty_worktree": "M .github/workflows/validate.yml\n M Bug.md\n M Cargo.lock\n M README.md\n M artice-medium.md\n M crates/dctx0-cli/src/args.rs\n M crates/dctx0-cli/src/benchmark.rs\n M crates/dctx0-cli/src/tasks/commands.rs\n M crates/dctx0-cli/src/tasks/render.rs\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-cli/src/verification_history_benchmark.rs\n M crates/dctx0-cli/tests/verification_history.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/site/evidence.rs\n M crates/dctx0-engine/src/verification_run/execution.rs\n M crates/dctx0-engine/src/verification_run/mod.rs\n M crates/dctx0-engine/src/verification_run/program_inspection.rs\n M crates/dctx0-engine/tests/verification_run.rs\n M crates/dctx0-store/Cargo.toml\n M crates/dctx0-store/src/lib.rs\n M crates/dctx0-store/src/site.rs\n M crates/dctx0-store/src/tasks/actions.rs\n M crates/dctx0-store/src/tasks/native_proof.rs\n M crates/dctx0-store/src/tasks/tests.rs\n M crates/dctx0-store/src/verification.rs\n M crates/dctx0-store/tests/verification.rs\n M docs/site/src/SUMMARY.md\n M ui/site/dist/LICENSES.txt\n M ui/site/dist/provenance.json\n M ui/site/dist/site.js\n M ui/site/src/TaskDetail.tsx\n M ui/site/src/main.tsx\n M ui/site/src/model.test.ts\n M ui/site/src/model.ts\n?? benchmarks/history/storage/\n?? crates/dctx0-engine/src/verification_gc.rs\n?? crates/dctx0-engine/src/verification_gc/\n?? crates/dctx0-store/src/verification/\n?? docs/site/src/reference/\n?? scripts/storage_acceptance.py",
+  "toolchain": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "hardware": {
+    "architecture": "aarch64",
+    "cpu_count": 8,
+    "cpu": "Architecture:                            aarch64\nCPU op-mode(s):                          64-bit\nByte Order:                              Little Endian\nCPU(s):                                  8\nOn-line CPU(s) list:                     0-7\nVendor ID:                               ARM\nModel name:                              Cortex-A720\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      4\nSocket(s):                               1\nStepping:                                r0p1\nBogoMIPS:                                26.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm sb dcpodp sve2 sveaes svepmull svebitperm svesha3 svesm4 flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti ecv afp wfxt\nModel name:                              Cortex-X4\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      3\nSocket(s):                               1\nStepping:                                r0p1\nBogoMIPS:                                26.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm sb dcpodp sve2 sveaes svepmull svebitperm svesha3 svesm4 flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti ecv afp wfxt\nModel name:                              Cortex-X925\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      1\nSocket(s):                               1\nStepping:                                r0p1\nBogoMIPS:                                26.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm sb dcpodp sve2 sveaes svepmull svebitperm svesha3 svesm4 flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti ecv afp wfxt\nVulnerability Gather data sampling:      Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; CSV2, BHB\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected"
+  },
+  "scope": "focused",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 30259.017923999636,
+      "peak_rss_bytes": 681857024,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T234626.012070Z/check-0.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--lib",
+        "--test",
+        "verification_run",
+        "storage_",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 139102.32585500125,
+      "peak_rss_bytes": 930889728,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T234626.012070Z/check-1.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "verification_history",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 42943.60584899914,
+      "peak_rss_bytes": 1062682624,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T234626.012070Z/check-2.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 98471.9090059989,
+      "peak_rss_bytes": 1071595520,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T234626.012070Z/check-3.log"
+    }
+  ],
+  "measurements": {
+    "cinema/compile": {
+      "samples": [
+        {
+          "elapsed_ms": 6.176923,
+          "process_wall_ms": 14.812923000135925,
+          "peak_rss_bytes": 10641408
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 6.176923,
+      "peak_rss_bytes": 10641408,
+      "workload_version": 1
+    },
+    "cinema/verification-generate": {
+      "samples": [
+        {
+          "elapsed_ms": 56.781231,
+          "process_wall_ms": 68.40338499750942,
+          "peak_rss_bytes": 14843904
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 56.781231,
+      "peak_rss_bytes": 14843904,
+      "workload_version": 1
+    },
+    "cinema/verification-assess-unbound": {
+      "samples": [
+        {
+          "elapsed_ms": 0.217923,
+          "process_wall_ms": 13.716307999857236,
+          "peak_rss_bytes": 12255232
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 0.217923,
+      "peak_rss_bytes": 12255232,
+      "workload_version": 1
+    },
+    "cinema/verification-history-large-publish": {
+      "samples": [
+        {
+          "elapsed_ms": 3068.349,
+          "process_wall_ms": 7573.411384997598,
+          "peak_rss_bytes": 294977536
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 3068.349,
+      "peak_rss_bytes": 294977536,
+      "workload_version": 1
+    },
+    "cinema/verification-history-large-read": {
+      "samples": [
+        {
+          "elapsed_ms": 2281.793846,
+          "process_wall_ms": 6594.263768998644,
+          "peak_rss_bytes": 293224448
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 2281.793846,
+      "peak_rss_bytes": 293224448,
+      "workload_version": 1
+    },
+    "cinema/verification-history-summary": {
+      "samples": [
+        {
+          "elapsed_ms": 0.35846100000000003,
+          "process_wall_ms": 3570.6698469984985,
+          "peak_rss_bytes": 291524608
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 0.35846100000000003,
+      "peak_rss_bytes": 291524608,
+      "workload_version": 1
+    },
+    "cinema-go/compile": {
+      "samples": [
+        {
+          "elapsed_ms": 6.296615999999999,
+          "process_wall_ms": 18.05330800198135,
+          "peak_rss_bytes": 10981376
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 6.296615999999999,
+      "peak_rss_bytes": 10981376,
+      "workload_version": 1
+    },
+    "cinema-go/verification-generate": {
+      "samples": [
+        {
+          "elapsed_ms": 121.875308,
+          "process_wall_ms": 140.10738400247646,
+          "peak_rss_bytes": 15052800
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 121.875308,
+      "peak_rss_bytes": 15052800,
+      "workload_version": 1
+    },
+    "cinema-go/verification-assess-unbound": {
+      "samples": [
+        {
+          "elapsed_ms": 0.7582300000000001,
+          "process_wall_ms": 26.500307001697365,
+          "peak_rss_bytes": 12251136
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 0.7582300000000001,
+      "peak_rss_bytes": 12251136,
+      "workload_version": 1
+    },
+    "cinema-go/verification-history-large-publish": {
+      "samples": [
+        {
+          "elapsed_ms": 2986.266461,
+          "process_wall_ms": 6925.056001000485,
+          "peak_rss_bytes": 294977536
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 2986.266461,
+      "peak_rss_bytes": 294977536,
+      "workload_version": 1
+    },
+    "cinema-go/verification-history-large-read": {
+      "samples": [
+        {
+          "elapsed_ms": 2341.868,
+          "process_wall_ms": 7703.570153997134,
+          "peak_rss_bytes": 293253120
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 2341.868,
+      "peak_rss_bytes": 293253120,
+      "workload_version": 1
+    },
+    "cinema-go/verification-history-summary": {
+      "samples": [
+        {
+          "elapsed_ms": 0.404538,
+          "process_wall_ms": 3688.9396929982468,
+          "peak_rss_bytes": 291799040
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+      "elapsed_ms": 0.404538,
+      "peak_rss_bytes": 291799040,
+      "workload_version": 1
+    }
+  },
+  "baseline": "unassessed: new storage workloads; existing baselines unchanged",
+  "settings": {
+    "samples": 1,
+    "iterations": 1,
+    "warmup": 1,
+    "profile": "release, no coverage",
+    "cache": "warm OS cache; fresh SQLite per process",
+    "synthetic_cases": 10000,
+    "synthetic_value_bytes_per_case": 24000
+  },
+  "source_hash_after": "f615d7bcd3c403163820c6edf748c5ba17a7427a6cba91b62528e6f7e9ff6240"
+}

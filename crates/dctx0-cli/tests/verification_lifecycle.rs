@@ -250,9 +250,16 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         minimized.case_result,
         Some(VerificationResult::Fail { .. })
     ));
-    assert_eq!(
-        project.saved_verification_run(&report.evidence.id).unwrap(),
-        original
+    let summary = project.verification_summary(&report.evidence.id).unwrap();
+    assert!(!summary.details_available);
+    assert_eq!(summary.result, original.run.result);
+    assert_eq!(summary.case_count, original.run.cases.len());
+    assert!(
+        project
+            .saved_verification_run(&report.evidence.id)
+            .unwrap_err()
+            .to_string()
+            .contains("pruned")
     );
     assert_eq!(project.history().unwrap().len(), 1);
     fs::remove_dir_all(root).unwrap();

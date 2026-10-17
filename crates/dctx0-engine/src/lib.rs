@@ -18,6 +18,8 @@ mod self_verification;
 mod tasks;
 pub use self_verification::*;
 mod verification;
+mod verification_gc;
+pub use verification_gc::VerificationMaintenanceReport;
 mod verification_complete;
 pub use verification_complete::*;
 mod verification_discovery;
@@ -176,3 +178,6 @@ mod profile_publication_tests {
         fs::remove_dir_all(root).unwrap();
     }
 }
+
+mod review_input;
+pub use review_input::{DEFAULT_REVIEW_INPUT_BYTES, read_review_input};

@@ -199,7 +199,7 @@ fn old_schemas_are_read_without_migration_and_missing_heads_are_explicit() {
         .is_err()
     );
     let conn = rusqlite::Connection::open(&p.database).unwrap();
-    conn.execute_batch("PRAGMA user_version=5;").unwrap();
+    conn.execute_batch("PRAGMA user_version=99;").unwrap();
     drop(conn);
     assert!(
         p.site_snapshot(&SiteSelection::default())

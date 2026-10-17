@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-10-17T08:02:22.200649+00:00",
+  "passed": false,
+  "complete": false,
+  "source_hash": "67c19efb67369b30db733204cf7a2eba3f7a7aa3f262be38d01ed4ef6e46654a",
+  "revision": "f5b75f4b13eb1f98ed497fac2d6a360b576bab05",
+  "dirty": true,
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "hardware": {
+    "cpu_count": 7,
+    "machine": "aarch64",
+    "cpu_model": null
+  },
+  "baseline_status": "unassessed: no accepted site workload baseline",
+  "samples": 1,
+  "iterations": 1,
+  "measurements": {
+    "ui-typecheck": [
+      {
+        "elapsed_ms": 3738.3956930000013,
+        "peak_rss_bytes": 340738048,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-unit": [
+      {
+        "elapsed_ms": 53.16123100000425,
+        "peak_rss_bytes": 51343360,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "checks": [],
+  "workload": "isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI",
+  "cache_conditions": "one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history",
+  "toolchain": {
+    "rustc": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+    "cargo": "cargo 1.99.0-nightly (59800466c 2026-07-07)",
+    "bun": "1.3.2"
+  },
+  "spec_input_hash": "56557aa0a4a1793369c87fdfc7968197ef6a8ce0ae80f5bfaab6f7e523cba438",
+  "build_target": "target/site/build (isolated from workspace feature jobs)",
+  "error": "RuntimeError(\"ui-unit: bun test v1.3.2 (b131639c)\\n\\nsrc/model.test.ts:\\n(pass) historical PASS and partial provenance cannot color current requirements green [1.00ms]\\n(pass) focus uses prerequisite closure and excludes unrelated earlier waves\\n20 | export async function decodeCases(run:Run):Promise<Case[]> {\\n21 |  if(!run.run.case_details)return run.run.cases;\\n22 |  const encoding=run.run.case_details_encoding;\\n23 |  if(!['gzip-base64-json-decimal-integers-v1','gzip-base64-json-decimal-integers-v2'].includes(encoding??''))throw new Error('Unsupported case detail encoding');\\n24 |  const bytes=Uint8Array.from(atob(run.run.case_details),char=>char.charCodeAt(0));\\n25 |  const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));\\n                                                              ^\\nReferenceError: DecompressionStream is not defined\\n      at decodeCases (/home/massenhaft/workspaces/conpinion/dctx0ctl/ui/site/src/model.ts:25:58)\\n      at decodeCases (/home/massenhaft/workspaces/conpinion/dctx0ctl/ui/site/src/model.ts:20:35)\\n      at <anonymous> (/home/massenhaft/workspaces/conpinion/dctx0ctl/ui/site/src/model.test.ts:14:15)\\n(fail) compressed observations decode losslessly and reject inconsistent inventories [4.00ms]\\n20 | export async function decodeCases(run:Run):Promise<Case[]> {\\n21 |  if(!run.run.case_details)return run.run.cases;\\n22 |  const encoding=run.run.case_details_encoding;\\n23 |  if(!['gzip-base64-json-decimal-integers-v1','gzip-base64-json-decimal-integers-v2'].includes(encoding??''))throw new Error('Unsupported case detail encoding');\\n24 |  const bytes=Uint8Array.from(atob(run.run.case_details),char=>char.charCodeAt(0));\\n25 |  const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));\\n                                                              ^\\nReferenceError: DecompressionStream is not defined\\n      at decodeCases (/home/massenhaft/workspaces/conpinion/dctx0ctl/ui/site/src/model.ts:25:58)\\n      at decodeCases (/home/massenhaft/workspaces/conpinion/dctx0ctl/ui/site/src/model.ts:20:35)\\n      at <anonymous> (/home/massenhaft/workspaces/conpinion/dctx0ctl/ui/site/src/model.test.ts:21:59)\\n(fail) version-2 packed mandatory inventory is retained without loading cases into summaries [1.00ms]\\n(pass) parallel semantic connections retain every original relationship and preserve cycles [1.00ms]\\n(pass) bundled prerequisites retain conditions and never absorb historical links [1.00ms]\\n(pass) published selection inventory defines module scope rather than counting declarations\\n(pass) reviewed presentation requires exact native provenance, cases and inspection artifacts [4.00ms]\\n(pass) architecture focus follows real parents and limits child depth independently of names [1.00ms]\\n(pass) dependency focus traverses outgoing, incoming and both directions without containment hops [1.00ms]\\n(pass) implementation architecture excludes test nodes and their edges before dependency traversal [5.00ms]\\n(pass) surface dependency focus retains its operations and operation focus shows the declaring surface [1.00ms]\\n(pass) task depth follows prerequisites or dependents and excludes unrelated wave members [1.00ms]\\n(pass) task checks identify pruned native reports without changing the historical verdict [1.00ms]\\n\\n 12 pass\\n 2 fail\\n 54 expect() calls\\nRan 14 tests across 1 file. [43.00ms]\\n\")",
+  "summary": {
+    "ui-typecheck": {
+      "samples": 1,
+      "elapsed_ms_median": 3738.3956930000013,
+      "peak_rss_bytes_median": 340738048
+    },
+    "ui-unit": {
+      "samples": 1,
+      "elapsed_ms_median": 53.16123100000425,
+      "peak_rss_bytes_median": 51343360
+    }
+  },
+  "finished_at": "2026-10-17T08:02:28.704755+00:00",
+  "recent_trends": [],
+  "comparison_status": "no comparable complete history; unassessed"
+}

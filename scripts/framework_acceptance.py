@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Coupled Gin/Axum acceptance: functional checks first, release speed/RSS last."""
+from verification_storage import saved_verification_artifacts
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -8,7 +9,6 @@ import os
 from pathlib import Path
 import platform
 import shutil
-import sqlite3
 import statistics
 import subprocess
 import sys
@@ -61,8 +61,7 @@ def project_copy(destination, language, framework):
 
 def native_details(project, data):
     details = {'engine_elapsed_ms': data['evidence']['run']['elapsed_us'] / 1000}
-    with sqlite3.connect(f'file:{project / "dctx0/.dctx0ctl/state.sqlite3"}?mode=ro', uri=True) as database:
-        rows = database.execute('SELECT a.media_type,a.bytes,a.hash FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?', (data['evidence']['id'],)).fetchall()
+    rows = saved_verification_artifacts(project / "dctx0/.dctx0ctl/state.sqlite3", data['evidence']['id'])
     for media, raw, expected in rows:
         if hashlib.sha256(raw).hexdigest() != expected: raise RuntimeError('Native metric artifact hash mismatch')
         if media in ('application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):
@@ -170,7 +169,10 @@ def main():
               ('rust-clippy',['cargo','clippy','--manifest-path','examples/cinema-rust/Cargo.toml','--all-features','--all-targets','--offline','--locked','--','-D','warnings']),
               ('rust-adapter-tests',['cargo','test','--manifest-path','examples/cinema-rust/.dctx0/testing/rust/Cargo.toml','--lib','--offline','--locked']),
               ('rust-format',['cargo','fmt','--manifest-path','examples/cinema-rust/Cargo.toml','--','--check']),
-              ('rust-adapter-format',['cargo','fmt','--manifest-path','examples/cinema-rust/.dctx0/testing/rust/Cargo.toml','--','--check']),
+              # The worker is materialized only in captured native builds.
+              # Check its shipped template and the authored adapter directly;
+              # cargo fmt would require an absent generated bin source here.
+              ('rust-adapter-format',['rustfmt','--edition','2024','--check','examples/cinema-rust/.dctx0/testing/rust/adapter.rs','targets/rust/harness/worker.rs']),
               ('framework-task-reviews',[sys.executable,'scripts/conformance_review_acceptance.py','--http-frameworks','--binary',binary,'--report',ROOT/'target/frameworks/task-reviews.json']),
               ('reference-task-reviews',[sys.executable,'scripts/conformance_review_acceptance.py','--binary',binary,'--report',ROOT/'target/frameworks/reference-task-reviews.json'])]
             for label,command in checks:run(command,ROOT,record,label)

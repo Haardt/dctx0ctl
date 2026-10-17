@@ -1,5 +1,5 @@
 import Markdown from 'react-markdown';
-import {pinnedSnapshot,type Json,type SiteSnapshot,type Snapshot} from './model';
+import {prunedEvidence,pinnedSnapshot,type Json,type SiteSnapshot,type Snapshot} from './model';
 function Text({children}:{children:string}){return <div className="markdown"><Markdown skipHtml components={{img:({alt})=><span>{alt??'Image'}</span>}}>{children}</Markdown></div>}
 function record(value:Json,label=''):import('react').ReactNode {
  if(value===null)return <span className="muted">Not recorded</span>;
@@ -20,7 +20,7 @@ export default function TaskDetail({data,id,onSelect}:{data:SiteSnapshot;id:stri
  {candidate.facts.length>0&&<details><summary>Constraints, examples and decisions</summary>{candidate.facts.map(fact=><section key={fact}><h3>{fact}</h3>{source(snapshot,fact)?<pre><code className="language-dctx0">{source(snapshot,fact)}</code></pre>:<Text>{snapshot?.ir.nodes.find(n=>n.id===fact)?.terms.map(t=>t.text).join(' ')??'Unavailable in pinned snapshot'}</Text>}</section>)}</details>}
  {state.execution_bundle?.documents.length&&<details><summary>Implementation guidance (pinned)</summary>{state.execution_bundle.documents.map((doc,i)=><section key={i}><h3>{doc.path}</h3><Text>{doc.text}</Text></section>)}</details>}
  <h3>Prerequisites and blockers</h3>{data.dependencies.filter(e=>e.task_id===id).map(e=><p key={e.prerequisite_id}><button className="link" onClick={()=>onSelect(e.prerequisite_id)}>T{e.prerequisite_id}</button> · {e.condition}<Text>{e.reason}</Text></p>)}{!data.dependencies.some(e=>e.task_id===id)&&<p className="muted">No current-plan prerequisites.</p>}
- <h3>Delivered result</h3>{record(state.result)}<h3>Check evidence</h3>{state.evidence.map((e,i)=><details key={i}><summary>Check {i+1}</summary>{record(e)}</details>)}{!state.evidence.length&&<p className="muted">No recorded checks. Done does not imply PASS.</p>}
+ <h3>Delivered result</h3>{record(state.result)}<h3>Check evidence</h3>{prunedEvidence(state.evidence,data).map(run=><p className="muted" key={run.id}>Historical {run.result.status} · {run.id}. Details pruned; replay and new evidence publication are unavailable.</p>)}{state.evidence.map((e,i)=><details key={i}><summary>Check {i+1}</summary>{record(e)}</details>)}{!state.evidence.length&&<p className="muted">No recorded checks. Done does not imply PASS.</p>}
  <h3>Reviews</h3>{state.reviews.map((r,i)=><section key={i}>{record(r)}</section>)}{!state.reviews.length&&<p className="muted">No recorded reviews.</p>}
  {task.changes.length>0&&<details><summary>Before / after requirements</summary>{record(task.changes)}</details>}
  <details><summary>History</summary>{links.map((l,i)=><p key={i}><button className="link" onClick={()=>onSelect(l.from)}>T{l.from}</button> → <button className="link" onClick={()=>onSelect(l.to)}>T{l.to}</button> · {l.kind}<Text>{l.reason}</Text></p>)}{events.map(e=><p key={e.seq}>#{e.seq} · {e.kind}<Text>{e.message}</Text></p>)}{!links.length&&!events.length&&<p className="muted">No recorded history.</p>}<small>History links are not scheduling prerequisites.</small></details>

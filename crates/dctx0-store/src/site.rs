@@ -24,7 +24,8 @@ pub struct SiteRecords {
     pub snapshot: Snapshot,
     pub check: HistoryEntry,
     pub tasks: Option<dctx0_tasks::Session>,
-    pub runs: Vec<StoredVerificationRun>,
+    pub runs: Vec<SiteVerificationRun>,
+    pub run_summaries: Vec<VerificationRunSummary>,
     pub history: Vec<HistoryEntry>,
     pub renames: Vec<RenameEvent>,
     pub changes: Option<Changes>,
@@ -32,6 +33,16 @@ pub struct SiteRecords {
     pub task_snapshot: Option<Snapshot>,
     pub requirement_snapshots: std::collections::BTreeMap<String, Snapshot>,
     pub plan_diff: Option<dctx0_tasks::PlanDiff>,
+}
+/// Header and compressed corpus keep export memory bounded to one decoded run.
+#[derive(Debug, Serialize)]
+pub struct SiteVerificationRun {
+    pub id: String,
+    pub created_at: String,
+    pub header: dctx0_core::VerificationRun,
+    pub summary: VerificationRunSummary,
+    #[serde(skip)]
+    pub corpus: Vec<u8>,
 }
 impl Store {
     /// An immutable-history watermark, read consistently without loading case bodies.
@@ -71,11 +82,51 @@ impl Store {
             }
             None
         };
-        let runs = if schema >= 4 {
-            self.verification_runs(project)?
-        } else {
-            vec![]
-        };
+        let mut runs = Vec::new();
+        let mut run_summaries = Vec::new();
+        if schema >= 4 {
+            let mut offset = 0;
+            loop {
+                let page = self.verification_run_summaries(project, offset, 200)?;
+                let count = page.len();
+                run_summaries.extend(page);
+                if count < 200 {
+                    break;
+                }
+                offset += 200;
+            }
+            for summary in run_summaries.iter().filter(|s| s.details_available).take(3) {
+                let (mut header, corpus) = if schema >= 5 {
+                    let (data, hash): (String, Option<String>) = tx.query_row(
+                        "SELECT data,corpus_hash FROM verification_runs WHERE project=?1 AND id=?2",
+                        params![project, summary.id],
+                        |r| Ok((r.get(0)?, r.get(1)?)),
+                    )?;
+                    if let Some(hash) = hash {
+                        let (bytes, length): (Vec<u8>, i64) = tx.query_row(
+                            "SELECT bytes,raw_length FROM verification_corpora WHERE hash=?1",
+                            [&hash],
+                            |r| Ok((r.get(0)?, r.get(1)?)),
+                        )?;
+                        verification::codec::validate_corpus(&bytes, length, &hash)?;
+                        (decode(&data)?, bytes)
+                    } else {
+                        site_legacy_run(&tx, project, &summary.id)?
+                    }
+                } else {
+                    site_legacy_run(&tx, project, &summary.id)?
+                };
+                header.cases.clear();
+                header.required_cases.clear();
+                runs.push(SiteVerificationRun {
+                    id: summary.id.clone(),
+                    created_at: summary.created_at.clone(),
+                    header,
+                    summary: summary.clone(),
+                    corpus,
+                });
+            }
+        }
         let mut renames = Vec::new();
         let mut statement = tx.prepare(
             "SELECT id,before_id,after_id,mappings FROM renames WHERE project=?1 ORDER BY rowid",
@@ -144,6 +195,7 @@ impl Store {
             check,
             tasks,
             runs,
+            run_summaries,
             history,
             renames,
             changes,
@@ -181,6 +233,15 @@ fn revision(connection: &Connection, project: &str) -> Result<SiteRevision> {
     } else {
         0
     };
+    let runs = if schema >= 5 {
+        runs + connection.query_row(
+            "SELECT coalesce((SELECT revision FROM verification_revisions WHERE project=?1),0)",
+            [project],
+            |r| r.get::<_, i64>(0),
+        )?
+    } else {
+        runs
+    };
     let renames = connection.query_row(
         "SELECT coalesce(max(rowid),0) FROM renames WHERE project=?1",
         [project],
@@ -195,4 +256,19 @@ fn revision(connection: &Connection, project: &str) -> Result<SiteRevision> {
         runs,
         renames,
     })
+}
+
+fn site_legacy_run(
+    connection: &Connection,
+    project: &str,
+    id: &str,
+) -> Result<(dctx0_core::VerificationRun, Vec<u8>)> {
+    let mut run = verification::codec::read_run(connection, project, id)?.run;
+    let (_, _, corpus) = verification::codec::compress_json(&verification::codec::Corpus {
+        cases: &run.cases,
+        required_cases: &run.required_cases,
+    })?;
+    run.cases.clear();
+    run.required_cases.clear();
+    Ok((run, corpus))
 }

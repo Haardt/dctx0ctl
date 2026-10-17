@@ -11,7 +11,8 @@ export interface Session {plan:{id:string;snapshot_id:string;check_run_id:string
 export interface Verdict {status:'PASS'|'FAIL'|'UNKNOWN';issue?:{code:string;message:string}}
 export interface Case {id:string;subject:string;kind:string;result:Verdict;[key:string]:unknown}
 export interface Run {id:string;created_at:string;run:{origin:string;result:Verdict;provenance:{snapshot:string;check_occurrence:string;implementation:Record<string,string>;incomplete:Json[]};selected_subjects:string[];required_subjects:string[];not_selected?:string[];cases:Case[];case_count?:string;required_case_count?:string;case_inventory_complete?:boolean;case_subjects?:string[];case_details?:string;case_details_encoding?:string;required_cases:string[];open_obligations:Json[];artifacts:Json[];[key:string]:unknown}}
-export interface SiteSnapshot {schema_version:1;project:string;notice:string;tasks:Task[];dependencies:{task_id:string;prerequisite_id:string;condition:string;reason:string}[];records:{snapshot:Snapshot;check:{run_id:string;timestamp:string};tasks:Session|null;task_snapshot:Snapshot|null;requirement_snapshots?:Record<string,Snapshot>;runs:Run[];history:Json[];renames:Json[];changes:Json;before:Snapshot|null;plan_diff:Json}}
+export interface RunSummary {id:string;created_at:string;result:Verdict;selected_subjects:string[];details_available:boolean;pruned_at:string|null;case_count:string;outcomes:string[]}
+export interface SiteSnapshot {schema_version:1;project:string;notice:string;tasks:Task[];dependencies:{task_id:string;prerequisite_id:string;condition:string;reason:string}[];records:{snapshot:Snapshot;check:{run_id:string;timestamp:string};tasks:Session|null;task_snapshot:Snapshot|null;requirement_snapshots?:Record<string,Snapshot>;runs:Run[];run_summaries?:RunSummary[];history:Json[];renames:Json[];changes:Json;before:Snapshot|null;plan_diff:Json}}
 export function applicable(run:Run,data:SiteSnapshot) {return run.run.provenance.snapshot===data.records.snapshot.id && run.run.provenance.check_occurrence===data.records.check.run_id}
 export function evidenceStatus(run:Run,data:SiteSnapshot) {if(!applicable(run,data))return 'NOT APPLICABLE';if(run.run.result.status==='PASS'&&(run.run.provenance.incomplete.length||run.run.open_obligations.length||(run.run.not_selected?run.run.not_selected.length>0:run.run.selected_subjects.length<run.run.required_subjects.length)||!(run.run.case_inventory_complete??(run.run.cases.length===run.run.required_cases.length))||(run.run.required_case_count??String(run.run.required_cases.length))==='0'))return 'UNKNOWN';return run.run.result.status}
 export function ancestorIds(id:string,edges:SiteSnapshot['dependencies']) {const ids=new Set([id]);let size=0;while(size!==ids.size){size=ids.size;for(const e of edges)if(ids.has(e.task_id))ids.add(e.prerequisite_id)}return ids}
@@ -49,4 +50,15 @@ export function descendantIds(root:string,depth:number,symbols:Record<string,Sym
  const visible=new Set<string>();if(!symbols[root])return visible;
  const children=new Map<string,string[]>();for(const symbol of Object.values(symbols)){if(symbol.parent){const ids=children.get(symbol.parent)??[];ids.push(symbol.id);children.set(symbol.parent,ids)}}
  visible.add(root);let frontier=[root];for(let level=0;level<depth&&frontier.length;level++){const next:string[]=[];for(const parent of frontier)for(const id of children.get(parent)??[])if(!visible.has(id)){visible.add(id);next.push(id)}frontier=next}return visible;
+}
+
+export function prunedEvidence(evidence:Json[],data:SiteSnapshot):RunSummary[] {
+ const ids=new Set<string>();
+ for(const item of evidence) {
+  const report=item&&typeof item==='object'&&!Array.isArray(item)?item.report:undefined;
+  if(typeof report!=='string')continue;
+  if(/^[a-fA-F0-9]{64}$/.test(report)){ids.add(report);continue}
+  try {const parsed=JSON.parse(report);if(typeof parsed?.native_run==='string')ids.add(parsed.native_run)}catch{}
+ }
+ return (data.records.run_summaries??[]).filter(run=>ids.has(run.id)&&!run.details_available);
 }
