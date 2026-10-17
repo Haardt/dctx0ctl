@@ -55,3 +55,12 @@ measurements with warm toolchain caches, not an accepted regression baseline.
 Latest 20 reports are retained transactionally under `benchmarks/history/inspection/`.
 The groups are acceptance fixtures, not professional reviews of Company Manager
 or claims that its remaining implementation gaps are resolved.
+
+The first corrected-candidate CI completed all individual workspace checks and
+reported 97.56% merged source-line and 97.09% LLVM function coverage. Its aggregate
+result correctly failed the source-change guard: recursive harness JSON discovery
+had included Cargo `target` fingerprints created by the native tests. The input
+inventory now excludes `target` and `node_modules` cache directories while keeping
+authored harness JSON and embedded UI assets. A regression test checks both cache
+creation stability and detection of an actual configuration change. Fresh complete
+CI remains required before publication; no coverage or performance gate is waived.

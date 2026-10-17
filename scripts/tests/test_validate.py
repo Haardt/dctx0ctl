@@ -22,6 +22,27 @@ def record():
 
 
 class PerformanceTests(unittest.TestCase):
+    def test_source_guard_ignores_new_build_caches_but_detects_authored_changes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            harness = root / 'examples/cinema-rust/.dctx0/testing/rust'
+            harness.mkdir(parents=True)
+            contract = harness / 'config.json'
+            contract.write_text('{"version":1}')
+            with patch.object(validate, 'ROOT', root):
+                def inventory():
+                    return [path for path in validate.validation_sources() if path.is_file()]
+                before = validate.digest(inventory())
+                for name in ('target/debug/.fingerprint/worker.json',
+                             'node_modules/dependency/config.json'):
+                    cache = harness / name
+                    cache.parent.mkdir(parents=True, exist_ok=True)
+                    cache.write_text('{"generated":true}')
+                self.assertEqual(validate.digest(inventory()), before)
+                self.assertIn(contract, inventory())
+                contract.write_text('{"version":2}')
+                self.assertNotEqual(validate.digest(inventory()), before)
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.store = Path(self.temporary.name) / 'benchmarks'

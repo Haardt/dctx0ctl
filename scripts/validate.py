@@ -81,7 +81,11 @@ def validation_sources():
     paths.extend(ROOT.glob(".dctx0/testing/rust/*.rs"))
     paths.extend(ROOT / ".dctx0/testing/rust" / name for name in ("Cargo.toml", "Cargo.lock"))
     paths.append(adaptive / 'production-frozen.json')
-    return paths
+    # Recursive harness inventories also see Cargo fingerprints after their
+    # first build. These are outputs, not reviewed compilation inputs. Keep
+    # source/configuration JSON (and embedded UI dist assets) in the inventory.
+    return [path for path in paths
+            if not {'target', 'node_modules'}.intersection(path.relative_to(ROOT).parts)]
 
 
 def atomic(path, data):
