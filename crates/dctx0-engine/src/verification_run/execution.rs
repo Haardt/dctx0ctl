@@ -101,7 +101,11 @@ fn preserve_prefix(
     artifacts: &mut Vec<VerificationArtifact>,
     id: &str,
     worker: &NativeWorker,
+    result: &VerificationResult,
 ) -> Result<()> {
+    if matches!(result, VerificationResult::Pass) {
+        return Ok(());
+    }
     artifacts.push(VerificationArtifact::new(
         "application/vnd.dctx0.session+json",
         serde_json::to_vec(
@@ -340,7 +344,7 @@ pub(super) async fn execute(
                 }
                 Err(error) => failure(&error),
             };
-            preserve_prefix(artifacts, &id, &worker)?;
+            preserve_prefix(artifacts, &id, &worker, &result)?;
             record(run, pending, &worker, result, started, events_supported);
             if fatal {
                 aborted(run, &mut worker, &id).await;
@@ -390,14 +394,22 @@ pub(super) async fn execute(
                 run.open_obligations
                     .extend(assessed.assessment.open.clone());
             }
-            artifacts.push(VerificationArtifact::new(
-                "application/vnd.dctx0.operation-assessment+json",
-                serde_json::to_vec(&serde_json::json!({"case_id":input.id,"assessment":result}))?,
-            ));
+
+            if !(result
+                .as_ref()
+                .is_ok_and(|r| matches!(r.assessment.result, VerificationResult::Pass)))
+            {
+                artifacts.push(VerificationArtifact::new(
+                    "application/vnd.dctx0.operation-assessment+json",
+                    serde_json::to_vec(
+                        &serde_json::json!({"case_id":input.id,"assessment":result}),
+                    )?,
+                ));
+            }
             let result = result
                 .map(|r| r.assessment.result)
                 .unwrap_or_else(|e| failure(&e));
-            preserve_prefix(artifacts, &input.id, &worker)?;
+            preserve_prefix(artifacts, &input.id, &worker, &result)?;
             record(run, pending, &worker, result, started, events_supported);
             if fatal {
                 aborted(run, &mut worker, &input.id).await;
@@ -456,15 +468,23 @@ pub(super) async fn execute(
                 if let Ok(report) = &assessed {
                     run.open_obligations.extend(report.assessment.open.clone());
                 }
-                artifacts.push(VerificationArtifact::new(
-                    "application/vnd.dctx0.operation-assessment+json",
-                    serde_json::to_vec(&serde_json::json!({"case_id":id,"assessment":assessed}))?,
-                ));
+
+                if !(assessed
+                    .as_ref()
+                    .is_ok_and(|r| matches!(r.assessment.result, VerificationResult::Pass)))
+                {
+                    artifacts.push(VerificationArtifact::new(
+                        "application/vnd.dctx0.operation-assessment+json",
+                        serde_json::to_vec(
+                            &serde_json::json!({"case_id":id,"assessment":assessed}),
+                        )?,
+                    ));
+                }
                 assessed.map(|report| report.assessment.result)
             };
             let fatal = result.is_err();
             let result = result.unwrap_or_else(|e| failure(&e));
-            preserve_prefix(artifacts, &id, &worker)?;
+            preserve_prefix(artifacts, &id, &worker, &result)?;
             record(
                 run,
                 pending,
@@ -511,7 +531,7 @@ pub(super) async fn execute(
                 let result = result
                     .map(|r| r.assessment.result)
                     .unwrap_or_else(|e| failure(&e));
-                preserve_prefix(artifacts, &case.id, &worker)?;
+                preserve_prefix(artifacts, &case.id, &worker, &result)?;
                 record(run, pending, &worker, result, started, events_supported);
                 if fatal {
                     aborted(run, &mut worker, &case.id).await;
@@ -542,12 +562,17 @@ pub(super) async fn execute(
             .execute_example(ir, example, &plan.budgets, cancel)
             .await;
         let fatal = result.is_err();
-        artifacts.push(VerificationArtifact::new(
-            "application/vnd.dctx0.example-assessment+json",
-            serde_json::to_vec(&result)?,
-        ));
+        if !result
+            .as_ref()
+            .is_ok_and(|r| matches!(r.result, VerificationResult::Pass))
+        {
+            artifacts.push(VerificationArtifact::new(
+                "application/vnd.dctx0.example-assessment+json",
+                serde_json::to_vec(&result)?,
+            ));
+        }
         let result = result.map(|r| r.result).unwrap_or_else(|e| failure(&e));
-        preserve_prefix(artifacts, &example.subject, &worker)?;
+        preserve_prefix(artifacts, &example.subject, &worker, &result)?;
         record(run, pending, &worker, result, started, events_supported);
         if fatal {
             aborted(run, &mut worker, &example.subject).await;
@@ -581,10 +606,18 @@ pub(super) async fn execute(
                 .execute_lifecycle(ir, lifecycle, path, input, &plan.budgets, cancel)
                 .await;
             let fatal = result.is_err();
-            artifacts.push(VerificationArtifact::new(
-                "application/vnd.dctx0.lifecycle-assessment+json",
-                serde_json::to_vec(&serde_json::json!({"case_id":path.id,"assessment":result}))?,
-            ));
+
+            if !(result
+                .as_ref()
+                .is_ok_and(|r| matches!(r.assessment.result, VerificationResult::Pass)))
+            {
+                artifacts.push(VerificationArtifact::new(
+                    "application/vnd.dctx0.lifecycle-assessment+json",
+                    serde_json::to_vec(
+                        &serde_json::json!({"case_id":path.id,"assessment":result}),
+                    )?,
+                ));
+            }
             let failing_assessment = result
                 .as_ref()
                 .ok()
@@ -595,7 +628,7 @@ pub(super) async fn execute(
             let result = result
                 .map(|r| r.assessment.result)
                 .unwrap_or_else(|e| failure(&e));
-            preserve_prefix(artifacts, &path.id, &worker)?;
+            preserve_prefix(artifacts, &path.id, &worker, &result)?;
             record(run, pending, &worker, result, started, events_supported);
             if let Some(assessment) = failing_assessment {
                 let shrink_started = Instant::now();

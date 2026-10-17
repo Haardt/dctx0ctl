@@ -55,7 +55,11 @@ pub(crate) fn benchmark(
     }
     if matches!(
         phase,
-        Phase::VerificationHistoryPublish | Phase::VerificationHistoryRead
+        Phase::VerificationHistoryPublish
+            | Phase::VerificationHistoryRead
+            | Phase::VerificationHistoryLargePublish
+            | Phase::VerificationHistoryLargeRead
+            | Phase::VerificationHistorySummary
     ) {
         return crate::verification_history_benchmark::benchmark(
             &sources, &ir, phase, iterations, output,

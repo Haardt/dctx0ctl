@@ -78,3 +78,11 @@ test('task depth follows prerequisites or dependents and excludes unrelated wave
  const {taskNeighborhood}=await import('./task-focus');const edges=[{task_id:'9',prerequisite_id:'4',condition:'delivered',reason:'type'},{task_id:'4',prerequisite_id:'1',condition:'PASS',reason:'result'},{task_id:'12',prerequisite_id:'9',condition:'delivered',reason:'consumer'},{task_id:'8',prerequisite_id:'2',condition:'delivered',reason:'unrelated'}];
  expect([...taskNeighborhood('9',0,'both',edges)]).toEqual(['9']);expect([...taskNeighborhood('9',1,'prerequisites',edges)]).toEqual(['9','4']);expect([...taskNeighborhood('9',Infinity,'prerequisites',edges)]).toEqual(['9','4','1']);expect([...taskNeighborhood('9',1,'dependents',edges)]).toEqual(['9','12']);expect([...taskNeighborhood('9',1,'both',edges)]).toEqual(['9','4','12']);expect(taskNeighborhood('',1,'both',edges).size).toBe(0);
 });
+
+test('task checks identify pruned native reports without changing the historical verdict',async()=>{
+ const {prunedEvidence}=await import('./model');const id='a'.repeat(64);
+ const summary={id,created_at:'then',result:{status:'PASS' as const},selected_subjects:['A'],details_available:false,pruned_at:'now',case_count:'1',outcomes:['1','0','0']};
+ const data={...site,records:{...site.records,run_summaries:[summary]}};
+ expect(prunedEvidence([{report:id},{report:JSON.stringify({native_run:id})},{report:'external.txt'},null,1],data)).toEqual([summary]);
+ expect(prunedEvidence([{report:id}],{...data,records:{...data.records,run_summaries:[{...summary,details_available:true}]}})).toEqual([]);
+});

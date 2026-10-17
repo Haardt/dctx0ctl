@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "scope": "Full workspace execution plus supplemental CLI export and store boundary tests; production Rust unchanged between runs; supplemental tests add no production exclusions",
+  "function_merge": "OR execution counts by source filename and complete first region span; baseline identity aggregation exactly reproduces LLVM totals",
+  "raw_workspace_functions": {
+    "count": 2842,
+    "covered": 2750,
+    "percent": 96.76284306826179
+  },
+  "functions": {
+    "count": 2842,
+    "covered": 2757,
+    "percent": 97.009148486981
+  },
+  "lines": {
+    "lines": 34520,
+    "covered_lines": 33640,
+    "line_percent": 97.45075318655852
+  },
+  "additional_functions": [
+    {
+      "file": "crates/dctx0-store/src/site.rs",
+      "span": [
+        71,
+        43,
+        71,
+        86
+      ]
+    },
+    {
+      "file": "crates/dctx0-store/src/site.rs",
+      "span": [
+        261,
+        1,
+        265,
+        52
+      ]
+    },
+    {
+      "file": "crates/dctx0-store/src/verification/maintenance.rs",
+      "span": [
+        180,
+        28,
+        180,
+        35
+      ]
+    },
+    {
+      "file": "crates/dctx0-store/src/verification/maintenance.rs",
+      "span": [
+        291,
+        28,
+        291,
+        35
+      ]
+    },
+    {
+      "file": "crates/dctx0-store/src/tasks/actions.rs",
+      "span": [
+        553,
+        34,
+        553,
+        41
+      ]
+    },
+    {
+      "file": "crates/dctx0-store/src/verification/maintenance.rs",
+      "span": [
+        151,
+        26,
+        151,
+        33
+      ]
+    },
+    {
+      "file": "crates/dctx0-store/src/verification/codec.rs",
+      "span": [
+        28,
+        5,
+        28,
+        47
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "path": "target/coverage/llvm.json",
+      "sha256": "443189af5b3c7d98800f7342ba82e22ad774cf6f1830e198009a7ce6b2b5882b"
+    },
+    {
+      "path": "target/coverage/workspace.lcov",
+      "sha256": "c9c9956acf30fdc0bd3448d3f8a706d4a8759a2eeadf6324e806c966cb5c0f05"
+    },
+    {
+      "path": "target/coverage/supplement-storage-llvm.json",
+      "sha256": "cbe980e5f62229df2ecd67ec2531f068a8057c89c2067483f07ccc5b0b55dfb9"
+    },
+    {
+      "path": "target/coverage/supplement-storage.lcov",
+      "sha256": "49210d39032eea1d899217de9f8439babe5a52b1d83ab70bd48013e9149b7b4d"
+    }
+  ],
+  "threshold": 97,
+  "exclusions_added": [],
+  "passed": true
+}

@@ -1,94 +1,137 @@
-# Native Abhängigkeitsauflösung: festes Limit von 1.000 Referenzen
+# Übermäßiger Speicherverbrauch der lokalen Prüfhistorie
 
-## Auftrag
+**Stand 17.10.2026:** Speichermodell und Bereinigung sind umgesetzt. Die ursprünglichen Messungen stehen unter „Befund“, das Ergebnis unter „Umsetzung“.
 
-Behebe die Skalierungsgrenze der nativen Abhängigkeitsauflösung im Repository
-`/home/massenhaft/workspaces/conpinion/dctx0ctl`.
+## Befund
 
-## Problem und bestätigter Befund
+Untersucht am 17.10.2026 anhand von
+`../company-manager/spec/.dctx0ctl/state.sqlite3` und dem Speichercode dieses
+Repositories. Die Datenbank belegt 19.684.085.760 Bytes, also rund 19,68 GB
+(18,33 GiB). Die folgenden Messungen stammen aus lesenden Abfragen; Datenbank und
+Implementierung wurden nicht verändert.
 
-In `crates/dctx0-engine/src/verification_run/dependencies.rs`, bei der Prüfung
-`resolved.len() >= 1000` (zum Untersuchungszeitpunkt Zeile 277), beendet
-`resolve_native` die Auflösung nach 1.000 Referenzen. Größere
-TypeScript-Anwendungen erreichen dieses feste Limit und erhalten:
+| Bereich                              | Umfang                  | Belegte SQLite-Seiten inklusive Overhead |
+| ------------------------------------ | ----------------------- | ---------------------------------------: |
+| `verification_runs`                  | 400 Läufe               |                     13.653.172.224 Bytes |
+| `verification_artifacts`             | 94.458 Artefakte        |                      3.568.537.600 Bytes |
+| `snapshots`                          | 104 Snapshots           |                      1.041.354.752 Bytes |
+| `verification_run_artifacts`         | 2.357.478 Verknüpfungen |                        335.142.912 Bytes |
+| Index der Run-Artefakt-Verknüpfungen |                         |                        390.909.952 Bytes |
 
-```text
-DEPENDENCY_RESOLUTION_BUDGET
-Native dependency resolution exceeded 1000 references
-```
+Die übrige Belegung entfällt auf Taskhistorie, Graphdaten und weitere Indizes.
+`PRAGMA freelist_count` ergab 0: Die Größe entsteht durch gespeicherte Inhalte,
+nicht durch bereits gelöschte Datensätze. Ein `VACUUM` allein löst das Problem
+nicht.
 
-Dadurch bleibt ihre Provenienz unvollständig und das Verifikationsgate geschlossen.
-Das wurde mit dem offiziellen Release v0.2.3 am Company Manager reproduziert.
-Die Meldung der Unvollständigkeit ist korrekt; zu beheben ist die feste
-Skalierungsgrenze, nicht diese Schutzwirkung. Gezählt werden Referenzen, nicht
-notwendigerweise 1.000 unterschiedliche Abhängigkeiten.
+Ein besonders großer Lauf enthält 10.554 Testfälle und 12.502 Artefaktverweise.
+Sein gespeichertes JSON umfasst 241.892.140 Zeichen; bei erneuter kompakter
+Serialisierung entfallen rund 239,1 MB auf `cases`, 1,76 MB auf
+Artefaktverweise und 0,71 MB auf Provenienz. Die Zahlen für JSON-Felder sind
+Serialisierungsmessungen und nicht mit belegten SQLite-Seiten gleichzusetzen.
 
-Der bestehende Test
-`native_dependency_budget_retains_its_executed_prefix_and_reports_incompleteness`
-in derselben Datei verwendet 1.001 Referenzen auf dieselbe Datei und prüft den
-erhaltenen Präfix. Der Integrationstest
-`exhausted_native_dependency_budget_cannot_adopt_otherwise_passing_contracts`
-in `crates/dctx0-engine/tests/verification_run.rs` sichert die verhinderte
-Aufgabenübernahme ab.
+Eine zlib-Kompression des UTF-8-Inhalts dieses einzelnen Laufberichts ergibt
+3.744.412 Bytes: rund 98,5 Prozent weniger. Das ist ein konkreter Einzelbefund,
+keine gemessene Kompressionsrate für die gesamte Datenbank.
 
-## Erwartete Lösung
+Zusätzlich liegen im Company-Manager-Projekt rund 3,4 GiB exportierte
+Prüfberichte unter `.artifacts/verification/`. Diese sind nicht Teil der
+Datenbankbelegung, verstärken aber den gesamten Speicherverbrauch.
 
-- Ersetze das feste Limit durch ein explizites, begrenztes und konfigurierbares
-  Budget. Prüfe, ob wiederholte identische Auflösungen effizient
-  zwischengespeichert werden können, ohne Referenzen aus der Evidenz zu verlieren.
-- Binde die wirksame Konfiguration an die Verifikationsevidenz und berücksichtige
-  Replay sowie Aufgabenübernahme.
-- Bei Budgetüberschreitung müssen die bereits gewonnenen Beobachtungen erhalten
-  bleiben, die Provenienz unvollständig bleiben und automatische Übernahme
-  verhindert werden.
-- Erhöhe nicht lediglich die Konstante und entferne keine Schutzprüfung.
-- Dokumentiere Konfiguration, Standardwert, zulässige Grenzen und Diagnose.
+## Ursachen im Code
 
-## Erforderliche Nachweise
+- `crates/dctx0-store/src/verification.rs`, `record_verification_run`:
+  `serde_json::to_string(run)` serialisiert den vollständigen Run;
+  `verification_runs.data` speichert ihn unkomprimiert als TEXT.
+- Dieselbe Funktion speichert Artefaktinhalte unkomprimiert als BLOB in
+  `verification_artifacts`. Artefakte werden anhand ihres Inhalts-Hashes
+  dedupliziert; unterschiedliche vollständige Run-Berichte werden separat
+  gespeichert.
+- `crates/dctx0-engine/src/verification_run/execution.rs`, `record`:
+  Beobachtungen, Events, Ressourcen und Zustände aus der Sitzung werden in
+  `VerificationCaseRecord` übernommen und damit Teil des vollständigen Runs.
+- In derselben Datei schreibt `preserve_prefix` Sitzungsevidenz zusätzlich als
+  `application/vnd.dctx0.session+json`-Artefakt. Weitere Assessment-Artefakte
+  enthalten ebenfalls Ausführungsergebnisse. Es gibt damit inhaltliche
+  Überschneidungen zwischen Run-Bericht und Artefakten; diese sind nicht in jedem
+  Fall identische oder ohne Prüfung austauschbare Darstellungen.
 
-- Eine tatsächliche Abhängigkeitskette mit mehr als 1.000 Referenzen lässt sich mit
-  ausreichendem Budget vollständig erfassen.
-- Ein kleineres Budget erzeugt weiterhin den korrekten Unvollständigkeitsbefund.
-- Wiederholte Referenzen, Zyklen und fehlschlagende Auflösungen verlieren keine
-  Evidenz.
-- Bestehende Tests zum Budgetabbruch und zur verhinderten Aufgabenübernahme bleiben
-  erhalten beziehungsweise werden fachlich angepasst.
-- Führe die vorgesehenen Repository-Gates aus und dokumentiere die tatsächlich
-  ausgeführten Prüfungen.
+## Gewünschte Änderung
 
-## Reproduktion am Company Manager
+### Standardmäßig nur die letzten drei Runs behalten
 
-Arbeitsverzeichnis:
-`/home/massenhaft/workspaces/conpinion/company-manager`
+Produktwunsch des Maintainers: Im Standard sollen nur die letzten drei
+Prüfläufe gespeichert bleiben. Eine unbegrenzt wachsende lokale Historie ist
+nicht erwünscht.
 
-```bash
-bun run spec:check
-bun run spec:verify --scope=platform-runners
-```
+Die Aufbewahrung sollte pro Projekt gelten. Vor der Umsetzung ist festzulegen,
+ob die drei letzten Läufe insgesamt genügen oder ob unterschiedliche Prüfscopes
+getrennte Aufbewahrung benötigen. Ebenso müssen relevante Tasknachweise,
+Adoptionen und Replay-Verweise berücksichtigt werden: Eine Bereinigung darf
+keine weiter gültigen Nachweise stillschweigend unlesbar machen oder einen
+historischen PASS ohne seine Evidenz als weiterhin belegbar darstellen.
 
-Dabei sicherstellen, dass das zu prüfende dctx0-Binary im `PATH` liegt. Das
-SHA-256-geprüfte Release v0.2.3 wurde projektlokal abgelegt. Damit lässt sich der
-bestätigte Lauf ausdrücklich so wiederholen:
+Nach erfolgreicher Veröffentlichung eines neuen Runs sollen ältere, gemäß der
+festgelegten Regel entbehrliche Runs samt Verknüpfungen entfernt werden.
+Artefakte dürfen erst entfernt werden, wenn sie von keinem verbleibenden
+Nachweis mehr benötigt werden. Die Bereinigung muss konsistent und bei
+Unterbrechungen wiederholbar sein. Nach dem Löschen muss auch geklärt sein, wie
+bereits belegter Dateispeicher tatsächlich zurückgegeben wird.
 
-```bash
-PATH="$PWD/.artifacts/toolchains/dctx0-v0.2.3:$PATH" \
-  bun run spec:verify --scope=platform-runners
-```
+### Zusätzliche vollständige Speicherung des Runs hinterfragen
 
-Mit v0.2.3 wurden 6.246/6.246 Fälle erfasst, aber die Provenienz blieb wegen
-`DEPENDENCY_RESOLUTION_BUDGET` unvollständig. Das Ergebnis war `UNKNOWN`,
-Exitcode 1. Der gezielte Bericht liegt unter
-`.artifacts/verification/native-scope-platform-runners.json`.
+Produktfrage des Maintainers: Muss der vollständige Run noch einmal separat
+persistiert werden, wenn die zugrunde liegende Evidenz bereits in Artefakten
+liegt?
 
-Dieser gezielte Lauf ersetzt keine vollständige Company-Manager-Verifikation.
+Prüfen, ob ein kompakter Run-Datensatz mit Identität, Provenienz, Scope,
+Gesamtergebnis und Artefaktverweisen genügt und Detailberichte bei Bedarf aus
+kanonischer Evidenz aufgebaut werden können. Dabei konkret feststellen, welche
+Informationen heute ausschließlich im Run stehen und welche tatsächlich doppelt
+vorliegen. Erforderliche Informationen für History, Show, Replay und
+Tasknachweise müssen erhalten bleiben; keine pauschale Entfernung des
+Run-Inhalts ohne diesen Abgleich.
 
-## Abgrenzung und Arbeitsstand
+Falls eine vollständige zusätzliche Run-Darstellung erforderlich bleibt, ihre
+Notwendigkeit dokumentieren und sie komprimiert speichern. Auch für große
+Artefakte Kompression prüfen. Inhalts-Hashes und bestehende Integritätsprüfungen
+müssen sich weiterhin eindeutig auf die ursprünglichen Inhalte beziehen.
 
-Veraltete Quellreviews, fehlende Adapter-Beobachtungen und offene manuelle Pflichten
-im Company Manager sind eigenständige Befunde. Sie dürfen durch diesen Fix weder
-automatisch freigegeben noch verborgen werden. Ein behobenes Abhängigkeitslimit
-allein bedeutet deshalb keinen vollständigen Company-Manager-PASS.
+## Erwartete Validierung
 
-Im dctx0ctl-Checkout bestand zum Untersuchungszeitpunkt eine fremde Änderung an
-`artice-medium.md`. Diese erhalten und nicht bearbeiten. Vor Implementierung die
-aktuellen Repository-Anweisungen und den tatsächlichen Arbeitsstand erneut lesen.
+- Mehr als drei Läufe ausführen und die vereinbarte Aufbewahrung pro Projekt
+  sowie das Verhalten unterschiedlicher Scopes nachweisen.
+- Gemeinsam verwendete Artefakte erhalten; tatsächlich unreferenzierte Inhalte
+  bereinigen. Andere Projekte dürfen nicht betroffen sein.
+- History, Show, Replay und Tasknachweise für verbleibende Runs sowie das
+  verständliche Verhalten bei entfernten Runs prüfen.
+- Konsistenz bei Fehlern oder Unterbrechungen der Bereinigung prüfen.
+- Mit repräsentativen großen Runs den belegten Speicher vor und nach der
+  Änderung messen; logische Datenmenge und tatsächliche Dateigröße getrennt
+  ausweisen.
+
+Der ursprüngliche Speicherbefund und die damaligen Änderungswünsche bleiben oben
+zur Einordnung erhalten. Die Umsetzung ist unten dokumentiert.
+
+
+## Umsetzung am 17.10.2026
+
+Pro Projekt bleiben drei vollständige Runs über alle Scopes hinweg erhalten.
+Ältere Runs behalten kompakte, ausdrücklich als bereinigt markierte Nachweise.
+Cases werden einmal komprimiert und nach Inhalt dedupliziert gespeichert;
+zusätzliche Session- und Einzel-Assessment-Diagnosen entstehen nur bei FAIL,
+UNKNOWN und unvollständiger Ausführung. History-Abfragen laden Zusammenfassungen,
+Taskdetails zeigen die aktuelle Verfügbarkeit ihrer historischen Run-Evidenz.
+
+Die Company-Manager-Datenbank wurde auf ausdrücklichen Wunsch **ohne Backup**
+bereinigt. Bis zur Bereinigung war sie auf 409 Runs angewachsen. Ihre Dateigröße
+sank von 19.740.737.536 auf 1.764.896.768 Bytes (−91,06 %); der Exportordner sank
+von 3.533.094.515 auf 262.330.742 Bytes (−92,58 %). Alle 20 übrigen Tabellen mit
+1.139.345 Datensätzen haben unveränderte Inhaltsprüfsummen. Die letzten drei
+Run-IDs blieben erhalten; Integritäts- und Fremdschlüsselprüfung bestehen.
+
+Details zu Schema 5, Kompatibilität, Wartungsbefehlen und Messumfang stehen in
+[Verification history storage](docs/site/src/reference/verification-storage.md).
+Die konkrete Bereinigung ist in
+[verification-storage-company-manager.json](docs/verification-storage-company-manager.json)
+festgehalten. Vollständige entfernte Details lassen sich ohne Sicherung nicht
+wiederherstellen.

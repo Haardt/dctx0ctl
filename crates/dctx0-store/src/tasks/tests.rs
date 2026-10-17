@@ -27,6 +27,7 @@ fn legacy_readers_never_migrate_and_writers_preserve_existing_history() {
     let mut legacy = Store {
         connection,
         mode: AccessMode::ReadWrite,
+        maintenance_lock: None,
     };
     let input = snapshot();
     legacy.publish("p", &input, None).unwrap();
@@ -38,7 +39,7 @@ fn legacy_readers_never_migrate_and_writers_preserve_existing_history() {
     assert_eq!(reader.latest("p").unwrap().unwrap().id, input.id);
     drop(reader);
     let writer = Store::open(&file, AccessMode::ReadWrite).unwrap();
-    assert_eq!(schema(&writer.connection).unwrap(), 4);
+    assert_eq!(schema(&writer.connection).unwrap(), 5);
     assert_eq!(writer.history("p").unwrap().len(), 1);
     assert_eq!(writer.latest("p").unwrap().unwrap().id, input.id);
     assert!(writer.task_check("missing").is_err());
@@ -59,6 +60,7 @@ fn every_publication_write_failure_rolls_back_the_complete_plan() {
         let mut store = Store {
             connection: Connection::open_in_memory().unwrap(),
             mode: AccessMode::ReadWrite,
+            maintenance_lock: None,
         };
         initialize(&mut store.connection, 0, AccessMode::ReadWrite).unwrap();
         let input = snapshot();
@@ -88,6 +90,7 @@ fn missing_states_and_corrupt_reports_are_explicit_errors() {
     let mut store = Store {
         connection: Connection::open_in_memory().unwrap(),
         mode: AccessMode::ReadWrite,
+        maintenance_lock: None,
     };
     initialize(&mut store.connection, 0, AccessMode::ReadWrite).unwrap();
     let input = snapshot();
@@ -132,6 +135,7 @@ fn prepared() -> (Store, Snapshot, Plan) {
     let mut store = Store {
         connection: Connection::open_in_memory().unwrap(),
         mode: AccessMode::ReadWrite,
+        maintenance_lock: None,
     };
     initialize(&mut store.connection, 0, AccessMode::ReadWrite).unwrap();
     let input = snapshot();
@@ -172,6 +176,7 @@ fn missing_tables_snapshots_and_updated_row_failures_never_reset_state() {
         let mut store = Store {
             connection: Connection::open_in_memory().unwrap(),
             mode: AccessMode::ReadWrite,
+            maintenance_lock: None,
         };
         initialize(&mut store.connection, 0, AccessMode::ReadWrite).unwrap();
         let input = snapshot();
@@ -195,6 +200,7 @@ fn missing_tables_snapshots_and_updated_row_failures_never_reset_state() {
     let mut store = Store {
         connection: Connection::open_in_memory().unwrap(),
         mode: AccessMode::ReadWrite,
+        maintenance_lock: None,
     };
     initialize(&mut store.connection, 0, AccessMode::ReadWrite).unwrap();
     let input = snapshot();
@@ -473,7 +479,7 @@ fn schema_two_readers_preserve_bytes_and_writers_add_profile_tables() {
     drop(reader);
     assert_eq!(before, fs::read(&file).unwrap());
     let writer = Store::open(&file, AccessMode::ReadWrite).unwrap();
-    assert_eq!(schema(&writer.connection).unwrap(), 4);
+    assert_eq!(schema(&writer.connection).unwrap(), 5);
     let count: i64 = writer
         .connection
         .query_row("SELECT COUNT(*) FROM execution_bundles", [], |r| r.get(0))
@@ -1042,6 +1048,33 @@ fn explicitly_linked_deliveries_publish_idempotent_receipts_and_links_atomically
     different[0].result.summary = "Different publication".into();
     assert!(publish(&mut store, &different).is_err());
     assert_eq!(store.task_sequence("p").unwrap(), seq);
+    let expected = store
+        .task_delivery_publication("p", &run_id)
+        .unwrap()
+        .unwrap();
+    let mut run = store.verification_run("p", &run_id).unwrap().run;
+    let artifacts = run
+        .artifacts
+        .iter()
+        .map(|a| store.verification_artifact(&run_id, &a.hash).unwrap())
+        .collect::<Vec<_>>();
+    for n in 0..3 {
+        run.started_at_unix_ns = (10000 + n).to_string();
+        store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+    }
+    assert!(matches!(
+        store.verification_run("p", &run_id),
+        Err(Error::DetailsPruned(_))
+    ));
+    // This returns the original receipt; it never creates fresh proof or events.
+    assert_eq!(
+        serde_json::to_value(publish(&mut store, &deliveries).unwrap()).unwrap(),
+        serde_json::to_value(expected).unwrap()
+    );
+    assert!(publish(&mut store, &different).is_err());
+    assert_eq!(store.task_sequence("p").unwrap(), seq);
 }
 
 #[test]
@@ -1098,6 +1131,7 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
         "missing-manifest",
         "duplicate-manifest",
         "corrupt-manifest",
+        "malformed-manifest",
         "manual-not-in-manifest",
         "unsupported-open-obligation",
         "manual-primary-mismatch",
@@ -1210,6 +1244,20 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
                     .clone();
                 run.artifacts.push(reference);
             }
+            "malformed-manifest" => {
+                let reference = run
+                    .artifacts
+                    .iter_mut()
+                    .find(|artifact| {
+                        artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                    })
+                    .unwrap();
+                let artifact =
+                    crate::VerificationArtifact::new(&reference.media_type, b"{invalid".to_vec());
+                store.connection.execute("INSERT INTO verification_artifacts(hash,media_type,bytes) VALUES(?1,?2,?3)", params![artifact.reference.hash,artifact.reference.media_type,artifact.contents]).unwrap();
+                store.connection.execute("UPDATE verification_run_artifacts SET artifact_hash=?1 WHERE run_id=?2 AND artifact_hash=?3", params![artifact.reference.hash,run_id,reference.hash]).unwrap();
+                *reference = artifact.reference;
+            }
             "corrupt-manifest" => {
                 let reference = run
                     .artifacts
@@ -1233,26 +1281,31 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
         store
             .connection
             .execute(
-                "UPDATE verification_runs SET data=?1 WHERE id=?2",
+                "UPDATE verification_runs SET data=?1,corpus_hash=NULL WHERE id=?2",
                 params![serde_json::to_string(&run).unwrap(), run_id],
             )
             .unwrap();
         let before = store.task_session("p", None, None).unwrap();
-        assert!(
-            store
-                .publish_task_deliveries(
-                    "p",
-                    TaskDeliveryPublication {
-                        actor: "explicit-publisher",
-                        pin: &pin,
-                        deliveries: &deliveries,
-                        profiles: (&manifest, &docs),
-                        run_id: Some(&run_id)
-                    }
-                )
-                .is_err(),
-            "{reason}"
-        );
+        let rejected = store
+            .publish_task_deliveries(
+                "p",
+                TaskDeliveryPublication {
+                    actor: "explicit-publisher",
+                    pin: &pin,
+                    deliveries: &deliveries,
+                    profiles: (&manifest, &docs),
+                    run_id: Some(&run_id),
+                },
+            )
+            .unwrap_err();
+        if reason == "malformed-manifest" {
+            assert!(
+                rejected
+                    .to_string()
+                    .contains("Invalid mandatory case manifest"),
+                "{rejected}"
+            );
+        }
         assert_eq!(
             serde_json::to_value(store.task_session("p", None, None).unwrap()).unwrap(),
             serde_json::to_value(before).unwrap(),

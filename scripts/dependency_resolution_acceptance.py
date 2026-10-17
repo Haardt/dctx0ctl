@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Real Bun dependency graphs, coupled to release speed/RSS measurements; no adoption."""
+from verification_storage import saved_verification_artifacts
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -7,7 +8,6 @@ import json
 import os
 from pathlib import Path
 import platform
-import sqlite3
 import statistics
 import subprocess
 import tempfile
@@ -31,8 +31,7 @@ def run(command, cwd):
 
 
 def artifacts(spec, report):
-    with sqlite3.connect(f'file:{spec / ".dctx0ctl/state.sqlite3"}?mode=ro', uri=True) as database:
-        rows = database.execute('SELECT a.media_type,a.bytes,a.hash FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?', (report['evidence']['id'],)).fetchall()
+    rows = saved_verification_artifacts(spec / ".dctx0ctl/state.sqlite3", report['evidence']['id'])
     result = {}
     for media, raw, expected in rows:
         if hashlib.sha256(raw).hexdigest() != expected:

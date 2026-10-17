@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-17T09:01:00.133976+00:00",
+  "status": "implementation complete; scoped checks and merged coverage pass; aggregate run remains explicitly failed/incomplete",
+  "storage": {
+    "report": "benchmarks/history/storage/20261017T085811.566463Z-3987.json",
+    "status": "complete",
+    "scope": "focused",
+    "checks": [
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--locked"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--lib",
+          "--test",
+          "verification_run",
+          "storage_",
+          "--locked"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-cli",
+          "--test",
+          "verification_history",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--release",
+          "-p",
+          "dctx0-cli",
+          "--all-features",
+          "--locked"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "workloads": 12,
+    "source_hash": "7b078c26d97dbcb7cdbdcae5c4543539e5604528cad71d5d767fc8f25aa40a45",
+    "source_unchanged": true,
+    "measurements": {
+      "cinema/compile": {
+        "samples": [
+          {
+            "elapsed_ms": 9.166846,
+            "process_wall_ms": 23.303154000132054,
+            "peak_rss_bytes": 10768384
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 9.166846,
+        "peak_rss_bytes": 10768384,
+        "workload_version": 1
+      },
+      "cinema/verification-generate": {
+        "samples": [
+          {
+            "elapsed_ms": 47.38677,
+            "process_wall_ms": 57.11361499970735,
+            "peak_rss_bytes": 13950976
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 47.38677,
+        "peak_rss_bytes": 13950976,
+        "workload_version": 1
+      },
+      "cinema/verification-assess-unbound": {
+        "samples": [
+          {
+            "elapsed_ms": 0.247154,
+            "process_wall_ms": 10.386153999661474,
+            "peak_rss_bytes": 11972608
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 0.247154,
+        "peak_rss_bytes": 11972608,
+        "workload_version": 1
+      },
+      "cinema/verification-history-large-publish": {
+        "samples": [
+          {
+            "elapsed_ms": 5241.229539,
+            "process_wall_ms": 9768.518461999975,
+            "peak_rss_bytes": 299859968
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 5241.229539,
+        "peak_rss_bytes": 299859968,
+        "workload_version": 1
+      },
+      "cinema/verification-history-large-read": {
+        "samples": [
+          {
+            "elapsed_ms": 3007.605462,
+            "process_wall_ms": 7837.3261540000385,
+            "peak_rss_bytes": 293580800
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 3007.605462,
+        "peak_rss_bytes": 293580800,
+        "workload_version": 1
+      },
+      "cinema/verification-history-summary": {
+        "samples": [
+          {
+            "elapsed_ms": 0.380615,
+            "process_wall_ms": 5164.455769999677,
+            "peak_rss_bytes": 293756928
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 0.380615,
+        "peak_rss_bytes": 293756928,
+        "workload_version": 1
+      },
+      "cinema-go/compile": {
+        "samples": [
+          {
+            "elapsed_ms": 5.8796919999999995,
+            "process_wall_ms": 14.752306999980647,
+            "peak_rss_bytes": 10481664
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 5.8796919999999995,
+        "peak_rss_bytes": 10481664,
+        "workload_version": 1
+      },
+      "cinema-go/verification-generate": {
+        "samples": [
+          {
+            "elapsed_ms": 53.521462,
+            "process_wall_ms": 63.85115400007635,
+            "peak_rss_bytes": 14573568
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 53.521462,
+        "peak_rss_bytes": 14573568,
+        "workload_version": 1
+      },
+      "cinema-go/verification-assess-unbound": {
+        "samples": [
+          {
+            "elapsed_ms": 0.261154,
+            "process_wall_ms": 10.15930700032186,
+            "peak_rss_bytes": 11575296
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 0.261154,
+        "peak_rss_bytes": 11575296,
+        "workload_version": 1
+      },
+      "cinema-go/verification-history-large-publish": {
+        "samples": [
+          {
+            "elapsed_ms": 2256.069231,
+            "process_wall_ms": 4961.554154000169,
+            "peak_rss_bytes": 299704320
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 2256.069231,
+        "peak_rss_bytes": 299704320,
+        "workload_version": 1
+      },
+      "cinema-go/verification-history-large-read": {
+        "samples": [
+          {
+            "elapsed_ms": 3052.710846,
+            "process_wall_ms": 8032.097153999985,
+            "peak_rss_bytes": 294191104
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 3052.710846,
+        "peak_rss_bytes": 294191104,
+        "workload_version": 1
+      },
+      "cinema-go/verification-history-summary": {
+        "samples": [
+          {
+            "elapsed_ms": 0.360692,
+            "process_wall_ms": 3611.8661539999266,
+            "peak_rss_bytes": 295137280
+          }
+        ],
+        "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness",
+        "elapsed_ms": 0.360692,
+        "peak_rss_bytes": 295137280,
+        "workload_version": 1
+      }
+    }
+  },
+  "site": {
+    "report": "benchmarks/history/site/20261017T082659.978646Z-29808.json",
+    "passed": true,
+    "complete": true,
+    "source_unchanged": true
+  },
+  "baseline": "unchanged; reduced development samples, new workloads unassessed",
+  "build_environment": {
+    "first_party_optimization": "debug opt-level 0; release opt-level 3",
+    "sha2_dependency_debug_optimization": 3,
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "bun": "1.4.2"
+  },
+  "company_manager_maintenance": "docs/verification-storage-company-manager.json",
+  "installed_release_cli_sha256": "8095b555a82bd937a04fbec2b9f6e6624dd54ba360acf6aa437a7cb53fedf7da",
+  "workspace_log": "target/storage-workspace-certified.log",
+  "cinema_replay": {
+    "command": "cargo test -p dctx0-engine --test verification_run complete_cinema_plan -- --nocapture",
+    "passed": true,
+    "elapsed_ms": 381190,
+    "log": "target/storage-cinema-final.log",
+    "scope": "complete Cinema plan, six saved case replay kinds and real HTTP mutation; publication retains three full runs; imported reader fixtures are explicit"
+  },
+  "workspace_checkpoint": {
+    "log": "target/storage-workspace-certified.log",
+    "all_features_cargo_tests": "pass",
+    "cli_no_default_features": "pass",
+    "native_engine_tests": {
+      "passed": 41,
+      "failed": 0,
+      "elapsed_ms": 244570
+    },
+    "remaining": "none running; aggregate limitations recorded separately"
+  },
+  "native_acceptance": {
+    "go": {
+      "status": "PASS",
+      "report": "target/go-cinema/acceptance.json",
+      "log": "target/storage-go-release-final.log",
+      "cases": 5674,
+      "tasks": 105,
+      "mutations": 5,
+      "replay": true,
+      "binary": "target/release/dctx0"
+    },
+    "rust": {
+      "status": "PASS",
+      "report": "target/rust-cinema/acceptance.json",
+      "log": "target/storage-rust-release-final.log",
+      "cases": 5674,
+      "tasks": 105,
+      "mutations": 5,
+      "replay": true,
+      "binary": "target/release/dctx0"
+    }
+  },
+  "python_tests": {
+    "passed": 20,
+    "failed": 0,
+    "log": "target/storage-python-final.log",
+    "scope": "includes legacy/compressed artifact readers and corrupt-content rejection"
+  },
+  "coverage": {
+    "report": "docs/verification-storage-coverage.json",
+    "status": "pass, merged full workspace and supplemental test executions",
+    "lines_percent": 97.45075318655852,
+    "functions_percent": 97.009148486981,
+    "raw_workspace_functions_percent": 96.76284306826179,
+    "raw_reports_preserved": true,
+    "exclusions_added": [],
+    "full_workspace_tests": "all pass",
+    "supplemental_tests": "CLI export integration and 28 store unit tests all pass"
+  },
+  "clippy": {
+    "status": "pass",
+    "log": "target/storage-clippy-final.log",
+    "scope": "workspace all-targets all-features, warnings denied"
+  },
+  "aggregate": {
+    "report": "benchmarks/history/20261017T085959.530898Z-2806.json",
+    "validation_status": "fail",
+    "performance_status": "incomplete; source-change guard",
+    "workloads_retained": 73,
+    "causes": [
+      "Go ThreadSanitizer rejects this host 39-bit VMA layout",
+      "Formatting, Python compressed-artifact readers and coverage gaps were corrected during the aggregate run, so its source-change guards remain failed"
+    ],
+    "successful_followups": [
+      "final formatting and Clippy with warnings denied",
+      "20 Python tests",
+      "focused storage runner with unchanged final sources",
+      "complete Go and Rust release acceptance",
+      "full workspace coverage plus supplemental boundary-test coverage"
+    ],
+    "baseline_promoted": false
+  },
+  "native_performance": {
+    "go": {
+      "status": "complete",
+      "report": "target/go-cinema/performance.json",
+      "samples": 11,
+      "baseline": "unassessed"
+    },
+    "rust": {
+      "status": "complete",
+      "report": "target/rust-cinema/performance.json",
+      "samples": 11,
+      "baseline": "unassessed"
+    }
+  },
+  "formatting": "pass: cargo fmt --all -- --check"
+}

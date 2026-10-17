@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Coupled Gin/Axum acceptance: functional checks first, release speed/RSS last."""
+from verification_storage import saved_verification_artifacts
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -8,7 +9,6 @@ import os
 from pathlib import Path
 import platform
 import shutil
-import sqlite3
 import statistics
 import subprocess
 import sys
@@ -61,8 +61,7 @@ def project_copy(destination, language, framework):
 
 def native_details(project, data):
     details = {'engine_elapsed_ms': data['evidence']['run']['elapsed_us'] / 1000}
-    with sqlite3.connect(f'file:{project / "dctx0/.dctx0ctl/state.sqlite3"}?mode=ro', uri=True) as database:
-        rows = database.execute('SELECT a.media_type,a.bytes,a.hash FROM verification_artifacts a JOIN verification_run_artifacts r ON r.artifact_hash=a.hash WHERE r.run_id=?', (data['evidence']['id'],)).fetchall()
+    rows = saved_verification_artifacts(project / "dctx0/.dctx0ctl/state.sqlite3", data['evidence']['id'])
     for media, raw, expected in rows:
         if hashlib.sha256(raw).hexdigest() != expected: raise RuntimeError('Native metric artifact hash mismatch')
         if media in ('application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):

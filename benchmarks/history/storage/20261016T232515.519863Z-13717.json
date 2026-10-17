@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261016T232515.519863Z",
+  "status": "failed",
+  "source_hash_before": "e43e35b25a6630984e7f5cd862bbbd75bdbda17cbab2f2aa81ecd3dca0e6f034",
+  "revision": "f5b75f4b13eb1f98ed497fac2d6a360b576bab05",
+  "dirty_worktree": "M Bug.md\n M Cargo.lock\n M artice-medium.md\n M crates/dctx0-cli/src/args.rs\n M crates/dctx0-cli/src/benchmark.rs\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-cli/src/verification_history_benchmark.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/site/evidence.rs\n M crates/dctx0-engine/src/verification_run/execution.rs\n M crates/dctx0-store/Cargo.toml\n M crates/dctx0-store/src/lib.rs\n M crates/dctx0-store/src/site.rs\n M crates/dctx0-store/src/tasks/actions.rs\n M crates/dctx0-store/src/tasks/native_proof.rs\n M crates/dctx0-store/src/tasks/tests.rs\n M crates/dctx0-store/src/verification.rs\n M ui/site/src/main.tsx\n M ui/site/src/model.ts\n?? crates/dctx0-engine/src/verification_gc.rs\n?? crates/dctx0-engine/src/verification_gc/\n?? crates/dctx0-store/src/verification/\n?? scripts/storage_acceptance.py",
+  "toolchain": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "hardware": "aarch64",
+  "scope": "store",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--lib",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 34235.24492499928,
+      "peak_rss_bytes": 496066560,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T232515.519863Z/check-0.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 123473.09977699842,
+      "peak_rss_bytes": 941371392,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T232515.519863Z/check-1.log"
+    }
+  ],
+  "measurements": {
+    "cinema/compile": {
+      "samples": [
+        {
+          "elapsed_ms": 14.363923,
+          "process_wall_ms": 32.80830799849355,
+          "peak_rss_bytes": 10702848
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema/verification-generate": {
+      "samples": [
+        {
+          "elapsed_ms": 131.232,
+          "process_wall_ms": 159.09507700052927,
+          "peak_rss_bytes": 14176256
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema/verification-assess-unbound": {
+      "samples": [
+        {
+          "elapsed_ms": 0.58823,
+          "process_wall_ms": 35.69992299890146,
+          "peak_rss_bytes": 10895360
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema/verification-history-large-publish": {
+      "samples": [
+        {
+          "elapsed_ms": 12828.148385,
+          "process_wall_ms": 65537.38208100185,
+          "peak_rss_bytes": 1117360128
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema/verification-history-large-read": {
+      "samples": [
+        {
+          "elapsed_ms": 6131.51577,
+          "process_wall_ms": 21231.162386000506,
+          "peak_rss_bytes": 1115561984
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema/verification-history-summary": {
+      "samples": [
+        {
+          "elapsed_ms": 1.0089229999999998,
+          "process_wall_ms": 19938.740616998984,
+          "peak_rss_bytes": 845090816
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema-go/compile": {
+      "samples": [
+        {
+          "elapsed_ms": 54.219153999999996,
+          "process_wall_ms": 98.56161599964253,
+          "peak_rss_bytes": 9863168
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema-go/verification-generate": {
+      "samples": [
+        {
+          "elapsed_ms": 205.17692300000002,
+          "process_wall_ms": 286.00930699758464,
+          "peak_rss_bytes": 14147584
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema-go/verification-assess-unbound": {
+      "samples": [
+        {
+          "elapsed_ms": 0.704615,
+          "process_wall_ms": 119.5751539999037,
+          "peak_rss_bytes": 11616256
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema-go/verification-history-large-publish": {
+      "samples": [
+        {
+          "elapsed_ms": 22697.669848,
+          "process_wall_ms": 43760.545541998,
+          "peak_rss_bytes": 1117020160
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema-go/verification-history-large-read": {
+      "samples": [
+        {
+          "elapsed_ms": 4629.013538,
+          "process_wall_ms": 27022.404000999813,
+          "peak_rss_bytes": 1116721152
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    },
+    "cinema-go/verification-history-summary": {
+      "samples": [
+        {
+          "elapsed_ms": 0.25546199999999997,
+          "process_wall_ms": 23754.10800100144,
+          "peak_rss_bytes": 845615104
+        }
+      ],
+      "memory_scope": "Linux post-exec VmHWM; includes Rust core preparation, synthetic run and SQLite; no native compiler/harness"
+    }
+  },
+  "baseline": "unassessed: new storage workloads; existing baselines unchanged",
+  "settings": {
+    "samples": 1,
+    "iterations": 1,
+    "warmup": 1,
+    "profile": "release, no coverage",
+    "cache": "warm OS cache; fresh SQLite per process",
+    "synthetic_cases": 10000,
+    "synthetic_value_bytes_per_case": 24000
+  },
+  "source_hash_after": "211897d0d69c9a0963c6bd3c9aa8a3fbd3918e93ce0ff01e895b8e806f3ad642"
+}

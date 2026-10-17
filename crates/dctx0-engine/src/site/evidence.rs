@@ -43,6 +43,7 @@ struct RecordsView<'a> {
     check: &'a HistoryEntry,
     tasks: &'a Option<dctx0_tasks::Session>,
     runs: Vec<StoredRunView<'a>>,
+    run_summaries: &'a [dctx0_store::VerificationRunSummary],
     history: &'a [HistoryEntry],
     renames: &'a [dctx0_changes::RenameEvent],
     changes: &'a Option<Changes>,
@@ -51,32 +52,21 @@ struct RecordsView<'a> {
     requirement_snapshots: &'a std::collections::BTreeMap<String, Snapshot>,
     plan_diff: &'a Option<dctx0_tasks::PlanDiff>,
 }
-#[derive(Serialize)]
-struct CaseCorpus<'a> {
-    cases: &'a [VerificationCaseRecord],
-    required_cases: &'a BTreeSet<String>,
-}
-fn packed_cases(
-    cases: &[VerificationCaseRecord],
-    required_cases: &BTreeSet<String>,
-) -> Result<String> {
-    let mut value = serde_json::to_value(CaseCorpus {
-        cases,
-        required_cases,
-    })?;
+fn packed_cases(corpus: &[u8]) -> Result<String> {
+    let mut value: serde_json::Value =
+        serde_json::from_reader(flate2::read::GzDecoder::new(corpus))?;
     decimal_integers(&mut value);
     let mut encoder = flate2::GzBuilder::new()
         .mtime(0)
         .operating_system(255)
         .write(Vec::new(), flate2::Compression::default());
     serde_json::to_writer(&mut encoder, &value)?;
-    let bytes = encoder.finish()?;
-    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
+    Ok(base64::engine::general_purpose::STANDARD.encode(encoder.finish()?))
 }
 pub(super) fn records_value(records: &SiteRecords) -> Result<serde_json::Value> {
     let mut runs = Vec::with_capacity(records.runs.len());
     for stored in &records.runs {
-        let run = &stored.run;
+        let run = &stored.header;
         runs.push(StoredRunView {
             id: &stored.id,
             created_at: &stored.created_at,
@@ -92,17 +82,17 @@ pub(super) fn records_value(records: &SiteRecords) -> Result<serde_json::Value> 
                 not_selected: &run.not_selected,
                 required_cases: &[],
                 cases: &[],
-                case_count: run.cases.len(),
-                required_case_count: run.required_cases.len(),
-                case_inventory_complete: run
-                    .cases
+                case_count: stored.summary.case_count,
+                required_case_count: stored.summary.required_case_count,
+                case_inventory_complete: stored.summary.case_inventory_complete,
+                case_subjects: stored
+                    .summary
+                    .case_subjects
                     .iter()
-                    .map(|c| c.id.clone())
-                    .collect::<BTreeSet<_>>()
-                    == run.required_cases,
-                case_subjects: run.cases.iter().map(|c| c.subject.as_str()).collect(),
+                    .map(String::as_str)
+                    .collect(),
                 case_details_encoding: "gzip-base64-json-decimal-integers-v2",
-                case_details: packed_cases(&run.cases, &run.required_cases)?,
+                case_details: packed_cases(&stored.corpus)?,
                 open_obligations: &run.open_obligations,
                 bounded_obligations: &run.bounded_obligations,
                 artifacts: &run.artifacts,
@@ -116,6 +106,7 @@ pub(super) fn records_value(records: &SiteRecords) -> Result<serde_json::Value> 
         check: &records.check,
         tasks: &records.tasks,
         runs,
+        run_summaries: &records.run_summaries,
         history: &records.history,
         renames: &records.renames,
         changes: &records.changes,

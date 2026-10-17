@@ -34,5 +34,9 @@ const licenses=[...packages.values()].sort((a,b)=>(a.name+'@'+a.version).localeC
 let inputs='';for(const path of ['package.json','bun.lock','tsconfig.json','build.ts',...(await readdir('src')).sort().map(x=>'src/'+x)])inputs+=path+'\0'+await readFile(path,'utf8')+'\0';
 const files:Record<string,string>={'site.js':js,'site.css':css,'LICENSES.txt':'Installed UI dependencies (runtime and build/test tools)\n'+licenses.map(p=>`\n${p.name}@${p.version} — ${p.license}\n${p.text}`).join('\n'),'provenance.json':JSON.stringify({schema_version:1,input_sha256:digest(inputs),bun:Bun.version,assets:{'site.js':digest(js),'site.css':digest(css)},packages:licenses.map(({text,...p})=>p)},null,2)+'\n'};
 await mkdir('dist',{recursive:true});
-for(const [name,content]of Object.entries(files)){if(check){if(await readFile('dist/'+name,'utf8')!==content)throw new Error('Stale asset: '+name)}else await writeFile('dist/'+name,content)}
+// These locked optional native build packages have identical Linux licenses on
+// x64 and ARM64. Keep the actual installed names in receipts, but compare their
+// CPU variants portably. Source/assets, versions and license text stay strict.
+function comparable(name:string,content:string){return name==='LICENSES.txt'||name==='provenance.json'?content.replace(/(@parcel\/watcher-linux-|@tailwindcss\/oxide-linux-|lightningcss-linux-)(?:x64|arm64)-/g,'$1native-'):content}
+for(const [name,content]of Object.entries(files)){if(check){if(comparable(name,await readFile('dist/'+name,'utf8'))!==comparable(name,content))throw new Error('Stale asset: '+name)}else await writeFile('dist/'+name,content)}
 console.log(JSON.stringify({assets:Object.fromEntries(Object.entries(files).map(([k,v])=>[k,new TextEncoder().encode(v).length])),packages:packages.size,check}));

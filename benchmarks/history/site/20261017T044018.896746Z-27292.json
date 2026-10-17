@@ -1,25 +1,25 @@
 {
   "schema_version": 1,
-  "started_at": "2026-10-13T17:07:11.629321+00:00",
-  "passed": true,
-  "complete": true,
-  "source_hash": "78c2a25fb3b8c50bbd5897926bf7f3bdc778132a3ee02886dc88348a91d23188",
-  "revision": "96761b337ad4b02f556511b3c47f56aa700a5d77",
+  "started_at": "2026-10-17T04:36:47.714363+00:00",
+  "passed": false,
+  "complete": false,
+  "source_hash": "40f71740868c604c7c5e947c983580e0b069b7ebf75e85a154705639e0cfd625",
+  "revision": "f5b75f4b13eb1f98ed497fac2d6a360b576bab05",
   "dirty": true,
-  "platform": "Linux-6.18.55-1-lts-x86_64-with-glibc2.44",
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
   "hardware": {
-    "cpu_count": 12,
-    "machine": "x86_64",
-    "cpu_model": "12th Gen Intel(R) Core(TM) i7-1265U"
+    "cpu_count": 8,
+    "machine": "aarch64",
+    "cpu_model": null
   },
   "baseline_status": "unassessed: no accepted site workload baseline",
-  "samples": 3,
-  "iterations": 5,
+  "samples": 1,
+  "iterations": 1,
   "measurements": {
     "ui-typecheck": [
       {
-        "elapsed_ms": 1225.594761024695,
-        "peak_rss_bytes": 393961472,
+        "elapsed_ms": 7136.141537994263,
+        "peak_rss_bytes": 335454208,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -27,8 +27,8 @@
     ],
     "ui-unit": [
       {
-        "elapsed_ms": 10.915986000327393,
-        "peak_rss_bytes": 31043584,
+        "elapsed_ms": 63.065000002097804,
+        "peak_rss_bytes": 30662656,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -36,8 +36,8 @@
     ],
     "ui-reproducibility": [
       {
-        "elapsed_ms": 334.30824300739914,
-        "peak_rss_bytes": 126648320,
+        "elapsed_ms": 1727.7868460005266,
+        "peak_rss_bytes": 127340544,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -45,8 +45,8 @@
     ],
     "rust-site-engine": [
       {
-        "elapsed_ms": 52797.060149983736,
-        "peak_rss_bytes": 678404096,
+        "elapsed_ms": 2068.0821540008765,
+        "peak_rss_bytes": 49963008,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -54,8 +54,17 @@
     ],
     "rust-site-cli": [
       {
-        "elapsed_ms": 42028.473847021814,
-        "peak_rss_bytes": 1061253120,
+        "elapsed_ms": 919.0049230019213,
+        "peak_rss_bytes": 55775232,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-http-errors": [
+      {
+        "elapsed_ms": 1097.9187699995236,
+        "peak_rss_bytes": 55914496,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -63,8 +72,8 @@
     ],
     "release-build": [
       {
-        "elapsed_ms": 217064.1962159716,
-        "peak_rss_bytes": 686170112,
+        "elapsed_ms": 755.4050000035204,
+        "peak_rss_bytes": 55959552,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -72,8 +81,8 @@
     ],
     "isolated-check": [
       {
-        "elapsed_ms": 91.7351589887403,
-        "peak_rss_bytes": 31043584,
+        "elapsed_ms": 348.7946919995011,
+        "peak_rss_bytes": 28409856,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -81,8 +90,8 @@
     ],
     "isolated-plan": [
       {
-        "elapsed_ms": 102.13263600599021,
-        "peak_rss_bytes": 31043584,
+        "elapsed_ms": 461.0796160050086,
+        "peak_rss_bytes": 28409856,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -90,8 +99,8 @@
     ],
     "native-cinema-contract": [
       {
-        "elapsed_ms": 5584.076911007287,
-        "peak_rss_bytes": 297107456,
+        "elapsed_ms": 22235.585924994666,
+        "peak_rss_bytes": 294842368,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -99,8 +108,8 @@
     ],
     "native-cinema-mutation": [
       {
-        "elapsed_ms": 5508.3329289918765,
-        "peak_rss_bytes": 297545728,
+        "elapsed_ms": 11589.280078005686,
+        "peak_rss_bytes": 295399424,
         "exit_code": 1,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -108,8 +117,8 @@
     ],
     "native-cinema-replay": [
       {
-        "elapsed_ms": 5287.849379004911,
-        "peak_rss_bytes": 296955904,
+        "elapsed_ms": 11801.9420779965,
+        "peak_rss_bytes": 294694912,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -117,8 +126,8 @@
     ],
     "export-warmup": [
       {
-        "elapsed_ms": 183.15072602126747,
-        "peak_rss_bytes": 119312384,
+        "elapsed_ms": 3280.515769001795,
+        "peak_rss_bytes": 186515456,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -126,66 +135,24 @@
     ],
     "snapshot-projection": [
       {
-        "elapsed_ms": 142.84127901191823,
-        "peak_rss_bytes": 55574528,
+        "elapsed_ms": 84.52522999868961,
+        "peak_rss_bytes": 35565568,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
         "rust_phase": {
-          "elapsed_ms": 130.74045,
+          "elapsed_ms": 61.593230999999996,
           "files": 2,
-          "iterations": 5,
-          "peak_rss_bytes": 29884416,
-          "valid": true
-        }
-      },
-      {
-        "elapsed_ms": 142.58646700181998,
-        "peak_rss_bytes": 55574528,
-        "exit_code": 0,
-        "memory_status": "measured",
-        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
-        "rust_phase": {
-          "elapsed_ms": 130.90364,
-          "files": 2,
-          "iterations": 5,
-          "peak_rss_bytes": 30105600,
-          "valid": true
-        }
-      },
-      {
-        "elapsed_ms": 152.90345100220293,
-        "peak_rss_bytes": 55574528,
-        "exit_code": 0,
-        "memory_status": "measured",
-        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
-        "rust_phase": {
-          "elapsed_ms": 147.915357,
-          "files": 2,
-          "iterations": 5,
-          "peak_rss_bytes": 29433856,
+          "iterations": 1,
+          "peak_rss_bytes": 25894912,
           "valid": true
         }
       }
     ],
     "offline-export": [
       {
-        "elapsed_ms": 203.55819599353708,
-        "peak_rss_bytes": 118984704,
-        "exit_code": 0,
-        "memory_status": "measured",
-        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
-      },
-      {
-        "elapsed_ms": 213.31420601927675,
-        "peak_rss_bytes": 119189504,
-        "exit_code": 0,
-        "memory_status": "measured",
-        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
-      },
-      {
-        "elapsed_ms": 223.68742999969982,
-        "peak_rss_bytes": 119398400,
+        "elapsed_ms": 519.9626929970691,
+        "peak_rss_bytes": 186355712,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -193,8 +160,26 @@
     ],
     "browser-checks": [
       {
-        "elapsed_ms": 25183.3082390076,
-        "peak_rss_bytes": 319463424,
+        "elapsed_ms": 38757.213541000965,
+        "peak_rss_bytes": 277909504,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "architecture-focus-browser": [
+      {
+        "elapsed_ms": 17648.88961699762,
+        "peak_rss_bytes": 175099904,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "task-focus-dialog-browser": [
+      {
+        "elapsed_ms": 60381.64646499354,
+        "peak_rss_bytes": 218214400,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -202,8 +187,8 @@
     ],
     "changed-check": [
       {
-        "elapsed_ms": 81.78335402044468,
-        "peak_rss_bytes": 70873088,
+        "elapsed_ms": 201.6689999945811,
+        "peak_rss_bytes": 51089408,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -211,8 +196,8 @@
     ],
     "changed-plan": [
       {
-        "elapsed_ms": 162.70271502435207,
-        "peak_rss_bytes": 70873088,
+        "elapsed_ms": 672.8335379957571,
+        "peak_rss_bytes": 51089408,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -220,8 +205,8 @@
     ],
     "rename-check": [
       {
-        "elapsed_ms": 144.12485199864022,
-        "peak_rss_bytes": 70873088,
+        "elapsed_ms": 1451.417616000981,
+        "peak_rss_bytes": 51089408,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -229,8 +214,8 @@
     ],
     "rename-plan": [
       {
-        "elapsed_ms": 153.00202497746795,
-        "peak_rss_bytes": 70873088,
+        "elapsed_ms": 2013.402769996901,
+        "peak_rss_bytes": 51089408,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -238,8 +223,8 @@
     ],
     "changed-export": [
       {
-        "elapsed_ms": 325.0313689932227,
-        "peak_rss_bytes": 198254592,
+        "elapsed_ms": 3862.373538999236,
+        "peak_rss_bytes": 417808384,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
@@ -247,25 +232,36 @@
     ],
     "historical-export": [
       {
-        "elapsed_ms": 223.24157299590297,
-        "peak_rss_bytes": 127545344,
+        "elapsed_ms": 4069.6221550024347,
+        "peak_rss_bytes": 370929664,
         "exit_code": 0,
         "memory_status": "measured",
         "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "server-process": [
+      {
+        "elapsed_ms": 130286.453238994,
+        "peak_rss_bytes": 372482048,
+        "memory_scope": "Linux server process VmHWM across warm-up, requests and coherent refreshes; excludes browser and CLI workers",
+        "memory_status": "measured",
+        "exit_code": 0
       }
     ]
   },
   "checks": [
     "actual bounded Cinema native PASS, production mutation FAIL, repaired replay; provenance limits retained",
     "deterministic export preserves unmanaged files and published database",
+    "task Waves default, directed focus/depth, Markdown dialog and mobile",
+    "architecture subtree focus, depth, hash navigation and small viewport",
     "Cinema sources unchanged through browser transitions",
     "real semantic change and explicit rename retain follow-up history"
   ],
   "workload": "isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI",
   "cache_conditions": "one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history",
   "toolchain": {
-    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
-    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "rustc": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+    "cargo": "cargo 1.99.0-nightly (59800466c 2026-07-07)",
     "bun": "1.4.2"
   },
   "spec_input_hash": "56557aa0a4a1793369c87fdfc7968197ef6a8ce0ae80f5bfaab6f7e523cba438",
@@ -277,50 +273,52 @@
       "all views navigate",
       "native failure opens its actual recorded case through a linkable selection",
       "spec search opens pinned source and marked line",
+      "architecture handles stay six pixels, face horizontally, and bundled connections retain accessible details",
       "graph node movement, zoom and fit",
       "small viewport navigation and keyboard focus",
       "ETag and read-only route boundary",
+      "task graph handles stay six pixels and face horizontally",
       "live task start/complete retain selection and viewport; Done stays unverified",
       "failed live refresh keeps selection and recovers from stale connection",
       "hidden-tab polling pauses",
       "10,000 explicitly synthetic tasks are virtualized",
-      "300 explicitly synthetic graph nodes and relationships lay out"
+      "300 synthetic tasks start with compact wave bundles and expand without losing prerequisites"
     ],
     "errors": [],
     "measurements": [
       {
         "phase": "offline-initial-render",
-        "elapsed_ms": 353.6872639999999,
-        "peak_rss_bytes": 1118748672,
+        "elapsed_ms": 1576.5843080000004,
+        "peak_rss_bytes": 1047621632,
         "cache_condition": "fresh browser context; embedded release bundle"
       },
       {
         "phase": "server-response",
-        "elapsed_ms": 30.114188999999897,
+        "elapsed_ms": 224.01392300000043,
         "cache_condition": "running loopback server; warm SQLite page cache; full projection and JSON transport"
       },
       {
         "phase": "live-refresh",
-        "elapsed_ms": 2964.002752,
+        "elapsed_ms": 3827.6523849999994,
         "cache_condition": "3-second polling; CLI event published; warm browser"
       },
       {
         "phase": "browser-memory",
-        "peak_rss_bytes": 1491443712,
+        "peak_rss_bytes": 1057943552,
         "memory_scope": "100ms samples of summed RSS for owned Chromium parent and descendants; shared pages counted per process; separate from Rust; may miss transient peaks",
         "memory_status": "measured"
       }
     ],
     "remote_requests": 0
   },
-  "cli_sha256": "fa1540897fb931aee2feca2c8b66b4274ec3e9accb91e8f80352d18653e8923d",
+  "cli_sha256": "8095b555a82bd937a04fbec2b9f6e6624dd54ba360acf6aa437a7cb53fedf7da",
   "assets": {
     "schema_version": 1,
-    "input_sha256": "c6bc919f716358927d6395502cdbed2520132e2d9746681ac67483527474bd5b",
+    "input_sha256": "ede9e6416721f348240c229c67e8872ffed0e4e682d3397b47add5d20477b2f3",
     "bun": "1.4.2",
     "assets": {
-      "site.js": "c785f2593aba64ab2c0e5c1d8e0014d7a676d8d4c8d3d5e1b602eb5d92c1191f",
-      "site.css": "5ee24ad3e6ee52a48e3bbf8a7aa5145b3319ef5b8d761ab15e4e5e63f28e5749"
+      "site.js": "4881a53b7eaf2aecee652aac9465ef98f7fbf8e6e525161da81b1f2ca47bd632",
+      "site.css": "b7d652ac17a803a32a5012de060bcaa35f57bca92f8bdf01d41deaacc052a9c9"
     },
     "packages": [
       {
@@ -404,12 +402,12 @@
         "license": "MIT"
       },
       {
-        "name": "@parcel/watcher-linux-x64-glibc",
+        "name": "@parcel/watcher-linux-arm64-glibc",
         "version": "2.6.0",
         "license": "MIT"
       },
       {
-        "name": "@parcel/watcher-linux-x64-musl",
+        "name": "@parcel/watcher-linux-arm64-musl",
         "version": "2.6.0",
         "license": "MIT"
       },
@@ -539,12 +537,12 @@
         "license": "MIT"
       },
       {
-        "name": "@tailwindcss/oxide-linux-x64-gnu",
+        "name": "@tailwindcss/oxide-linux-arm64-gnu",
         "version": "4.2.1",
         "license": "MIT"
       },
       {
-        "name": "@tailwindcss/oxide-linux-x64-musl",
+        "name": "@tailwindcss/oxide-linux-arm64-musl",
         "version": "4.2.1",
         "license": "MIT"
       },
@@ -594,6 +592,36 @@
         "license": "MIT"
       },
       {
+        "name": "@types/debug",
+        "version": "4.1.13",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/estree-jsx",
+        "version": "1.0.5",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/estree",
+        "version": "1.0.9",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/hast",
+        "version": "3.0.5",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/mdast",
+        "version": "4.0.4",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/ms",
+        "version": "2.1.0",
+        "license": "MIT"
+      },
+      {
         "name": "@types/react-dom",
         "version": "19.2.3",
         "license": "MIT"
@@ -602,6 +630,21 @@
         "name": "@types/react",
         "version": "19.2.14",
         "license": "MIT"
+      },
+      {
+        "name": "@types/unist",
+        "version": "2.0.11",
+        "license": "MIT"
+      },
+      {
+        "name": "@types/unist",
+        "version": "3.0.3",
+        "license": "MIT"
+      },
+      {
+        "name": "@ungap/structured-clone",
+        "version": "1.4.0",
+        "license": "ISC"
       },
       {
         "name": "@xyflow/react",
@@ -619,6 +662,36 @@
         "license": "MIT"
       },
       {
+        "name": "bail",
+        "version": "2.0.2",
+        "license": "MIT"
+      },
+      {
+        "name": "ccount",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "character-entities-html4",
+        "version": "2.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "character-entities-legacy",
+        "version": "3.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "character-entities",
+        "version": "2.0.2",
+        "license": "MIT"
+      },
+      {
+        "name": "character-reference-invalid",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
         "name": "classcat",
         "version": "5.0.5",
         "license": "MIT"
@@ -631,6 +704,11 @@
       {
         "name": "clsx",
         "version": "2.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "comma-separated-tokens",
+        "version": "2.0.3",
         "license": "MIT"
       },
       {
@@ -684,9 +762,29 @@
         "license": "ISC"
       },
       {
+        "name": "debug",
+        "version": "4.4.3",
+        "license": "MIT"
+      },
+      {
+        "name": "decode-named-character-reference",
+        "version": "1.3.0",
+        "license": "MIT"
+      },
+      {
+        "name": "dequal",
+        "version": "2.0.3",
+        "license": "MIT"
+      },
+      {
         "name": "detect-libc",
         "version": "2.1.2",
         "license": "Apache-2.0"
+      },
+      {
+        "name": "devlop",
+        "version": "1.1.0",
+        "license": "MIT"
       },
       {
         "name": "dom-helpers",
@@ -699,13 +797,58 @@
         "license": "MIT"
       },
       {
+        "name": "estree-util-is-identifier-name",
+        "version": "3.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "extend",
+        "version": "3.0.2",
+        "license": "MIT"
+      },
+      {
         "name": "graceful-fs",
         "version": "4.2.11",
         "license": "ISC"
       },
       {
+        "name": "hast-util-to-jsx-runtime",
+        "version": "2.3.6",
+        "license": "MIT"
+      },
+      {
+        "name": "hast-util-whitespace",
+        "version": "3.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "html-url-attributes",
+        "version": "3.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "inline-style-parser",
+        "version": "0.2.7",
+        "license": "MIT"
+      },
+      {
         "name": "input-otp",
         "version": "1.5.0",
+        "license": "MIT"
+      },
+      {
+        "name": "is-alphabetical",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "is-alphanumerical",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "is-decimal",
+        "version": "2.0.1",
         "license": "MIT"
       },
       {
@@ -719,6 +862,16 @@
         "license": "MIT"
       },
       {
+        "name": "is-hexadecimal",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "is-plain-obj",
+        "version": "4.1.0",
+        "license": "MIT"
+      },
+      {
         "name": "jiti",
         "version": "2.7.0",
         "license": "MIT"
@@ -729,12 +882,12 @@
         "license": "MIT"
       },
       {
-        "name": "lightningcss-linux-x64-gnu",
+        "name": "lightningcss-linux-arm64-gnu",
         "version": "1.31.1",
         "license": "MPL-2.0"
       },
       {
-        "name": "lightningcss-linux-x64-musl",
+        "name": "lightningcss-linux-arm64-musl",
         "version": "1.31.1",
         "license": "MPL-2.0"
       },
@@ -742,6 +895,11 @@
         "name": "lightningcss",
         "version": "1.31.1",
         "license": "MPL-2.0"
+      },
+      {
+        "name": "longest-streak",
+        "version": "3.1.0",
+        "license": "MIT"
       },
       {
         "name": "loose-envify",
@@ -754,8 +912,163 @@
         "license": "MIT"
       },
       {
+        "name": "mdast-util-from-markdown",
+        "version": "2.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-mdx-expression",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-mdx-jsx",
+        "version": "3.2.0",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-mdxjs-esm",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-phrasing",
+        "version": "4.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-to-hast",
+        "version": "13.2.1",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-to-markdown",
+        "version": "2.2.0",
+        "license": "MIT"
+      },
+      {
+        "name": "mdast-util-to-string",
+        "version": "4.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-core-commonmark",
+        "version": "2.0.4",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-factory-destination",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-factory-label",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-factory-space",
+        "version": "2.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-factory-title",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-factory-whitespace",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-character",
+        "version": "2.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-chunked",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-classify-character",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-combine-extensions",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-decode-numeric-character-reference",
+        "version": "2.0.2",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-decode-string",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-edit-map",
+        "version": "1.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-encode",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-html-tag-name",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-normalize-identifier",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-resolve-all",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-sanitize-uri",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-subtokenize",
+        "version": "2.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-symbol",
+        "version": "2.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark-util-types",
+        "version": "2.0.3",
+        "license": "MIT"
+      },
+      {
+        "name": "micromark",
+        "version": "4.0.3",
+        "license": "MIT"
+      },
+      {
         "name": "mri",
         "version": "1.2.0",
+        "license": "MIT"
+      },
+      {
+        "name": "ms",
+        "version": "2.1.3",
         "license": "MIT"
       },
       {
@@ -766,6 +1079,11 @@
       {
         "name": "object-assign",
         "version": "4.1.1",
+        "license": "MIT"
+      },
+      {
+        "name": "parse-entities",
+        "version": "4.0.2",
         "license": "MIT"
       },
       {
@@ -794,6 +1112,11 @@
         "license": "MIT"
       },
       {
+        "name": "property-information",
+        "version": "7.2.0",
+        "license": "MIT"
+      },
+      {
         "name": "react-aria-components",
         "version": "1.22.1",
         "license": "Apache-2.0"
@@ -814,6 +1137,11 @@
         "license": "MIT"
       },
       {
+        "name": "react-markdown",
+        "version": "10.1.0",
+        "license": "MIT"
+      },
+      {
         "name": "react-stately",
         "version": "3.51.0",
         "license": "Apache-2.0"
@@ -829,6 +1157,16 @@
         "license": "MIT"
       },
       {
+        "name": "remark-parse",
+        "version": "11.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "remark-rehype",
+        "version": "11.1.2",
+        "license": "MIT"
+      },
+      {
         "name": "scheduler",
         "version": "0.27.0",
         "license": "MIT"
@@ -837,6 +1175,26 @@
         "name": "source-map-js",
         "version": "1.2.2",
         "license": "BSD-3-Clause"
+      },
+      {
+        "name": "space-separated-tokens",
+        "version": "2.0.2",
+        "license": "MIT"
+      },
+      {
+        "name": "stringify-entities",
+        "version": "4.0.4",
+        "license": "MIT"
+      },
+      {
+        "name": "style-to-js",
+        "version": "1.1.21",
+        "license": "MIT"
+      },
+      {
+        "name": "style-to-object",
+        "version": "1.0.14",
+        "license": "MIT"
       },
       {
         "name": "tailwind-variants",
@@ -851,6 +1209,16 @@
       {
         "name": "tapable",
         "version": "2.3.3",
+        "license": "MIT"
+      },
+      {
+        "name": "trim-lines",
+        "version": "3.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "trough",
+        "version": "2.2.0",
         "license": "MIT"
       },
       {
@@ -869,241 +1237,196 @@
         "license": "Apache-2.0"
       },
       {
+        "name": "unified",
+        "version": "11.0.5",
+        "license": "MIT"
+      },
+      {
+        "name": "unist-util-is",
+        "version": "6.0.1",
+        "license": "MIT"
+      },
+      {
+        "name": "unist-util-position",
+        "version": "5.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "unist-util-stringify-position",
+        "version": "4.0.0",
+        "license": "MIT"
+      },
+      {
+        "name": "unist-util-visit-parents",
+        "version": "6.0.2",
+        "license": "MIT"
+      },
+      {
+        "name": "unist-util-visit",
+        "version": "5.1.0",
+        "license": "MIT"
+      },
+      {
         "name": "use-sync-external-store",
         "version": "1.7.0",
+        "license": "MIT"
+      },
+      {
+        "name": "vfile-message",
+        "version": "4.0.3",
+        "license": "MIT"
+      },
+      {
+        "name": "vfile",
+        "version": "6.0.3",
         "license": "MIT"
       },
       {
         "name": "zustand",
         "version": "4.5.7",
         "license": "MIT"
+      },
+      {
+        "name": "zwitch",
+        "version": "2.0.4",
+        "license": "MIT"
       }
     ]
   },
   "bundle_bytes": {
-    "site.js": 553729,
-    "site.css": 449666
+    "site.js": 701055,
+    "site.css": 455983
   },
-  "source_hash_after": "78c2a25fb3b8c50bbd5897926bf7f3bdc778132a3ee02886dc88348a91d23188",
+  "source_hash_after": "eb99d748779dcfb47753c18826cf20e516e6bd9b25bf17dc2dd6a8e0e49c45fb",
+  "error": "AssertionError()",
   "summary": {
     "ui-typecheck": {
       "samples": 1,
-      "elapsed_ms_median": 1225.594761024695,
-      "peak_rss_bytes_median": 393961472
+      "elapsed_ms_median": 7136.141537994263,
+      "peak_rss_bytes_median": 335454208
     },
     "ui-unit": {
       "samples": 1,
-      "elapsed_ms_median": 10.915986000327393,
-      "peak_rss_bytes_median": 31043584
+      "elapsed_ms_median": 63.065000002097804,
+      "peak_rss_bytes_median": 30662656
     },
     "ui-reproducibility": {
       "samples": 1,
-      "elapsed_ms_median": 334.30824300739914,
-      "peak_rss_bytes_median": 126648320
+      "elapsed_ms_median": 1727.7868460005266,
+      "peak_rss_bytes_median": 127340544
     },
     "rust-site-engine": {
       "samples": 1,
-      "elapsed_ms_median": 52797.060149983736,
-      "peak_rss_bytes_median": 678404096
+      "elapsed_ms_median": 2068.0821540008765,
+      "peak_rss_bytes_median": 49963008
     },
     "rust-site-cli": {
       "samples": 1,
-      "elapsed_ms_median": 42028.473847021814,
-      "peak_rss_bytes_median": 1061253120
+      "elapsed_ms_median": 919.0049230019213,
+      "peak_rss_bytes_median": 55775232
+    },
+    "rust-site-http-errors": {
+      "samples": 1,
+      "elapsed_ms_median": 1097.9187699995236,
+      "peak_rss_bytes_median": 55914496
     },
     "release-build": {
       "samples": 1,
-      "elapsed_ms_median": 217064.1962159716,
-      "peak_rss_bytes_median": 686170112
+      "elapsed_ms_median": 755.4050000035204,
+      "peak_rss_bytes_median": 55959552
     },
     "isolated-check": {
       "samples": 1,
-      "elapsed_ms_median": 91.7351589887403,
-      "peak_rss_bytes_median": 31043584
+      "elapsed_ms_median": 348.7946919995011,
+      "peak_rss_bytes_median": 28409856
     },
     "isolated-plan": {
       "samples": 1,
-      "elapsed_ms_median": 102.13263600599021,
-      "peak_rss_bytes_median": 31043584
+      "elapsed_ms_median": 461.0796160050086,
+      "peak_rss_bytes_median": 28409856
     },
     "native-cinema-contract": {
       "samples": 1,
-      "elapsed_ms_median": 5584.076911007287,
-      "peak_rss_bytes_median": 297107456
+      "elapsed_ms_median": 22235.585924994666,
+      "peak_rss_bytes_median": 294842368
     },
     "native-cinema-mutation": {
       "samples": 1,
-      "elapsed_ms_median": 5508.3329289918765,
-      "peak_rss_bytes_median": 297545728
+      "elapsed_ms_median": 11589.280078005686,
+      "peak_rss_bytes_median": 295399424
     },
     "native-cinema-replay": {
       "samples": 1,
-      "elapsed_ms_median": 5287.849379004911,
-      "peak_rss_bytes_median": 296955904
+      "elapsed_ms_median": 11801.9420779965,
+      "peak_rss_bytes_median": 294694912
     },
     "export-warmup": {
       "samples": 1,
-      "elapsed_ms_median": 183.15072602126747,
-      "peak_rss_bytes_median": 119312384
+      "elapsed_ms_median": 3280.515769001795,
+      "peak_rss_bytes_median": 186515456
     },
     "snapshot-projection": {
-      "samples": 3,
-      "elapsed_ms_median": 142.84127901191823,
-      "peak_rss_bytes_median": 55574528
+      "samples": 1,
+      "elapsed_ms_median": 84.52522999868961,
+      "peak_rss_bytes_median": 35565568
     },
     "offline-export": {
-      "samples": 3,
-      "elapsed_ms_median": 213.31420601927675,
-      "peak_rss_bytes_median": 119189504
+      "samples": 1,
+      "elapsed_ms_median": 519.9626929970691,
+      "peak_rss_bytes_median": 186355712
     },
     "browser-checks": {
       "samples": 1,
-      "elapsed_ms_median": 25183.3082390076,
-      "peak_rss_bytes_median": 319463424
+      "elapsed_ms_median": 38757.213541000965,
+      "peak_rss_bytes_median": 277909504
+    },
+    "architecture-focus-browser": {
+      "samples": 1,
+      "elapsed_ms_median": 17648.88961699762,
+      "peak_rss_bytes_median": 175099904
+    },
+    "task-focus-dialog-browser": {
+      "samples": 1,
+      "elapsed_ms_median": 60381.64646499354,
+      "peak_rss_bytes_median": 218214400
     },
     "changed-check": {
       "samples": 1,
-      "elapsed_ms_median": 81.78335402044468,
-      "peak_rss_bytes_median": 70873088
+      "elapsed_ms_median": 201.6689999945811,
+      "peak_rss_bytes_median": 51089408
     },
     "changed-plan": {
       "samples": 1,
-      "elapsed_ms_median": 162.70271502435207,
-      "peak_rss_bytes_median": 70873088
+      "elapsed_ms_median": 672.8335379957571,
+      "peak_rss_bytes_median": 51089408
     },
     "rename-check": {
       "samples": 1,
-      "elapsed_ms_median": 144.12485199864022,
-      "peak_rss_bytes_median": 70873088
+      "elapsed_ms_median": 1451.417616000981,
+      "peak_rss_bytes_median": 51089408
     },
     "rename-plan": {
       "samples": 1,
-      "elapsed_ms_median": 153.00202497746795,
-      "peak_rss_bytes_median": 70873088
+      "elapsed_ms_median": 2013.402769996901,
+      "peak_rss_bytes_median": 51089408
     },
     "changed-export": {
       "samples": 1,
-      "elapsed_ms_median": 325.0313689932227,
-      "peak_rss_bytes_median": 198254592
+      "elapsed_ms_median": 3862.373538999236,
+      "peak_rss_bytes_median": 417808384
     },
     "historical-export": {
       "samples": 1,
-      "elapsed_ms_median": 223.24157299590297,
-      "peak_rss_bytes_median": 127545344
+      "elapsed_ms_median": 4069.6221550024347,
+      "peak_rss_bytes_median": 370929664
+    },
+    "server-process": {
+      "samples": 1,
+      "elapsed_ms_median": 130286.453238994,
+      "peak_rss_bytes_median": 372482048
     }
   },
-  "finished_at": "2026-10-13T17:13:10.573098+00:00",
-  "recent_trends": [
-    {
-      "started_at": "2026-10-13T16:39:29.506028+00:00",
-      "summary": {
-        "ui-typecheck": {
-          "samples": 1,
-          "elapsed_ms_median": 1115.3243419830687,
-          "peak_rss_bytes_median": 384167936
-        },
-        "ui-unit": {
-          "samples": 1,
-          "elapsed_ms_median": 10.721027996623889,
-          "peak_rss_bytes_median": 32346112
-        },
-        "ui-reproducibility": {
-          "samples": 1,
-          "elapsed_ms_median": 274.0067929844372,
-          "peak_rss_bytes_median": 127578112
-        },
-        "rust-site-engine": {
-          "samples": 1,
-          "elapsed_ms_median": 3409.041734004859,
-          "peak_rss_bytes_median": 667480064
-        },
-        "rust-site-cli": {
-          "samples": 1,
-          "elapsed_ms_median": 5730.561506992672,
-          "peak_rss_bytes_median": 1053626368
-        },
-        "release-build": {
-          "samples": 1,
-          "elapsed_ms_median": 59718.77846098505,
-          "peak_rss_bytes_median": 680243200
-        },
-        "isolated-check": {
-          "samples": 1,
-          "elapsed_ms_median": 91.43667397438549,
-          "peak_rss_bytes_median": 32346112
-        },
-        "isolated-plan": {
-          "samples": 1,
-          "elapsed_ms_median": 111.92716800724156,
-          "peak_rss_bytes_median": 32346112
-        },
-        "native-cinema-contract": {
-          "samples": 1,
-          "elapsed_ms_median": 5893.417996994685,
-          "peak_rss_bytes_median": 296906752
-        },
-        "native-cinema-mutation": {
-          "samples": 1,
-          "elapsed_ms_median": 6357.3436890146695,
-          "peak_rss_bytes_median": 297238528
-        },
-        "native-cinema-replay": {
-          "samples": 1,
-          "elapsed_ms_median": 6277.133285999298,
-          "peak_rss_bytes_median": 296775680
-        },
-        "export-warmup": {
-          "samples": 1,
-          "elapsed_ms_median": 264.3672820122447,
-          "peak_rss_bytes_median": 137289728
-        },
-        "snapshot-projection": {
-          "samples": 3,
-          "elapsed_ms_median": 182.68817500211298,
-          "peak_rss_bytes_median": 55599104
-        },
-        "offline-export": {
-          "samples": 3,
-          "elapsed_ms_median": 324.5651190227363,
-          "peak_rss_bytes_median": 155488256
-        },
-        "browser-checks": {
-          "samples": 1,
-          "elapsed_ms_median": 25882.952233980177,
-          "peak_rss_bytes_median": 379441152
-        },
-        "changed-check": {
-          "samples": 1,
-          "elapsed_ms_median": 71.21287498739548,
-          "peak_rss_bytes_median": 71061504
-        },
-        "changed-plan": {
-          "samples": 1,
-          "elapsed_ms_median": 142.2123889788054,
-          "peak_rss_bytes_median": 71061504
-        },
-        "rename-check": {
-          "samples": 1,
-          "elapsed_ms_median": 133.2151489914395,
-          "peak_rss_bytes_median": 71061504
-        },
-        "rename-plan": {
-          "samples": 1,
-          "elapsed_ms_median": 142.09059401764534,
-          "peak_rss_bytes_median": 71061504
-        },
-        "changed-export": {
-          "samples": 1,
-          "elapsed_ms_median": 444.8661899950821,
-          "peak_rss_bytes_median": 229122048
-        },
-        "historical-export": {
-          "samples": 1,
-          "elapsed_ms_median": 252.90278499596752,
-          "peak_rss_bytes_median": 183967744
-        }
-      }
-    }
-  ],
-  "comparison_status": "compatible history available; no accepted site baseline"
+  "finished_at": "2026-10-17T04:40:18.893210+00:00",
+  "recent_trends": [],
+  "comparison_status": "no comparable complete history; unassessed"
 }

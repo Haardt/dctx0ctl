@@ -105,7 +105,7 @@ DCTX0 describes **what must hold**. Your application implements the algorithm, p
 - **Verify real applications:** execute examples, generated contract cases, properties, operation checks, and lifecycle paths through native adapters.
 - **Investigate failures:** retain observations and counterexamples, shrink supported failing inputs, and replay saved cases.
 - **Track change:** compare contract, behavior, fact, and location changes; explain impact paths; record explicit renames.
-- **Retain evidence:** store immutable verification runs and task history, with separate automatic results and source-bound inspections.
+- **Retain evidence:** keep the latest three complete verification runs per project, compact historical outcomes and task history, with separate automatic results and source-bound inspections. See [verification storage](docs/site/src/reference/verification-storage.md) for cleanup, compatibility and release speed/RSS commands.
 - **Work in your editor:** use the native language server, local VS Code/Zed extensions, and bundled coding-agent skills.
 
 The CLI is written in Rust and runs independently. It does not invoke an LLM; an external coding agent uses its commands and skills.
@@ -440,6 +440,8 @@ python3 scripts/validate.py --accept-baseline latest
 # Or select a retained run:
 python3 scripts/validate.py --accept-baseline <recorded-filename.json>
 ```
+
+Storage retention and compaction checks have a coupled runner: `python3 scripts/storage_acceptance.py`. It runs store, engine, CLI and UI checks with 12 release speed/RSS workloads across both Cinema roots, including a 240 MB synthetic case payload. Latest-20 reports live in `benchmarks/history/storage/`; new workloads remain unassessed against the accepted baseline. See [verification storage](docs/site/src/reference/verification-storage.md) for maintenance commands and measurement scope.
 
 Dependency-resolution acceptance is included at the end of the coupled validation runner. To repeat its release measurements independently, build with `cargo build --release -p dctx0-cli --all-features --locked`, then run `python3 scripts/dependency_resolution_acceptance.py --binary target/release/dctx0`. It exercises a real 1,200-file chain with a cycle, repeated references, and a small-budget stop with one warmup and three samples each. Latest-20 reports live in `benchmarks/history/dependency-resolution/`; new workloads are unassessed against a baseline. Reports separate sampled direct-engine RSS from worker VmHWM and explicitly label command/descendant RSS and sampling limits.
 

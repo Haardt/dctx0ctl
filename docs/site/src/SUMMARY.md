@@ -41,3 +41,5 @@
 - [Architecture and contributing](docs/contributing.md)
 
 - [Static Site and Task Live View](docs/site-companion.md)
+
+- [Verification history storage](reference/verification-storage.md)

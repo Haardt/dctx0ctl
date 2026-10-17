@@ -85,6 +85,7 @@ pub(crate) fn run(
     };
     let mut report = Output {
         schema_version: 2,
+        verification_evidence: Vec::new(),
         plan_id: None,
         snapshot_id: None,
         event_seq: 0,
@@ -274,6 +275,11 @@ pub(crate) fn run(
             report.plan_id = Some(session.plan.id);
             report.snapshot_id = Some(session.plan.snapshot_id.clone());
             report.event_seq = session.event_seq;
+            if detail {
+                report.verification_evidence = project
+                    .verification_evidence_summaries(&session.states[&task()?].evidence)
+                    .map_err(error_message)?;
+            }
             let query = |tag: &str| {
                 dctx0_changes::hash(&(tag, &args.id, &args.direction, args.transitive, &filters))
             };
@@ -519,6 +525,12 @@ pub(crate) fn run(
     } else {
         output
             .write_all(markdown(&report).as_bytes())
-            .map_err(error_message)
+            .map_err(error_message)?;
+        for evidence in &report.verification_evidence {
+            if !evidence.details_available {
+                writeln!(output,"\nHistorical verification `{}`: {:?}. Details pruned; replay and new evidence publication are unavailable.",evidence.id,evidence.result).map_err(error_message)?;
+            }
+        }
+        Ok(())
     }
 }

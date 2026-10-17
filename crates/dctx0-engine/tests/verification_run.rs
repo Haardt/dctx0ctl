@@ -63,6 +63,86 @@ const VALUE_ADAPTER: &str = r#"import {factory} from '../../../app.ts';
 export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.A',role:'contract',artifact:'app.ts',entry_point:'factory'}],artifacts:['app.ts'],capabilities:['sessions','values','events'],representations:{Int:'safe integer'}};},async begin(){return {async invoke(){throw Error('No operation');},async validate(subject,value){let result;try{result=factory(value.kind==='integer'||value.kind==='float'?Number(value.value):value.kind==='unit'?undefined:value.value);}catch(error){return {kind:'rejected',reason:String(error)};}return {kind:'accepted',value:{kind:'integer',value:String(result)}};},async close(){}};}};"#;
 
 #[tokio::test]
+async fn storage_native_retention_preserves_task_results_but_expires_replay_and_new_publication() {
+    let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    fs::write(f.app.join("app.ts"),"export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
+    f.adapter(VALUE_ADAPTER);
+    create_profiles(
+        &f.app,
+        &dctx0_target_typescript::Provider,
+        true,
+        false,
+        false,
+    )
+    .unwrap();
+    f.project.task_plan("latest").unwrap();
+    let initial = f.run(false).await;
+    assert_eq!(initial.evidence.run.result, VerificationResult::Pass);
+    assert!(
+        !initial.adopted_tasks.is_empty(),
+        "{:?}",
+        initial.adoption_issues
+    );
+    assert!(
+        !initial
+            .evidence
+            .run
+            .artifacts
+            .iter()
+            .any(|a| a.media_type == "application/vnd.dctx0.session+json")
+    );
+    let before = f.project.task_session(None, None).unwrap();
+    for _ in 0..3 {
+        assert_eq!(
+            f.run(true).await.evidence.run.result,
+            VerificationResult::Pass
+        );
+    }
+    let after = f.project.task_session(None, None).unwrap();
+    assert_eq!(before.event_seq, after.event_seq);
+    for id in initial.adopted_tasks {
+        assert_eq!(before.states[&id], after.states[&id]);
+        let summaries = f
+            .project
+            .verification_evidence_summaries(&after.states[&id].evidence)
+            .unwrap();
+        assert!(
+            summaries
+                .iter()
+                .any(|s| s.id == initial.evidence.id && !s.details_available)
+        );
+    }
+    assert_eq!(
+        f.project
+            .verification_history(0, 200)
+            .unwrap()
+            .iter()
+            .filter(|s| s.details_available)
+            .count(),
+        3
+    );
+    let error = f
+        .project
+        .replay_verification(
+            Some(&f.app),
+            &initial.evidence.id,
+            &initial.evidence.run.cases[0].id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("pruned"));
+    assert!(
+        f.project
+            .publish_program_inspections(Some(&f.app), &initial.evidence.id, &[])
+            .unwrap_err()
+            .to_string()
+            .contains("pruned")
+    );
+}
+
+#[tokio::test]
 async fn real_session_initialization_and_cleanup_failures_retain_attempts_and_cannot_adopt() {
     let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
     fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
@@ -2509,12 +2589,37 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
             })
             .unwrap(),
     );
-    for case in replay_cases {
+    // Each replay reader fixture is explicitly imported from the in-memory
+    // original; replay publication itself counts toward the three-run limit.
+    let source_artifacts = {
+        let store = dctx0_store::Store::open(&f.project.database, AccessMode::ReadOnly).unwrap();
+        run.artifacts
+            .iter()
+            .map(|reference| {
+                store
+                    .verification_artifact(&report.evidence.id, &reference.hash)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+    };
+    let import_replay_fixture = |sequence: usize| {
+        let mut fixture = run.clone();
+        fixture.origin = VerificationRunOrigin::Imported;
+        fixture.started_at_unix_ns = sequence.to_string();
+        let mut store =
+            dctx0_store::Store::open(&f.project.database, AccessMode::ReadWrite).unwrap();
+        store
+            .record_verification_run(&f.project.key(), &fixture, &source_artifacts)
+            .unwrap()
+            .id
+    };
+    for (index, case) in replay_cases.into_iter().enumerate() {
+        let replay_source = import_replay_fixture(index);
         let replayed = f
             .project
             .replay_verification(
                 Some(&f.app),
-                &report.evidence.id,
+                &replay_source,
                 &case.id,
                 &dctx0_target_typescript::BunHarness,
                 &NativeCancellation::default(),
@@ -2524,8 +2629,11 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
         assert_eq!(
             replayed.case_result.as_ref(),
             Some(&case.result),
-            "Replay {}",
-            case.id
+            "Replay {}: result {:?}, incomplete {:?}, open {:?}",
+            case.id,
+            replayed.evidence.evidence.run.result,
+            replayed.evidence.evidence.run.provenance.incomplete,
+            replayed.evidence.evidence.run.open_obligations
         );
         if case.kind == VerificationCaseKind::EntityIdentity {
             assert!(replayed.evidence.evidence.run.cases.len() > 1);
@@ -2564,11 +2672,12 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
         original_http.replace("app.get('/films',", "app.get('/broken-films',"),
     )
     .unwrap();
+    let replay_source = import_replay_fixture(100);
     let mutated = f
         .project
         .replay_verification(
             Some(&f.app),
-            &report.evidence.id,
+            &replay_source,
             &http_case.id,
             &BunHarness,
             &NativeCancellation::default(),
@@ -2590,12 +2699,10 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
     );
 
     assert!(!run.provenance.dependencies.is_empty());
-    assert_eq!(
-        f.project
-            .saved_verification_run(&report.evidence.id)
-            .unwrap(),
-        report.evidence
-    );
+    let summary = f.project.verification_summary(&report.evidence.id).unwrap();
+    assert!(!summary.details_available);
+    assert_eq!(summary.result, run.result);
+    assert_eq!(summary.case_count, run.cases.len());
     let output =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/native-executor-conformance");
     fs::create_dir_all(&output).unwrap();
@@ -2766,6 +2873,75 @@ async fn failing_real_operation_is_shrunk_and_minimized_input_replays_against_ne
     let legacy = store
         .record_verification_run(&f.project.key(), &legacy, &artifacts)
         .unwrap();
+    drop(store);
+    let contract = report
+        .evidence
+        .run
+        .cases
+        .iter()
+        .find(|case| case.kind == VerificationCaseKind::Contract)
+        .unwrap();
+    let error = f
+        .project
+        .replay_minimized_verification(
+            Some(&f.app),
+            &report.evidence.id,
+            &contract.id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("pure generated operation case"), "{error}");
+    assert_eq!(
+        f.project
+            .saved_verification_run(&report.evidence.id)
+            .unwrap(),
+        report.evidence
+    );
+    fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<3||value>10)throw TypeError('invalid');return value;} export function nextValue(value:number){return value+1;}").unwrap();
+    let fixed = f
+        .project
+        .replay_minimized_verification(
+            Some(&f.app),
+            &report.evidence.id,
+            &case.id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(fixed.case_result, Some(VerificationResult::Pass));
+    assert!(
+        fixed
+            .changes
+            .iter()
+            .any(|change| change.component == "implementation:app.ts")
+    );
+    fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<3||value>10)throw TypeError('invalid');return value;} export function nextValue(value:number){return value+2;}").unwrap();
+    let old = f
+        .project
+        .replay_minimized_verification(
+            Some(&f.app),
+            &legacy.id,
+            &case.id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        old.case_result,
+        Some(VerificationResult::Fail { .. })
+    ));
+    assert_eq!(
+        old.evidence.evidence.run.cases[0].arguments,
+        replay.evidence.evidence.run.cases[0].arguments
+    );
+    assert!(old.evidence.adopted_tasks.is_empty());
+
+    let mut store = dctx0_store::Store::open(&f.project.database, AccessMode::ReadWrite).unwrap();
     for corruption in [
         "missing-shrink",
         "wrong-failure",
@@ -2858,72 +3034,6 @@ async fn failing_real_operation_is_shrunk_and_minimized_input_replays_against_ne
             invalid
         );
     }
-    drop(store);
-    let contract = report
-        .evidence
-        .run
-        .cases
-        .iter()
-        .find(|case| case.kind == VerificationCaseKind::Contract)
-        .unwrap();
-    let error = f
-        .project
-        .replay_minimized_verification(
-            Some(&f.app),
-            &report.evidence.id,
-            &contract.id,
-            &BunHarness,
-            &NativeCancellation::default(),
-        )
-        .await
-        .unwrap_err()
-        .to_string();
-    assert!(error.contains("pure generated operation case"), "{error}");
-    assert_eq!(
-        f.project
-            .saved_verification_run(&report.evidence.id)
-            .unwrap(),
-        report.evidence
-    );
-    let old = f
-        .project
-        .replay_minimized_verification(
-            Some(&f.app),
-            &legacy.id,
-            &case.id,
-            &BunHarness,
-            &NativeCancellation::default(),
-        )
-        .await
-        .unwrap();
-    assert!(matches!(
-        old.case_result,
-        Some(VerificationResult::Fail { .. })
-    ));
-    assert_eq!(
-        old.evidence.evidence.run.cases[0].arguments,
-        replay.evidence.evidence.run.cases[0].arguments
-    );
-    assert!(old.evidence.adopted_tasks.is_empty());
-    fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<3||value>10)throw TypeError('invalid');return value;} export function nextValue(value:number){return value+1;}").unwrap();
-    let fixed = f
-        .project
-        .replay_minimized_verification(
-            Some(&f.app),
-            &report.evidence.id,
-            &case.id,
-            &BunHarness,
-            &NativeCancellation::default(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(fixed.case_result, Some(VerificationResult::Pass));
-    assert!(
-        fixed
-            .changes
-            .iter()
-            .any(|change| change.component == "implementation:app.ts")
-    );
 }
 
 #[tokio::test]
@@ -3174,7 +3284,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     );
     // Imported copies exercise the replay reader's rejection boundary. They
     // retain real original observations but have no native adoption authority.
-    let mut store =
+    let store =
         dctx0_store::Store::open(&f.project.database, dctx0_store::AccessMode::ReadWrite).unwrap();
     let original_artifacts = report
         .evidence
@@ -3187,6 +3297,52 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
                 .unwrap()
         })
         .collect::<Vec<_>>();
+    drop(store);
+    assert_eq!(
+        f.project
+            .saved_verification_run(&report.evidence.id)
+            .unwrap(),
+        report.evidence
+    );
+    let replay = f
+        .project
+        .replay_minimized_verification(
+            Some(&f.app),
+            &report.evidence.id,
+            &path,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        replay.case_result,
+        Some(VerificationResult::Fail { .. })
+    ));
+    assert_eq!(
+        replay.evidence.evidence.run.cases[0].arguments[0][1],
+        VerificationValue::String(String::new())
+    );
+    assert_eq!(replay.evidence.evidence.run.cases[0].setup.len(), 1);
+    assert!(replay.evidence.adopted_tasks.is_empty());
+    fs::write(
+        f.app.join("app.ts"),
+        "export function prepare(item:any,id:string){item.id=id;item.status='Open';item.present=true;return 1;} export function finish(item:any,note:string){item.status='Closed';return note.length;}",
+    )
+    .unwrap();
+    let repaired = f
+        .project
+        .replay_minimized_verification(
+            Some(&f.app),
+            &report.evidence.id,
+            &path,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(repaired.case_result, Some(VerificationResult::Pass));
+    let mut store = dctx0_store::Store::open(&f.project.database, AccessMode::ReadWrite).unwrap();
     for corruption in [
         "missing",
         "duplicate",
@@ -3267,51 +3423,6 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             imported
         );
     }
-    drop(store);
-    assert_eq!(
-        f.project
-            .saved_verification_run(&report.evidence.id)
-            .unwrap(),
-        report.evidence
-    );
-    let replay = f
-        .project
-        .replay_minimized_verification(
-            Some(&f.app),
-            &report.evidence.id,
-            &path,
-            &BunHarness,
-            &NativeCancellation::default(),
-        )
-        .await
-        .unwrap();
-    assert!(matches!(
-        replay.case_result,
-        Some(VerificationResult::Fail { .. })
-    ));
-    assert_eq!(
-        replay.evidence.evidence.run.cases[0].arguments[0][1],
-        VerificationValue::String(String::new())
-    );
-    assert_eq!(replay.evidence.evidence.run.cases[0].setup.len(), 1);
-    assert!(replay.evidence.adopted_tasks.is_empty());
-    fs::write(
-        f.app.join("app.ts"),
-        "export function prepare(item:any,id:string){item.id=id;item.status='Open';item.present=true;return 1;} export function finish(item:any,note:string){item.status='Closed';return note.length;}",
-    )
-    .unwrap();
-    let repaired = f
-        .project
-        .replay_minimized_verification(
-            Some(&f.app),
-            &report.evidence.id,
-            &path,
-            &BunHarness,
-            &NativeCancellation::default(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(repaired.case_result, Some(VerificationResult::Pass));
 }
 
 #[tokio::test]
@@ -3364,6 +3475,20 @@ async fn replay_reports_changed_or_missing_assessment_versions_without_rewriting
     let original = f.run(true).await;
     let before = f.project.task_session(None, None).unwrap().event_seq;
     let case = original.evidence.run.cases[0].id.clone();
+    let source_artifacts = {
+        let store = dctx0_store::Store::open(&f.project.database, AccessMode::ReadOnly).unwrap();
+        original
+            .evidence
+            .run
+            .artifacts
+            .iter()
+            .map(|reference| {
+                store
+                    .verification_artifact(&original.evidence.id, &reference.hash)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+    };
     for (media, component, legacy) in [
         (
             "application/vnd.dctx0.assessment-version+json",
@@ -3407,7 +3532,8 @@ async fn replay_reports_changed_or_missing_assessment_versions_without_rewriting
         )
         .unwrap();
         let mut artifacts = Vec::new();
-        for reference in &original.evidence.run.artifacts {
+        for artifact in &source_artifacts {
+            let reference = &artifact.reference;
             if reference.media_type == media {
                 if let Some(version) = legacy {
                     artifacts.push(dctx0_store::VerificationArtifact::new(
@@ -3417,11 +3543,7 @@ async fn replay_reports_changed_or_missing_assessment_versions_without_rewriting
                     ));
                 }
             } else {
-                artifacts.push(
-                    store
-                        .verification_artifact(&original.evidence.id, &reference.hash)
-                        .unwrap(),
-                );
+                artifacts.push(artifact.clone());
             }
         }
         let mut imported = original.evidence.run.clone();
@@ -3454,12 +3576,12 @@ async fn replay_reports_changed_or_missing_assessment_versions_without_rewriting
         assert!(replay.evidence.adopted_tasks.is_empty());
         assert_eq!(f.project.saved_verification_run(&saved.id).unwrap(), saved);
     }
-    assert_eq!(
-        f.project
-            .saved_verification_run(&original.evidence.id)
-            .unwrap(),
-        original.evidence
-    );
+    let summary = f
+        .project
+        .verification_summary(&original.evidence.id)
+        .unwrap();
+    assert!(!summary.details_available);
+    assert_eq!(summary.result, original.evidence.run.result);
     assert_eq!(
         f.project.task_session(None, None).unwrap().event_seq,
         before
@@ -3899,11 +4021,12 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         f.project.task_session(None, None).unwrap().event_seq,
         session.event_seq
     );
-    assert_eq!(
+    assert!(
         f.project
             .saved_verification_run(&original.evidence.id)
-            .unwrap(),
-        original.evidence
+            .unwrap_err()
+            .to_string()
+            .contains("pruned")
     );
 }
 

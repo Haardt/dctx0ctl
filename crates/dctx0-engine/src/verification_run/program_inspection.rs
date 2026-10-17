@@ -135,7 +135,7 @@ impl Project {
             serde_json::to_vec(&assessment)?,
         ));
         artifacts.push(VerificationArtifact::new("application/vnd.dctx0.native-parent+json",serde_json::to_vec(&serde_json::json!({"schema_version":1,"native_run":native_run,"native_started_at_unix_ns":run.started_at_unix_ns,"basis":"explicit-inspection","execution":"reused native observations; no new execution"}))?));
-        let mut derived = run.clone();
+        let mut derived = source.run;
         // Imported inspection evidence has no automatic task-adoption authority.
         derived.origin = VerificationRunOrigin::Imported;
         derived.elapsed_us = 0;
@@ -145,7 +145,7 @@ impl Project {
             .iter()
             .map(|artifact| artifact.reference.clone())
             .collect();
-        let evidence = store.record_verification_run(&self.key(), &derived, &artifacts)?;
+        let evidence = store.record_verification_run_owned(&self.key(), derived, &artifacts)?;
         Ok(InspectedVerificationReport {
             native_run: native_run.into(),
             evidence,

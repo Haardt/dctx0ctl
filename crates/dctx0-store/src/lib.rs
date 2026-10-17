@@ -18,7 +18,7 @@ pub enum Error {
     Sql(#[from] rusqlite::Error),
     #[error("Snapshot JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Unsupported database schema {0}; expected 1 through 4")]
+    #[error("Unsupported database schema {0}; expected 1 through 5")]
     Schema(i64),
     #[error("Snapshot not found or ambiguous: {0}")]
     Missing(String),
@@ -26,6 +26,12 @@ pub enum Error {
     Task(#[from] dctx0_tasks::Error),
     #[error("Verification history: {0}")]
     Verification(String),
+    #[error(
+        "Verification run {0}: details were pruned; replay and new evidence publication are unavailable"
+    )]
+    DetailsPruned(String),
+    #[error("Storage IO: {0}")]
+    Io(#[from] std::io::Error),
     #[error("History is read-only")]
     ReadOnly,
 }
@@ -39,6 +45,7 @@ pub enum AccessMode {
 pub struct Store {
     connection: Connection,
     mode: AccessMode,
+    maintenance_lock: Option<std::fs::File>,
 }
 const SCHEMA:&str="
 CREATE TABLE snapshots(id TEXT PRIMARY KEY,source_hash TEXT NOT NULL,semantic_hash TEXT NOT NULL,data TEXT NOT NULL);
@@ -60,13 +67,13 @@ fn decode<T: serde::de::DeserializeOwned>(json: &str) -> std::result::Result<T, 
     Ok(value)
 }
 fn validate_version(version: i64) -> Result<()> {
-    if !matches!(version, 1..=4) {
+    if !matches!(version, 1..=5) {
         return Err(Error::Schema(version));
     }
     Ok(())
 }
 fn initialize(connection: &mut Connection, version: i64, mode: AccessMode) -> Result<()> {
-    if version < 4 && mode == AccessMode::ReadWrite {
+    if version < 5 && mode == AccessMode::ReadWrite {
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         // Recheck under the write lock: another process may have initialized.
         let version: i64 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
@@ -85,6 +92,10 @@ fn initialize(connection: &mut Connection, version: i64, mode: AccessMode) -> Re
         if version == 3 {
             tx.execute_batch(verification::MIGRATION)?;
         }
+        let version: i64 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
+        if version == 4 {
+            tx.execute_batch(verification::STORAGE_MIGRATION)?;
+        }
         let version = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
         validate_version(version)?;
         tx.commit()?;
@@ -95,6 +106,29 @@ fn initialize(connection: &mut Connection, version: i64, mode: AccessMode) -> Re
 }
 impl Store {
     pub fn open(path: &Path, mode: AccessMode) -> Result<Self> {
+        let mut lock_path = path.as_os_str().to_os_string();
+        lock_path.push(".lock");
+        let maintenance_lock = if path == Path::new(":memory:") {
+            None
+        } else if mode == AccessMode::ReadWrite {
+            Some(
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .truncate(false)
+                    .read(true)
+                    .write(true)
+                    .open(&lock_path)?,
+            )
+        } else {
+            match std::fs::File::open(&lock_path) {
+                Ok(file) => Some(file),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                Err(error) => return Err(error.into()),
+            }
+        };
+        if let Some(file) = &maintenance_lock {
+            fs2::FileExt::try_lock_shared(file)?;
+        }
         let flags = if mode == AccessMode::ReadWrite {
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE
         } else {
@@ -113,7 +147,11 @@ impl Store {
             }
             connection.pragma_update(None, "synchronous", "FULL")?;
         }
-        Ok(Self { connection, mode })
+        Ok(Self {
+            connection,
+            mode,
+            maintenance_lock,
+        })
     }
     fn require_write(&self) -> Result<()> {
         if self.mode == AccessMode::ReadWrite {

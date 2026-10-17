@@ -113,5 +113,109 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
             .success()
     );
     assert_eq!(database_before_show, fs::read(&p.database).unwrap());
+    let mut store = Store::open(&p.database, AccessMode::ReadWrite).unwrap();
+    let artifacts = saved
+        .run
+        .artifacts
+        .iter()
+        .map(|a| store.verification_artifact(&saved.id, &a.hash).unwrap())
+        .collect::<Vec<_>>();
+    let mut next = saved.run.clone();
+    for n in 1..=4 {
+        next.started_at_unix_ns = n.to_string();
+        store
+            .record_verification_run(&p.key(), &next, &artifacts)
+            .unwrap();
+    }
+    drop(store);
+    let exports = root.join("exports");
+    fs::create_dir_all(exports.join("nested")).unwrap();
+    let report = serde_json::json!({"evidence":saved,"authored":[null,true,false,-7,9,1.5,"escaped\ntext",{"keep":"unchanged"}]});
+    fs::write(
+        exports.join("nested/report.json"),
+        serde_json::to_vec(&report).unwrap(),
+    )
+    .unwrap();
+    fs::write(exports.join("unknown.json"), b"{\"author\":true}").unwrap();
+    fs::write(exports.join("malformed.json"), b"{unfinished").unwrap();
+    for (args, expected) in [
+        (
+            vec!["verify", "history", root.to_str().unwrap()],
+            "details pruned",
+        ),
+        (
+            vec![
+                "verify",
+                "history",
+                root.to_str().unwrap(),
+                "--json",
+                "--limit",
+                "2",
+            ],
+            "details_available",
+        ),
+        (
+            vec!["verify", "show", root.to_str().unwrap(), saved.id.as_str()],
+            "Details pruned",
+        ),
+        (
+            vec![
+                "verify",
+                "show",
+                root.to_str().unwrap(),
+                saved.id.as_str(),
+                "--json",
+            ],
+            "pruned_at",
+        ),
+        (
+            vec![
+                "verify",
+                "gc",
+                root.to_str().unwrap(),
+                "--dry-run",
+                "--compact",
+                "--exports",
+                exports.to_str().unwrap(),
+            ],
+            "Preview",
+        ),
+        (
+            vec![
+                "verify",
+                "gc",
+                root.to_str().unwrap(),
+                "--compact",
+                "--json",
+                "--exports",
+                exports.to_str().unwrap(),
+            ],
+            "compacted",
+        ),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains(expected));
+    }
+    let reduced: serde_json::Value =
+        serde_json::from_slice(&fs::read(exports.join("nested/report.json")).unwrap()).unwrap();
+    assert_eq!(reduced["authored"], report["authored"]);
+    assert!(reduced["evidence"].get("run").is_none());
+    assert_eq!(reduced["evidence"]["summary"]["details_available"], false);
+    assert_eq!(
+        fs::read(exports.join("unknown.json")).unwrap(),
+        b"{\"author\":true}"
+    );
+    assert_eq!(
+        fs::read(exports.join("malformed.json")).unwrap(),
+        b"{unfinished"
+    );
     fs::remove_dir_all(root).unwrap();
 }

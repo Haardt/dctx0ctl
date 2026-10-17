@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-10-17T00:10:04.751826+00:00",
+  "passed": false,
+  "complete": false,
+  "source_hash": "10caa374a049f65fdd214ed49e072542317ead6f4db4549aa540d096d5cbd9d7",
+  "revision": "f5b75f4b13eb1f98ed497fac2d6a360b576bab05",
+  "dirty": true,
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "hardware": {
+    "cpu_count": 8,
+    "machine": "aarch64",
+    "cpu_model": null
+  },
+  "baseline_status": "unassessed: no accepted site workload baseline",
+  "samples": 1,
+  "iterations": 1,
+  "measurements": {
+    "ui-typecheck": [
+      {
+        "elapsed_ms": 6625.823615999252,
+        "peak_rss_bytes": 324976640,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-unit": [
+      {
+        "elapsed_ms": 169.04461500234902,
+        "peak_rss_bytes": 30277632,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-reproducibility": [
+      {
+        "elapsed_ms": 2682.476230998873,
+        "peak_rss_bytes": 132268032,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "rust-site-engine": [
+      {
+        "elapsed_ms": 193212.95593500327,
+        "peak_rss_bytes": 496992256,
+        "exit_code": 101,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "checks": [],
+  "workload": "isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI",
+  "cache_conditions": "one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history",
+  "toolchain": {
+    "rustc": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+    "cargo": "cargo 1.99.0-nightly (59800466c 2026-07-07)",
+    "bun": "1.4.2"
+  },
+  "spec_input_hash": "56557aa0a4a1793369c87fdfc7968197ef6a8ce0ae80f5bfaab6f7e523cba438",
+  "build_target": "target/site/build (isolated from workspace feature jobs)",
+  "error": "RuntimeError('rust-site-engine: inystr v0.8.4\\n   Compiling cfg-if v1.0.5\\n   Compiling writeable v0.6.4\\n   Compiling autocfg v1.5.1\\n   Compiling litemap v0.8.3\\n   Compiling icu_locale_core v2.1.1\\n   Compiling num-traits v0.2.19\\n   Compiling potential_utf v0.1.6\\n   Compiling zerotrie v0.2.5\\n   Compiling typenum v1.20.1\\n   Compiling icu_normalizer_data v2.1.1\\n   Compiling icu_properties_data v2.1.2\\n   Compiling thiserror v2.0.21\\n   Compiling object v0.37.3\\n   Compiling icu_provider v2.1.1\\n   Compiling icu_collections v2.1.1\\n   Compiling thiserror-impl v2.0.21\\n   Compiling smallvec v1.16.2\\n   Compiling icu_properties v2.1.2\\n   Compiling icu_normalizer v2.1.1\\n   Compiling ar_archive_writer v0.5.1\\n   Compiling block-buffer v0.10.4\\n   Compiling crypto-common v0.1.7\\n   Compiling foldhash v0.1.5\\n   Compiling hashbrown v0.15.5\\n   Compiling digest v0.10.7\\n   Compiling psm v0.1.31\\n   Compiling idna_adapter v1.2.1\\n   Compiling num-integer v0.1.47\\n   Compiling cpufeatures v0.2.17\\n   Compiling aho-corasick v1.1.5\\n   Compiling regex-syntax v0.8.11\\n   Compiling utf8_iter v1.0.4\\n   Compiling vcpkg v0.2.15\\n   Compiling crc32fast v1.5.2\\n   Compiling percent-encoding v2.3.2\\n   Compiling fixedbitset v0.5.7\\n   Compiling pkg-config v0.3.34\\n   Compiling petgraph v0.8.3\\n   Compiling libsqlite3-sys v0.36.0\\n   Compiling form_urlencoded v1.2.2\\n   Compiling idna v1.1.0\\n   Compiling regex-automata v0.4.18\\n   Compiling num-bigint v0.4.6\\n   Compiling sha2 v0.10.9\\n   Compiling tree-sitter v0.25.10\\n   Compiling stacker v0.1.25\\n   Compiling foldhash v0.2.0\\n   Compiling hashbrown v0.16.1\\n   Compiling regex v1.13.1\\n   Compiling num-rational v0.4.2\\n   Compiling dctx0-graph v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-graph)\\n   Compiling url v2.5.7\\n   Compiling dctx0-target-sdk v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-target-sdk)\\n   Compiling chrono v0.4.42\\n   Compiling adler2 v2.0.1\\n   Compiling bitflags v2.13.2\\n   Compiling streaming-iterator v0.1.9\\n   Compiling simd-adler32 v0.3.10\\n   Compiling miniz_oxide v0.8.9\\n   Compiling dctx0-interpreter v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-interpreter)\\n   Compiling dctx0-changes v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-changes)\\n   Compiling hashlink v0.11.1\\n   Compiling errno v0.3.14\\n   Compiling tree-sitter-rust v0.24.2\\n   Compiling tree-sitter-typescript v0.23.2\\n   Compiling tree-sitter-go v0.25.0\\n   Compiling rustix v1.1.4\\n   Compiling fallible-streaming-iterator v0.1.9\\n   Compiling fallible-iterator v0.3.0\\n   Compiling zip v2.4.2\\n   Compiling rusqlite v0.38.0\\n   Compiling signal-hook-registry v1.4.8\\n   Compiling serde_stacker v0.1.14\\n   Compiling dctx0-tasks v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-tasks)\\n   Compiling dctx0-verification v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-verification)\\n   Compiling flate2 v1.1.9\\n   Compiling fs2 v0.4.3\\n   Compiling socket2 v0.6.5\\n   Compiling mio v1.2.4\\n   Compiling tokio-macros v2.7.2\\n   Compiling linux-raw-sys v0.12.1\\n   Compiling pin-project-lite v0.2.17\\n   Compiling bytes v1.12.1\\n   Compiling tokio v1.52.3\\n   Compiling dctx0-store v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-store)\\n   Compiling dctx0-language v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-language)\\n   Compiling base64 v0.22.1\\n   Compiling dctx0-target-go v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/targets/go)\\n   Compiling dctx0-target-rust v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/targets/rust)\\n   Compiling dctx0-engine v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/crates/dctx0-engine)\\n   Compiling dctx0-target-typescript v0.2.4 (/home/massenhaft/workspaces/conpinion/dctx0ctl/targets/typescript)\\n    Finished `test` profile [unoptimized] target(s) in 3m 12s\\n     Running tests/site.rs (target/site/build/debug/deps/site-b0b37eb20fdfef2d)\\n\\nrunning 5 tests\\ntest old_schemas_are_read_without_migration_and_missing_heads_are_explicit ... FAILED\\ntest pinned_plans_history_changes_and_done_without_pass_are_projected ... ok\\ntest reserved_work_stays_open_and_exports_preserve_authored_edits ... ok\\ntest stored_evidence_and_large_occurrence_ids_are_lossless ... ok\\ntest export_is_deterministic_preserves_unmanaged_files_and_escapes_sources ... ok\\n\\nfailures:\\n\\n---- old_schemas_are_read_without_migration_and_missing_heads_are_explicit stdout ----\\n\\nthread \\'old_schemas_are_read_without_migration_and_missing_heads_are_explicit\\' (8401) panicked at crates/dctx0-engine/tests/site.rs:204:5:\\nassertion failed: p.site_snapshot(&SiteSelection::default()).unwrap_err().to_string().contains(\"schema\")\\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\\n\\n\\nfailures:\\n    old_schemas_are_read_without_migration_and_missing_heads_are_explicit\\n\\ntest result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s\\n\\nerror: test failed, to rerun pass `-p dctx0-engine --test site`\\n')",
+  "summary": {
+    "ui-typecheck": {
+      "samples": 1,
+      "elapsed_ms_median": 6625.823615999252,
+      "peak_rss_bytes_median": 324976640
+    },
+    "ui-unit": {
+      "samples": 1,
+      "elapsed_ms_median": 169.04461500234902,
+      "peak_rss_bytes_median": 30277632
+    },
+    "ui-reproducibility": {
+      "samples": 1,
+      "elapsed_ms_median": 2682.476230998873,
+      "peak_rss_bytes_median": 132268032
+    },
+    "rust-site-engine": {
+      "samples": 1,
+      "elapsed_ms_median": 193212.95593500327,
+      "peak_rss_bytes_median": 496992256
+    }
+  },
+  "finished_at": "2026-10-17T00:13:34.921894+00:00",
+  "recent_trends": [],
+  "comparison_status": "no comparable complete history; unassessed"
+}

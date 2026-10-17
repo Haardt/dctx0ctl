@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261016T232721.658189Z",
+  "status": "incomplete",
+  "source_hash_before": "64327f7d9ec9d6339eaeb94233d9c5d20df17496b418dac68d45020722d22231",
+  "revision": "f5b75f4b13eb1f98ed497fac2d6a360b576bab05",
+  "dirty_worktree": "M .github/workflows/validate.yml\n M Bug.md\n M Cargo.lock\n M artice-medium.md\n M crates/dctx0-cli/src/args.rs\n M crates/dctx0-cli/src/benchmark.rs\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-cli/src/verification_history_benchmark.rs\n M crates/dctx0-cli/tests/verification_history.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/site/evidence.rs\n M crates/dctx0-engine/src/verification_run/execution.rs\n M crates/dctx0-engine/src/verification_run/mod.rs\n M crates/dctx0-engine/src/verification_run/program_inspection.rs\n M crates/dctx0-store/Cargo.toml\n M crates/dctx0-store/src/lib.rs\n M crates/dctx0-store/src/site.rs\n M crates/dctx0-store/src/tasks/actions.rs\n M crates/dctx0-store/src/tasks/native_proof.rs\n M crates/dctx0-store/src/tasks/tests.rs\n M crates/dctx0-store/src/verification.rs\n M ui/site/src/main.tsx\n M ui/site/src/model.ts\n?? crates/dctx0-engine/src/verification_gc.rs\n?? crates/dctx0-engine/src/verification_gc/\n?? crates/dctx0-store/src/verification/\n?? scripts/storage_acceptance.py",
+  "toolchain": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "hardware": "aarch64",
+  "scope": "all",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--lib",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 35322.5187709977,
+      "peak_rss_bytes": 610353152,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T232721.658189Z/check-0.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--lib",
+        "--test",
+        "site",
+        "--test",
+        "verification_run",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 487923.9779519994,
+      "peak_rss_bytes": 806670336,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T232721.658189Z/check-1.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "verification_history",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 183406.3581650007,
+      "peak_rss_bytes": 1051324416,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/storage-acceptance/20261016T232721.658189Z/check-2.log"
+    }
+  ],
+  "measurements": {},
+  "baseline": "unassessed: new storage workloads; existing baselines unchanged",
+  "settings": {
+    "samples": 1,
+    "iterations": 1,
+    "warmup": 1,
+    "profile": "release, no coverage",
+    "cache": "warm OS cache; fresh SQLite per process",
+    "synthetic_cases": 10000,
+    "synthetic_value_bytes_per_case": 24000
+  }
+}

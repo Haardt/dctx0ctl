@@ -18,6 +18,8 @@ mod self_verification;
 mod tasks;
 pub use self_verification::*;
 mod verification;
+mod verification_gc;
+pub use verification_gc::VerificationMaintenanceReport;
 mod verification_complete;
 pub use verification_complete::*;
 mod verification_discovery;

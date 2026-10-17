@@ -223,6 +223,25 @@ enum VerifyAction {
         #[arg(long)]
         no_adopt: bool,
     },
+    /// List compact historical outcomes; never loads case corpora.
+    History {
+        input: PathBuf,
+        #[arg(long, default_value_t = 0)]
+        offset: u64,
+        #[arg(long, default_value_t = 50)]
+        limit: u32,
+    },
+    /// Prune old verification details; compact rebuilds without a backup.
+    Gc {
+        input: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        compact: bool,
+        /// Reduce embedded reports only in this explicitly selected directory.
+        #[arg(long)]
+        exports: Option<PathBuf>,
+    },
     /// Read immutable saved evidence without claiming working-tree freshness.
     Show { input: PathBuf, run_id: String },
     /// Preserve existing testing files and create an unavailable adapter scaffold.
@@ -622,7 +641,77 @@ pub(crate) fn run(
                 return Err("No executable TypeScript testing target is enabled".into());
             }
         }
+        VerifyAction::History {
+            input,
+            offset,
+            limit,
+        } => {
+            let page = Project::new(&input, database)
+                .map_err(crate::error_message)?
+                .verification_history(offset, limit)
+                .map_err(crate::error_message)?;
+            if json {
+                crate::render::json(output, &page)?;
+            } else {
+                for item in page {
+                    writeln!(
+                        output,
+                        "{} {:?} · {} · {}",
+                        item.id,
+                        item.result,
+                        item.created_at,
+                        if item.details_available {
+                            "full details"
+                        } else {
+                            "details pruned; historical result only"
+                        }
+                    )
+                    .map_err(crate::error_message)?;
+                }
+            }
+            return Ok(true);
+        }
+        VerifyAction::Gc {
+            input,
+            dry_run,
+            compact,
+            exports,
+        } => {
+            let report = Project::new(&input, database)
+                .map_err(crate::error_message)?
+                .verification_gc(dry_run, compact, exports.as_deref())
+                .map_err(crate::error_message)?;
+            if json {
+                crate::render::json(output, &report)?;
+            } else {
+                writeln!(output,"{}: {} full runs → {}; {} runs pruned.\nDatabase: {} → {} bytes. Stored run/artifact payloads: {} → {} bytes.\nNo backup created.",if dry_run {"Preview"} else {"Verification cleanup"},report.storage.full_runs_before,report.storage.full_runs_after,report.storage.pruned_runs,report.file_bytes_before,report.file_bytes_after,report.storage.logical_bytes_before,report.storage.logical_bytes_after).map_err(crate::error_message)?;
+                for file in report.exports {
+                    writeln!(
+                        output,
+                        "{}: {} ({} → {} bytes)",
+                        file.path.display(),
+                        file.status,
+                        file.bytes_before,
+                        file.bytes_after
+                    )
+                    .map_err(crate::error_message)?;
+                }
+            }
+            return Ok(true);
+        }
         VerifyAction::Show { input, run_id } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let summary = project
+                .verification_summary(&run_id)
+                .map_err(crate::error_message)?;
+            if !summary.details_available {
+                if json {
+                    crate::render::json(output, &summary)?;
+                } else {
+                    writeln!(output,"Run: {}\nHistorical result: {:?}\nDetails pruned at {}. Replay and new evidence publication are unavailable.",summary.id,summary.result,summary.pruned_at.as_deref().unwrap_or("unknown")).map_err(crate::error_message)?;
+                }
+                return Ok(true);
+            }
             let saved = Project::new(&input, database)
                 .map_err(crate::error_message)?
                 .saved_verification_run(&run_id)
