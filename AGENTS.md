@@ -1105,3 +1105,19 @@ correction; its 73 measurements cannot become a baseline. Separate Go/Rust
 native performance reports each complete 11 phases. See
 `docs/verification-storage-validation.json` and
 `docs/verification-storage-coverage.json`; baseline promotion remains unauthorized.
+
+## Large bound review inputs (2026-10-17)
+
+Inspect, Attest and Complete share the engine streaming JSON reader with a 64 MiB
+default and explicit `--max-input-bytes`. Complete's Rust API retains its default
+method and exposes `complete_verification_with_input_limit`. Program inspections
+require one exact native basis; unknown/duplicate subjects and invalid bindings
+are rejected before publication. No implicit cumulative review or imported-native
+conversion is introduced. Native failures and incomplete corpora/provenance remain
+authoritative. `scripts/inspection_acceptance.py` couples real 543-module Bun
+fixtures and 19/47 full review groups with individual release CLI speed/RSS;
+latest-20 reports live under `benchmarks/history/inspection/` and remain unassessed
+against a baseline. See `docs/site/src/reference/inspection-inputs.md`. Local
+focused tests and Complete notes above 1 MiB pass; fresh CI/release is pending.
+Self-verification acceptance must replay its latest successful warm run after
+mutations, because the original run can legitimately expire under retention.

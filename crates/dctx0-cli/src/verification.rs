@@ -1,6 +1,6 @@
 //! Verification setup and read-only planning; native results remain centrally assessed.
 use clap::{Args, Subcommand};
-use dctx0_engine::{Project, VerificationSelection};
+use dctx0_engine::{DEFAULT_REVIEW_INPUT_BYTES, Project, VerificationSelection, read_review_input};
 use std::{
     collections::BTreeSet,
     io::Write,
@@ -168,6 +168,9 @@ enum VerifyAction {
         /// Authored source-bound inspection notes; defaults to the testing adapter directory.
         #[arg(long)]
         inspections: Option<PathBuf>,
+        /// Maximum authored inspection JSON bytes.
+        #[arg(long, default_value_t = DEFAULT_REVIEW_INPUT_BYTES, value_parser = clap::value_parser!(u64).range(1..))]
+        max_input_bytes: u64,
     },
     /// Store effective suite/review/Release evidence; no native execution or adoption.
     Inspect {
@@ -178,6 +181,9 @@ enum VerifyAction {
         /// JSON array of bound ProgramInspection reports.
         #[arg(long)]
         file: PathBuf,
+        /// Maximum JSON input bytes; read incrementally without a second full buffer.
+        #[arg(long, default_value_t = DEFAULT_REVIEW_INPUT_BYTES, value_parser = clap::value_parser!(u64).range(1..))]
+        max_input_bytes: u64,
     },
     /// Explicitly deliver inspected agent reports; preserves automatic evidence.
     Attest {
@@ -188,6 +194,9 @@ enum VerifyAction {
         /// JSON array of TaskAttestation reports with exact source bindings.
         #[arg(long)]
         file: PathBuf,
+        /// Maximum JSON input bytes; read incrementally without a second full buffer.
+        #[arg(long, default_value_t = DEFAULT_REVIEW_INPUT_BYTES, value_parser = clap::value_parser!(u64).range(1..))]
+        max_input_bytes: u64,
     },
     /// Inspect target syntax; never execute or adopt candidates.
     Discover {
@@ -336,6 +345,7 @@ pub(crate) fn run(
             input,
             project: application,
             inspections,
+            max_input_bytes,
         } => {
             #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
@@ -356,12 +366,13 @@ pub(crate) fn run(
                     "Complete verification: checking sources, executing configured native cases, then binding authored inspections."
                 );
                 let report = runtime
-                    .block_on(project.complete_verification(
+                    .block_on(project.complete_verification_with_input_limit(
                         &application,
                         &notes,
                         provider,
                         generator,
                         &dctx0_engine::NativeCancellation::default(),
+                        max_input_bytes,
                     ))
                     .map_err(crate::error_message)?;
                 if json {
@@ -373,7 +384,7 @@ pub(crate) fn run(
             }
             #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
             {
-                let _ = (input, application, inspections);
+                let _ = (input, application, inspections, max_input_bytes);
                 return Err("No executable TypeScript testing target is enabled".into());
             }
         }
@@ -382,19 +393,11 @@ pub(crate) fn run(
             run_id,
             project: application,
             file,
+            max_input_bytes,
         } => {
-            use std::io::Read;
-            let mut bytes = Vec::new();
-            std::fs::File::open(file)
-                .map_err(crate::error_message)?
-                .take(1_048_577)
-                .read_to_end(&mut bytes)
-                .map_err(crate::error_message)?;
-            if bytes.len() > 1_048_576 {
-                return Err("Inspection input exceeds 1 MiB".into());
-            }
             let inspections: Vec<dctx0_verification::program_inspection::ProgramInspection> =
-                serde_json::from_slice(&bytes).map_err(crate::error_message)?;
+                read_review_input(&file, max_input_bytes, "Inspection")
+                    .map_err(crate::error_message)?;
             let report = Project::new(&input, database)
                 .map_err(crate::error_message)?
                 .publish_program_inspections(application.as_deref(), &run_id, &inspections)
@@ -412,19 +415,11 @@ pub(crate) fn run(
             run_id,
             project: application,
             file,
+            max_input_bytes,
         } => {
-            use std::io::Read;
-            let mut bytes = Vec::new();
-            std::fs::File::open(&file)
-                .map_err(crate::error_message)?
-                .take(1_048_577)
-                .read_to_end(&mut bytes)
-                .map_err(crate::error_message)?;
-            if bytes.len() > 1_048_576 {
-                return Err("Attestation input exceeds 1 MiB".into());
-            }
             let reports: Vec<dctx0_engine::TaskAttestation> =
-                serde_json::from_slice(&bytes).map_err(crate::error_message)?;
+                read_review_input(&file, max_input_bytes, "Attestation")
+                    .map_err(crate::error_message)?;
             let receipt = Project::new(&input, database)
                 .map_err(crate::error_message)?
                 .publish_task_attestations(application.as_deref(), &run_id, &reports)

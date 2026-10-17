@@ -43,3 +43,5 @@
 - [Static Site and Task Live View](docs/site-companion.md)
 
 - [Verification history storage](reference/verification-storage.md)
+
+- [Large source-bound review inputs](reference/inspection-inputs.md)

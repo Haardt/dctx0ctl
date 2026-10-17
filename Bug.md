@@ -1,137 +1,83 @@
-# Übermäßiger Speicherverbrauch der lokalen Prüfhistorie
+# Bug: Vollständige Quellreviews scheitern an der 1-MiB-Eingabegrenze
 
-**Stand 17.10.2026:** Speichermodell und Bereinigung sind umgesetzt. Die ursprünglichen Messungen stehen unter „Befund“, das Ergebnis unter „Umsetzung“.
+Stand: 17.10.2026. Reproduziert mit `/home/massenhaft/.cargo/bin/dctx0`, Version **0.2.4**, im Verbraucherprojekt `../company-manager`. Dieser Bericht ersetzt den vorherigen, inzwischen als umgesetzt dokumentierten Speicherbericht. Dessen Ergebnis bleibt in `docs/verification-storage-company-manager.json` und der Storage-Dokumentation erhalten.
 
-## Befund
+## Problem und Auswirkung
 
-Untersucht am 17.10.2026 anhand von
-`../company-manager/spec/.dctx0ctl/state.sqlite3` und dem Speichercode dieses
-Repositories. Die Datenbank belegt 19.684.085.760 Bytes, also rund 19,68 GB
-(18,33 GiB). Die folgenden Messungen stammen aus lesenden Abfragen; Datenbank und
-Implementierung wurden nicht verändert.
+`dctx0 verify inspect` lehnt Eingabedateien über 1.048.576 Bytes ab. Ein vollständiger `ProgramInspection` bindet seine Beurteilung an den Implementierungs-Hashvektor des nativen Laufs. Beim ersten hier untersuchten Company-Manager-Lauf enthielt dieser 543 Implementierungsartefakte; ein einzelner vollständiger Review benötigte bereits rund 65 KiB. 19 Runner-Pflichten beziehungsweise 47 Knowledge-Pflichten passen zusammen nicht in die erlaubte Eingabe.
 
-| Bereich                              | Umfang                  | Belegte SQLite-Seiten inklusive Overhead |
-| ------------------------------------ | ----------------------- | ---------------------------------------: |
-| `verification_runs`                  | 400 Läufe               |                     13.653.172.224 Bytes |
-| `verification_artifacts`             | 94.458 Artefakte        |                      3.568.537.600 Bytes |
-| `snapshots`                          | 104 Snapshots           |                      1.041.354.752 Bytes |
-| `verification_run_artifacts`         | 2.357.478 Verknüpfungen |                        335.142.912 Bytes |
-| Index der Run-Artefakt-Verknüpfungen |                         |                        390.909.952 Bytes |
+Die nativen Fälle können alle bestehen und die Provenienz vollständig sein, während die nötigen Quellreviews technisch nicht gemeinsam eingereicht werden können. Das ist eine andere Begrenzung als die bereits aufgehobene Zahl generierter Testfälle. Nicht jeder offene Company-Manager-Punkt entsteht dadurch: Dort gibt es auch echte Implementierungslücken und veraltete Reviews, die unabhängig behoben werden müssen.
 
-Die übrige Belegung entfällt auf Taskhistorie, Graphdaten und weitere Indizes.
-`PRAGMA freelist_count` ergab 0: Die Größe entsteht durch gespeicherte Inhalte,
-nicht durch bereits gelöschte Datensätze. Ein `VACUUM` allein löst das Problem
-nicht.
+## Minimaler reproduzierbarer Nachweis
 
-Ein besonders großer Lauf enthält 10.554 Testfälle und 12.502 Artefaktverweise.
-Sein gespeichertes JSON umfasst 241.892.140 Zeichen; bei erneuter kompakter
-Serialisierung entfallen rund 239,1 MB auf `cases`, 1,76 MB auf
-Artefaktverweise und 0,71 MB auf Provenienz. Die Zahlen für JSON-Felder sind
-Serialisierungsmessungen und nicht mit belegten SQLite-Seiten gleichzusetzen.
+Aus `../company-manager` ausführen. Der Datensatz ist gültiges JSON (führender Leerraum und ein leeres Array), enthält keine behaupteten PASS-Ergebnisse und überschreitet die Grenze um zwei Bytes:
 
-Eine zlib-Kompression des UTF-8-Inhalts dieses einzelnen Laufberichts ergibt
-3.744.412 Bytes: rund 98,5 Prozent weniger. Das ist ein konkreter Einzelbefund,
-keine gemessene Kompressionsrate für die gesamte Datenbank.
+```sh
+python3 - <<'PYCODE'
+from pathlib import Path
+Path('/tmp/dctx0-inspection-size-probe.json').write_bytes(b' ' * 1_048_576 + b'[]')
+PYCODE
 
-Zusätzlich liegen im Company-Manager-Projekt rund 3,4 GiB exportierte
-Prüfberichte unter `.artifacts/verification/`. Diese sind nicht Teil der
-Datenbankbelegung, verstärken aber den gesamten Speicherverbrauch.
+dctx0 verify inspect spec <native-run-id> --project . \
+  --file /tmp/dctx0-inspection-size-probe.json --json
+```
 
-## Ursachen im Code
+Tatsächlich: Exit **1**, `Inspection input exceeds 1 MiB`, vor JSON-Parsing und Laufprüfung. Für diesen reinen Größen-Nachweis kann `<native-run-id>` daher durch einen beliebigen Platzhalter ersetzt werden. Für die fachliche Akzeptanz unten ist ein echter vollständiger nativer Lauf erforderlich.
 
-- `crates/dctx0-store/src/verification.rs`, `record_verification_run`:
-  `serde_json::to_string(run)` serialisiert den vollständigen Run;
-  `verification_runs.data` speichert ihn unkomprimiert als TEXT.
-- Dieselbe Funktion speichert Artefaktinhalte unkomprimiert als BLOB in
-  `verification_artifacts`. Artefakte werden anhand ihres Inhalts-Hashes
-  dedupliziert; unterschiedliche vollständige Run-Berichte werden separat
-  gespeichert.
-- `crates/dctx0-engine/src/verification_run/execution.rs`, `record`:
-  Beobachtungen, Events, Ressourcen und Zustände aus der Sitzung werden in
-  `VerificationCaseRecord` übernommen und damit Teil des vollständigen Runs.
-- In derselben Datei schreibt `preserve_prefix` Sitzungsevidenz zusätzlich als
-  `application/vnd.dctx0.session+json`-Artefakt. Weitere Assessment-Artefakte
-  enthalten ebenfalls Ausführungsergebnisse. Es gibt damit inhaltliche
-  Überschneidungen zwischen Run-Bericht und Artefakten; diese sind nicht in jedem
-  Fall identische oder ohne Prüfung austauschbare Darstellungen.
+Die bereits erfassten lokalen Nachweise liegen unter:
 
-## Gewünschte Änderung
+- `../company-manager/.artifacts/verification/dctx0-audit/inspection-size-probe.json`
+- `../company-manager/.artifacts/verification/dctx0-audit/inspection-size-probe.log`
+- `../company-manager/docs/dctx0-inspection-limit.md`
 
-### Standardmäßig nur die letzten drei Runs behalten
+## Bestätigte Ursachen
 
-Produktwunsch des Maintainers: Im Standard sollen nur die letzten drei
-Prüfläufe gespeichert bleiben. Eine unbegrenzt wachsende lokale Historie ist
-nicht erwünscht.
+1. `crates/dctx0-cli/src/verification.rs`, `VerifyAction::Inspect`: `take(1_048_577)` und anschließende Prüfung `bytes.len() > 1_048_576` mit obiger Fehlermeldung.
+2. `VerifyAction::Attest` im selben Modul enthält ebenfalls eine 1-MiB-Grenze. Deren Größenproblem ist im Code bestätigt; ein großer echter Attestation-Datensatz wurde hier nicht separat ausgeführt.
+3. Einfaches Aufteilen in mehrere Inspect-Aufrufe führt derzeit nicht zu einem kumulierten Gesamtergebnis: `crates/dctx0-engine/src/verification_run/program_inspection.rs` akzeptiert als Basis ausschließlich einen vollständigen, passenden Lauf mit `VerificationRunOrigin::Native`. Der abgeleitete Inspektionslauf erhält `VerificationRunOrigin::Imported`. Ein Folgeaufruf auf diesem abgeleiteten Lauf wird abgewiesen; mehrere unabhängige Aufrufe auf denselben nativen Ursprung vereinigen ihre Inspektionen nicht.
 
-Die Aufbewahrung sollte pro Projekt gelten. Vor der Umsetzung ist festzulegen,
-ob die drei letzten Läufe insgesamt genügen oder ob unterschiedliche Prüfscopes
-getrennte Aufbewahrung benötigen. Ebenso müssen relevante Tasknachweise,
-Adoptionen und Replay-Verweise berücksichtigt werden: Eine Bereinigung darf
-keine weiter gültigen Nachweise stillschweigend unlesbar machen oder einen
-historischen PASS ohne seine Evidenz als weiterhin belegbar darstellen.
+Die Herkunftsprüfung schützt korrekt die Evidenz. Sie sollte nicht einfach entfernt werden, um diese Grenze zu umgehen.
 
-Nach erfolgreicher Veröffentlichung eines neuen Runs sollen ältere, gemäß der
-festgelegten Regel entbehrliche Runs samt Verknüpfungen entfernt werden.
-Artefakte dürfen erst entfernt werden, wenn sie von keinem verbleibenden
-Nachweis mehr benötigt werden. Die Bereinigung muss konsistent und bei
-Unterbrechungen wiederholbar sein. Nach dem Löschen muss auch geklärt sein, wie
-bereits belegter Dateispeicher tatsächlich zurückgegeben wird.
+## Gewünschte Korrektur
 
-### Zusätzliche vollständige Speicherung des Runs hinterfragen
+Vollständige, quellgebundene Review-Gruppen müssen verarbeitet werden können. Eine ausreichend große kontrollierte oder konfigurierbare Eingabegrenze wäre eine direkte Korrektur. Alternativ kann das Format den unveränderten Implementierungsvektor einmal pro Gruppe binden und Wiederholungen vermeiden. CLI, Engine, öffentliche Verträge und gegebenenfalls `verify complete`/Attest gemeinsam auf vergleichbare Grenzen prüfen.
 
-Produktfrage des Maintainers: Muss der vollständige Run noch einmal separat
-persistiert werden, wenn die zugrunde liegende Evidenz bereits in Artefakten
-liegt?
+Falls kumulierte Einreichung vorgesehen wird, braucht sie eine explizite gemeinsame Basis und verständliche Konfliktregeln. Fremde, veraltete oder widersprüchliche Reviews dürfen nicht stillschweigend zusammengeführt werden. Keine Lockerung der Bindung an Snapshot, Plan, Implementierung, erforderliche Fälle oder native Beobachtungen; kein automatisches PASS für nicht beurteilte Pflichten. Keine Abwärtskompatibilität erforderlich.
 
-Prüfen, ob ein kompakter Run-Datensatz mit Identität, Provenienz, Scope,
-Gesamtergebnis und Artefaktverweisen genügt und Detailberichte bei Bedarf aus
-kanonischer Evidenz aufgebaut werden können. Dabei konkret feststellen, welche
-Informationen heute ausschließlich im Run stehen und welche tatsächlich doppelt
-vorliegen. Erforderliche Informationen für History, Show, Replay und
-Tasknachweise müssen erhalten bleiben; keine pauschale Entfernung des
-Run-Inhalts ohne diesen Abgleich.
+## Akzeptanz und Tests
 
-Falls eine vollständige zusätzliche Run-Darstellung erforderlich bleibt, ihre
-Notwendigkeit dokumentieren und sie komprimiert speichern. Auch für große
-Artefakte Kompression prüfen. Inhalts-Hashes und bestehende Integritätsprüfungen
-müssen sich weiterhin eindeutig auf die ursprünglichen Inhalte beziehen.
+- Eine gültige Gruppe über 1 MiB gegen einen echten nativen Lauf vollständig verarbeiten; die Resultate sämtlicher eingereichter Pflichten erscheinen im effektiven Ergebnis.
+- Repräsentative Gruppen von mindestens 19 und 47 vollständigen Inspektionen mit großem Quellvektor prüfen. Unbeurteilte Pflichten bleiben UNKNOWN.
+- Ein nativer FAIL, fehlende/duplizierte Fälle und unvollständige Provenienz werden durch Reviews niemals zu PASS.
+- Abweichende Quellhashes, Snapshot-/Planbindung, unbekannte Pflichten und widersprüchliche doppelte Beurteilungen weiterhin ablehnen.
+- Ungültiges JSON und eine etwaige neue Ressourcenobergrenze verständlich und ohne teilweise Veröffentlichung zurückweisen; Speicherverbrauch mit einer realistischen großen Gruppe messen.
+- Falls Kumulation implementiert wird: getrennte Einreichungen ergeben nachweislich denselben effektiven Stand wie eine gemeinsame Gruppe; falsche Eltern/Scopes und veraltete Quellen werden abgewiesen.
+- Eine reine Erhöhung der Grenze nicht als fachlichen Review der Company-Manager-Lücken ausgeben.
 
-## Erwartete Validierung
+## Abgrenzung: Bun-Pipe-Fehler im Verbraucher bereits behoben
 
-- Mehr als drei Läufe ausführen und die vereinbarte Aufbewahrung pro Projekt
-  sowie das Verhalten unterschiedlicher Scopes nachweisen.
-- Gemeinsam verwendete Artefakte erhalten; tatsächlich unreferenzierte Inhalte
-  bereinigen. Andere Projekte dürfen nicht betroffen sein.
-- History, Show, Replay und Tasknachweise für verbleibende Runs sowie das
-  verständliche Verhalten bei entfernten Runs prüfen.
-- Konsistenz bei Fehlern oder Unterbrechungen der Bereinigung prüfen.
-- Mit repräsentativen großen Runs den belegten Speicher vor und nach der
-  Änderung messen; logische Datenmenge und tatsächliche Dateigröße getrennt
-  ausweisen.
+Company Manager exportiert für Knowledge rund 240 MB natives JSON. Unter Bun 1.3.2 brach das Einlesen über `ReadableStream`/`Response.text()` mit `#getInternalBuffer`/`#pull` und `RangeError: Out of memory` ab. Der Verbraucher schreibt stdout jetzt zuerst vollständig in eine private Datei und liest erst nach Prozessende; die Übersicht behält alle Fall-IDs, Urteile und Provenienzfelder, während vollständige Eingaben/Beobachtungen in den Rohberichten verbleiben. Ein Prozesstest prüft unveränderte Bytes und den tatsächlichen Exitcode. Der Knowledge-Lauf bestand danach 10.657/10.657 Fälle ohne diesen Abbruch.
 
-Der ursprüngliche Speicherbefund und die damaligen Änderungswünsche bleiben oben
-zur Einordnung erhalten. Die Umsetzung ist unten dokumentiert.
+Dies ist **kein nachgewiesener dctx0-Engine-Fehler** und kein Anlass, native Evidenz zu kürzen. Optional kann ein kompakter, explizit auf vollständige Rohdaten verweisender CLI-Ausgabemodus die Verbraucher entlasten. Der frühere SQLite-Speicherbefund wird hier nicht erneut als ungelöster Fehler behauptet.
 
+## Umsetzung im Release-Kandidaten 0.2.5
 
-## Umsetzung am 17.10.2026
+Die 1-MiB-Grenzen in Inspect, Attest und Complete wurden durch einen gemeinsamen
+streamenden Reader mit 64 MiB Standard und `--max-input-bytes` ersetzt. Vollständige
+Gruppen werden gegen dieselbe native Basis verarbeitet; es gibt keine implizite
+Kumulation und keine Lockerung der Herkunftsprüfung. Ungültige Bindungen und
+doppelte Pflichten werden vor Veröffentlichung abgewiesen.
 
-Pro Projekt bleiben drei vollständige Runs über alle Scopes hinweg erhalten.
-Ältere Runs behalten kompakte, ausdrücklich als bereinigt markierte Nachweise.
-Cases werden einmal komprimiert und nach Inhalt dedupliziert gespeichert;
-zusätzliche Session- und Einzel-Assessment-Diagnosen entstehen nur bei FAIL,
-UNKNOWN und unvollständiger Ausführung. History-Abfragen laden Zusammenfassungen,
-Taskdetails zeigen die aktuelle Verfügbarkeit ihrer historischen Run-Evidenz.
+Die lokale Release-Abnahme verarbeitet 19 beziehungsweise 47 quellgebundene
+Reviews mit mindestens 543 Implementierungsartefakten. Ihre JSON-Dateien messen
+1.497.179 und 3.703.635 Bytes; Laufzeiten/RSS liegen bei 93,13 ms/21.987.328 Bytes
+und 122,58 ms/30.572.544 Bytes. Eine unbeurteilte Pflicht bleibt UNKNOWN. Tests
+für falsche Quellen/Snapshots/Pläne, unbekannte und widersprüchliche doppelte
+Pflichten, native FAILs, fehlende/doppelte Fälle, unvollständige Provenienz,
+ungültiges JSON und Ressourcenobergrenzen bestehen. Die separaten Complete-Tests
+verwenden ebenfalls Notizen über 1 MiB.
 
-Die Company-Manager-Datenbank wurde auf ausdrücklichen Wunsch **ohne Backup**
-bereinigt. Bis zur Bereinigung war sie auf 409 Runs angewachsen. Ihre Dateigröße
-sank von 19.740.737.536 auf 1.764.896.768 Bytes (−91,06 %); der Exportordner sank
-von 3.533.094.515 auf 262.330.742 Bytes (−92,58 %). Alle 20 übrigen Tabellen mit
-1.139.345 Datensätzen haben unveränderte Inhaltsprüfsummen. Die letzten drei
-Run-IDs blieben erhalten; Integritäts- und Fremdschlüsselprüfung bestehen.
-
-Details zu Schema 5, Kompatibilität, Wartungsbefehlen und Messumfang stehen in
-[Verification history storage](docs/site/src/reference/verification-storage.md).
-Die konkrete Bereinigung ist in
-[verification-storage-company-manager.json](docs/verification-storage-company-manager.json)
-festgehalten. Vollständige entfernte Details lassen sich ohne Sicherung nicht
-wiederherstellen.
+Details und reproduzierbare Befehle stehen in
+[Large source-bound review inputs](docs/site/src/reference/inspection-inputs.md).
+Dies behebt die Transportgrenze, bewertet aber keine Company-Manager-Lücke.
+Die erneute vollständige CI und das Release sind noch ausstehend.

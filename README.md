@@ -441,6 +441,8 @@ python3 scripts/validate.py --accept-baseline latest
 python3 scripts/validate.py --accept-baseline <recorded-filename.json>
 ```
 
+Large review groups use a shared streaming reader with a 64 MiB default limit. `verify inspect`, `verify attest` and `verify complete` accept `--max-input-bytes` for larger authored inputs. Run `python3 scripts/inspection_acceptance.py` for actual 19/47-review acceptance with release speed/RSS measurements; see [inspection inputs](docs/site/src/reference/inspection-inputs.md) for binding rules and measurement scope.
+
 Storage retention and compaction checks have a coupled runner: `python3 scripts/storage_acceptance.py`. It runs store, engine, CLI and UI checks with 12 release speed/RSS workloads across both Cinema roots, including a 240 MB synthetic case payload. Latest-20 reports live in `benchmarks/history/storage/`; new workloads remain unassessed against the accepted baseline. See [verification storage](docs/site/src/reference/verification-storage.md) for maintenance commands and measurement scope.
 
 Dependency-resolution acceptance is included at the end of the coupled validation runner. To repeat its release measurements independently, build with `cargo build --release -p dctx0-cli --all-features --locked`, then run `python3 scripts/dependency_resolution_acceptance.py --binary target/release/dctx0`. It exercises a real 1,200-file chain with a cycle, repeated references, and a small-budget stop with one warmup and three samples each. Latest-20 reports live in `benchmarks/history/dependency-resolution/`; new workloads are unassessed against a baseline. Reports separate sampled direct-engine RSS from worker VmHWM and explicitly label command/descendant RSS and sampling limits.

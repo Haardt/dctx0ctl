@@ -1,5 +1,6 @@
 //! Store an explicit effective assessment without rewriting native observations.
 use super::*;
+use dctx0_verification::attestations::{AttestationBinding, attestation_matches};
 use dctx0_verification::program_inspection::{
     EffectiveProgramAssessment, ProgramInspection, assess_with_inspections,
 };
@@ -80,6 +81,33 @@ impl Project {
             return Err(Error::Invalid("Native plan hash mismatch".into()));
         }
         let plan: ProgramPlan = serde_json::from_slice(&plan_artifact.contents)?;
+        let mut subjects = BTreeSet::new();
+        for report in inspections {
+            let inspection = &report.inspection;
+            let requirements = dctx0_verification::program_inspection::inspection_requirements(
+                &plan,
+                &inspection.subject,
+            )
+            .ok_or_else(|| {
+                Error::Invalid(format!(
+                    "Unknown inspection obligation: {}",
+                    inspection.subject
+                ))
+            })?;
+            let binding = AttestationBinding {
+                subject: &inspection.subject,
+                snapshot: &plan.snapshot,
+                plan_hash: &run.provenance.plan_hash,
+                requirements: &requirements,
+                implementation_artifacts: &run.provenance.implementation,
+            };
+            if !subjects.insert(&inspection.subject) || !attestation_matches(inspection, &binding) {
+                return Err(Error::Invalid(format!(
+                    "Invalid binding or duplicate inspection: {}",
+                    inspection.subject
+                )));
+            }
+        }
         let (check, snapshot_id) = store.task_check(&self.key())?;
         if check != run.provenance.check_occurrence || snapshot_id != run.provenance.snapshot {
             return Err(Error::Invalid(

@@ -95,7 +95,11 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     }
     fn run(&self, json: bool) -> std::process::Output {
         let file = self.root.join("notes.json");
-        fs::write(&file, serde_json::to_vec(&self.notes).unwrap()).unwrap();
+        // Authored complete-verification notes share the same bounded reader;
+        // a valid document above the former 1 MiB cap must remain actionable.
+        let mut bytes = vec![b' '; 1_048_576];
+        bytes.extend(serde_json::to_vec(&self.notes).unwrap());
+        fs::write(&file, bytes).unwrap();
         let mut command = Command::new(env!("CARGO_BIN_EXE_dctx0"));
         command
             .args(["verify", "complete"])

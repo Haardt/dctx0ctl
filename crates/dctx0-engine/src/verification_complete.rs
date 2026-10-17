@@ -262,13 +262,32 @@ impl Project {
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
     ) -> Result<CompleteVerificationReport> {
+        self.complete_verification_with_input_limit(
+            application,
+            notes_file,
+            provider,
+            generator,
+            cancellation,
+            crate::DEFAULT_REVIEW_INPUT_BYTES,
+        )
+        .await
+    }
+
+    /// Complete acceptance with an explicit bound for authored inspection notes.
+    pub async fn complete_verification_with_input_limit(
+        &self,
+        application: &Path,
+        notes_file: &Path,
+        provider: &dyn TargetProfileProvider,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        max_input_bytes: u64,
+    ) -> Result<CompleteVerificationReport> {
         let application = fs::canonicalize(application)?;
         let imported = match fs::metadata(notes_file) {
-            Ok(metadata) => {
-                if metadata.len() > 1_048_576 {
-                    return Err(Error::Invalid("Inspection notes exceed 1 MiB".into()));
-                }
-                let notes: AuthoredInspections = serde_json::from_slice(&fs::read(notes_file)?)?;
+            Ok(_) => {
+                let notes: AuthoredInspections =
+                    crate::read_review_input(notes_file, max_input_bytes, "Inspection notes")?;
                 notes.validate(&application)?;
                 notes.validate_spec(self, &application)?;
                 Some(notes)

@@ -96,14 +96,19 @@ def main():
         if cold['exit_code']:raise RuntimeError('Cold release CLI build failed')
         report['measurements'].append({'phase':'orchestrator','elapsed_ms':self_report['execution_ms'],'peak_rss_bytes':self_report['orchestrator_peak_rss_bytes'],'memory_method':'post-execution orchestrator /proc VmHWM; previous stages included, child workers excluded','passed':True})
         report['measurements'].append({'phase':'native-worker','samples':self_report['runtime_measurements'],'memory_method':'worker-reported /proc VmHWM, captured in native artifacts','passed':True})
-        for phase,command in [
-            ('warm-finite-plan',[str(captured_cli),'verify','run',str(captured/'dctx0'),'--project',str(captured),'--no-adopt','--json']),
-            ('replay',[str(captured_cli),'verify','replay',str(captured/'dctx0'),self_report['native']['evidence']['id'],'--project',str(captured),'--case',self_report['native']['evidence']['run']['cases'][0]['id'],'--json']),
-        ]:
+        replay_source = None
+        for phase in ('warm-finite-plan', 'replay'):
+            command = ([str(captured_cli),'verify','run',str(captured/'dctx0'),'--project',str(captured),'--no-adopt','--json'] if phase == 'warm-finite-plan' else [str(captured_cli),'verify','replay',str(captured/'dctx0'),replay_source[0],'--project',str(captured),'--case',replay_source[1],'--json'])
+            # Replay the most recent complete corpus: mutation and warm runs
+            # legitimately expire the original under the three-run policy.
+
             result=measured(command)
+            if not result['stdout'].strip():
+                raise RuntimeError(f"{phase} produced no JSON (exit {result['exit_code']}): {result['stderr'][-4000:]}")
             evidence=json.loads(result['stdout'])
             if phase=='warm-finite-plan':
                 cases=evidence['evidence']['run']['cases'];passed=bool(cases) and all(case['result']['status']=='PASS' for case in cases) and not evidence['evidence']['run']['provenance']['incomplete']
+                if passed: replay_source = (evidence['evidence']['id'], cases[0]['id'])
             else:passed=evidence['case_result']['status']=='PASS'
             report['measurements'].append({'phase':phase,'passed':passed,**{key:value for key,value in result.items() if key!='stdout'}})
             if not passed:raise RuntimeError(f'Performance execution incomplete: {phase}')

@@ -178,3 +178,6 @@ mod profile_publication_tests {
         fs::remove_dir_all(root).unwrap();
     }
 }
+
+mod review_input;
+pub use review_input::{DEFAULT_REVIEW_INPUT_BYTES, read_review_input};
