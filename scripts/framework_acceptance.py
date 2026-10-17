@@ -169,7 +169,10 @@ def main():
               ('rust-clippy',['cargo','clippy','--manifest-path','examples/cinema-rust/Cargo.toml','--all-features','--all-targets','--offline','--locked','--','-D','warnings']),
               ('rust-adapter-tests',['cargo','test','--manifest-path','examples/cinema-rust/.dctx0/testing/rust/Cargo.toml','--lib','--offline','--locked']),
               ('rust-format',['cargo','fmt','--manifest-path','examples/cinema-rust/Cargo.toml','--','--check']),
-              ('rust-adapter-format',['cargo','fmt','--manifest-path','examples/cinema-rust/.dctx0/testing/rust/Cargo.toml','--','--check']),
+              # The worker is materialized only in captured native builds.
+              # Check its shipped template and the authored adapter directly;
+              # cargo fmt would require an absent generated bin source here.
+              ('rust-adapter-format',['rustfmt','--edition','2024','--check','examples/cinema-rust/.dctx0/testing/rust/adapter.rs','targets/rust/harness/worker.rs']),
               ('framework-task-reviews',[sys.executable,'scripts/conformance_review_acceptance.py','--http-frameworks','--binary',binary,'--report',ROOT/'target/frameworks/task-reviews.json']),
               ('reference-task-reviews',[sys.executable,'scripts/conformance_review_acceptance.py','--binary',binary,'--report',ROOT/'target/frameworks/reference-task-reviews.json'])]
             for label,command in checks:run(command,ROOT,record,label)

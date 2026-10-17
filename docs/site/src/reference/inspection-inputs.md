@@ -64,3 +64,10 @@ inventory now excludes `target` and `node_modules` cache directories while keepi
 authored harness JSON and embedded UI assets. A regression test checks both cache
 creation stability and detection of an actual configuration change. Fresh complete
 CI remains required before publication; no coverage or performance gate is waived.
+
+The follow-up full workspace run passed with unchanged source provenance and the
+same 97.56%/97.09% coverage. Its subsequent Gin/Axum stage exposed a separate
+runner defect: `cargo fmt` on the reference adapter manifest required `worker.rs`,
+which exists only inside captured native builds. The format stage now checks both
+the authored adapter and the shipped worker template directly with Rustfmt.
+Framework acceptance and complete CI must still pass before release.

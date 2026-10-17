@@ -1,0 +1,365 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261017T125935.984029Z",
+  "status": "complete",
+  "source_hash_before": "f8faf3709a341f12f81c89b1ea96fdc742b44e0122c26063e1cf57f393da3644",
+  "revision": "96d587690346f7b21c1e0c8e5d9651c760da7fbd",
+  "dirty_worktree": true,
+  "toolchain": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "hardware": {
+    "machine": "aarch64",
+    "cpu_count": 7
+  },
+  "scope": "Real Bun native corpus, 543 source modules, 19/47 exactly bound reviews; retained unreviewed UNKNOWN, rejected bindings and resource caps",
+  "settings": {
+    "profile": "release CLI; debug fixture/test orchestration",
+    "samples": 1,
+    "seed": 42,
+    "cache": "existing compiler caches; fresh isolated project",
+    "memory_scope": "Each CLI invocation uses wait4 peak RSS including its reaped children; inspection invokes no compiler or native harness. Build/test costs separately retained."
+  },
+  "baseline": "unassessed; accepted baselines unchanged",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 1144.0297699991788,
+      "peak_rss_bytes": 60940288,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "verification_inspection",
+        "--test",
+        "verification_inspection_large",
+        "--all-features",
+        "--locked"
+      ],
+      "elapsed_ms": 18441.813539000577,
+      "peak_rss_bytes": 60915712,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ],
+  "cli_measurements": [
+    {
+      "phase": "inspect-19",
+      "input_bytes": 1497179,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 283.7370000015653,
+      "peak_rss_bytes": 21934080,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "input-cap",
+      "input_bytes": 1497179,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json",
+        "--max-input-bytes",
+        "1497178"
+      ],
+      "elapsed_ms": 12.629229997401126,
+      "peak_rss_bytes": 17367040,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "inspect-19-exact-cap",
+      "input_bytes": 1497179,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json",
+        "--max-input-bytes",
+        "1497179"
+      ],
+      "elapsed_ms": 171.83846100306255,
+      "peak_rss_bytes": 21073920,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "inspect-47",
+      "input_bytes": 3703635,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 515.4662309978448,
+      "peak_rss_bytes": 31113216,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "input-cap",
+      "input_bytes": 3703635,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json",
+        "--max-input-bytes",
+        "3703634"
+      ],
+      "elapsed_ms": 11.421768998843618,
+      "peak_rss_bytes": 18120704,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "inspect-47-exact-cap",
+      "input_bytes": 3703635,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json",
+        "--max-input-bytes",
+        "3703635"
+      ],
+      "elapsed_ms": 339.23815399975865,
+      "peak_rss_bytes": 31526912,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "source",
+      "input_bytes": 3703576,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 100.00153800137923,
+      "peak_rss_bytes": 19804160,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "snapshot",
+      "input_bytes": 3703576,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 55.5883070010168,
+      "peak_rss_bytes": 20262912,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "plan",
+      "input_bytes": 3703576,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 52.43746199994348,
+      "peak_rss_bytes": 19755008,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "unknown",
+      "input_bytes": 3703643,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 155.8366150020447,
+      "peak_rss_bytes": 20156416,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "duplicate",
+      "input_bytes": 3782510,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 134.64461500188918,
+      "peak_rss_bytes": 21319680,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "invalid-json",
+      "input_bytes": 13,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 11.921460998564726,
+      "peak_rss_bytes": 16375808,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "attest-over-old-cap",
+      "input_bytes": 1048578,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "attest",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 22.13484599997173,
+      "peak_rss_bytes": 16531456,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "phase": "default-cap",
+      "input_bytes": 67108865,
+      "command": [
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "inspect",
+        "/tmp/dctx0-cli-large-inspection-10409/spec",
+        "052934625a05ac48d36bce8cfb90c80a8df335c884c9b1a4a0fd0cd137683f0f",
+        "--project",
+        "/tmp/dctx0-cli-large-inspection-10409/app",
+        "--file",
+        "/tmp/dctx0-cli-large-inspection-10409/group.json",
+        "--json"
+      ],
+      "elapsed_ms": 11.948922998271883,
+      "peak_rss_bytes": 16457728,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ],
+  "source_hash_after": "f8faf3709a341f12f81c89b1ea96fdc742b44e0122c26063e1cf57f393da3644"
+}
