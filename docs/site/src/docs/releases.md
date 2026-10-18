@@ -52,6 +52,24 @@ This version requires fresh workspace and five-platform release checks; the
 v0.2.4 test exception does not apply. See [verification storage](../reference/verification-storage.md)
 for compatibility, commands and measured maintenance results.
 
+## v0.2.6: actual call observation in examples
+
+Call-count assertions now consume actual adapter calls across the completed
+`when` prefix, including declared application failures. An observed empty list
+can prove zero calls; a missing observer remains UNKNOWN. Repeated calls count
+separately, arguments and operation identity must match, and mock callbacks do
+not double count actual calls. Call observation no longer requires mock injection
+unless the example prepares mock replies.
+
+The Linux QA guard monitors aggregate process-tree RSS at one third of startup
+available RAM, including detached descendants, and works without a cgroup memory
+controller. Shared pages count per process in 50 ms samples; this is not a hard
+kernel allocation limit. Release builds and test jobs run serially. See
+[call observation](../reference/call-observation.md) and
+`docs/call-observation-validation.json` for the retained local evidence, including
+the unsupported local Go Race host and unassessed performance baseline. Normal
+CI validation, installer checks and all five native hosts remain release gates.
+
 ## Pin a version
 
 ```sh
