@@ -37,13 +37,14 @@ impl NativeWorker {
                     let session::Invoked {
                         observation,
                         events,
+                        calls,
                         ..
                     } = self
                         .invoke_case(invocation, cancellation, &mut |call| {
                             Ok(scenario.collaborator(call))
                         })
                         .await?;
-                    scenario.deliver(observation, events);
+                    scenario.deliver_observed(observation, events, calls);
                 }
             }
         };

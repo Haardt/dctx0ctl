@@ -447,3 +447,188 @@ fn executed_failures_dominate_unknowns_and_keep_the_first_contract_violation() {
     );
     expect_code(completed(scenario.advance()).result, "UNDECLARED_EVENT");
 }
+
+fn call_trace_reference() -> (WorkspaceIr, ProgramPlan) {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "calls.dctx0".into(),
+        text: include_str!("../../../fixtures/conformance/scenario-calls/workspace.dctx0").into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: BTreeSet::from(["W".into()]),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    assert!(plan.issues.is_empty(), "{:?}", plan.issues);
+    assert!(
+        plan.examples.iter().all(|e| e.issues.is_empty()),
+        "{:?}",
+        plan.examples
+    );
+    (ir, plan)
+}
+fn actual_call(subject: &str, argument: &str) -> InvocationObservation {
+    InvocationObservation {
+        invocation: Invocation {
+            subject: subject.into(),
+            arguments: vec![VerificationValue::Integer(argument.into())],
+        },
+        observation: value(argument),
+    }
+}
+#[test]
+fn actual_call_counts_distinguish_empty_missing_matching_and_unrelated_observations() {
+    let (ir, plan) = call_trace_reference();
+    let budgets = VerificationBudgets::default();
+    let matching = actual_call("W.Store.load", "1");
+    for (name, calls, expected) in [
+        ("zero", Some(vec![]), "PASS"),
+        ("zero", None, "TRACE_OBSERVER_REQUIRED"),
+        ("zero", Some(vec![matching.clone()]), "ASSERTION_FAILED"),
+        (
+            "zero",
+            Some(vec![
+                actual_call("W.Store.load", "2"),
+                actual_call("W.Store.other", "1"),
+            ]),
+            "PASS",
+        ),
+        ("one", Some(vec![matching.clone()]), "PASS"),
+        (
+            "one",
+            Some(vec![matching.clone(), matching]),
+            "ASSERTION_FAILED",
+        ),
+    ] {
+        let example = plan
+            .examples
+            .iter()
+            .find(|e| e.subject == format!("W.{name}"))
+            .unwrap();
+        let mut scenario = Scenario::new(&ir, example, &budgets);
+        assert!(matches!(scenario.advance(), ScenarioStep::Invoke(_)));
+        scenario.deliver_observed(value("0"), vec![], calls);
+        let result = completed(scenario.advance()).result;
+        if expected == "PASS" {
+            assert_eq!(result, VerificationResult::Pass);
+        } else {
+            expect_code(result, expected);
+        }
+    }
+}
+#[test]
+fn ordered_call_assertions_count_the_complete_executed_prefix_and_never_repair_missing_steps() {
+    let (ir, plan) = call_trace_reference();
+    let budgets = VerificationBudgets::default();
+    let mut example = plan
+        .examples
+        .iter()
+        .find(|e| e.subject == "W.ordered")
+        .unwrap()
+        .clone();
+    // Also exercise missing observations before and after an observed step,
+    // with no intermediate call assertion to stop execution early.
+    for missing in [None, Some(0), Some(1), Some(2)] {
+        if missing.is_some() {
+            example
+                .order
+                .retain(|a| !matches!(a, ExampleAction::Check(i) if *i < 2));
+        }
+        let mut scenario = Scenario::new(&ir, &example, &budgets);
+        for i in 0..3 {
+            assert!(matches!(scenario.advance(), ScenarioStep::Invoke(_)));
+            let calls = (missing != Some(i)).then(|| {
+                if i == 1 {
+                    vec![actual_call("W.Store.load", "1")]
+                } else {
+                    vec![]
+                }
+            });
+            scenario.deliver_observed(value("0"), vec![], calls);
+        }
+        let result = completed(scenario.advance()).result;
+        if missing.is_none() {
+            assert_eq!(result, VerificationResult::Pass);
+        } else {
+            expect_code(result, "TRACE_OBSERVER_REQUIRED");
+        }
+    }
+}
+#[test]
+fn failures_keep_call_observations_and_mock_requests_do_not_double_count_them() {
+    let (ir, plan) = call_trace_reference();
+    let budgets = VerificationBudgets::default();
+    for name in ["failure", "failure one", "mock"] {
+        let example = plan
+            .examples
+            .iter()
+            .find(|e| e.subject == format!("W.{name}"))
+            .unwrap();
+        let mut scenario = Scenario::new(&ir, example, &budgets);
+        assert!(matches!(scenario.advance(), ScenarioStep::Invoke(_)));
+        let (observation, calls) = if name == "mock" {
+            let actual = actual_call("W.Store.load", "2");
+            (scenario.collaborator(&actual.invocation), vec![actual])
+        } else {
+            (
+                Observation::Returned {
+                    value: VerificationValue::Failure {
+                        declaration: "W.Broken".into(),
+                        payload: Some(Box::new(VerificationValue::Record(BTreeMap::from([(
+                            "reason".into(),
+                            VerificationValue::String("outage".into()),
+                        )])))),
+                    },
+                },
+                if name == "failure one" {
+                    vec![actual_call("W.Store.load", "1")]
+                } else {
+                    vec![]
+                },
+            )
+        };
+        scenario.deliver_observed(observation, vec![], Some(calls));
+        let result = completed(scenario.advance());
+        assert_eq!(result.result, VerificationResult::Pass);
+        assert_eq!(result.collaborators.len(), usize::from(name == "mock"));
+    }
+}
+#[test]
+fn call_assertions_preserve_legacy_missing_observers_and_trace_budgets() {
+    let (ir, plan) = call_trace_reference();
+    let example = plan
+        .examples
+        .iter()
+        .find(|e| e.subject == "W.zero")
+        .unwrap();
+    let budgets = VerificationBudgets {
+        evaluation_steps: 20,
+        ..Default::default()
+    };
+    let mut scenario = Scenario::new(&ir, example, &budgets);
+    scenario.advance();
+    scenario.deliver(value("0"), vec![]);
+    expect_code(
+        completed(scenario.advance()).result,
+        "TRACE_OBSERVER_REQUIRED",
+    );
+    let mut scenario = Scenario::new(&ir, example, &budgets);
+    scenario.advance();
+    scenario.deliver_observed(
+        value("0"),
+        vec![],
+        Some(vec![actual_call("W.Store.other", "1"); 100]),
+    );
+    expect_code(completed(scenario.advance()).result, "EVALUATION_BUDGET");
+}

@@ -466,7 +466,7 @@ fn unresolved_dependencies_and_opaque_trace_labels_never_become_execution_eviden
         "UNMODELED_TRACE"
     ])));
     assert!(!p.closure.contains("opaque"));
-    assert!(p.capabilities.contains(&Capability::Mocks));
+    assert!(p.capabilities.contains(&Capability::CallObservation));
     let mut event = ir.symbols["W.Subject"].clone();
     event.id = "W.Event".into();
     event.kind = StatementKind::Event;
@@ -1308,4 +1308,41 @@ fn mandatory_cases_map_actual_purity_and_example_steps_without_asserting_manual_
             );
         }
     }
+}
+
+#[test]
+fn call_assertions_require_observation_while_only_prepared_replies_require_mock_injection() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "calls.dctx0".into(),
+        text: include_str!("../../../fixtures/conformance/scenario-calls/workspace.dctx0").into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    // Selecting one consumer also includes other examples of its operation.
+    // Use a genuinely mock-free program, rather than assuming sibling exclusion.
+    let source = include_str!("../../../fixtures/conformance/scenario-calls/workspace.dctx0");
+    let without_mocks = format!(
+        "{}\n}}",
+        source.split("  example \"mock\" {").next().unwrap()
+    );
+    let mock_free = dctx0_language::compile(&[Source {
+        file: "calls.dctx0".into(),
+        text: without_mocks,
+    }])
+    .ir
+    .unwrap();
+    let no_given = plan(&mock_free, scope("W.zero"), &Default::default());
+    assert!(no_given.capabilities.contains(&Capability::CallObservation));
+    assert!(!no_given.capabilities.contains(&Capability::Mocks));
+    let with_given = plan(&ir, scope("W.mock"), &Default::default());
+    assert!(
+        with_given
+            .capabilities
+            .contains(&Capability::CallObservation)
+    );
+    assert!(with_given.capabilities.contains(&Capability::Mocks));
 }

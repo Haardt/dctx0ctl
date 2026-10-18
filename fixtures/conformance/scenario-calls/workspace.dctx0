@@ -1,0 +1,41 @@
+workspace W {
+  port Store {
+    operation load(input: Int) -> Int
+    operation other(input: Int) -> Int
+  }
+  failure Broken { reason: String }
+  surface Api { operation read(input: Int) -> Int ! Broken }
+  example "zero" {
+    when result = Api.read(0)
+    expect result == 0
+    expect calls Store.load(1) exactly 0
+  }
+  example "one" {
+    when result = Api.read(1)
+    expect calls Store.load(1) exactly 1
+  }
+  example "ordered" {
+    when first = Api.read(0)
+    expect calls Store.load(1) exactly 0
+    when second = Api.read(1)
+    expect calls Store.load(1) exactly 1
+    when third = Api.read(0)
+    expect calls Store.load(1) exactly 1
+  }
+  example "failure" {
+    when result = Api.read(-1)
+    expect result fails Broken
+    expect calls Store.load(1) exactly 0
+  }
+  example "failure one" {
+    when result = Api.read(-2)
+    expect result fails Broken
+    expect calls Store.load(1) exactly 1
+  }
+  example "mock" {
+    given Store.load(2) returns 2
+    when result = Api.read(2)
+    expect result == 2
+    expect calls Store.load(2) exactly 1
+  }
+}

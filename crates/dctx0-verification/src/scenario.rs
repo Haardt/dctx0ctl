@@ -1,7 +1,10 @@
 //! Ordered examples with observed collaborators. Pure state, no target or I/O.
 use crate::{ExampleAction, ExamplePlan, Expectation, MockOutcome};
 use dctx0_core::*;
-use dctx0_interpreter::{Evaluation, ValueContract, check_value, evaluate, modeled_value};
+use dctx0_interpreter::{
+    Evaluation, ObservationContext, ValueContract, check_value, evaluate, evaluate_observed,
+    modeled_value,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -26,6 +29,12 @@ struct PreparedMock {
     observation: Observation,
     calls: usize,
 }
+// Incomplete prefixes cannot be repaired by later observed steps.
+enum CallTrace {
+    Pending,
+    Observed(Vec<InvocationObservation>),
+    Incomplete,
+}
 pub struct Scenario<'a> {
     ir: &'a WorkspaceIr,
     plan: &'a ExamplePlan,
@@ -35,6 +44,7 @@ pub struct Scenario<'a> {
     executed: BTreeSet<(u8, usize)>,
     pending: Option<(Invocation, String)>,
     last: Option<Observation>,
+    calls: CallTrace,
     mocks: Vec<PreparedMock>,
     evidence: ScenarioEvidence,
 }
@@ -78,6 +88,7 @@ impl<'a> Scenario<'a> {
             executed: BTreeSet::new(),
             pending: None,
             last: None,
+            calls: CallTrace::Pending,
             mocks: Vec::new(),
             evidence: ScenarioEvidence {
                 subject: plan.subject.clone(),
@@ -106,7 +117,40 @@ impl<'a> Scenario<'a> {
         }
     }
     fn value(&self, expression: &Expression) -> Result<VerificationValue, Box<VerificationResult>> {
-        let value = match evaluate(self.ir, expression, &self.variables, &[], self.budgets) {
+        self.evaluated(
+            expression,
+            evaluate(self.ir, expression, &self.variables, &[], self.budgets),
+        )
+    }
+    fn assertion_value(
+        &self,
+        expression: &Expression,
+    ) -> Result<VerificationValue, Box<VerificationResult>> {
+        let context = ObservationContext {
+            calls: match &self.calls {
+                CallTrace::Observed(calls) => Some(calls.clone()),
+                CallTrace::Pending | CallTrace::Incomplete => None,
+            },
+            ..Default::default()
+        };
+        self.evaluated(
+            expression,
+            evaluate_observed(
+                self.ir,
+                expression,
+                &self.variables,
+                &[],
+                &context,
+                self.budgets,
+            ),
+        )
+    }
+    fn evaluated(
+        &self,
+        expression: &Expression,
+        evaluation: Evaluation,
+    ) -> Result<VerificationValue, Box<VerificationResult>> {
+        let value = match evaluation {
             Evaluation::Complete(value) => value,
             Evaluation::Unknown(issue) => {
                 return Err(Box::new(VerificationResult::Unknown { issue }));
@@ -251,12 +295,33 @@ impl<'a> Scenario<'a> {
         observation
     }
     pub fn deliver(&mut self, observation: Observation, events: Vec<VerificationEvent>) {
+        self.deliver_observed(observation, events, None);
+    }
+    /// Deliver one actual step. None is a missing observer, not an empty trace.
+    /// Call assertions count the complete executed prefix of this example.
+    pub fn deliver_observed(
+        &mut self,
+        observation: Observation,
+        events: Vec<VerificationEvent>,
+        calls: Option<Vec<InvocationObservation>>,
+    ) {
         let Some((invocation, binding)) = self.pending.take() else {
             self.stop(&unknown(
                 "SCENARIO_PROTOCOL",
                 "Observation has no pending invocation",
             ));
             return;
+        };
+        self.calls = match (
+            std::mem::replace(&mut self.calls, CallTrace::Incomplete),
+            calls,
+        ) {
+            (CallTrace::Pending, Some(calls)) => CallTrace::Observed(calls),
+            (CallTrace::Observed(mut previous), Some(calls)) => {
+                previous.extend(calls);
+                CallTrace::Observed(previous)
+            }
+            _ => CallTrace::Incomplete,
         };
         if let Err(result) = self.check_observation(&invocation, &observation) {
             self.stop(&result);
@@ -361,7 +426,7 @@ impl<'a> Scenario<'a> {
                 source_id,
                 expression,
             } => {
-                match self.value(expression)? {
+                match self.assertion_value(expression)? {
                     VerificationValue::Boolean(true) => {}
                     VerificationValue::Boolean(false) => {
                         return Err(failed(

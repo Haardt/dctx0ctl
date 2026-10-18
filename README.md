@@ -415,7 +415,11 @@ Dependencies point toward the language-neutral core. AST and validated IR remain
 
 Compilation follows sorted source discovery → parsing → composition and resolution → type checking → validated IR → semantic graph → fingerprints and snapshot publication. Diagnostics retain source files, codes, and positions.
 
+The Linux QA runner (`python3 scripts/validate.py --coverage`) limits the command and descendants to one third of startup `MemAvailable` through a 50 ms process-tree RSS watchdog, including detached children. It aborts and reaps the tree on excess memory, low system reserve or cancellation. Shared pages count per process; brief allocation spikes between samples are not a hard kernel limit. A systemd memory scope is added when its memory controller is available. Build jobs and test threads default to one.
+
 Native execution uses bounded processes with timeouts, cancellation, output limits, and cleanup. On Linux, an available systemd user scope can cap collective memory at two thirds of startup available RAM, with swap disabled. `DCTX0_MEMORY_GUARD=0` disables this optional cap; unavailable support is reported explicitly. This is resource management, not a security sandbox. See [managed execution](docs/site/src/docs/evidence.md), [verification architecture](docs/site/src/docs/contributing.md), and [compiler boundaries](docs/site/src/docs/contributing.md).
+
+Native example call counts distinguish a missing observer from an observed empty trace and count the completed example prefix. See [actual call observation](docs/site/src/reference/call-observation.md) for semantics and capability requirements.
 
 ## Development and validation
 

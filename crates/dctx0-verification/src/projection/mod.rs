@@ -312,7 +312,7 @@ pub fn project_program(
                         plan.capabilities.push(if trace_kind == "emits" {
                             Capability::Events
                         } else {
-                            Capability::Mocks
+                            Capability::CallObservation
                         });
                         if modeled_target.is_none() {
                             plan.issues.push(issue(

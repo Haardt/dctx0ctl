@@ -1,0 +1,579 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-18T12:51:41.894474+00:00",
+  "scope": "Actual call observation in ordered native examples and independent one-third-RAM QA watchdog",
+  "implementation_status": "implemented; regression tests and targeted native consumer acceptance pass",
+  "whole_repository_gate": "fail: Go Race unsupported 39-bit VMA host; no other validation step failed",
+  "source_files": {
+    "crates/dctx0-verification/src/scenario.rs": "a108561ff1291b82ff829c1ff471fbc7fd92e1fa63931609a5b70f972a579144",
+    "crates/dctx0-verification/src/projection/mod.rs": "1fe4f32dad00b678959214d5f7156854843f861e596e292e46d25d8416da53a4",
+    "crates/dctx0-engine/src/native/scenarios.rs": "b0725ded747615f617b50d070db9508ea7416d52ad6a8a9422c8f2b96115f7d1",
+    "crates/dctx0-verification/tests/scenario.rs": "567c9ed95e6741769d938c528dc5020ba8af6f9658670da80dc4684da1a1a18b",
+    "crates/dctx0-verification/tests/projection.rs": "9b195086f26ba0d088aa265e38d7bb7168318d1e3549720175d212065ed78794",
+    "crates/dctx0-engine/tests/native.rs": "2b03d4ec5cdc4247bd92331c639baf6869116a6dcdc96573a557f5f3a3aaa0b2",
+    "crates/dctx0-engine/tests/verification_run.rs": "fdd641eae8a94ec39bf97afa28f0ba98bac7bf644ef82e1f750a40c417328645",
+    "fixtures/conformance/scenario-calls/workspace.dctx0": "556239caf41bd06118782ac1d16aa6df7b4d8b1cbe4380fbfb8506bcf2191591",
+    "scripts/memory_guard.py": "813a6dc16de05b651650560ed758eb772c71cb7450a652f27487a63dceb207e2",
+    "scripts/tests/test_memory_guard.py": "4c59ad97df8d5199febebb72ab6890e8de37e0e4593a3233432f7ac141974d1b"
+  },
+  "invariants": [
+    "Available empty trace proves zero; absent observation remains UNKNOWN TRACE_OBSERVER_REQUIRED.",
+    "Each assertion counts every actual matching call in the completed when-prefix; duplicates count separately; targets and arguments must match.",
+    "A missing step makes the prefix permanently incomplete; later observations cannot repair it.",
+    "Declared application failures retain calls; mock callbacks and prepared replies do not add duplicate actual calls.",
+    "CallObservation and Mocks remain separate capabilities; given still requires Mocks.",
+    "Legacy Scenario::deliver remains compatible and supplies no call observer.",
+    "No SDK wire or SQLite schema change, historical evidence rewrite, specification/golden update or baseline promotion."
+  ],
+  "toolchains": {
+    "qa_bun": "1.4.2 isolated at /home/massenhaft/.cache/dctx0ctl/call-observation-toolchain/bun; global installation unchanged",
+    "consumer_bun": "1.3.2",
+    "rust": "rustc 1.99.0-nightly (14cae6813 2026-07-08)"
+  },
+  "memory_guard": {
+    "budget_rule": "MemAvailable at command startup // 3",
+    "sample_interval_ms": 50,
+    "rss_method": "Linux process-tree RSS sum; shared pages counted per process; detached descendants tracked, killed and reaped by subreaper",
+    "kernel_limit_limitation": "Host exposes no cgroup memory controller. Watchdog is sampled, not a hard kernel allocation limit; brief spikes between samples are possible. Systemd scope is optional extra enforcement when controller exists.",
+    "failure_policy": "Abort with 137 on budget/system reserve breach; 130 on cancellation; never silently fall back on Linux monitoring errors.",
+    "defaults": {
+      "CARGO_BUILD_JOBS": 1,
+      "RUST_TEST_THREADS": 1
+    },
+    "unit_tests": 8,
+    "unit_tests_status": "pass",
+    "unit_test_evidence": {
+      "path": "target/call-observation/memory-guard.log",
+      "sha256": "eb5bd68b56856036f8c54a30e8f037fe3f3fe533127c168c793f1d496de424b0",
+      "bytes": 946
+    },
+    "workspace_budget_bytes": 4304674816,
+    "workspace_peak_process_tree_rss_bytes": 1582419968,
+    "workspace_elapsed_ms": 4852820.699
+  },
+  "focused_development_tests": {
+    "pure": {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-verification",
+        "--test",
+        "scenario",
+        "--test",
+        "projection",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 25784.032616997138,
+      "peak_rss_bytes": 292020224,
+      "memory_scope": "Linux wait4 ru_maxrss of test command and children, maximum individual process; includes compilation and pre-exec inheritance; not aggregate process-tree RSS",
+      "profile": "debug; not a release benchmark",
+      "baseline_eligible": false
+    },
+    "native": {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "native",
+        "native_example_call_counts_preserve_empty_missing_ordered_and_mocked_observations",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 6647.531923001225,
+      "peak_rss_bytes": 53108736,
+      "memory_scope": "Linux wait4 ru_maxrss of test command and children, maximum individual process; includes compilation and pre-exec inheritance; not aggregate process-tree RSS",
+      "profile": "debug; not a release benchmark",
+      "baseline_eligible": false
+    },
+    "pipeline": {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "verification_run",
+        "example_call_observation_without_given_needs_no_mock_injection_capability",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 14435.370154998964,
+      "peak_rss_bytes": 812003328,
+      "memory_scope": "Linux wait4 ru_maxrss of test command and children, maximum individual process; includes compilation and pre-exec inheritance; not aggregate process-tree RSS",
+      "profile": "debug; not a release benchmark",
+      "baseline_eligible": false
+    }
+  },
+  "native_regression": {
+    "executions": 35,
+    "example_definitions": 6,
+    "modes": [
+      "observed",
+      "mutation (extra actual call, same result)",
+      "duplicate",
+      "unrelated target/arguments",
+      "missing observer"
+    ],
+    "worker_reuse": "zero repeated after nonempty examples to verify session isolation",
+    "status": "pass",
+    "latest_worker_measurements": {
+      "measurements": [
+        {
+          "elapsed_ms": 350.623693,
+          "memory_scope": "Bun worker VmHWM; excludes Rust test runner",
+          "mode": "observed",
+          "peak_rss_bytes": 40919040
+        },
+        {
+          "elapsed_ms": 372.451692,
+          "memory_scope": "Bun worker VmHWM; excludes Rust test runner",
+          "mode": "mutation",
+          "peak_rss_bytes": 41172992
+        },
+        {
+          "elapsed_ms": 360.511923,
+          "memory_scope": "Bun worker VmHWM; excludes Rust test runner",
+          "mode": "duplicate",
+          "peak_rss_bytes": 41193472
+        },
+        {
+          "elapsed_ms": 359.01323099999996,
+          "memory_scope": "Bun worker VmHWM; excludes Rust test runner",
+          "mode": "unrelated",
+          "peak_rss_bytes": 41226240
+        },
+        {
+          "elapsed_ms": 340.212923,
+          "memory_scope": "Bun worker VmHWM; excludes Rust test runner",
+          "mode": "missing",
+          "peak_rss_bytes": 40792064
+        }
+      ],
+      "scope": "native example call observation"
+    },
+    "artifact": {
+      "path": "target/native-executor-conformance/13517-example-call-observation.json",
+      "sha256": "0ecdad1de7f7078f0293fb71880f453210ec1a81d065ce096a57507a707f9867",
+      "bytes": 946
+    }
+  },
+  "workspace_validation": {
+    "command": [
+      "python3",
+      "scripts/validate.py",
+      "--coverage"
+    ],
+    "environment": {
+      "CARGO_BUILD_JOBS": "1",
+      "RUST_TEST_THREADS": "1",
+      "PATH_prefix": "/home/massenhaft/.cache/dctx0ctl/call-observation-toolchain"
+    },
+    "exit_code": 1,
+    "python_tests": 25,
+    "regular_all_feature_rust_executions": 562,
+    "coverage_rust_executions": 563,
+    "benchmark_test_accounting": "Regular suite defers one benchmark-conformance test; instrumented suite executes it.",
+    "cli_feature_combinations": [
+      "no-default-features",
+      "rust only",
+      "go only"
+    ],
+    "cinema_go": {
+      "mandatory_cases": 5674,
+      "tasks": 105,
+      "mutations": 5,
+      "replay": "pass"
+    },
+    "cinema_rust": {
+      "mandatory_cases": 5674,
+      "tasks": 105,
+      "mutations": 5,
+      "replay": "pass"
+    },
+    "failed_steps": [
+      {
+        "command": [
+          "go",
+          "test",
+          "-C",
+          "examples/cinema-go",
+          "-race",
+          "./..."
+        ],
+        "returncode": 1
+      }
+    ],
+    "failure_detail": "ThreadSanitizer unsupported VMA range: found 39, supported 48. Gate not disabled or relabeled PASS.",
+    "source_hash": "4494f625db376a0a64e3fcdf5205ea81fa1bd89bd0596b1efc4078f03274b4ce",
+    "source_hash_unchanged_during_checks_and_measurements": true,
+    "log": {
+      "path": "target/call-observation/workspace-guarded.log",
+      "sha256": "9b857cf1548df49c27fd7c6326d8c95ea57ed0e0d752d9ba3b56ac7db3f4f498",
+      "bytes": 333157
+    }
+  },
+  "coverage": {
+    "lines": 34675,
+    "covered_lines": 33818,
+    "line_percent": 97.52847873107426,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "c95bf1d3ecc9eb4da0dce219f212edbe705dbd54fff8b45ad5611bbcc2cfbf3d",
+    "source_hash_after": "c95bf1d3ecc9eb4da0dce219f212edbe705dbd54fff8b45ad5611bbcc2cfbf3d",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 2857,
+        "covered": 2772,
+        "percent": 97.02485124256212
+      },
+      "instantiations": {
+        "count": 6137,
+        "covered": 3884,
+        "percent": 63.28825158872413
+      },
+      "lines": {
+        "count": 36635,
+        "covered": 35496,
+        "percent": 96.89095127610209
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 55318,
+        "covered": 52272,
+        "notcovered": 3046,
+        "percent": 94.4936548682165
+      }
+    }
+  },
+  "coverage_artifacts": [
+    {
+      "path": "target/coverage/source-summary.json",
+      "sha256": "65b55718c2585fa2ceecec213b8e2538717a1254e4bba8f44d9743be4aab1c6b",
+      "bytes": 121608
+    },
+    {
+      "path": "target/coverage/llvm.json",
+      "sha256": "1e6f6e95004b2d1fcedd03298f8df514547a030360de88add230c0a4adcda902",
+      "bytes": 8969365
+    },
+    {
+      "path": "target/coverage/workspace.lcov",
+      "sha256": "4403681d0cfc1048372d163bd83428aad76d312b5114a94569f1edaea8d2b4da",
+      "bytes": 1552928
+    }
+  ],
+  "coverage_limitations": "Merged source lines and raw LLVM totals are separate. No branch completeness claim, exclusions or lowered 97% thresholds; no supplemental merge needed.",
+  "performance": {
+    "report": {
+      "path": "benchmarks/history/20261018T124750.683973Z-2281.json",
+      "sha256": "214b3f2e522bd286cd327c012ad1dda417c36ac9509852948098422eadab0b45",
+      "bytes": 91526
+    },
+    "workloads": 73,
+    "status": "complete",
+    "gate": "unassessed",
+    "incompatible_baseline_metadata": [
+      "toolchain",
+      "platform",
+      "hardware",
+      "input_hashes"
+    ],
+    "baseline_promoted": false,
+    "regression_claim": "Unassessed: accepted baseline environment/input set incompatible; no comparable historical runs. No claim of absence of regression.",
+    "history_retention": "Latest 20 root measurement runs retained; oldest pruned by runner",
+    "native_go_phases": 11,
+    "native_rust_phases": 11,
+    "editor_phases": 5,
+    "dependency_resolution_report": {
+      "path": "benchmarks/history/dependency-resolution/20261018T124734.883277Z-3362.json",
+      "sha256": "bd09b2b2c34905576a3c3024a299def86be0ef9e36efc4f7d61e8f07388f7859",
+      "bytes": 12598
+    }
+  },
+  "consumer_acceptance": {
+    "status": "pass",
+    "checks": {
+      "command_completed": true,
+      "fresh_execution": true,
+      "not_memory_aborted": true,
+      "binary_unchanged": true,
+      "consumer_inputs_unchanged": true,
+      "all_required_cases_present": true,
+      "all_cases_pass": true,
+      "target_pass": true,
+      "complete_provenance": true,
+      "no_adoption": true,
+      "only_manual_obligations": true
+    },
+    "command": [
+      "bun",
+      "run",
+      "spec:verify",
+      "--scope=channel-artifacts"
+    ],
+    "exit_code": 1,
+    "cli": {
+      "path": "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+      "sha256": "2d5ece3c0cb684875038cf6230c652ca3c5fe07ef9d1e105db67e6cfbfe52288",
+      "version": "dctx0 0.2.5"
+    },
+    "started_at_unix_ns": "1792327698067495784",
+    "elapsed_ms": 55628.24123399969,
+    "native_elapsed_us": 21070331,
+    "peak_process_tree_rss_bytes": 950763520,
+    "memory_measurement": "50ms Linux sampled process-tree RSS sum; shared pages counted per process; includes package and all descendants",
+    "budget": "1/3 startup MemAvailable outer watchdog; existing consumer 3072MiB watchdog remains enabled",
+    "case_counts": {
+      "PASS": 7315
+    },
+    "required_cases": 7315,
+    "target_case": {
+      "id": "CompanyManager.ChannelArtifacts.Ledger.Memory outage never falls back to channel document bytes",
+      "result": {
+        "status": "PASS"
+      }
+    },
+    "remaining_obligations": [
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:1: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:2: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:3: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:4: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:5: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:6: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:7: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:8: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:9: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "CompanyManager.ChannelArtifacts.Ledger#constraint:10: Constraint has no automatically asserted meaning",
+        "span": null
+      }
+    ],
+    "provenance_incomplete": [],
+    "evidence_id": "df90b746fc04ea20de41c2a5186361616ef0233d54332306f0d210cd9d2772ba",
+    "artifacts": {
+      "native-task-plan.json": {
+        "sha256": "74fa50156e1389767100268e1d05d6818eb7f21c11973d19faa63342f614d162",
+        "bytes": 2711213
+      },
+      "native-execution-channel-artifacts.json": {
+        "sha256": "cf7a3069d33f4a62ce44c239cdcb74c6606d24688617b926f1093293bf9570a2",
+        "bytes": 228783853
+      },
+      "native-inspections-channel-artifacts.json": {
+        "sha256": "7428a79d4a8aa5d7f3918a01465b068b2579219de53a2c8cd68db554311520d4",
+        "bytes": 228747040
+      },
+      "native-scope-channel-artifacts.json": {
+        "sha256": "5360dfaac20539e4b94c79fa2ec8ca85564fb7f15cd0b2c8bf10880d6765c86a",
+        "bytes": 1869165
+      },
+      "native-execution-channel-artifacts.json.projection.json": {
+        "sha256": "b6d1ee9ccf6154b4f41668170a8bf379be4eba8c300107bba31e75eaca2fe34a",
+        "bytes": 1865102
+      },
+      "native-assessment-channel-artifacts.json": {
+        "sha256": "7f8b50347be6aec310f8d7f4ca281a0275a7b67e8e8aa185644520d684c795e4",
+        "bytes": 1865465
+      }
+    },
+    "inventory_delta": {
+      "added": [
+        "CompanyManager.Channels.EventKind:value:33"
+      ],
+      "removed": [],
+      "original_required_cases": 7314,
+      "original_cases_pass": 7314
+    },
+    "checker_correction": {
+      "native_execution_repeated": false,
+      "native_evidence_changed": false,
+      "initial_result": "checker-initial-result.json",
+      "reason": "Initial checker incorrectly included derived SQLite history as immutable source and assumed historical inventory count. Reconciled actual complete pinned inventory against every historical required case; only derived history changed, current inventory adds Channels.EventKind:value:33."
+    }
+  },
+  "consumer_reviewed_input_hashes": {
+    "spec/agent-activation-services.dctx0": "c2d3f57c70a4c3839c04ebde4d327b59324af43e2a2e5aaa3a8caad37beaa801",
+    "spec/agent-activation-types.dctx0": "4506a5b289d5e1223b9c35aa7a37196aa026086772fff6146fb90f89a8b0f6ce",
+    "spec/agent-configuration.dctx0": "5e9ba61f9e68952f32e2f416b3dc7ee5d12553907581b7d06d6d528d1138d762",
+    "spec/agent-outputs.dctx0": "ba9f1a44f6ca9c9d93d8dc4453bfc4e6da158639f9dd1c7daf4b5849cdb4cad1",
+    "spec/agent-task-tool-selection.dctx0": "20643442545bf4b09d586f828fef1495ad0c6906ef3ed689d6bfc2922f27cf68",
+    "spec/agent-tools-access.dctx0": "7e3be48cb0085615742981f8e8428eed8445c35f1ad4e622daa6ef2705e49ff2",
+    "spec/agent-tools-areas.dctx0": "e558f14764376a7d79e41917cd53a37aaf92379bda8e194f70bc045d764400a6",
+    "spec/agent-tools-mcp.dctx0": "a3b158b58b23d9fd22582d738e90b337581dd238892a943ba93b102872cfca54",
+    "spec/agent-tools-policies.dctx0": "f9d64c3d7f50604f03ecd1eb1547125b7348ef7046def972b455504a0d7f5da5",
+    "spec/agent-tools-review.dctx0": "86092e69e7d7ec9606ae3280d0ca3ed26382073397731557b9f8223833c3aaf0",
+    "spec/agent-tools-services.dctx0": "74d1867e541a847b03246b8960af92ec08b371c2caf6d5976f38c3a5bd52cbe0",
+    "spec/agent-tools-types.dctx0": "9a38f89b8fb2eda4aa015021acde09cdcb9dea617f7158f46f302db682b9380b",
+    "spec/ai-runner-connections.dctx0": "810ba5e9d84507af84133cfade0c9a269a6c94982074cd5c1ea0cccec3689606",
+    "spec/channel-artifacts-services.dctx0": "b6bc4a6690d81902d0f7109c2057e9bb7030941fab06e96da9412f64d582b8da",
+    "spec/channel-artifacts-types.dctx0": "12bc0dc6c807ef6d03f90e253d46e0297fcb61a1f894da9a35f957d3e2ddc2f9",
+    "spec/channel-root.dctx0": "222785af68e13cf81030d0a212aa6cb7baa1aa4b7365f8c375312468eec0f845",
+    "spec/channel-services.dctx0": "4ee5db63c1cd9e56622be366a5f409ec701371113d56011fa41b3c3e9e9d4f2f",
+    "spec/channel-types.dctx0": "b24b560f38f8ea01fabd83f9b409f9d333fb76f8e65118a486ed6eb0d44b1d05",
+    "spec/channel-views.dctx0": "44c2326411acd251712d0a19a96c0a434a65047cf1e604b553c4d44f16e5379b",
+    "spec/company-manager.dctx0": "e6447dffaf1a80634e3a6a0269efb24596422575c5f32d267d786f1ded41a901",
+    "spec/identity-policies.dctx0": "d03b70fa146ef5e9b06a03f100facee18c96a9b715ab27a5b85443037e5c7615",
+    "spec/identity-root.dctx0": "18a6082fee563ca4bc81cadafdfd444f182f230e2c22249ce99f282e3b1fcf0e",
+    "spec/identity-services.dctx0": "82a87b69649b3d9dfbce976455ca98f0c93c80a1cbf763120209e388e63c9fc0",
+    "spec/identity-types.dctx0": "c99bc15354904e7e8167285b5be4394d5455ea519e3be4c7b816a48c146214d2",
+    "spec/internal-events.dctx0": "ecbaa51f3ae5c93e8b6d53dd2ceb5ec87f47a254f1396e7f515944e074298ccb",
+    "spec/knowledge-acceptance.dctx0": "79b977635a3b9627ef9ae6d091607de65fff48ec60f23af71dfcad4d72c41257",
+    "spec/knowledge-agents.dctx0": "2d2950207300d32b62a43dc81fe3eda94f29b7352f3b7853508b9dd72208e162",
+    "spec/knowledge-channel-documents.dctx0": "808fcaf7781b42c4998699559155384e5ccea809b013a42a3a7c772239869db5",
+    "spec/knowledge-examples.dctx0": "892863d2a78bfd224c355ad2374d3bd3c1ec557d9d1170ab80460ce03d68a943",
+    "spec/knowledge-exchange.dctx0": "91ad66e1ca3a7540f5a9263b73fe2f14c243ffce514e7e2cb81a3276f89762c8",
+    "spec/knowledge-experience.dctx0": "980a36846f39914605b54f0cba92d3c2bc9bd0fd42d9f9bacd15388d7bac2763",
+    "spec/knowledge-policies.dctx0": "01d3b8b1509c1f75ad7217c82eae8fcdadf8c53cd6abc6ae33d5297f4aad52cf",
+    "spec/knowledge-services.dctx0": "4dd64effd0dd773ce41fb88dd7bc3060c7814a077cd6efec775e64ef78e63877",
+    "spec/knowledge-types.dctx0": "efbb3a5ce392d171a9ef4405d20088236e47854823ef9a0b6dc16baa62549af4",
+    "spec/platform-plugins.dctx0": "e3cf324a4beede612670bdaf56716ad2006562d514eaf2935bc2075bbef5e714",
+    "spec/plugins/acp-runner.dctx0": "92122b9edb17e83740e7bc1b0a91eaf2f236072e0fc56e589594a78be4518198",
+    "spec/plugins/channel-webhook.dctx0": "ba74634263408825f529c8aa8df9d7afb460ceffe9f16babf953da364d727b73",
+    "spec/plugins/document-library.dctx0": "d004d54a695017bf1d1a790cdb14c62dc00ef6771128793fb785f856e8a17b37",
+    "spec/plugins/knowledge-review.dctx0": "f30b20cb358fa692ea1c1383935c404b23eae9c7a131da4700b97f2e50fb986a",
+    "spec/plugins/runatron-remote-worker.dctx0": "d1a1e55fc1bc526412cd65a45f3256a53c1306712d8ca1a9d4150d9c57bfa14d",
+    "spec/plugins/runatron-wrapper-runner.dctx0": "ced4d63415c0ca95d89b17a7fcbdc200519980fce082cae5c8d81beae29dd6d9",
+    "spec/plugins/test-runner-ui.dctx0": "37612fec9a93f4d6027e292ec150ad078ddd8ede37bb741c370cfafb3eb2500c",
+    "spec/runner-admission.dctx0": "ebc4ccdbb8615db9d3b765e5cbd6214df17437046733ecbfeb6a0535643c2676",
+    "spec/runner-contracts.dctx0": "baa9c88ec1f8fd54f8c464cb8692d1d9accff376d3f72ddc12f1db6eee0eb639",
+    "spec/runner-types.dctx0": "7e46f14382e4d81670042bc59886bf0c2a7c29b176beb20be2a0e020ac899661",
+    ".dctx0/testing/typescript/activation/acp-peer.ts": "184158f0b209054c5fb9c2b17d68e80bbd292cb6592f666ec97f4548e82317f2",
+    ".dctx0/testing/typescript/activation/activation-fixture.ts": "776dfc57414957e096cdcf4641652d04950963448f45700d5d61d2486c66bfee",
+    ".dctx0/testing/typescript/activation/activation-http-bridge.ts": "6de0f1bfdeb555373363e23e95eb76cdb27d9f7b485ab555fd3a9058a94635d8",
+    ".dctx0/testing/typescript/activation/activation-wire.ts": "ba01209e584184311430fbbc68a4d0edd4c14930a366c4123e769897f682f05d",
+    ".dctx0/testing/typescript/activation/agent-activation-session.ts": "95f46ef9478b315d5ba3c9c3fbbd36fedd817e89ecb2fe86e75f60b2a320e23f",
+    ".dctx0/testing/typescript/activation/agent-profile-native.ts": "2da7a79e43aa430aaebd101680513c32d84c921903c63f83c37a9feb47b5ebdb",
+    ".dctx0/testing/typescript/activation/index.ts": "3aac7e973daac52e5746ad359ca9180be5583a56a549bff77fa75af0f1526fc5",
+    ".dctx0/testing/typescript/activation/profile-storage-double.ts": "64239f48f8e35c970e818585c1b97db67d5ebce6b476907368520fc1377e73ee",
+    ".dctx0/testing/typescript/activation-adapter-factory.ts": "fa8fab71bd7760c607dbd68898f0504f74aaf4958ae0016879d644a8e1594ef5",
+    ".dctx0/testing/typescript/activation-adapter.ts": "be0b11fdb3a0b411e5fc1d87642a9039da569efd94a3f388c2f4eef58ed2ed12",
+    ".dctx0/testing/typescript/adapter.ts": "8703ec113bc0a1058ab9c9e21ca155cc62a9182dc540a412387a5e7e7191aa6b",
+    ".dctx0/testing/typescript/agent-activation-adapter.ts": "3f1065288f2afa436b85fddc606799581f56b20b7e91d3db3b5d81210993aa2d",
+    ".dctx0/testing/typescript/agent-tools-adapter.ts": "8cf226fc392ff96933eb3a65a664e2f59953cb2deeee171f91985e1d29891b50",
+    ".dctx0/testing/typescript/artifact-fixtures.json": "c68abef941baac005463f632b7ff1d8bbcda6aa0803874850ae0c684c358d97d",
+    ".dctx0/testing/typescript/artifacts/artifact-knowledge-double.ts": "ac421345022c01b6308cb3dcc863da756848c00fffc4bd0aa3e58e8a32b79e86",
+    ".dctx0/testing/typescript/artifacts/artifact-memory-observer.ts": "66a4f51ee0153349481f83c3a60c745a064c59b28e26e0f38dbc9c6d06be7480",
+    ".dctx0/testing/typescript/artifacts/artifact-native-fixture.ts": "3164b8660872d41fb6014d6fb90490f6f82f26c50aaf20664c2e725d2470d769",
+    ".dctx0/testing/typescript/artifacts/artifact-storage-double.ts": "3ff0610b1ab17ad66cebb0469e728e851550ea3a119d8710ad04d6b500d0d0bb",
+    ".dctx0/testing/typescript/artifacts/artifact-test-storage.ts": "db912afa2bf375209940be046a1747003b1c5c1976f23ec8e772462146229728",
+    ".dctx0/testing/typescript/artifacts/artifact-wire.ts": "d3a2cbf428b6a0f56cdc12364e69be8f3608b038847400f596a9d7646acdf503",
+    ".dctx0/testing/typescript/artifacts-adapter.ts": "6b7c3b94ec83976f12218231fae8616fbf8feb490fae093c211b8dfd0d77ac79",
+    ".dctx0/testing/typescript/channel-adapter.ts": "1687cf0089cec14392a4587db57e1fcd79368ca57c69830b98e56bf9ba6272eb",
+    ".dctx0/testing/typescript/channel-http-bridge.ts": "1cfa7be0fbe9d349c35fddb68b4d1e968294511c32ab88f8db064f5e83128fb0",
+    ".dctx0/testing/typescript/channel-native-fixture.ts": "df334e392a7a8191604b2237ed1e4a754d04f2a1be8eb480342d642eda707117",
+    ".dctx0/testing/typescript/channel-storage-double.ts": "5453737c7f642a025e4207a2b5216aa461e0ef290ba400517cb829f14d8b42a7",
+    ".dctx0/testing/typescript/channel-wire-values.ts": "19e3e3f8eb888214a395a4010e8362de85cf4e16e45586467cec61aa38320e9c",
+    ".dctx0/testing/typescript/company-mock-cases.json": "557fcee72fff0db009b69a3b9a4401c040f0cf5bd692af6e8ab880d7d9929044",
+    ".dctx0/testing/typescript/company-storage-fixture.json": "82e379164e771de0661fed6a8d173915f567ef0c692f621f8c5d993e00124720",
+    ".dctx0/testing/typescript/company-wire-values.ts": "9cb403cdfcea0c20b896677cbfdcbbec908eee79509ceb7516a54036baa6265e",
+    ".dctx0/testing/typescript/connection-adapter.ts": "b8d1b2721cb03143fbeaf4b3c317316ccd582583c23e4c6af2c04875ad521a80",
+    ".dctx0/testing/typescript/connections/connection-fixture.ts": "97138580e92490b236259d276ab56fbe035df6b0624de754f3db56c931d84d3a",
+    ".dctx0/testing/typescript/connections/connection-wire.ts": "5dd99e6bacc7780e2f5ad87c7855c46432152905357d41c623b5fd699ffaef47",
+    ".dctx0/testing/typescript/contract.ts": "3e19544d7560ea495821d77afbbc6c91d68aec68e45f667abc4c2649ee07d986",
+    ".dctx0/testing/typescript/document-writer-adapter.ts": "cbb5e545009f34b692e65cc7f8f276761dcd9f03121ddd4dafb5a39059673cf5",
+    ".dctx0/testing/typescript/events-adapter.ts": "5ce1215a298a4a1ae1b5e07b4ba544aaaaa1040888c1532abf9457b48c57c0a6",
+    ".dctx0/testing/typescript/examples.json": "15d5cf1e8425242ca9da3240bb244baca9e21038138ac7e50fae5c40e1c91874",
+    ".dctx0/testing/typescript/identity-adapter.ts": "96fc8e0d295b5e30542130811d23c10433e0054517d0666ecca67bb4035c5560",
+    ".dctx0/testing/typescript/identity-http-bridge.ts": "677f4231fe111146713dd0d86aecefbabc17d36b6260910b0bd0e5c46b99d7e0",
+    ".dctx0/testing/typescript/identity-storage-double.ts": "30fd92140945b3a47f7a70c9c3993ee1990592cf9ba51f0d59d65b3f8d5e0a91",
+    ".dctx0/testing/typescript/identity-wire-values.ts": "b5da36df8790f0074be436982a82d310784728e919178a714f20ac3808958cc4",
+    ".dctx0/testing/typescript/knowledge/knowledge-artifacts.ts": "951c0cd60d4f5302d260957a911682e72245c52ba845326766e27af18de4e4de",
+    ".dctx0/testing/typescript/knowledge/knowledge-fixture.ts": "72ccf0333603845cf3ff4e344d9ac98fbd66cd820388e8b1e7d920e52c9fd3a8",
+    ".dctx0/testing/typescript/knowledge/knowledge-foreign-shapes.ts": "a8f0665890ea525ed55334fd1fbc9a45af840c35ca93d4a84fca32ddb042e5d8",
+    ".dctx0/testing/typescript/knowledge/knowledge-operations.ts": "6a77a7606dbc7b20f221e72126fab2560aad82d282a7d1be8903e9a3c09f9076",
+    ".dctx0/testing/typescript/knowledge/knowledge-wire.ts": "08aa175f612bcd50f89a22f62fbab6bc319f123a7a5b67e5fb5524b0f489e04c",
+    ".dctx0/testing/typescript/knowledge-adapter.ts": "74c638d76a0d1428a8cc58a643fa2449baac3871fa7a7feecb1a896cf8dcaf23",
+    ".dctx0/testing/typescript/knowledge-fixtures.json": "f94e66fd21403efa0bfd10e1ec93f86006270f2f5aa919aec544f85fae10c4e4",
+    ".dctx0/testing/typescript/lifecycles.json": "df668f6056d0ba15036b5a7bde4848d84793d0e7c2346c2108d6a2613ae647ef",
+    ".dctx0/testing/typescript/module-observer.ts": "afca4b5fc084b55d0575ba7520be348911121a61d20c9227c9c6767805016a48",
+    ".dctx0/testing/typescript/native-memory-transaction.ts": "926384aac593eeb3ee83353952ba846ebc28876734a5c8002fa10b72c5d09f5e",
+    ".dctx0/testing/typescript/observed-policy-session.ts": "90b4054f16422bce4868ca5481f9fa139ef2de25828280bac17fec30ffb2b1e1",
+    ".dctx0/testing/typescript/outputs-adapter.ts": "65de5ea65674fc75b3d7ab6b47fcc473a9e8cb3982f895dea70151cbf5210f33",
+    ".dctx0/testing/typescript/plugin-adapter.ts": "39e712d024f54590295afe90e4f2db8ff7c62d347ce8e86b70012a7e948bfab6",
+    ".dctx0/testing/typescript/remote-runatron-adapter.ts": "a3c99995a6a952a30e9ddd17e3f13a564ab888ab26f1830258ab00d83941dbd1",
+    ".dctx0/testing/typescript/runatron-adapter.ts": "59ae37223ae1c31cd6196867d6af1718edb7993ea25ff218d2b518b594693c6b",
+    ".dctx0/testing/typescript/runner-adapter.ts": "74bf8509398d8d95834e8130cc6918d5ac2b94f7adb81363d380a1db6cf313b2",
+    ".dctx0/testing/typescript/runner-event-observer.ts": "237744a54edddb5bc4186c6b27e834f38757acbe642c874809e212074759fdce",
+    ".dctx0/testing/typescript/runner-host-fixtures.json": "a1eb615d77ee0972de4f3cbe40c102a109afbcdf854632b4f5d3b417be4a8f27",
+    ".dctx0/testing/typescript/runner-storage-double.ts": "570e3f8dfcfa11f24ce9601af95725cf01faae0368cb7cb3bedbed27ec96a509",
+    ".dctx0/testing/typescript/runner-wire-values.ts": "6e471d00218a13402737ef624816a1ab0cb2c9d216c385ba842edbea3472bd1e",
+    ".dctx0/testing/typescript/verify-agent-tools.ts": "c094345762d934d4f17c8ded8a038a651b2992f60a86def57b1379ac26fcc446",
+    ".dctx0/testing/typescript/verify-artifacts.ts": "f0624d29889f2ba2fc1be07dd2a5ee23b40a2d4d04fd9c4c7c89cc4ae6a1d5a5",
+    ".dctx0/testing/typescript/verify-events.ts": "c12252c4aaab0bb03b6cc269aa8605ccb5c1500881105ef59a0acc7e4f4fe0e6",
+    ".dctx0/testing/typescript/verify-knowledge.ts": "072d2ee0bc04373d550cab653380e4b8e20a294c68370db5a4ba73e911eddc8a",
+    ".dctx0/testing/typescript/verify-outputs.ts": "49a8e423e4feb5332eaad4766446e5ad175abdb0471657764d3abb3241707bfe",
+    ".dctx0/testing/typescript/views-adapter.ts": "155149c16a94a754bd534c21bd2ba0aef41237144e20bf948f424d9bf8be22ba",
+    ".dctx0/testing/typescript/worker.ts": "375785845c61abf5c784f60293a3818ab9ac77b937ddef26245e329a4cdfa3bb"
+  },
+  "consumer_archive": "/home/massenhaft/workspaces/conpinion/company-manager/.artifacts/verification/call-observation/20261018T095506Z",
+  "consumer_scope_limit": "Targeted channel-artifacts only. All 7314 original cases pass plus one added Channels.EventKind:value:33 from intervening consumer work. Ten manual constraints remain open; overall native result stays UNKNOWN. Not a fresh full 15-scope repository gate.",
+  "retained_incomplete_attempts": {
+    "workspace_interrupted": {
+      "status": "incomplete",
+      "reason": "Host interrupted; instrumented tests did not complete; no coverage export or coupled performance results",
+      "log": "workspace-interrupted.log",
+      "coverage_build": "target/coverage/build-9bj1v6ti",
+      "coverage_build_removed": true
+    },
+    "focused_attempts": [
+      "target/call-observation/development-incomplete.log",
+      "target/call-observation/pure-attempt-1.log",
+      "target/call-observation/pipeline-attempt-1.log"
+    ],
+    "consumer_checker_correction": "Initial checker result retained in consumer archive; only checker inventory/source classification corrected, no native rerun or evidence alteration."
+  }
+}

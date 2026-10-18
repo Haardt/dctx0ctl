@@ -4085,3 +4085,58 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     let repeated = f.run(false).await;
     assert!(repeated.adopted_tasks.is_empty());
 }
+
+#[tokio::test]
+async fn example_call_observation_without_given_needs_no_mock_injection_capability() {
+    // Plan closure includes all examples calling the selected operation.
+    let source = include_str!("../../../fixtures/conformance/scenario-calls/workspace.dctx0");
+    let zero_only = format!(
+        "{}\n}}",
+        source.split("  example \"one\" {").next().unwrap()
+    )
+    .replace(" -> Int ! Broken", " -> Int");
+    let f = Fixture::new(&zero_only, "W.zero");
+    fs::write(
+        f.app.join("app.ts"),
+        "export async function read(input:number){return input;}",
+    )
+    .unwrap();
+    let adapter = r#"import {read} from '../../../app.ts';
+export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.Api.read',role:'operation',artifact:'app.ts',entry_point:'read'}],artifacts:['app.ts'],capabilities:['sessions','events','invocation','call-observation'],representations:{Int:'integer'}};},async begin(){return {async invoke(invocation){return {kind:'returned',value:{kind:'integer',value:String(await read(Number(invocation.arguments[0].value)))}};},async close(){}};}};"#;
+    for observed in [true, false] {
+        f.adapter(&if observed {
+            adapter.into()
+        } else {
+            adapter.replace(",'call-observation'", "")
+        });
+        let report = f.run(true).await;
+        let run = &report.evidence.run;
+        let case = run.cases.iter().find(|c| c.id == "W.zero").unwrap();
+        if observed {
+            assert_eq!(case.result, VerificationResult::Pass);
+            assert!(
+                !run.open_obligations
+                    .iter()
+                    .any(|i| i.code == "ADAPTER_CAPABILITY_UNAVAILABLE"),
+                "{:?}",
+                run.open_obligations
+            );
+        } else {
+            assert!(
+                matches!(&case.result, VerificationResult::Unknown { issue } if issue.code == "TRACE_OBSERVER_REQUIRED")
+            );
+            assert!(
+                run.open_obligations
+                    .iter()
+                    .any(|i| i.code == "ADAPTER_CAPABILITY_UNAVAILABLE"
+                        && i.message.contains("call-observation"))
+            );
+        }
+        assert!(
+            !run.open_obligations
+                .iter()
+                .any(|i| i.message.contains("mock-injection"))
+        );
+        assert!(report.adopted_tasks.is_empty());
+    }
+}

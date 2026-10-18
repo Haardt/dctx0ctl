@@ -1121,3 +1121,41 @@ against a baseline. See `docs/site/src/reference/inspection-inputs.md`. Local
 focused tests and Complete notes above 1 MiB pass; fresh CI/release is pending.
 Self-verification acceptance must replay its latest successful warm run after
 mutations, because the original run can legitimately expire under retention.
+
+## Native example call observation and QA RAM guard (2026-10-18)
+
+Ordered example assertions now evaluate actual adapter calls from the completed
+`when` prefix. Available empty traces prove zero; missing observations remain
+UNKNOWN and cannot be repaired by a later step. Declared failures retain calls;
+mock callbacks do not double count them. Projection requires `call-observation`
+for call assertions and reserves `mock-injection` for actual prepared mocks.
+The additive `Scenario::deliver_observed` API preserves the legacy delivery API;
+SDK wire contracts, SQLite schemas, specs and goldens are unchanged.
+
+The Linux QA runner now uses an independent 50 ms process-tree RSS watchdog with
+one third of startup MemAvailable, serial builds/tests by default, and cleanup
+of detached descendants. A reachable systemd manager alone is not enforcement:
+this host exposes no memory controller. The watchdog also operates without
+systemd; its sampled RSS sum counts shared pages per process and is not a hard
+kernel allocation limit. This supersedes earlier QA two-thirds/systemd-only
+memory guidance; production native executor policy is unchanged.
+
+The bounded workspace run passed 25 Python tests, 562 regular Rust executions
+and 563 instrumented executions (including the deferred benchmark test), plus
+CLI feature combinations and complete Go/Rust Cinema acceptance with mutations
+and replay. Fresh merged source-line coverage is 33,818/34,675 (97.53%);
+LLVM functions are 2,772/2,857 (97.02%). Preserve raw LLVM line coverage of
+96.89% separately; no branch completeness, exclusions or supplemental merge is
+claimed. The process tree peaked at 1,582,419,968 bytes within its 4,304,674,816-byte
+budget. All 73 release workloads completed; baseline comparison is unassessed
+because metadata/inputs are incompatible, and no baseline was promoted.
+The aggregate gate remains failed solely because Go Race requires a 48-bit VMA
+and this host provides 39 bits.
+
+Fresh Company Manager channel-artifacts execution with the locally built CLI
+passes all 7,315 current cases, including all 7,314 original cases and the
+reported outage example, with COMPLETE provenance. One additional EventKind
+case comes from intervening consumer work. Ten manual constraints remain open;
+this is not a new full 15-scope gate PASS. The run peaked at 950,763,520 bytes
+within a 4,332,691,456-byte outer budget; the consumer's 3,072 MiB guard also stayed
+active. See `docs/call-observation-validation.json` and the linked native archive.

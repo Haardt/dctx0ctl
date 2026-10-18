@@ -3106,3 +3106,164 @@ for line in sys.stdin:
     );
     worker.abort().await.unwrap();
 }
+
+#[tokio::test]
+async fn native_example_call_counts_preserve_empty_missing_ordered_and_mocked_observations() {
+    use dctx0_target_typescript::BunHarness;
+    use dctx0_verification::*;
+    let compiled = dctx0_language::compile(&[Source {
+        file: "calls.dctx0".into(),
+        text: include_str!("../../../fixtures/conformance/scenario-calls/workspace.dctx0").into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: ["W".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    let temp = Temp::new();
+    let bundle = BunHarness
+        .generate(&HarnessRequest {
+            adapter_import: "./adapter.ts".into(),
+            subjects: plan.closure.clone(),
+        })
+        .unwrap();
+    for artifact in &bundle.artifacts {
+        fs::write(temp.0.join(&artifact.path), &artifact.contents).unwrap();
+    }
+    let cancel = NativeCancellation::default();
+    let mut measurements = Vec::new();
+    for mode in ["observed", "mutation", "duplicate", "unrelated", "missing"] {
+        // The service executes the actual collaborator boundary; mutation changes
+        // that execution while preserving the operation's return/failure.
+        fs::write(
+            temp.0.join("app.ts"),
+            format!(
+                r#"
+export class Broken extends Error {{}}
+export async function read(input, load, other) {{
+ if(input === 1) {{ await load(1); if({duplicate}) await load(1); }}
+ if(input === 2) await load(2);
+ if(input === -2) await load(1);
+ if((input === 0 || input === -1) && {mutation}) await load(1);
+ if(input === 0 && {unrelated}) {{ await load(9); await other(1); }}
+ if(input < 0) throw new Broken('outage');
+ return input;
+}}
+"#,
+                duplicate = mode == "duplicate",
+                mutation = mode == "mutation",
+                unrelated = mode == "unrelated"
+            ),
+        )
+        .unwrap();
+        fs::write(temp.0.join("adapter.ts"), format!(r#"
+import {{read, Broken}} from './app.ts';
+const observed = {observed};
+export const adapter = {{
+ async describe() {{ return {{protocol_version:1, subjects:[], artifacts:['app.ts'], capabilities:['sessions','invocation','events','mock-injection',...(observed?['call-observation']:[])],representations:{{Int:'integer'}}}}; }},
+ async begin(caseId, context) {{
+  const integer = n => ({{kind:'integer',value:String(n)}});
+  async function call(subject, input) {{
+   const invocation = {{subject,arguments:[integer(input)]}};
+   const observation = caseId === 'W.mock'
+    ? await context.collaborator(invocation)
+    : {{kind:'returned',value:integer(input)}};
+   if(observed) context.recordCall(invocation, observation);
+   if(observation.kind !== 'returned') throw Error('Unavailable collaborator');
+   return Number(observation.value.value);
+  }}
+  return {{async invoke(invocation) {{
+   try {{return {{kind:'returned',value:integer(await read(Number(invocation.arguments[0].value),n=>call('W.Store.load',n),n=>call('W.Store.other',n)))}};}}
+   catch(error) {{if(!(error instanceof Broken)) throw error; return {{kind:'returned',value:{{kind:'failure',value:{{declaration:'W.Broken',payload:{{kind:'record',value:{{reason:{{kind:'string',value:error.message}}}}}}}}}}}};}}
+  }},async close(){{}}}};
+ }}
+}};
+"#, observed=mode!="missing")).unwrap();
+        let started = Instant::now();
+        let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, limits())
+            .await
+            .unwrap();
+        // Reuse the worker, including a new zero-call case after nonempty cases.
+        for example in plan
+            .examples
+            .iter()
+            .chain(plan.examples.iter().filter(|e| e.subject == "W.zero"))
+        {
+            let result = worker
+                .execute_example(&ir, example, &plan.budgets, &cancel)
+                .await
+                .unwrap();
+            let failed = mode == "mutation"
+                && matches!(
+                    example.subject.as_str(),
+                    "W.zero" | "W.ordered" | "W.failure"
+                )
+                || mode == "duplicate" && matches!(example.subject.as_str(), "W.one" | "W.ordered");
+            match (mode, failed) {
+                ("missing", _) => assert!(
+                    matches!(&result.result, VerificationResult::Unknown { issue } if issue.code == "TRACE_OBSERVER_REQUIRED"),
+                    "{mode}: {result:?}"
+                ),
+                (_, true) => assert!(
+                    matches!(&result.result, VerificationResult::Fail { issue } if issue.code == "ASSERTION_FAILED"),
+                    "{mode}: {result:?}"
+                ),
+                _ => assert_eq!(
+                    result.result,
+                    VerificationResult::Pass,
+                    "{mode}: {result:?}"
+                ),
+            }
+            assert_eq!(
+                result.collaborators.len(),
+                usize::from(example.subject == "W.mock")
+            );
+            let calls: Vec<_> = worker
+                .session_evidence()
+                .iter()
+                .filter_map(|e| match e {
+                    NativeSessionEvidence::Invoked { calls, .. } => Some(calls),
+                    _ => None,
+                })
+                .collect();
+            assert!(!calls.is_empty());
+            assert!(calls.iter().all(|c| c.is_some() == (mode != "missing")));
+        }
+        let metrics = worker
+            .request(WorkerRequest::Metrics, &cancel, &mut no_mock)
+            .await
+            .unwrap();
+        let WorkerReply::Measured { peak_rss_bytes, .. } = metrics else {
+            panic!("Missing metrics")
+        };
+        worker
+            .request(WorkerRequest::Shutdown, &cancel, &mut no_mock)
+            .await
+            .unwrap();
+        worker.finish().await.unwrap();
+        measurements.push(serde_json::json!({"mode":mode,"elapsed_ms":started.elapsed().as_secs_f64()*1000.,"peak_rss_bytes":peak_rss_bytes,"memory_scope":"Bun worker VmHWM; excludes Rust test runner"}));
+    }
+    let directory =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/native-executor-conformance");
+    fs::create_dir_all(&directory).unwrap();
+    fs::write(
+        directory.join(format!(
+            "{}-example-call-observation.json",
+            std::process::id()
+        )),
+        serde_json::to_vec_pretty(&serde_json::json!({"scope":"native example call observation", "measurements":measurements})).unwrap(),
+    )
+    .unwrap();
+}
