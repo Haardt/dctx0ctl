@@ -65,6 +65,17 @@ def subreaper():
         raise OSError(ctypes.get_errno(), 'Cannot own detached QA descendants')
 
 
+def reap_adopted(root_pid):
+    # Adopted children can finish while the command is still running. Reap them
+    # promptly without consuming the root status owned by Popen.poll/wait.
+    for pid, (parent, _, _, _) in processes().items():
+        if parent == os.getpid() and pid != root_pid:
+            try:
+                os.waitpid(pid, os.WNOHANG)
+            except ChildProcessError:
+                pass
+
+
 def terminate(child, tracked):
     try:
         os.killpg(child.pid, signal.SIGKILL)
@@ -127,6 +138,7 @@ def monitored_run(command, budget, environment):
                 return code if code >= 0 else 128 - code
             if child.pid not in tracked:
                 raise RuntimeError('Cannot observe the live QA command; refusing an unbounded run')
+            reap_adopted(child.pid)
             time.sleep(0.05)
     finally:
         try:

@@ -116,3 +116,36 @@ class MemoryGuardTests(unittest.TestCase):
                 if child.poll() is None:
                     child.kill()
                     child.wait()
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux child subreaper')
+    def test_finished_adopted_children_are_reaped_while_root_runs_without_stealing_its_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pidfile = Path(directory) / 'adopted.pid'
+            launcher = (
+                'import os,time;from pathlib import Path;'
+                'pid=os.fork();'
+                'os._exit(0) if pid else None;'
+                f'Path({str(pidfile)!r}).write_text(str(os.getpid()));'
+                'time.sleep(0.1)'
+            )
+            root = f'''
+import os, subprocess, sys, time
+from pathlib import Path
+subprocess.run([sys.executable, '-c', {launcher!r}], check=True)
+path = Path({str(pidfile)!r})
+deadline = time.monotonic() + 3
+while not path.exists() and time.monotonic() < deadline:
+    time.sleep(0.01)
+pid = int(path.read_text())
+while time.monotonic() < deadline:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        raise SystemExit(7)
+    time.sleep(0.01)
+raise SystemExit(33)
+'''
+            helper = f'import runpy,os,sys;m=runpy.run_path({str(Path(guard.__file__).resolve())!r});sys.exit(m["monitored_run"]([sys.executable,"-c",{root!r}],64*1024*1024,dict(os.environ)))'
+            result = subprocess.run([sys.executable, '-c', helper], capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+            self.assertFalse((Path('/proc') / pidfile.read_text()).exists())

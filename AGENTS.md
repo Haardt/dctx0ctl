@@ -1159,3 +1159,12 @@ case comes from intervening consumer work. Ten manual constraints remain open;
 this is not a new full 15-scope gate PASS. The run peaked at 950,763,520 bytes
 within a 4,332,691,456-byte outer budget; the consumer's 3,072 MiB guard also stayed
 active. See `docs/call-observation-validation.json` and the linked native archive.
+
+v0.2.6 release preparation additionally corrected QA subreaper cleanup: finished
+adopted children are reaped while the command runs without consuming its exit
+status. Nine focused guard tests pass. The installed local v0.2.6 passes 14
+release/installer checks (one local pwsh skip) and all five native platform checks,
+including cancellation, actual mutation and repaired replay. Three fresh packaging
+and startup samples retain speed/RSS measurements. The failed initial cancellation
+attempt remains recorded. See `docs/release-v0.2.6-validation.json`; publication
+still requires normal CI and all five native release hosts.

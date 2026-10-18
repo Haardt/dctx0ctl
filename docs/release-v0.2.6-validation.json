@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-18T13:03:10.535396+00:00",
+  "version": "0.2.6",
+  "local_installation": {
+    "status": "pass",
+    "command": [
+      "cargo",
+      "install",
+      "--path",
+      "crates/dctx0-cli",
+      "--locked",
+      "--all-features",
+      "--bin",
+      "dctx0",
+      "--force"
+    ],
+    "path": "/home/massenhaft/.cargo/bin/dctx0",
+    "version_output": "dctx0 0.2.6",
+    "binary_sha256": "8ecbb6b97d64458bf2b7db1e9703b100d256efa56622ec5af5eb83ca189a01e3",
+    "matches_release_build": true,
+    "log": {
+      "path": "target/release-v0.2.6/install.log",
+      "sha256": "669388195e9df88ce9f1f81e4e06042d15c24dbdba6f705ea6c88f198a0f80a0"
+    },
+    "elapsed_ms": 218622.927,
+    "peak_process_tree_rss_bytes": 769888256,
+    "budget_bytes": 4349794986
+  },
+  "distribution": {
+    "status": "pass",
+    "report": {
+      "path": "benchmarks/history/release/20261018T130115.035079Z-5628.json",
+      "sha256": "0a4048292a453c3a71ae7e5455aa2f3317ebf6e67b4f5a11c3fd873e1885ad43"
+    },
+    "platform_checks": {
+      "schema_version": 1,
+      "status": "PASS",
+      "platform": "linux",
+      "architecture": "arm64",
+      "binary_sha256": "8ecbb6b97d64458bf2b7db1e9703b100d256efa56622ec5af5eb83ca189a01e3",
+      "bun": "1.4.2",
+      "checks": [
+        {
+          "name": "standalone CLI version, skills and compilation",
+          "elapsed_ms": 23.732231000000002,
+          "status": "PASS"
+        },
+        {
+          "name": "LSP initialize, diagnostics, symbols and clean shutdown",
+          "elapsed_ms": 69.066154,
+          "status": "PASS"
+        },
+        {
+          "name": "actual Bun SDK harness call, state, event and mock transport",
+          "elapsed_ms": 76.270461,
+          "status": "PASS"
+        },
+        {
+          "name": "forced cancellation cleans up the owned process and descendant",
+          "elapsed_ms": 156.287077,
+          "status": "PASS"
+        },
+        {
+          "name": "managed TypeScript finite plan, actual mutation, stored failure and repaired replay",
+          "elapsed_ms": 24162.69754,
+          "status": "PASS"
+        }
+      ],
+      "scope": "Native CLI/LSP, Bun SDK transport, managed TypeScript finite plan with mutation and replay; Go/Rust and full Cinema are checked by native_portability.py",
+      "memory": {
+        "peak_rss_bytes": 81330176,
+        "scope": "Linux Bun runner self peak RSS; other OS self metrics unavailable here; the Python distribution runner measures child peak memory separately"
+      }
+    },
+    "summary": {
+      "package-release": {
+        "samples": 3,
+        "median_elapsed_ms": 2217.5996149999264,
+        "peak_rss_bytes": 59195392
+      },
+      "startup-release": {
+        "samples": 3,
+        "median_elapsed_ms": 11.797000000115077,
+        "peak_rss_bytes": 59195392
+      }
+    },
+    "test_count": 14,
+    "test_skips": 1,
+    "skip_reason": "pwsh unavailable locally; Windows native installer acceptance remains required in release CI",
+    "log": {
+      "path": "target/release-v0.2.6/distribution-corrected.log",
+      "sha256": "d9171c4ff071d45912ec2b76f0bfe6918e523f7465e785d4601d9ddd78b235e8"
+    },
+    "elapsed_ms": 41466.911,
+    "peak_process_tree_rss_bytes": 399228928,
+    "budget_bytes": 4349068629
+  },
+  "qa_guard_followup": {
+    "reason": "Release cancellation exposed adopted zombie children retained until root exit. Reap only adopted children during monitoring; preserve Popen ownership of root exit status.",
+    "tests": 9,
+    "result": "pass",
+    "log": {
+      "path": "target/release-v0.2.6/memory-guard-tests.log",
+      "sha256": "fb5a11edf367f63e758152b4c88c21b2a6dd8585c9ee7ceeac3cdab4b76b8858"
+    },
+    "source_sha256": "60cdcbcce63d5e1363688d715d499497928f096347342423c41ed5e688adcacc",
+    "test_source_sha256": "3e03b052a6d73469594de80c326a6ee94192494e15f5a559204cb4df8221f5f7",
+    "failed_attempt_retained": {
+      "path": "benchmarks/history/release/20261018T125902.690411Z-5130.json",
+      "sha256": "4d433157eee0f5f0278e54360bfe17346614e9ec0192cf35d5fe0dc8fea03690"
+    },
+    "failed_attempt_log": {
+      "path": "target/release-v0.2.6/distribution.log",
+      "sha256": "6551ac500ca6e0673ad4110664b4c5c760ca0d9d3286069a653be702d09fc8c6"
+    },
+    "initial_failure_not_relabeled": true
+  },
+  "performance_scope": "Release runner records packaging/startup elapsed time and per-command wait4 memory separately. Outer guard records 50ms sampled aggregate process-tree RSS with shared pages counted per process. Baseline unassessed and unchanged.",
+  "publication_policy": "Normal fresh CI workspace validation, distribution/installer checks and five native hosts required; no v0.2.6 exceptions.",
+  "pre_version_bump_validation": "docs/call-observation-validation.json",
+  "source_commit_at_local_build": "6b24e7c0c76400a3cbc21f67f0b868fb51e88859"
+}

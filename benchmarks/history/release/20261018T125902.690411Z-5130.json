@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "id": "20261018T125902.690411Z-5130",
+  "timestamp": "2026-10-18T12:59:02.690411+00:00",
+  "workload": "release-distribution",
+  "status": "failed",
+  "metadata": {
+    "revision": "6b24e7c0c76400a3cbc21f67f0b868fb51e88859",
+    "dirty_worktree": true,
+    "content_hash": "2ee010a74a137371a4b0cbbc0ae89e0d53766e488fa0e6da7ed4f419397c9cbb",
+    "binary_sha256": "8ecbb6b97d64458bf2b7db1e9703b100d256efa56622ec5af5eb83ca189a01e3",
+    "target": "aarch64-unknown-linux-gnu",
+    "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "rustc": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+    "cpu": "unknown",
+    "memory_guard": {
+      "active": true,
+      "budget_bytes": 4348646741
+    }
+  },
+  "features": [
+    "typescript",
+    "java",
+    "go",
+    "rust"
+  ],
+  "seed": null,
+  "cache": "prebuilt uninstrumented release CLI, one warm-up per phase, fresh process per sample, warm filesystem cache",
+  "memory_scope": "Linux/macOS wait4 peak child/reaped descendants; Windows polled child PeakWorkingSetSize; unsupported OS queries are null. See per-command scope; not collective simultaneous RSS",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted distribution baseline; existing core baseline unchanged"
+  },
+  "measurements": {
+    "shell-syntax": [
+      {
+        "elapsed_ms": 12.81261500025721,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "binary-version": [
+      {
+        "elapsed_ms": 10.909460999755538,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "installer-and-release-tests": [
+      {
+        "elapsed_ms": 7734.909154999514,
+        "peak_rss_bytes": 67244032,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "platform-cli-lsp-harness-cancellation": [
+      {
+        "elapsed_ms": 5414.57076900042,
+        "peak_rss_bytes": 81907712,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "package-warmup": [
+      {
+        "elapsed_ms": 2200.1849239995863,
+        "peak_rss_bytes": 58839040,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "startup-warmup": [
+      {
+        "elapsed_ms": 10.799691999636707,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "package-release": [
+      {
+        "elapsed_ms": 2184.2501539995283,
+        "peak_rss_bytes": 59011072,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 2164.383154000461,
+        "peak_rss_bytes": 58851328,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 2165.864307999982,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "startup-release": [
+      {
+        "elapsed_ms": 11.305461000119976,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 12.040923999848019,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 10.920615999566508,
+        "peak_rss_bytes": 58769408,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "summary": {
+    "package-release": {
+      "samples": 3,
+      "median_elapsed_ms": 2165.864307999982,
+      "peak_rss_bytes": 59011072
+    },
+    "startup-release": {
+      "samples": 3,
+      "median_elapsed_ms": 11.305461000119976,
+      "peak_rss_bytes": 58769408
+    }
+  },
+  "failure": "platform-cli-lsp-harness-cancellation failed:\n{\n  \"schema_version\": 1,\n  \"status\": \"FAIL\",\n  \"failure\": \"AssertionError [ERR_ASSERTION]: Descendant survived cancellation\",\n  \"platform\": \"linux\",\n  \"architecture\": \"arm64\",\n  \"binary_sha256\": \"8ecbb6b97d64458bf2b7db1e9703b100d256efa56622ec5af5eb83ca189a01e3\",\n  \"bun\": \"1.4.2\",\n  \"checks\": [\n    {\n      \"name\": \"standalone CLI version, skills and compilation\",\n      \"elapsed_ms\": 37.673847,\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"LSP initialize, diagnostics, symbols and clean shutdown\",\n      \"elapsed_ms\": 71.775077,\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"actual Bun SDK harness call, state, event and mock transport\",\n      \"elapsed_ms\": 82.33784600000001,\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"forced cancellation cleans up the owned process and descendant\",\n      \"elapsed_ms\": 5116.839308,\n      \"status\": \"FAIL\"\n    }\n  ],\n  \"scope\": \"Native CLI/LSP, Bun SDK transport, managed TypeScript finite plan with mutation and replay; Go/Rust and full Cinema are checked by native_portability.py\",\n  \"memory\": {\n    \"peak_rss_bytes\": 80596992,\n    \"scope\": \"Linux Bun runner self peak RSS; other OS self metrics unavailable here; the Python distribution runner measures child peak memory separately\"\n  }\n}\n162 |     assert(pid,'Descendant started');\n163 |     await stop(p.child); await bounded(p.closed);\n164 |     let live=true;\n165 |     for(let i=0;i<100;i++){try{process.kill(pid!,0);}catch{live=false;break;}await sleep(50);}\n166 |     if(live){try{process.kill(pid!,'SIGKILL');}catch{}}\n167 |     assert(!live,'Descendant survived cancellation');\n          ^\nAssertionError: Descendant survived cancellation\n generatedMessage: false,\n     actual: false,\n   expected: true,\n   operator: \"==\",\n       diff: \"simple\",\n       code: \"ERR_ASSERTION\"\n\n      at /home/massenhaft/workspaces/conpinion/dctx0ctl/scripts/release_platform.ts:167:5\n      at timed (/home/massenhaft/workspaces/conpinion/dctx0ctl/scripts/release_platform.ts:19:29)\n      at processTicksAndRejections (native:7:39)\n\nBun v1.4.2 (Linux arm64)\n"
+}
