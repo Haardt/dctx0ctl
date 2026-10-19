@@ -115,8 +115,8 @@ impl Default for NativeLimits {
             run: Duration::from_secs(120),
             cleanup: Duration::from_secs(5),
             log_bytes: 262144,
-            message_bytes: MAX_MESSAGE_BYTES,
-            evidence_bytes: 4 * MAX_MESSAGE_BYTES,
+            message_bytes: DEFAULT_MESSAGE_BYTES,
+            evidence_bytes: 4 * DEFAULT_MESSAGE_BYTES,
             evidence_entries: 10_000,
         }
     }
@@ -138,6 +138,7 @@ impl NativeLimits {
             || self.message_bytes == 0
             || self.message_bytes > MAX_MESSAGE_BYTES
             || self.evidence_bytes == 0
+            || self.evidence_bytes > 4 * MAX_MESSAGE_BYTES
             || self.evidence_entries == 0
         {
             return Err(NativeFailure::new(

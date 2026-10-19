@@ -72,7 +72,7 @@ pub(crate) fn benchmark(
                     kind: VerificationCaseKind::Contract,
                     bindings: [(
                         "payload".into(),
-                        VerificationValue::String("storage-fixture-".repeat(1500)),
+                        VerificationValue::String("storage-fixture-".repeat(1500).into()),
                     )]
                     .into(),
                     setup: vec![],

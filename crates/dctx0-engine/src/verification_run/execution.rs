@@ -325,11 +325,17 @@ pub(super) async fn execute(
                     ),
                 },
                 Ok(ValueCheck::Accepted { value: actual }) => {
-                    pending
-                        .bindings
-                        .insert("native_value".into(), actual.clone());
+                    let unchanged = &actual == value;
+                    pending.bindings.insert(
+                        "native_value".into(),
+                        if unchanged {
+                            value.clone()
+                        } else {
+                            actual.clone()
+                        },
+                    );
                     match check_value(ir, &contract.ty, &actual, &plan.budgets) {
-                        ValueContract::Accepted if &actual == value => VerificationResult::Pass,
+                        ValueContract::Accepted if unchanged => VerificationResult::Pass,
                         ValueContract::Accepted => VerificationResult::Fail {
                             issue: issue(
                                 "NATIVE_VALUE_CHANGED",

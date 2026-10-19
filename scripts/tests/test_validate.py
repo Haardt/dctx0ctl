@@ -234,3 +234,15 @@ class PerformanceTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ValidationStatusTests(unittest.TestCase):
+    def test_unavailable_race_is_incomplete_never_pass_and_does_not_hide_failures(self):
+        command = [validate.sys.executable, 'scripts/go_race.py']
+        unavailable = validate.validation_step(command, 2)
+        self.assertEqual(validate.validation_status([unavailable]), 'incomplete')
+        self.assertEqual(validate.validation_status([unavailable], False), 'fail')
+        failure = validate.validation_step(['cargo', 'test'], 2)
+        self.assertEqual(validate.validation_status([unavailable, failure]), 'fail')
+        self.assertEqual(validate.validation_status([validate.validation_step(command, 1)]), 'fail')
+        self.assertEqual(validate.validation_status([validate.validation_step(command, 0)]), 'pass')

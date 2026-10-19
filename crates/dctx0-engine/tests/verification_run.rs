@@ -2451,7 +2451,7 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
             .all(|case| case.result == VerificationResult::Pass)
     );
     let empty_comments = comments.iter().filter(|case| {
-        matches!(&case.bindings["value"], VerificationValue::Record(fields) if fields.get("text") == Some(&VerificationValue::String(String::new())))
+        matches!(&case.bindings["value"], VerificationValue::Record(fields) if fields.get("text") == Some(&VerificationValue::String(String::new().into())))
             && case.bindings["expect_rejection"] == VerificationValue::Boolean(false)
     }).count();
     assert_eq!(
@@ -3321,7 +3321,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     ));
     assert_eq!(
         replay.evidence.evidence.run.cases[0].arguments[0][1],
-        VerificationValue::String(String::new())
+        VerificationValue::String(String::new().into())
     );
     assert_eq!(replay.evidence.evidence.run.cases[0].setup.len(), 1);
     assert!(replay.evidence.adopted_tasks.is_empty());

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
-pub const GENERATOR_VERSION: &str = "dctx0-values-3";
+pub const GENERATOR_VERSION: &str = "dctx0-values-4";
 pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-3";
 
 // Adjacent IEEE-754 values, without the Rust 1.86 next_up/next_down APIs.
@@ -62,7 +62,7 @@ pub fn generate_rejections(
         V::Boolean(true),
         V::Integer("0".into()),
         V::Integer("-1".into()),
-        V::String(String::new()),
+        V::String(String::new().into()),
         V::String("not-a-uuid".into()),
         V::String("\u{feff}".into()),
         V::String("\u{0085}".into()),
@@ -81,6 +81,8 @@ pub fn generate_rejections(
         rng: Random(budgets.seed),
         steps: 0,
         exhausted: false,
+        active: BTreeMap::new(),
+        recursive_frontiers: 0,
     };
     let mut current = ty;
     let mut issues = Vec::new();
@@ -165,7 +167,7 @@ pub fn generate_rejections(
                                 continue;
                             }
                             match generator.base(current, 0) {
-                                Some("String") => candidates.push(V::String("x".repeat(size))),
+                                Some("String") => candidates.push(V::String("x".repeat(size).into())),
                                 Some("List") if size <= budgets.collection_size => {
                                     if let Some(V::List(sample)) = data.alias.as_ref().and_then(|alias| generate_values(ir, alias, budgets).values.into_iter().find(|value| matches!(value, V::List(items) if !items.is_empty()))) {
                                         candidates.push(V::List(vec![sample[0].clone(); size]));
@@ -252,6 +254,8 @@ pub fn generate_values(
         rng: Random(budgets.seed),
         steps: 0,
         exhausted: false,
+        active: BTreeMap::new(),
+        recursive_frontiers: 0,
     }
     .domain(ty, 0)
 }
@@ -275,9 +279,40 @@ struct Generator<'a> {
     rng: Random,
     steps: usize,
     exhausted: bool,
+    active: BTreeMap<String, usize>,
+    recursive_frontiers: usize,
 }
 impl Generator<'_> {
     fn domain(&mut self, ty: &TypeRef, depth: usize) -> ValueCorpus {
+        // Recursive alternatives describe an infinite domain. Select a finite
+        // productive frontier rather than expanding both JSON branches until
+        // the work budget is exhausted. Two visits retain nonempty recursive
+        // collections and their terminal alternatives; never claim exhaustive.
+        if let Some(id) = &ty.symbol_id {
+            if self.active.get(id).copied().unwrap_or(0) >= 2
+                && self
+                    .ir
+                    .data
+                    .get(id)
+                    .is_some_and(|data| data.alias.is_none())
+            {
+                self.recursive_frontiers += 1;
+                return ValueCorpus {
+                    values: Vec::new(),
+                    exhaustive: false,
+                    issues: Vec::new(),
+                };
+            }
+            *self.active.entry(id.clone()).or_default() += 1;
+        }
+        let frontier_before = self.recursive_frontiers;
+        let corpus = self.expand(ty, depth, frontier_before);
+        if let Some(id) = &ty.symbol_id {
+            *self.active.get_mut(id).expect("active type was entered") -= 1;
+        }
+        corpus
+    }
+    fn expand(&mut self, ty: &TypeRef, depth: usize, frontier_before: usize) -> ValueCorpus {
         self.steps += 1;
         if depth > self.budgets.recursion_depth || self.steps > self.budgets.evaluation_steps {
             return ValueCorpus::empty(
@@ -412,7 +447,7 @@ impl Generator<'_> {
                         for bound in [minimum, maximum] {
                             if let Ok(size) = bound.parse::<usize>() {
                                 if size <= self.budgets.value_bytes.saturating_sub(32) {
-                                    corpus.values.insert(0, V::String("x".repeat(size)));
+                                    corpus.values.insert(0, V::String("x".repeat(size).into()));
                                 } else {
                                     corpus.issues.push(VerificationIssue { code: "GENERATION_BUDGET".into(), message: "Required length boundary exceeds the canonical value budget".into(), span: Some(node.span.clone()) });
                                 }
@@ -454,7 +489,7 @@ impl Generator<'_> {
                 span: None,
             });
         }
-        if corpus.values.is_empty() {
+        if corpus.values.is_empty() && (depth == 0 || frontier_before == self.recursive_frontiers) {
             corpus.issues.push(VerificationIssue {
                 code: "EMPTY_CORPUS".into(),
                 message: "No valid input was generated; this is not verification evidence".into(),
@@ -648,7 +683,7 @@ impl Generator<'_> {
             .map(|s| V::Float(s.into()))
             .collect(),
             "UUID" => (1..=self.budgets.generated_cases.min(16))
-                .map(|n| V::String(format!("00000000-0000-4000-8000-{n:012x}")))
+                .map(|n| V::String(format!("00000000-0000-4000-8000-{n:012x}").into()))
                 .collect(),
             "Timestamp" => [
                 "2026-10-10T00:00:00Z",
@@ -818,6 +853,8 @@ pub fn generate_inputs(
         rng: Random(budgets.seed),
         steps: 0,
         exhausted: false,
+        active: BTreeMap::new(),
+        recursive_frontiers: 0,
     };
     let mut domains = Vec::new();
     let mut issues = Vec::new();

@@ -219,8 +219,8 @@ pub fn lifecycle_status(
         .map(|(index, value)| (format!("key:{index}"), value.clone()))
         .collect();
     match evaluate_observed(ir, &expression, &variables, &[], context, budgets) {
-        Evaluation::Complete(VerificationValue::Variant { name, .. })
-        | Evaluation::Complete(VerificationValue::String(name)) => Ok(name),
+        Evaluation::Complete(VerificationValue::Variant { name, .. }) => Ok(name),
+        Evaluation::Complete(VerificationValue::String(name)) => Ok(name.to_string()),
         Evaluation::Unknown(issue) => Err(Box::new(VerificationResult::Unknown { issue })),
         _ => Err(Box::new(unknown(
             "LIFECYCLE_STATE_REPRESENTATION",

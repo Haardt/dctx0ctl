@@ -76,7 +76,7 @@ for line in sys.stdin:
             .execute_value_case(
                 "limited",
                 "W.Value",
-                &VerificationValue::String("payload".repeat(20)),
+                &VerificationValue::String("payload".repeat(20).into()),
                 &cancel,
             )
             .await

@@ -64,6 +64,16 @@ pub struct VerificationExecutionBudgets {
     pub case_seconds: u64,
     pub run_seconds: u64,
     pub cleanup_seconds: u64,
+    #[serde(default = "default_message_bytes")]
+    pub message_bytes: usize,
+    #[serde(default = "default_evidence_bytes")]
+    pub evidence_bytes: usize,
+}
+fn default_message_bytes() -> usize {
+    dctx0_target_sdk::DEFAULT_MESSAGE_BYTES
+}
+fn default_evidence_bytes() -> usize {
+    4 * dctx0_target_sdk::DEFAULT_MESSAGE_BYTES
 }
 impl VerificationExecutionBudgets {
     pub fn native_limits(&self) -> crate::NativeLimits {
@@ -72,6 +82,8 @@ impl VerificationExecutionBudgets {
             case: std::time::Duration::from_secs(self.case_seconds),
             run: std::time::Duration::from_secs(self.run_seconds),
             cleanup: std::time::Duration::from_secs(self.cleanup_seconds),
+            message_bytes: self.message_bytes,
+            evidence_bytes: self.evidence_bytes,
             ..Default::default()
         }
     }
@@ -389,12 +401,29 @@ mod execution_budget_tests {
             case_seconds: 60,
             run_seconds: 900,
             cleanup_seconds: 5,
+            message_bytes: default_message_bytes(),
+            evidence_bytes: default_evidence_bytes(),
         });
         assert!(validate(&config).is_ok());
         assert_eq!(
             config.execution.as_ref().unwrap().native_limits().case,
             std::time::Duration::from_secs(60)
         );
+        let budgets = config.execution.as_mut().unwrap();
+        budgets.message_bytes = 32 * 1024 * 1024;
+        budgets.evidence_bytes = 128 * 1024 * 1024;
+        assert!(validate(&config).is_ok());
+        config.execution.as_mut().unwrap().message_bytes = 0;
+        assert!(validate(&config).is_err());
+        config.execution.as_mut().unwrap().message_bytes = dctx0_target_sdk::MAX_MESSAGE_BYTES + 1;
+        assert!(validate(&config).is_err());
+        config.execution.as_mut().unwrap().message_bytes = default_message_bytes();
+        config.execution.as_mut().unwrap().evidence_bytes = 0;
+        assert!(validate(&config).is_err());
+        config.execution.as_mut().unwrap().evidence_bytes =
+            4 * dctx0_target_sdk::MAX_MESSAGE_BYTES + 1;
+        assert!(validate(&config).is_err());
+        config.execution.as_mut().unwrap().evidence_bytes = default_evidence_bytes();
         config.execution.as_mut().unwrap().case_seconds = 0;
         assert!(validate(&config).is_err());
         config.execution.as_mut().unwrap().case_seconds = u64::MAX;

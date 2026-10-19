@@ -54,7 +54,7 @@ pub fn entity_identity_case(
             VerificationValue::List(
                 sources
                     .iter()
-                    .map(|case| VerificationValue::String(case.id.clone()))
+                    .map(|case| VerificationValue::String(case.id.clone().into()))
                     .collect(),
             ),
         )]

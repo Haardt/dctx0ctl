@@ -125,7 +125,9 @@ class MemoryGuardTests(unittest.TestCase):
                 'import os,time;from pathlib import Path;'
                 'pid=os.fork();'
                 'os._exit(0) if pid else None;'
-                f'Path({str(pidfile)!r}).write_text(str(os.getpid()));'
+                f'path=Path({str(pidfile)!r});'
+                'path.with_suffix(".tmp").write_text(str(os.getpid()));'
+                'os.replace(path.with_suffix(".tmp"),path);'
                 'time.sleep(0.1)'
             )
             root = f'''

@@ -89,7 +89,7 @@ fn request_frames_preserve_exact_values_and_use_safe_positive_identifiers() {
     request.protocol_version = 1;
     request.request = WorkerRequest::Validate {
         subject: "X".into(),
-        value: VerificationValue::String("a".repeat(MAX_MESSAGE_BYTES)),
+        value: VerificationValue::String("a".repeat(MAX_MESSAGE_BYTES).into()),
     };
     assert!(encode_request(&request, usize::MAX).is_err());
 }
@@ -179,4 +179,34 @@ fn dependency_resolution_requests_preserve_the_resolution_mode() {
             serde_json::from_slice(encoded.strip_suffix(b"\n").unwrap_or(&encoded)).unwrap();
         assert_eq!(decoded, request);
     }
+}
+
+#[test]
+fn explicitly_budgeted_large_frames_preserve_lower_caller_limits() {
+    let request = RequestEnvelope {
+        protocol_version: SDK_VERSION,
+        id: 1,
+        request: WorkerRequest::Validate {
+            subject: "W.Body".into(),
+            value: VerificationValue::String("x".repeat(2 * DEFAULT_MESSAGE_BYTES).into()),
+        },
+    };
+    assert!(encode_request(&request, DEFAULT_MESSAGE_BYTES).is_err());
+    let encoded = encode_request(&request, 4 * DEFAULT_MESSAGE_BYTES).unwrap();
+    assert!(encoded.len() > 2 * DEFAULT_MESSAGE_BYTES);
+    assert!(encoded.len() < 4 * DEFAULT_MESSAGE_BYTES);
+    let reply = MessageEnvelope {
+        protocol_version: SDK_VERSION,
+        message: WorkerMessage::Reply {
+            id: 1,
+            reply: WorkerReply::ValueChecked {
+                outcome: ValueCheck::Accepted {
+                    value: VerificationValue::String("x".repeat(2 * DEFAULT_MESSAGE_BYTES).into()),
+                },
+            },
+        },
+    };
+    let encoded = serde_json::to_vec(&reply).unwrap();
+    assert!(decode_message(&encoded, DEFAULT_MESSAGE_BYTES).is_err());
+    assert!(decode_message(&encoded, 4 * DEFAULT_MESSAGE_BYTES).is_ok());
 }

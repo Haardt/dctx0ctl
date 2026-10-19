@@ -93,8 +93,10 @@ fn candidates(
         V::String(text) => {
             let count = text.chars().count();
             if count > 0 {
-                out.push(V::String(String::new()));
-                out.push(V::String(text.chars().take(count / 2).collect()));
+                out.push(V::String(String::new().into()));
+                out.push(V::String(
+                    text.chars().take(count / 2).collect::<String>().into(),
+                ));
             }
         }
         V::List(items) => {

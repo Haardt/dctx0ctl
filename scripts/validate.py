@@ -318,6 +318,20 @@ def accept(selected):
         print(f'Baseline explicitly set from {path.name}')
 
 
+def validation_status(steps, sources_unchanged=True):
+    errors = [step for step in steps if step['returncode']]
+    if not sources_unchanged or any(step.get('status') != 'unavailable' for step in errors):
+        return 'fail'
+    return 'incomplete' if errors else 'pass'
+
+
+def validation_step(command, returncode):
+    step = {'command': command, 'returncode': returncode}
+    if command == [sys.executable, 'scripts/go_race.py'] and returncode == 2:
+        step.update(status='unavailable', evidence='target/go-cinema/race.json')
+    return step
+
+
 def main():
     os.environ.setdefault("DCTX0_TEST_PYTHON", sys.executable)
     os.chdir(ROOT)
@@ -384,7 +398,7 @@ def main():
             ['go', 'mod', 'download', '-C', 'examples/cinema-go'],
             ['go', 'test', '-C', 'examples/cinema-go', '-coverprofile=' + str(ROOT / 'target/go-cinema.coverage'), './...'],
             ['go', 'vet', '-C', 'examples/cinema-go', './...'],
-            ['go', 'test', '-C', 'examples/cinema-go', '-race', './...'],
+            [sys.executable, 'scripts/go_race.py'],
             ['cargo', 'build', '-p', 'dctx0-cli', '--all-features', '--locked'],
             [sys.executable, 'scripts/go_cinema_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0')],
             ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/Cargo.toml','--locked','--offline','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
@@ -421,14 +435,14 @@ def main():
         for command in preparation:
             print('+ ' + ' '.join(command), flush=True)
             returncode = subprocess.run(command, cwd=ROOT, env=functional_environment).returncode
-            validation_steps.append({'command': command, 'returncode': returncode})
+            validation_steps.append(validation_step(command, returncode))
             passed = passed and returncode == 0
         validation_source_hash = digest(validation_sources())
         validation_started_ns = time.time_ns()
         for command in commands:
             print('+ ' + ' '.join(command), flush=True)
             returncode = subprocess.run(command, cwd=ROOT, env=functional_environment).returncode
-            validation_steps.append({'command': command, 'returncode': returncode})
+            validation_steps.append(validation_step(command, returncode))
             if returncode:
                 passed = False
                 # Independent stages retain their failures; measurements build
@@ -439,7 +453,7 @@ def main():
         print('Validation source inputs changed during checks; results do not certify the final tree', flush=True)
     if args.skip_performance:
         report = {'schema_version': 1, 'validation_scope': args.focus,
-                  'validation_status': 'pass' if passed else 'fail',
+                  'validation_status': validation_status(validation_steps, validation_source_hash == validation_source_hash_after),
                   'validation_steps': validation_steps,
                   'validation_source_hash': validation_source_hash,
                   'validation_source_hash_after': validation_source_hash_after,
@@ -481,7 +495,7 @@ def main():
     record['native_executor_conformance'] = json.loads(executor_reports[-1].read_text()) if passed and executor_reports else {'status': 'unavailable'}
     native_reports = sorted((p for p in (ROOT / 'target/native-harness-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
     record['native_transport_conformance'] = json.loads(native_reports[-1].read_text()) if passed and native_reports else {'status': 'unavailable', 'reason': 'No successful native transport conformance report from this validation'}
-    record['validation_status'] = 'pass' if passed else 'fail'
+    record['validation_status'] = validation_status(validation_steps, validation_source_hash == validation_source_hash_after == record.get('source_hash'))
     gate = save(record, args)
     return 0 if passed and gate else 1
 

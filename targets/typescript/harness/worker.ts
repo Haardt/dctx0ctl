@@ -7,7 +7,7 @@ import {createRequire,isBuiltin} from 'node:module';
 import type { ProjectAdapter,TestSession,Observation,Value } from './contract.ts';
 const adapterModule = __ADAPTER_IMPORT__;
 const subjects = new Set<string>(__SUBJECTS__);
-const version=1, maxBytes=1048576;
+const version=1, maxBytes=67108864;
 const protocolOutput=Bun.stdout.writer();
 for(const level of ['log','info','warn','error','debug'] as const){
  console[level]=(...values:unknown[])=>process.stderr.write(values.map(v=>typeof v==='string'?v:inspect(v)).join(' ')+'\n');

@@ -314,6 +314,8 @@ Prepared collaborator replies test consumer behavior under controlled conditions
 | `FAIL` | A check found a concrete violation. |
 | `UNKNOWN` | A required statement lacks sufficient evidence. |
 
+The versioned value generator bounds productive recursive types at two visits per named constructor on a path. This retains terminal alternatives and nonempty recursive collections without expanding an infinite grammar until the work budget fails. These corpora are explicitly non-exhaustive; deeper application boundaries require explicit cases. Unproductive cycles, unsupported types, and insufficient recursion/work/value budgets remain UNKNOWN.
+
 Finite testing does not prove correctness for every possible input. Missing observers, unsupported constructs, incomplete provenance, and unexecuted mandatory checks remain visible. Opaque trace labels remain unmodeled; they do not establish resolved dependencies or prove runtime calls.
 
 Work progress (`Open`, `Progress`, `Done`) is separate from testing status (`Unverified`, `PASS`, `FAIL`). **Done does not imply PASS.**
@@ -418,6 +420,8 @@ Compilation follows sorted source discovery → parsing → composition and reso
 The Linux QA runner (`python3 scripts/validate.py --coverage`) limits the command and descendants to one third of startup `MemAvailable` through a 50 ms process-tree RSS watchdog, including detached children. It aborts and reaps the tree on excess memory, low system reserve or cancellation. Shared pages count per process; brief allocation spikes between samples are not a hard kernel limit. A systemd memory scope is added when its memory controller is available. Build jobs and test threads default to one.
 
 Native execution uses bounded processes with timeouts, cancellation, output limits, and cleanup. On Linux, an available systemd user scope can cap collective memory at two thirds of startup available RAM, with swap disabled. `DCTX0_MEMORY_GUARD=0` disables this optional cap; unavailable support is reported explicitly. This is resource management, not a security sandbox. See [managed execution](docs/site/src/docs/evidence.md), [verification architecture](docs/site/src/docs/contributing.md), and [compiler boundaries](docs/site/src/docs/contributing.md).
+
+For large native values, `execution.message_bytes` configures the per-frame limit (1 MiB by default, at most 64 MiB), and `execution.evidence_bytes` configures retained session evidence (4 MiB by default, at most 256 MiB). These bounds are separate from the generated-value budget and the process-tree RSS limit. Verification text uses immutable shared storage in Rust (`VerificationValue::String(Arc<str>)`); construct it with `.into()` and borrow it as `&str`. Cloning a plan or retaining an identical native result shares text without changing canonical JSON, required cases or equality semantics.
 
 Native example call counts distinguish a missing observer from an observed empty trace and count the completed example prefix. See [actual call observation](docs/site/src/reference/call-observation.md) for semantics and capability requirements.
 
@@ -599,3 +603,12 @@ time and peak-memory measurements; see
 [scope and evidence](docs/native-portability-validation.md). Native CI requires
 Bun, Go, Rust and the host C toolchain, with a Visual Studio developer environment
 on Windows. Existing source-bound reviews must still match their source bytes.
+
+Go race checks can be run independently with `python3 scripts/go_race.py`.
+The runner qualifies the actual detector with clean and deliberately racy probes,
+then runs uncached Cinema race tests. It records commands, source hashes, timings,
+and peak RSS in `target/go-cinema/race.json`. Exit 2 means unavailable, including
+Linux ARM64 kernels with a 39/42-bit VMA layout; Go's detector needs 48 bits.
+The coupled validation reports this as incomplete and exits unsuccessfully.
+A supported CI host must execute the actual race tests before release; ordinary
+Go tests do not replace this check. The same one-third-RAM guard applies.

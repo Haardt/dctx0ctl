@@ -133,7 +133,7 @@ fn nested_lifecycle_keys_survive_option_variant_record_and_list_shrinking() {
             };
             assert_eq!(fields["linked"], linked);
             assert!(
-                matches!(&fields["note"], V::String(note) if "notes may shrink".starts_with(note))
+                matches!(&fields["note"], V::String(note) if "notes may shrink".starts_with(note.as_ref()))
             );
         }
     }
@@ -614,11 +614,11 @@ fn lifecycle_shrink_candidates_keep_keys_and_transition_order_and_require_native
             .iter()
             .any(|candidate| candidate.setup.is_empty())
     );
-    assert!(candidates.iter().any(
-        |candidate| candidate.setup.first().is_some_and(
-            |invocation| invocation.arguments == [VerificationValue::String(String::new())]
-        )
-    ));
+    assert!(candidates.iter().any(|candidate| {
+        candidate.setup.first().is_some_and(|invocation| {
+            invocation.arguments == [VerificationValue::String(String::new().into())]
+        })
+    }));
     assert!(candidates.iter().all(|candidate| candidate.keys == input.keys && candidate.arguments == input.arguments));
     assert_eq!(
         (candidates, issues),

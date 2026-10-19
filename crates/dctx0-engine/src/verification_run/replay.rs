@@ -56,7 +56,7 @@ fn only(
                 .iter()
                 .map(|value| {
                     if let VerificationValue::String(id) = value {
-                        Some(id.clone())
+                        Some(id.to_string())
                     } else {
                         None
                     }

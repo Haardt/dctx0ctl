@@ -3,7 +3,7 @@ members = ["crates/dctx0-lsp", "crates/dctx0-target-sdk", "crates/dctx0-core", "
 resolver = "3"
 
 [workspace.package]
-version = "0.2.6"
+version = "0.2.7"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
@@ -23,7 +23,7 @@ rustix = { version = "=1.1.4", features = ["process"] }
 dctx0-target-sdk = { path = "crates/dctx0-target-sdk" }
 dctx0-core = { path = "crates/dctx0-core" }
 dctx0-language = { path = "crates/dctx0-language" }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["unbounded_depth"] }
 serde_stacker = "0.1"
 sha2 = "0.10"

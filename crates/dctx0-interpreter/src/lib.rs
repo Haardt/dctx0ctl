@@ -226,7 +226,7 @@ impl Evaluator<'_> {
                     "false" => Ok(V::Boolean(false)),
                     _ => Err(self.bad(e, "Invalid Boolean literal")),
                 },
-                "String" => Ok(V::String(text.clone())),
+                "String" => Ok(V::String(text.clone().into())),
                 "Float" => Ok(V::Float(text.clone())),
                 "Int" | "Decimal" => {
                     let integer = literal_kind == "Int";
@@ -593,7 +593,7 @@ impl Evaluator<'_> {
                 let (V::String(a), V::String(b)) = (left, right) else {
                     return Err(self.bad(e, "String concatenation requires two Strings"));
                 };
-                return Ok(V::String(a + &b));
+                return Ok(V::String(format!("{a}{b}").into()));
             }
             _ => {}
         }
@@ -715,8 +715,8 @@ impl Evaluator<'_> {
                     })?;
                 Ok(V::Option(Some(Box::new(V::Float(value.to_string())))))
             }
-            ("lowercase", [V::String(s)]) => Ok(V::String(s.to_lowercase())),
-            ("uppercase", [V::String(s)]) => Ok(V::String(s.to_uppercase())),
+            ("lowercase", [V::String(s)]) => Ok(V::String(s.to_lowercase().into())),
+            ("uppercase", [V::String(s)]) => Ok(V::String(s.to_uppercase().into())),
             // Match the reference's ECMAScript WhiteSpace/LineTerminator set;
             // Rust's Unicode trim includes NEL and excludes BOM.
             ("trim", [V::String(s)]) => Ok(V::String(
@@ -732,11 +732,13 @@ impl Evaluator<'_> {
             ("length", [V::String(s)]) => Ok(V::Integer(s.encode_utf16().count().to_string())),
             ("length", [V::List(v)]) => Ok(V::Integer(v.len().to_string())),
             ("startsWith", [V::String(s), V::String(prefix)]) => {
-                Ok(V::Boolean(s.starts_with(prefix)))
+                Ok(V::Boolean(s.starts_with(prefix.as_ref())))
             }
-            ("endsWith", [V::String(s), V::String(suffix)]) => Ok(V::Boolean(s.ends_with(suffix))),
+            ("endsWith", [V::String(s), V::String(suffix)]) => {
+                Ok(V::Boolean(s.ends_with(suffix.as_ref())))
+            }
             ("includesText", [V::String(text), V::String(query)]) => {
-                Ok(V::Boolean(text.contains(query)))
+                Ok(V::Boolean(text.contains(query.as_ref())))
             }
             ("slice", [V::List(values), V::Integer(offset), V::Integer(limit)]) => {
                 let offset = number::parse(offset, true)

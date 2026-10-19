@@ -50,7 +50,8 @@ pub enum VerificationValue {
     Decimal(String),
     /// Finite IEEE-754 value encoded as text; never confused with exact Decimal.
     Float(String),
-    String(String),
+    /// Immutable text is shared across plan, observations and evidence; JSON remains a string.
+    String(std::sync::Arc<str>),
     Record(BTreeMap<String, VerificationValue>),
     List(Vec<VerificationValue>),
     Option(Option<Box<VerificationValue>>),

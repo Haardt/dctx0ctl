@@ -19,7 +19,7 @@ import (
 )
 
 const protocolVersion = 1
-const maxMessageBytes = 1048576
+const maxMessageBytes = 67108864
 const maxErrorMessageRunes = 4096
 const maxRequestID = 9007199254740991
 

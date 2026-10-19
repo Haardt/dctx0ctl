@@ -6,7 +6,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 pub const PROTOCOL_VERSION: u64 = 1;
-pub const MAX_MESSAGE_BYTES: usize = 1_048_576;
+pub const MAX_MESSAGE_BYTES: usize = 67_108_864;
 pub const MAX_REQUEST_ID: u64 = 9_007_199_254_740_991;
 pub trait Session {
     fn invoke(&mut self, invocation: Value) -> Result<Value, String>;

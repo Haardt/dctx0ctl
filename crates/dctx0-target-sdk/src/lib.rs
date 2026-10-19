@@ -7,7 +7,10 @@ pub use inspection::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 pub const SDK_VERSION: u32 = 1;
-pub const MAX_MESSAGE_BYTES: usize = 1_048_576;
+/// Default transport budget; applications may explicitly opt into larger bounded frames.
+pub const DEFAULT_MESSAGE_BYTES: usize = 1_048_576;
+/// Absolute SDK frame ceiling, independent of an application's lower configured budget.
+pub const MAX_MESSAGE_BYTES: usize = 67_108_864;
 pub const MAX_REQUEST_ID: u64 = 9_007_199_254_740_991;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
