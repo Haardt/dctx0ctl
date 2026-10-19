@@ -1168,3 +1168,30 @@ including cancellation, actual mutation and repaired replay. Three fresh packagi
 and startup samples retain speed/RSS measurements. The failed initial cancellation
 attempt remains recorded. See `docs/release-v0.2.6-validation.json`; publication
 still requires normal CI and all five native release hosts.
+
+## Shared native values and qualified Go race execution (2026-10-19)
+
+v0.2.7 uses `VerificationValue::String(Arc<str>)` with unchanged canonical JSON,
+configurable 1 MiB/4 MiB message/evidence defaults and 64 MiB/256 MiB ceilings.
+Generator `dctx0-values-4` bounds productive recursive constructors and retains
+explicitly non-exhaustive corpora; missing inputs and budget exhaustion never
+establish PASS. Rust callers construct text with `.into()`.
+
+`python3 scripts/go_race.py` qualifies the native detector with a clean probe and
+a deliberate detected race before uncached Cinema tests. Exit 2 is unavailable,
+making aggregate validation incomplete and unsuccessful. This ARM64 kernel has
+39-bit VMA; Go race requires 48 bits. There is no plain-test fallback or release
+exemption. Release v0.2.7 passed the real Linux x64 race tests, full fresh CI
+validation, Gin/Axum acceptance and all five native distribution jobs. CI merged
+source-line coverage is 33,892/34,737 (97.57%) and LLVM functions are
+2,778/2,861 (97.10%). Raw LLVM line coverage is 96.93%, retained separately;
+these are not branch-completeness claims. Preserve local and CI evidence separately.
+
+The fresh bounded local run also passes 33,879/34,737 merged source lines
+(97.53%) and 2,776/2,861 LLVM functions (97.03%), with unchanged inputs matching
+CI. All 73 release workloads complete; comparison remains unassessed and the
+baseline is unchanged. The process tree peaks at 1,546,338,304 bytes within a
+3,674,705,920-byte budget. The aggregate is incomplete solely for local Go race
+unavailability; never report it as local PASS. Both Go and Rust applications
+pass 5,674 cases, five production mutations and replay. See
+`docs/go-race-validation.json` for local/CI provenance and release asset checks.

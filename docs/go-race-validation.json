@@ -1,0 +1,1148 @@
+{
+  "schema_version": 1,
+  "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+  "tag": "v0.2.7",
+  "release": "https://github.com/Haardt/dctx0ctl/releases/tag/v0.2.7",
+  "workflow": "https://github.com/Haardt/dctx0ctl/actions/runs/39322016922",
+  "workflow_status": "success",
+  "race_artifact": {
+    "id": 12223013356,
+    "digest": "sha256:0cd9de5cb476b888e14c1733181cfc901673577f55f8247346e06bf19c8c4154",
+    "source_run": {
+      "id": 39322016922,
+      "repository_id": 1413051106,
+      "head_repository_id": 1413051106,
+      "head_branch": "v0.2.7",
+      "head_sha": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18"
+    },
+    "downloaded_digest_verified": true
+  },
+  "ci_log_evidence": [
+    "2026-10-19T21:22:41.0723947Z + /usr/bin/python3 scripts/go_race.py",
+    "2026-10-19T21:22:50.3334428Z {\"status\": \"pass\", \"issue\": null, \"report\": \"/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/race.json\", \"elapsed_ms\": 9233.315469}",
+    "2026-10-19T21:40:58.4358239Z Merged source lines: 33892/34737 (97.57%); LLVM functions: 97.10%",
+    "2026-10-19T21:43:47.5784899Z Memory guard: elapsed_ms=1781736.843; peak_process_tree_rss_bytes=1566736384; method=sampled Linux process-tree RSS sum, 50ms, shared pages counted per process"
+  ],
+  "ci_race": {
+    "schema_version": 1,
+    "status": "pass",
+    "started_at_unix_ns": "1792444961099230076",
+    "source_hash_before": "82a49f3fa9e63a5dc7c18763e395a706cc4c08b947d710a0bd1cef6044ee02b2",
+    "checks": [
+      {
+        "name": "toolchain",
+        "command": [
+          "/opt/hostedtoolcache/go/1.25.0/x64/bin/go",
+          "env",
+          "-json",
+          "GOVERSION",
+          "GOROOT",
+          "GOOS",
+          "GOARCH",
+          "GOHOSTOS",
+          "GOHOSTARCH",
+          "CGO_ENABLED"
+        ],
+        "measurement": {
+          "elapsed_ms": 10.65525100011655,
+          "peak_rss_bytes": 18825216,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": "{\n\t\"CGO_ENABLED\": \"1\",\n\t\"GOARCH\": \"amd64\",\n\t\"GOHOSTARCH\": \"amd64\",\n\t\"GOHOSTOS\": \"linux\",\n\t\"GOOS\": \"linux\",\n\t\"GOROOT\": \"/opt/hostedtoolcache/go/1.25.0/x64\",\n\t\"GOVERSION\": \"go1.25.0\"\n}\n"
+      },
+      {
+        "name": "positive-build",
+        "command": [
+          "/opt/hostedtoolcache/go/1.25.0/x64/bin/go",
+          "build",
+          "-race",
+          "-p",
+          "1",
+          "-o",
+          "/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/positive",
+          "/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/positive.go"
+        ],
+        "measurement": {
+          "elapsed_ms": 211.8791500001862,
+          "peak_rss_bytes": 73580544,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": ""
+      },
+      {
+        "name": "positive-execution",
+        "command": [
+          "/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/positive"
+        ],
+        "measurement": {
+          "elapsed_ms": 1007.9341419996126,
+          "peak_rss_bytes": 25849856,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": "RACE_PROBE_OK\n"
+      },
+      {
+        "name": "negative-build",
+        "command": [
+          "/opt/hostedtoolcache/go/1.25.0/x64/bin/go",
+          "build",
+          "-race",
+          "-p",
+          "1",
+          "-o",
+          "/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/negative",
+          "/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/negative.go"
+        ],
+        "measurement": {
+          "elapsed_ms": 131.43857100021705,
+          "peak_rss_bytes": 81862656,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": ""
+      },
+      {
+        "name": "negative-execution",
+        "command": [
+          "/home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/negative"
+        ],
+        "measurement": {
+          "elapsed_ms": 10.503313000299386,
+          "peak_rss_bytes": 26783744,
+          "exit_code": 66,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": "==================\nWARNING: DATA RACE\nWrite at 0x00000060fd50 by goroutine 8:\n  main.main.func1()\n      /home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/negative.go:6 +0x30\n\nPrevious write at 0x00000060fd50 by main goroutine:\n  main.main()\n      /home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/negative.go:7 +0xa5\n\nGoroutine 8 (running) created at:\n  main.main()\n      /home/runner/work/dctx0ctl/dctx0ctl/target/go-cinema/go-race-probe-ycblkplr/negative.go:6 +0x99\n==================\n"
+      },
+      {
+        "name": "cinema-race",
+        "command": [
+          "/opt/hostedtoolcache/go/1.25.0/x64/bin/go",
+          "test",
+          "-race",
+          "-count=1",
+          "-mod=readonly",
+          "-p",
+          "1",
+          "./..."
+        ],
+        "measurement": {
+          "elapsed_ms": 7837.696683000104,
+          "peak_rss_bytes": 391733248,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": "ok  \tcinema/application\t1.005s\n?   \tcinema/cmd/cinema\t[no test files]\nok  \tcinema/domain\t1.006s\nok  \tcinema/ginapi\t1.072s\nok  \tcinema/httpapi\t1.052s\nok  \tcinema/persistence\t1.050s\n"
+      }
+    ],
+    "host": {
+      "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "CGO_ENABLED": "1",
+      "GOARCH": "amd64",
+      "GOHOSTARCH": "amd64",
+      "GOHOSTOS": "linux",
+      "GOOS": "linux",
+      "GOROOT": "/opt/hostedtoolcache/go/1.25.0/x64",
+      "GOVERSION": "go1.25.0"
+    },
+    "memory_scope": "Per-command wait4 peak child/reaped descendants; not aggregate simultaneous RSS. Outer Linux guard caps sampled process-tree RSS at one third startup MemAvailable.",
+    "scope": "Native race detector qualification and uncached Go Cinema package tests; no imported PASS or plain-test fallback",
+    "source_hash_after": "82a49f3fa9e63a5dc7c18763e395a706cc4c08b947d710a0bd1cef6044ee02b2",
+    "elapsed_ms": 9233.315469
+  },
+  "local_race": {
+    "schema_version": 1,
+    "status": "unavailable",
+    "started_at_unix_ns": "1792444566899883965",
+    "source_hash_before": "82a49f3fa9e63a5dc7c18763e395a706cc4c08b947d710a0bd1cef6044ee02b2",
+    "checks": [
+      {
+        "name": "toolchain",
+        "command": [
+          "/usr/sbin/go",
+          "env",
+          "-json",
+          "GOVERSION",
+          "GOROOT",
+          "GOOS",
+          "GOARCH",
+          "GOHOSTOS",
+          "GOHOSTARCH",
+          "CGO_ENABLED"
+        ],
+        "measurement": {
+          "elapsed_ms": 16.634537998470478,
+          "peak_rss_bytes": 23535616,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": "{\n\t\"CGO_ENABLED\": \"1\",\n\t\"GOARCH\": \"arm64\",\n\t\"GOHOSTARCH\": \"arm64\",\n\t\"GOHOSTOS\": \"linux\",\n\t\"GOOS\": \"linux\",\n\t\"GOROOT\": \"/usr/lib/go\",\n\t\"GOVERSION\": \"go1.27.1-X:nodwarf5\"\n}\n"
+      },
+      {
+        "name": "positive-build",
+        "command": [
+          "/usr/sbin/go",
+          "build",
+          "-race",
+          "-p",
+          "1",
+          "-o",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/go-cinema/go-race-probe-s8e_khdj/positive",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/go-cinema/go-race-probe-s8e_khdj/positive.go"
+        ],
+        "measurement": {
+          "elapsed_ms": 483.2483069912996,
+          "peak_rss_bytes": 68419584,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": ""
+      },
+      {
+        "name": "positive-execution",
+        "command": [
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/go-cinema/go-race-probe-s8e_khdj/positive"
+        ],
+        "measurement": {
+          "elapsed_ms": 11.268539004959166,
+          "peak_rss_bytes": 23535616,
+          "exit_code": 66,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "output": "FATAL: ThreadSanitizer: unsupported VMA range\nFATAL: Found 39 - Supported 48\n"
+      }
+    ],
+    "host": {
+      "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+      "machine": "aarch64",
+      "CGO_ENABLED": "1",
+      "GOARCH": "arm64",
+      "GOHOSTARCH": "arm64",
+      "GOHOSTOS": "linux",
+      "GOOS": "linux",
+      "GOROOT": "/usr/lib/go",
+      "GOVERSION": "go1.27.1-X:nodwarf5"
+    },
+    "memory_scope": "Per-command wait4 peak child/reaped descendants; not aggregate simultaneous RSS. Outer Linux guard caps sampled process-tree RSS at one third startup MemAvailable.",
+    "scope": "Native race detector qualification and uncached Go Cinema package tests; no imported PASS or plain-test fallback",
+    "explanation": "ARM64 Go race requires 48-bit VMA; this kernel exposes 39/42 bits. Run on a supported host, such as the required Linux x64 release CI. No application race tests executed.",
+    "issue": "RACE_HOST_VMA_UNSUPPORTED",
+    "source_hash_after": "82a49f3fa9e63a5dc7c18763e395a706cc4c08b947d710a0bd1cef6044ee02b2",
+    "elapsed_ms": 1445.124
+  },
+  "published_assets": {
+    "status": "pass",
+    "release": "https://github.com/Haardt/dctx0ctl/releases/tag/v0.2.7",
+    "published_at": "2026-10-19T21:49:05Z",
+    "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+    "assets": [
+      "SHA256SUMS",
+      "dctx0-v0.2.7-aarch64-apple-darwin.tar.gz",
+      "dctx0-v0.2.7-aarch64-unknown-linux-gnu.tar.gz",
+      "dctx0-v0.2.7-x86_64-apple-darwin.tar.gz",
+      "dctx0-v0.2.7-x86_64-pc-windows-msvc.zip",
+      "dctx0-v0.2.7-x86_64-unknown-linux-gnu.tar.gz",
+      "install.ps1",
+      "install.sh"
+    ],
+    "sha256": {
+      "dctx0-v0.2.7-aarch64-apple-darwin.tar.gz": "2b58405eee0622d62ca3fb43b10de8ba0d55dc29a5cfce6b33d6f4850fa8e7f7",
+      "dctx0-v0.2.7-aarch64-unknown-linux-gnu.tar.gz": "5380e84387b7038b51b831598a036c5a936dc70c669529c60d1b4340b7b18b52",
+      "dctx0-v0.2.7-x86_64-apple-darwin.tar.gz": "3f393c58e63acf113bea5a2fc197e781627250789aca049a0bea71043f7380de",
+      "dctx0-v0.2.7-x86_64-pc-windows-msvc.zip": "d475f1ab5ba30630b41b3ec37fc023e65aa667bf5567a77cfa69bde6918931e1",
+      "dctx0-v0.2.7-x86_64-unknown-linux-gnu.tar.gz": "fefa99f8b2b9396200035e72d864cd6298b8a46b658e3e4e9be134ba2c3f5801",
+      "install.ps1": "81c569ce456aff8d0d520348710e0236c07d6a599cb73b0aa03e4998f734c3a2",
+      "install.sh": "fab70206e721ce513f808f6727e6c1a4a4101dda4aed4f8f5ad3798701018c46"
+    },
+    "receipts": {
+      "x86_64-unknown-linux-gnu": {
+        "schema_version": 1,
+        "tag": "v0.2.7",
+        "target": "x86_64-unknown-linux-gnu",
+        "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+        "binary_sha256": "7a1e98f21da7859c2171bc082a4d251ab94d64b230f82c0d324eddeffb041725",
+        "minimum_platform": "Linux glibc 2.35",
+        "features": [
+          "typescript",
+          "java",
+          "go",
+          "rust"
+        ],
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+      },
+      "aarch64-unknown-linux-gnu": {
+        "schema_version": 1,
+        "tag": "v0.2.7",
+        "target": "aarch64-unknown-linux-gnu",
+        "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+        "binary_sha256": "66420091765e70680645f82c3ff5794ac65ed3e1c4dbd467b5a00db69008a8a2",
+        "minimum_platform": "Linux glibc 2.35",
+        "features": [
+          "typescript",
+          "java",
+          "go",
+          "rust"
+        ],
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+      },
+      "x86_64-apple-darwin": {
+        "schema_version": 1,
+        "tag": "v0.2.7",
+        "target": "x86_64-apple-darwin",
+        "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+        "binary_sha256": "814d7d0161b7f98e65199cb8772d4ecdffb930b7f0d02538368154dd19473a60",
+        "minimum_platform": "macOS 14",
+        "features": [
+          "typescript",
+          "java",
+          "go",
+          "rust"
+        ],
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+      },
+      "aarch64-apple-darwin": {
+        "schema_version": 1,
+        "tag": "v0.2.7",
+        "target": "aarch64-apple-darwin",
+        "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+        "binary_sha256": "676a1a248f40497b17e2d7e140d37dcffa0a8853eef674736a33fbf3b5e1f2bc",
+        "minimum_platform": "macOS 14",
+        "features": [
+          "typescript",
+          "java",
+          "go",
+          "rust"
+        ],
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+      },
+      "x86_64-pc-windows-msvc": {
+        "schema_version": 1,
+        "tag": "v0.2.7",
+        "target": "x86_64-pc-windows-msvc",
+        "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+        "binary_sha256": "80ddb8acbdc5479e5cc430b205ab326ddc9a9e559cd08282718e7e757df2fa95",
+        "minimum_platform": "Windows 10 x64",
+        "features": [
+          "typescript",
+          "java",
+          "go",
+          "rust"
+        ],
+        "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+      }
+    },
+    "native_version": "dctx0 0.2.7",
+    "local_installation_unchanged": true
+  },
+  "published_verification_measurement": {
+    "elapsed_ms": 8985.64,
+    "peak_process_tree_rss_bytes": 130928640,
+    "scope": "50ms sampled Linux process-tree RSS, shared pages counted per process; independent guard at one third startup MemAvailable"
+  },
+  "local_validation": {
+    "status": "incomplete",
+    "command": "PATH=/home/massenhaft/.cache/dctx0ctl/call-observation-toolchain:$PATH CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=1 python3 scripts/validate.py --coverage",
+    "log": "target/go-race-fix/full-validation.log",
+    "exit_code": 1,
+    "record": "benchmarks/history/20261019T225823.036505Z-21589.json",
+    "revision": "e60f6f78140b22bd2a2ce3cef2d7e401386b3d18",
+    "source_hash": "007c0cb166cc320d07e4f65e7d641302e87489a7e69519a04953237eb999bbac",
+    "source_inputs_unchanged": true,
+    "validation_steps": [
+      {
+        "command": [
+          "bun",
+          "install",
+          "--frozen-lockfile",
+          "--cwd",
+          "examples/cinema"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "install",
+          "--frozen-lockfile",
+          "--cwd",
+          "fixtures/conformance/adaptive-typescript/direct"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "install",
+          "--frozen-lockfile",
+          "--cwd",
+          "fixtures/conformance/adaptive-typescript/service"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "run",
+          "--cwd",
+          "examples/cinema",
+          "typecheck"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "test",
+          "examples/cinema/src",
+          "./examples/cinema/.dctx0/testing/typescript/http-integration.test.ts",
+          "./examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--workspace",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--workspace",
+          "--all-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--features",
+          "rust",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--features",
+          "go",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "go",
+          "mod",
+          "download",
+          "-C",
+          "examples/cinema-go"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "go",
+          "test",
+          "-C",
+          "examples/cinema-go",
+          "-coverprofile=/home/massenhaft/workspaces/conpinion/dctx0ctl/target/go-cinema.coverage",
+          "./..."
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "go",
+          "vet",
+          "-C",
+          "examples/cinema-go",
+          "./..."
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/go_race.py"
+        ],
+        "returncode": 2,
+        "status": "unavailable",
+        "evidence": "target/go-cinema/race.json"
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "-p",
+          "dctx0-cli",
+          "--all-features",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/go_cinema_acceptance.py",
+          "--binary",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/debug/dctx0"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--manifest-path",
+          "examples/cinema-rust/Cargo.toml",
+          "--locked",
+          "--offline",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--manifest-path",
+          "examples/cinema-rust/Cargo.toml",
+          "--all-targets",
+          "--locked",
+          "--offline",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/rust_cinema_acceptance.py",
+          "--binary",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/debug/dctx0"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--manifest-path",
+          "examples/cinema-rust/Cargo.toml",
+          "--all-features",
+          "--offline",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--manifest-path",
+          "examples/cinema-rust/.dctx0/testing/rust/Cargo.toml",
+          "--lib",
+          "--offline",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/editor_acceptance.py",
+          "--binary",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/debug/dctx0",
+          "--functional-only"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/coverage.py"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--all-features",
+          "--locked",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/dependency_resolution_acceptance.py",
+          "--binary",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0"
+        ],
+        "returncode": 0
+      }
+    ],
+    "measurements": {
+      "status": "complete",
+      "workloads": 73,
+      "settings": {
+        "iterations": 20,
+        "samples": 5,
+        "warmup_runs": 1,
+        "profile": "release",
+        "features": "all",
+        "cache": "warm filesystem; fresh process per sample"
+      },
+      "performance_gate": "unassessed",
+      "reason": "Accepted baseline environment/metadata are incompatible; regression assessment unavailable. Baseline not promoted."
+    },
+    "memory_guard": {
+      "budget_bytes": 3674705920,
+      "startup_mem_available_bytes": 11024117760,
+      "peak_process_tree_rss_bytes": 1546338304,
+      "elapsed_ms": 8790845.884,
+      "scope": "50ms sampled sum of command/descendant RSS; shared pages counted per process. Independent Linux watchdog at one third startup MemAvailable; not a hard kernel allocation cap."
+    }
+  },
+  "baseline": "Not promoted; inspect the retained coupled measurement for compatibility and comparison status.",
+  "ci_coverage": {
+    "lines": 34737,
+    "covered_lines": 33892,
+    "line_percent": 97.56743529953651,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "1de1e015106bbcce08df046f0fd56be940efd3780eeb37b38eb135aff1137df7",
+    "source_hash_after": "1de1e015106bbcce08df046f0fd56be940efd3780eeb37b38eb135aff1137df7",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 2861,
+        "covered": 2778,
+        "percent": 97.09891646277524
+      },
+      "instantiations": {
+        "count": 6151,
+        "covered": 3892,
+        "percent": 63.274264347260605
+      },
+      "lines": {
+        "count": 36698,
+        "covered": 35573,
+        "percent": 96.9344378440242
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 55422,
+        "covered": 52406,
+        "notcovered": 3016,
+        "percent": 94.55811771498684
+      }
+    }
+  },
+  "ci_coverage_artifact": {
+    "id": 12224456243,
+    "digest": "sha256:1dcda2448c0010e1a700843405535f0d2a75c28e9f15ec33a5a7437a48e81717",
+    "downloaded_digest_verified": true,
+    "raw_metrics": "Retained separately as llvm.json in the coverage artifact; merged source lines use workspace.lcov, not raw LLVM line totals."
+  },
+  "local_coverage": {
+    "lines": 34737,
+    "covered_lines": 33879,
+    "line_percent": 97.53001122722169,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "1de1e015106bbcce08df046f0fd56be940efd3780eeb37b38eb135aff1137df7",
+    "source_hash_after": "1de1e015106bbcce08df046f0fd56be940efd3780eeb37b38eb135aff1137df7",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 2861,
+        "covered": 2776,
+        "percent": 97.02901083537223
+      },
+      "instantiations": {
+        "count": 6145,
+        "covered": 3888,
+        "percent": 63.27095199349064
+      },
+      "lines": {
+        "count": 36698,
+        "covered": 35557,
+        "percent": 96.89083873780588
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 55422,
+        "covered": 52373,
+        "notcovered": 3049,
+        "percent": 94.49857457327415
+      }
+    }
+  },
+  "coverage_inputs_match_ci": true,
+  "local_native_acceptance": {
+    "go": {
+      "status": "PASS",
+      "mandatory_cases": 5674,
+      "tasks": 105,
+      "open_tasks": 0,
+      "review_tasks_still_unverified": 4,
+      "mutations": [
+        {
+          "mutation": "winner",
+          "subject": "HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner",
+          "case_id": "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak#assertion:2:0:0",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "ASSERTION_FAILED",
+              "message": "Observed implementation violates the modeled assertion",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 37138,
+                  "line": 966,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 37436,
+                  "line": 972,
+                  "column": 56
+                }
+              }
+            }
+          },
+          "mandatory_cases": 233,
+          "recorded_cases": 233,
+          "replay": {
+            "broken": {
+              "status": "FAIL",
+              "issue": {
+                "code": "ASSERTION_FAILED",
+                "message": "Observed implementation violates the modeled assertion",
+                "span": {
+                  "file": "movie-night.dctx0",
+                  "start": {
+                    "offset": 37138,
+                    "line": 966,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 37436,
+                    "line": 972,
+                    "column": 56
+                  }
+                }
+              }
+            },
+            "repaired": {
+              "status": "PASS"
+            },
+            "provenance_changes": 3
+          }
+        },
+        {
+          "mutation": "persistence",
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save",
+          "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:contract:update",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 14750,
+                  "line": 356,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 14782,
+                  "line": 357,
+                  "column": 1
+                }
+              }
+            }
+          },
+          "mandatory_cases": 1486,
+          "recorded_cases": 1486
+        },
+        {
+          "mutation": "lifecycle",
+          "subject": "HomeCinema.MovieNight.ScreeningPollLifecycle",
+          "case_id": "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close:contract:real-entry",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 32981,
+                  "line": 861,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 33241,
+                  "line": 867,
+                  "column": 1
+                }
+              }
+            }
+          },
+          "mandatory_cases": 2810,
+          "recorded_cases": 2810
+        },
+        {
+          "mutation": "http",
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm",
+          "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "APPLICATION_EXCEPTION",
+              "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400",
+              "span": null
+            }
+          },
+          "mandatory_cases": 1555,
+          "recorded_cases": 1555
+        },
+        {
+          "mutation": "collaborator-calls",
+          "subject": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote",
+          "case_id": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote:contract:success",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "OPERATION_CLAUSE_VIOLATED",
+              "message": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote: Ensures",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 35693,
+                  "line": 924,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 35734,
+                  "line": 924,
+                  "column": 58
+                }
+              }
+            }
+          },
+          "mandatory_cases": 2810,
+          "recorded_cases": 2810
+        }
+      ]
+    },
+    "rust": {
+      "status": "PASS",
+      "mandatory_cases": 5674,
+      "tasks": 105,
+      "open_tasks": 0,
+      "review_tasks_still_unverified": 4,
+      "mutations": [
+        {
+          "mutation": "winner",
+          "subject": "HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner",
+          "case_id": "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak#assertion:2:0:0",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "ASSERTION_FAILED",
+              "message": "Observed implementation violates the modeled assertion",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 37138,
+                  "line": 966,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 37436,
+                  "line": 972,
+                  "column": 56
+                }
+              }
+            }
+          },
+          "mandatory_cases": 233,
+          "recorded_cases": 233,
+          "replay": {
+            "broken": {
+              "status": "FAIL",
+              "issue": {
+                "code": "ASSERTION_FAILED",
+                "message": "Observed implementation violates the modeled assertion",
+                "span": {
+                  "file": "movie-night.dctx0",
+                  "start": {
+                    "offset": 37138,
+                    "line": 966,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 37436,
+                    "line": 972,
+                    "column": 56
+                  }
+                }
+              }
+            },
+            "repaired": {
+              "status": "PASS"
+            },
+            "provenance_changes": 3
+          }
+        },
+        {
+          "mutation": "persistence",
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save",
+          "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:contract:update",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 14750,
+                  "line": 356,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 14782,
+                  "line": 357,
+                  "column": 1
+                }
+              }
+            }
+          },
+          "mandatory_cases": 1486,
+          "recorded_cases": 1486
+        },
+        {
+          "mutation": "lifecycle",
+          "subject": "HomeCinema.MovieNight.ScreeningPollLifecycle",
+          "case_id": "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close:contract:real-entry",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 32981,
+                  "line": 861,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 33241,
+                  "line": 867,
+                  "column": 1
+                }
+              }
+            }
+          },
+          "mandatory_cases": 2810,
+          "recorded_cases": 2810
+        },
+        {
+          "mutation": "http",
+          "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm",
+          "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "APPLICATION_EXCEPTION",
+              "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400: {\"error\":\"Incorrect operation arity\"}",
+              "span": null
+            }
+          },
+          "mandatory_cases": 1555,
+          "recorded_cases": 1555
+        },
+        {
+          "mutation": "collaborator-calls",
+          "subject": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote",
+          "case_id": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote:contract:success",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "OPERATION_CLAUSE_VIOLATED",
+              "message": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote: Ensures",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 35693,
+                  "line": 924,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 35734,
+                  "line": 924,
+                  "column": 58
+                }
+              }
+            }
+          },
+          "mandatory_cases": 2810,
+          "recorded_cases": 2810
+        }
+      ]
+    }
+  },
+  "development_tests": {
+    "python_tests": 34,
+    "corrected_attempt_elapsed_ms": 1829.295,
+    "corrected_attempt_peak_process_tree_rss_bytes": 74539008,
+    "fixture_fix": "Publish the adopted child PID file by atomic rename so readers never observe an empty file. The initial failing attempt remains in target/go-race-fix/python.log; the fixed fixture and full final validation pass."
+  }
+}

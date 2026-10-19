@@ -612,3 +612,7 @@ Linux ARM64 kernels with a 39/42-bit VMA layout; Go's detector needs 48 bits.
 The coupled validation reports this as incomplete and exits unsuccessfully.
 A supported CI host must execute the actual race tests before release; ordinary
 Go tests do not replace this check. The same one-third-RAM guard applies.
+
+The v0.2.7 host diagnosis, real CI race execution, coverage, published asset
+checks and bounded local measurements are retained in
+[the validation evidence](docs/go-race-validation.json).
