@@ -8,6 +8,11 @@ Existing task definitions, compiler goldens, verification reports and SQLite
 schemas are unchanged. No evidence-reuse shortcut or new adoption authority is
 introduced. Existing immutable native reports remain the source of execution evidence.
 
+Compatibility: `tasks --as-of` is now rejected for mutations, including planning;
+`--from-plan`/`--from-event` are accepted only for progress queries. Explicit help
+requests now exit successfully on stdout. Existing unfiltered verification JSON
+and stored task definitions retain their established shape.
+
 ## Export one actionable package
 
 ```sh
@@ -140,7 +145,9 @@ execution inputs before treating repeats as comparable. A complete current PASS
 may supply `delivered_at`.
 The tool reports identical-input repeats, first-pass yield by package,
 FAIL-to-current-PASS intervals and median/nearest-rank-p95 evidence-to-delivery
-latency. These external assertions never become native proof or task status.
+latency. Overlapping checks use result completion order for repair intervals;
+first-pass yield uses attempt start order. These external assertions never become
+native proof or task status.
 
 Compare equivalent package types/scopes, keeping mandatory cases and acceptance
 constant. Task endpoint transitions per million fresh input tokens are labeled
@@ -164,3 +171,11 @@ Native compiler/harness costs remain in separate Cinema measurements. Raw sample
 source/toolchain provenance and the latest 20 run records retain the existing
 storage and baseline rules. These new workloads are unassessed until an explicit
 baseline promotion; no baseline change is implied by implementing them.
+
+The 2026-10-21 checkpoint passes 578 Rust and 38 Python tests, with 97.43% merged
+source lines and 97.05% LLVM functions. All 78 release workloads complete on stable
+sources with one development sample/iteration; baseline comparison is unassessed.
+The local Go race probe remains unavailable on its ARM64 VMA host, so aggregate
+local validation stays partial. Publication requires fresh full CI and all five
+platform gates. `docs/workflow-efficiency-validation.json` retains the exact
+results, prior failures and provenance.

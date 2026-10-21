@@ -1195,3 +1195,26 @@ baseline is unchanged. The process tree peaks at 1,546,338,304 bytes within a
 unavailability; never report it as local PASS. Both Go and Rust applications
 pass 5,674 cases, five production mutations and replay. See
 `docs/go-race-validation.json` for local/CI provenance and release asset checks.
+
+## Workflow efficiency checkpoint (2026-10-21)
+
+Read-only dependency-closed work packages, content-deduplicated deltas and pinned
+endpoint progress are implemented. Native diagnostics support summaries, filtered
+pages and exact cases; adoption previews reuse native proof assessment without
+publishing events, executing application code or rebasing stale pins. The three
+embedded skills describe bounded handoffs and guarded delivery. External usage
+and timestamped receipt analysis never become execution evidence or task status.
+
+Validation passes 578 all-feature Rust tests and 38 Python tests. Fresh isolated
+coverage reports 35,078/36,004 merged source lines (97.43%) and 2,865/2,952 raw LLVM
+functions (97.05%), with unchanged 97% thresholds and no new exclusions. This does
+not establish complete branch coverage. All 78 release speed/RSS workloads finish
+on stable sources with reduced development samples; baseline assessment remains
+unassessed and no baseline is promoted. The earlier coverage failure and the
+source-drift measurement remain recorded.
+
+The local ARM64 qualified Go race probe still returns RACE_HOST_VMA_UNSUPPORTED;
+aggregate local validation is partial. v0.2.8 publication requires fresh full CI
+validation and all five native platform gates. See
+`docs/site/src/reference/workflow-efficiency.md` and
+`docs/workflow-efficiency-validation.json` for scope, raw metrics and provenance.
