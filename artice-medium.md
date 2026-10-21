@@ -48,29 +48,40 @@ People benefit for the same reason. A product owner or developer can understand 
 
 The human still owns the product choices. A compiler can catch a broken reference or an invalid expression; it cannot decide whether the business wanted the right thing.
 
-## A shared decision in three lines
+## A contract before there is any code
 
-Return to the customer lookup.
+Consider a booking service. Everyone on the team needs the same definition of available capacity: seat counts are non-negative, and remaining seats equal capacity minus confirmed bookings.
 
-The data-source operation is named `CustomerStore.find`. The public operation is `CustomerApi.getName`. We agree that an unknown customer must produce the business error `CustomerNotFound`.
-
-A DCTX0 example records that decision:
+These DCTX0 declarations belong inside the service's domain and module:
 
 ```dctx0
-example "unknown customer" {
-  given CustomerStore.find("customer-42") returns None
-  when result = CustomerApi.getName("customer-42")
-  expect result fails CustomerNotFound
+value SeatCount = Int {
+  range 0..500
+}
+
+surface CapacityRules {
+  operation remainingSeats(capacity: SeatCount, booked: SeatCount)
+    -> SeatCount {
+    pure
+  }
+}
+
+invariant RemainingSeatsMatchBookings {
+  forall capacity: SeatCount
+  forall booked: SeatCount
+
+  assert booked <= capacity implies
+    CapacityRules.remainingSeats(capacity, booked) == capacity - booked
 }
 ```
 
-The first line supplies the situation: the data source finds nothing. The second invokes the public operation. The third states the required outcome.
+`SeatCount` defines valid values. The operation declares a typed boundary and requires a result determined only by its inputs. The invariant states a rule for every valid pair where bookings do not exceed capacity. Handling overbooking is a separate product decision; this rule leaves it open.
 
-The complete specification also declares these interfaces, their types, and the error. There is no hidden customer fixture needed to understand this example; the input is written directly into it.
+The compiler can check these declarations before an implementation exists. The planner derives work for the value contract and operation, with the rule included in the implementation context. Once an adapter binds the operation to application code, the verifier generates deterministic inputs and checks the observed results against the invariant within a finite case budget.
 
-Now the API worker, persistence worker, and reviewer have a common reference. Returning an empty name successfully would violate the agreed expectation, even if that behavior looked plausible in isolation.
+For capacity 100 and 37 confirmed bookings, the application must return 63. The same rule also covers zero capacity, a full booking, and other generated combinations. Each worker receives the same definition of `SeatCount` and the same requirement for calculating availability.
 
-Examples are one part of the language. Data contracts define valid values. Invariants express general rules. Lifecycles describe permitted state transitions. Intent, constraints, and review criteria preserve requirements that also need human or agent judgment.
+Concrete examples add named success and failure paths. Lifecycles describe permitted state transitions. Intent, constraints, decisions, and review criteria preserve requirements that also need human or agent judgment.
 
 The application implements these requirements in its own language. The spec supplies the behavioral boundaries.
 
@@ -114,7 +125,17 @@ There is one more connection to make: the application has to be checked against 
 
 An agent can write code and then write tests that faithfully reproduce its own misunderstanding. A reviewed specification gives the test expectation an earlier, explicit source.
 
-For the customer example, a separate testing adapter supplies the prescribed data-source reply and invokes the real application operation. A test program for the application's language reports what happened.
+Return to the customer lookup from the opening. We agree that an unknown customer must produce the business error `CustomerNotFound`. A concrete example records the controlled situation and required outcome:
+
+```dctx0
+example "unknown customer" {
+  given CustomerStore.find("customer-42") returns None
+  when result = CustomerApi.getName("customer-42")
+  expect result fails CustomerNotFound
+}
+```
+
+The surrounding specification declares the port, public operation, types, and failure. A separate testing adapter supplies the prescribed data-source reply and invokes the real application operation. A test program for the application's language reports what happened.
 
 DCTX0's central Rust core compares that observation with `CustomerNotFound`.
 

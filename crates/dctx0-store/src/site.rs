@@ -2,11 +2,21 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
 
+/// Bound embedded source history without pruning stored checks or task evidence.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SiteHistory {
+    #[default]
+    Previous,
+    All,
+}
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SiteSelection {
     pub snapshot: Option<String>,
     pub plan: Option<i64>,
     pub as_of: Option<i64>,
+    #[serde(default)]
+    pub history: SiteHistory,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SiteRevision {
@@ -31,7 +41,9 @@ pub struct SiteRecords {
     pub changes: Option<Changes>,
     pub before: Option<Snapshot>,
     pub task_snapshot: Option<Snapshot>,
-    pub requirement_snapshots: std::collections::BTreeMap<String, Snapshot>,
+    pub requirement_snapshots: std::collections::BTreeMap<String, Vec<u8>>,
+    pub history_scope: SiteHistory,
+    pub omitted_requirement_snapshots: std::collections::BTreeSet<String>,
     pub plan_diff: Option<dctx0_tasks::PlanDiff>,
 }
 /// Header and compressed corpus keep export memory bounded to one decoded run.
@@ -151,7 +163,8 @@ impl Store {
         let previous = history
             .iter()
             .filter(|h| h.run_id < check.run_id && h.status == "pass")
-            .find_map(|h| h.snapshot_id.as_ref());
+            .filter_map(|h| h.snapshot_id.as_ref())
+            .find(|id| *id != &snapshot.id);
         let before = previous.map(|id| self.load(project, id)).transpose()?;
         let changes = before
             .as_ref()
@@ -173,6 +186,7 @@ impl Store {
             })
             .transpose()?;
         let mut requirement_snapshots = std::collections::BTreeMap::new();
+        let mut omitted_requirement_snapshots = std::collections::BTreeSet::new();
         if let Some(session) = &tasks {
             for definition in session.definitions.values() {
                 for id in std::iter::once(&definition.origin_snapshot)
@@ -183,7 +197,15 @@ impl Store {
                         && task_snapshot.as_ref().is_none_or(|s| &s.id != id)
                         && !requirement_snapshots.contains_key(id)
                     {
-                        requirement_snapshots.insert(id.clone(), self.load(project, id)?);
+                        if selection.history == SiteHistory::Previous {
+                            omitted_requirement_snapshots.insert(id.clone());
+                            continue;
+                        }
+                        // Historical tasks can reference hundreds of large IRs. Retain
+                        // their lossless compressed form, not every decoded snapshot.
+                        let snapshot = self.load(project, id)?;
+                        let compressed = pack_requirement_snapshot(&snapshot)?;
+                        requirement_snapshots.insert(id.clone(), compressed);
                     }
                 }
             }
@@ -202,9 +224,22 @@ impl Store {
             before,
             task_snapshot,
             requirement_snapshots,
+            history_scope: selection.history,
+            omitted_requirement_snapshots,
             plan_diff,
         })
     }
+}
+
+fn pack_requirement_snapshot(snapshot: &Snapshot) -> Result<Vec<u8>> {
+    let encoder = flate2::GzBuilder::new()
+        .mtime(0)
+        .operating_system(255)
+        .write(Vec::new(), flate2::Compression::fast());
+    let mut writer = std::io::BufWriter::new(encoder);
+    serde_json::to_writer(&mut writer, snapshot)?;
+    let encoder = writer.into_inner().map_err(|error| error.into_error())?;
+    Ok(encoder.finish()?)
 }
 
 fn revision(connection: &Connection, project: &str) -> Result<SiteRevision> {

@@ -366,6 +366,16 @@ Changed requirements create new adaptation tasks with explicit predecessor links
 
 For worker coordination, use `tasks claim-next` or `tasks claim-slice` with an actor. Transitions require the returned claim/reservation and version guards. Context includes required types and acceptance criteria; large contexts expose missing sections and pinned continuation cursors. See [tasks](docs/site/src/docs/workflow.md) and [profiles](docs/site/src/docs/profiles.md).
 
+For a complete dependency-closed handoff, use `tasks package <spec-root> T42
+--project <app-root> --json`; `tasks package-delta ... --file package.json`
+returns changed context and state. `tasks progress <spec-root> --from-plan P
+--from-event E --json` compares explicit endpoints. Compact diagnostics are
+available through `verify show <spec-root> RUN --summary` or
+`--outcome FAIL,UNKNOWN --limit 50`; `verify adoption-preview` explains current
+eligibility without task changes. See [work packages and workflow measurements](docs/site/src/reference/workflow-efficiency.md)
+for pins, cursors, delivery, external usage receipts and the coupled validation/
+release speed/RAM command `python3 scripts/validate.py --coverage --samples 1 --iterations 1`.
+
 ## Agent skills and editors
 
 The CLI bundles three complementary skills:

@@ -22,7 +22,7 @@ dctx0 tasks plan path/to/project/dctx0
 dctx0 site export path/to/project/dctx0 --output target/project-site
 
 # Or start the local live companion.
-dctx0 site serve path/to/project/dctx0
+dctx0 site serve path/to/project/dctx0 --progress
 ```
 
 Open `target/project-site/index.html` directly, or publish the exported directory
@@ -139,11 +139,24 @@ commit point. Consumers of separate JSON read it as one document.
 
 `dctx0 site serve <spec-root> [--port 0]` binds Axum exclusively to `127.0.0.1`.
 Port zero selects a free port; the CLI prints its URL and stops on Ctrl-C.
+`--progress` works for both `serve` and `export`, before or after the subcommand.
+It reports actual phases, completed/total items and elapsed time on stderr; stdout
+keeps the URL or export path. `READY` appears after the listener is bound or the
+export files are written. A failed preparation reports `FAILED` instead.
 Only `/` and read-only `GET /api/site` exist. ETags return 304 for unchanged data.
 Global `--db` applies to both commands. Export also accepts `--snapshot <hash>`,
 `--plan <integer>`, and `--as-of <event-sequence>`. Pins are independent and
 mismatches are visible. `--as-of` selects task history, not an inferred timestamp
 or a verification execution cutoff.
+
+Source bodies default to `--history previous`: the selected spec, its immediately
+preceding **different** published snapshot, and the selected task plan's pinned
+snapshot when needed. Repeated checks of the same snapshot do not consume the
+comparison step. Check metadata and task/evidence history remain available; no
+stored snapshots or evidence are deleted. Older task source bodies are explicitly
+marked as omitted and are never replaced with current requirements. To inspect
+one older source, export with `--snapshot <hash>`; use `--history all` to embed all
+source snapshots referenced by historical tasks. This opt-in can be expensive.
 
 Spec, task session, original sources, checks, explicit renames, semantic changes
 and stored verification runs are read in one SQLite transaction. Schema 1 has no
@@ -187,7 +200,9 @@ adoption or asserts current working-tree freshness.
 
 Live polling runs every three seconds, pauses when hidden and installs a coherent
 snapshot. Selection, filters, scroll and graph positions persist. Historical task
-requirements retain their original snapshot frames and source links. Connection
+requirements retain their original snapshot identities and source links. Source
+bodies outside the selected history scope show an explicit omission notice with
+commands to retrieve their exact snapshot. Connection
 failure retains the last data with a stale status. Offline exports never poll.
 Long declaration/task/case lists are virtualized; small screens have a navigation
 toggle. Labels are English; light/dark modes use neutral surfaces and status colors.

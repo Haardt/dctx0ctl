@@ -13,6 +13,9 @@ pub(super) struct Output {
 #[derive(Serialize)]
 #[serde(tag = "view", content = "data", rename_all = "kebab-case")]
 pub(super) enum Body {
+    Package(WorkPackage),
+    PackageDelta(PackageDelta),
+    Progress(ProgressReport),
     Preview(CandidatePlan),
     ProfileChanges(ProfileUpdatePreview),
     Plan(Plan),
@@ -100,6 +103,59 @@ pub(crate) fn markdown(report: &Output) -> String {
         ));
     }
     match &report.body {
+        Body::Package(package) => {
+            out.push_str(&format!("## Work package `{}`\n\nComplete context: {}; dependency-closed: {}. No execution reserved.\n", package.id, package.complete, package.slice.closed));
+            for task in &package.tasks {
+                out.push_str(&row(&task.overview));
+                out.push_str(&format!(
+                    "  Context references: {}\n  Evidence: {:?}\n",
+                    task.context.join(", "),
+                    task.evidence
+                ));
+                if !task.profile_subjects.is_empty() {
+                    out.push_str(&format!(
+                        "  Profile subject attribution: {:?}\n",
+                        task.profile_subjects
+                    ));
+                }
+            }
+            for limitation in &package.limitations {
+                out.push_str(&format!("\nIncomplete: {limitation}\n"));
+            }
+            for (id, item) in &package.content {
+                out.push_str(&format!(
+                    "\n### {} · `{id}`\n\n{}\n",
+                    item.title,
+                    fence(&item.text)
+                ));
+            }
+        }
+        Body::PackageDelta(delta) => {
+            out.push_str(&format!(
+                "## Package delta\n\n{} → {}\n\nAdded tasks: {:?}\nRemoved tasks: {:?}\n",
+                delta.before, delta.after, delta.added_tasks, delta.removed_tasks
+            ));
+            for task in &delta.changed_tasks {
+                out.push_str(&format!("- T{}: reload context: {}; requirements: {}; prerequisites: {}; profiles: {}; state: {}; evidence: {}\n", task.task_id, task.reload_context, task.requirements_changed, task.prerequisites_changed, task.profiles_changed, task.state_changed, task.evidence_changed));
+            }
+            for (id, item) in &delta.added_content {
+                out.push_str(&format!(
+                    "\n### {} · `{id}`\n\n{}\n",
+                    item.title,
+                    fence(&item.text)
+                ));
+            }
+        }
+        Body::Progress(progress) => {
+            out.push_str(&format!("## Progress P{} @ {} → P{} @ {}\n\nNew tasks: {:?}\nRemoved tasks: {:?}\nNewly Done: {:?}\nNewly PASS: {:?}\nLost active PASS: {:?}\nUnfinished: {:?}\nBlocked: {:?}\n\nNew tasks are reported separately; Done and PASS measure separate transitions. No feature-completeness claim.\n", progress.before.plan_id, progress.before.event_seq, progress.after.plan_id, progress.after.event_seq, progress.added, progress.removed, progress.newly_done, progress.newly_pass, progress.lost_pass, progress.unfinished, progress.blocked));
+            out.push_str(&format!(
+                "\nAdded tasks already Done: {:?}\nAdded tasks already PASS: {:?}\n",
+                progress.added_done, progress.added_pass
+            ));
+            for e in &progress.events {
+                out.push_str(&format!("- {}: {} — {}\n", e.seq, e.kind, e.message));
+            }
+        }
         Body::ProfileChanges(preview) => {
             out.push_str("## Profile change preview\n\nNo work or testing status has changed.\n");
             for change in &preview.changes {

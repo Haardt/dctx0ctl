@@ -1204,3 +1204,223 @@ fn cinema_manual_obligations_are_assigned_without_changing_compiler_snapshots() 
         assert!(!context.page.items.is_empty());
     }
 }
+
+#[test]
+fn work_packages_share_exact_type_context_and_detect_evidence_and_profile_deltas() {
+    let snapshot = snap(SPEC);
+    let mut session = session(&snapshot);
+    let anchor = session
+        .plan
+        .members
+        .iter()
+        .find(|m| m.candidate.kind == TaskKind::Integration)
+        .unwrap()
+        .task_id;
+    let first = work_package(&session, &snapshot, anchor, None, None, &BTreeMap::new()).unwrap();
+    first.validate().unwrap();
+    assert!(!first.complete);
+    assert!(first.limitations.iter().any(|s| s.contains("profile")));
+    assert_eq!(first.tasks.len(), first.slice.tasks.len());
+    let id_items = first
+        .content
+        .iter()
+        .filter(|(_, item)| {
+            item.type_definition
+                .as_ref()
+                .is_some_and(|d| d.id == "W.D.Id")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(id_items.len(), 1, "Shared exact type must have one body");
+    assert!(id_items[0].1.text.contains("stableId"));
+    assert!(
+        first
+            .tasks
+            .iter()
+            .filter(|t| t.context.contains(id_items[0].0))
+            .count()
+            > 1
+    );
+    let selections = first
+        .tasks
+        .iter()
+        .map(|task| {
+            (
+                task.overview.task_id,
+                ProfileSelection {
+                    bundle: dctx0_core::ExecutionBundle {
+                        target: "typescript".into(),
+                        hash: "test-bundle".into(),
+                        documents: vec![],
+                    },
+                    missing_files: vec![],
+                },
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let profiled = work_package(&session, &snapshot, anchor, None, None, &selections).unwrap();
+    assert!(profiled.complete);
+    let profiled_delta = package_delta(&first, &profiled, &[]).unwrap();
+    assert!(
+        profiled_delta
+            .changed_tasks
+            .iter()
+            .all(|t| t.profiles_changed && t.reload_context)
+    );
+    let mut wrong_snapshot = snapshot.clone();
+    wrong_snapshot.id = "different".into();
+    assert!(work_package(&session, &wrong_snapshot, anchor, None, None, &selections).is_err());
+    let unchanged = package_delta(&first, &first, &[]).unwrap();
+    assert!(unchanged.changed_tasks.is_empty() && unchanged.added_content.is_empty());
+    let id = first.tasks[0].overview.task_id;
+    session.event_seq += 1;
+    let requirements_hash = session
+        .member(id)
+        .unwrap()
+        .candidate
+        .requirements_hash
+        .clone();
+    session
+        .states
+        .get_mut(&id)
+        .unwrap()
+        .evidence
+        .push(CheckEvidence {
+            requirements_hash,
+            implementation: "hash".into(),
+            verifier: "external".into(),
+            verifier_version: "1".into(),
+            command: "test".into(),
+            started_at: "start".into(),
+            finished_at: "end".into(),
+            report: "run-1".into(),
+            status: CheckStatus::Pass,
+        });
+    let second = work_package(&session, &snapshot, anchor, None, None, &BTreeMap::new()).unwrap();
+    let delta = package_delta(&first, &second, &[]).unwrap();
+    assert!(
+        delta
+            .changed_tasks
+            .iter()
+            .any(|t| t.task_id == id && t.evidence_changed && !t.reload_context)
+    );
+    session.event_seq += 1;
+    session.states.get_mut(&id).unwrap().evidence[0].implementation = "repaired-source".into();
+    let renewed = work_package(&session, &snapshot, anchor, None, None, &BTreeMap::new()).unwrap();
+    assert_eq!(second.tasks[0].evidence, renewed.tasks[0].evidence);
+    assert!(
+        package_delta(&second, &renewed, &[])
+            .unwrap()
+            .changed_tasks
+            .iter()
+            .any(|t| t.evidence_changed)
+    );
+    // Reconstruct a complete export from cached content plus the transmitted delta.
+    let mut rebuilt = first.content.clone();
+    for key in &delta.removed_content {
+        rebuilt.remove(key);
+    }
+    rebuilt.extend(delta.added_content.clone());
+    let restored = WorkPackage {
+        schema_version: 1,
+        id: delta.after,
+        pin: delta.after_pin,
+        spec_source_hash: delta.after_spec_source_hash,
+        tasks: delta.after_tasks,
+        slice: delta.after_slice,
+        content: rebuilt,
+        complete: delta.after_complete,
+        limitations: delta.after_limitations,
+    };
+    restored.validate().unwrap();
+    let mut broken = first.clone();
+    broken.content.clear();
+    assert!(broken.validate().is_err());
+    let mut foreign = session.clone();
+    foreign.project = "another".into();
+    let foreign = work_package(&foreign, &snapshot, anchor, None, None, &BTreeMap::new()).unwrap();
+    assert!(package_delta(&first, &foreign, &[]).is_err());
+    assert!(package_delta(&second, &first, &[]).is_err());
+    assert!(work_package(&session, &snapshot, -1, None, None, &BTreeMap::new()).is_err());
+}
+
+#[test]
+fn progress_compares_endpoint_transitions_without_counting_historical_pass_as_yield() {
+    let snapshot = snap(SPEC);
+    let before = session(&snapshot);
+    let mut after = before.clone();
+    let id = before.plan.members[0].task_id;
+    let state = after.states.get_mut(&id).unwrap();
+    state.work = WorkState::Done;
+    state.check = CheckStatus::Pass;
+    state.result = Some(TaskResult {
+        summary: "Delivered".into(),
+        artifacts: vec![],
+        decisions: vec![],
+        implementation: None,
+    });
+    after.event_seq += 1;
+    after.events.push(Event {
+        seq: after.event_seq,
+        task_id: Some(id),
+        kind: "check".into(),
+        message: "PASS".into(),
+    });
+    let progress = task_progress(&before, &after).unwrap();
+    assert_eq!(progress.newly_done, [id]);
+    assert_eq!(progress.newly_pass, [id]);
+    assert_eq!(progress.events.len(), 1);
+    assert!(task_progress(&after, &after).unwrap().newly_pass.is_empty());
+    assert!(task_progress(&after, &before).is_err());
+    let mut foreign = after.clone();
+    foreign.project = "other".into();
+    assert!(task_progress(&before, &foreign).is_err());
+    let lost = task_progress(
+        &after,
+        &Session {
+            event_seq: after.event_seq + 1,
+            states: before.states.clone(),
+            ..after.clone()
+        },
+    )
+    .unwrap();
+    assert_eq!(lost.lost_pass, [id]);
+}
+
+#[test]
+fn progress_counts_added_deliveries_and_removed_pass_separately_from_common_task_yield() {
+    let snapshot = snap(SPEC);
+    let mut before = session(&snapshot);
+    let old = before.plan.members[0].task_id;
+    let state = before.states.get_mut(&old).unwrap();
+    state.work = WorkState::Done;
+    state.check = CheckStatus::Pass;
+    state.result = Some(TaskResult {
+        summary: "Previous requirements delivered".into(),
+        artifacts: vec![],
+        decisions: vec![],
+        implementation: Some("old-source".into()),
+    });
+    let mut after = before.clone();
+    after.event_seq += 1;
+    let new = 10000;
+    after.plan.members[0].task_id = new;
+    let mut definition = after.definitions[&old].clone();
+    definition.id = new;
+    after.definitions.insert(new, definition);
+    after.states.insert(new, after.states[&old].clone());
+    after.links.push(HistoryLink {
+        from: old,
+        to: new,
+        kind: "changed".into(),
+        reason: "New requirements require new evidence".into(),
+    });
+    let report = task_progress(&before, &after).unwrap();
+    assert_eq!(report.added, [new]);
+    assert_eq!(report.added_done, [new]);
+    assert_eq!(report.added_pass, [new]);
+    assert_eq!(report.removed, [old]);
+    assert_eq!(report.lost_pass, [old]);
+    assert!(report.newly_done.is_empty() && report.newly_pass.is_empty());
+    assert_eq!(after.states[&old], before.states[&old]);
+    assert_eq!(report.history_links.len(), 1);
+}

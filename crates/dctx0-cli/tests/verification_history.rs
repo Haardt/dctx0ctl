@@ -64,6 +64,7 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
         .record_verification_run(&p.key(), &run, &[plan])
         .unwrap();
     drop(store);
+    p.task_plan("latest").unwrap();
     let database_before_show = fs::read(&p.database).unwrap();
     fs::write(root.join("w.dctx0"), "invalid now").unwrap();
     for json in [false, true] {
@@ -105,6 +106,70 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
             assert!(text.contains("`C1` / `W.Number`"));
         }
     }
+    let show = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args([
+                "verify",
+                "show",
+                root.to_str().unwrap(),
+                &saved.id,
+                "--json",
+            ])
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let compact = show(&["--summary"]);
+    assert!(compact.status.success());
+    let compact: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+    assert_eq!(compact["summary"]["recorded_cases"], 3);
+    assert_eq!(compact["summary"]["result"]["status"], "FAIL");
+    assert_eq!(compact["cases"].as_array().unwrap().len(), 0);
+    let filtered = show(&["--outcome", "FAIL,UNKNOWN", "--limit", "1"]);
+    assert!(filtered.status.success());
+    let filtered: serde_json::Value = serde_json::from_slice(&filtered.stdout).unwrap();
+    assert_eq!(filtered["matching_cases"], 2);
+    assert_eq!(filtered["cases"][0]["id"], "C1");
+    let cursor = serde_json::to_string(&filtered["next_cursor"]).unwrap();
+    let next = show(&[
+        "--outcome",
+        "FAIL,UNKNOWN",
+        "--limit",
+        "1",
+        "--cursor",
+        &cursor,
+    ]);
+    assert!(next.status.success());
+    let next: serde_json::Value = serde_json::from_slice(&next.stdout).unwrap();
+    assert_eq!(next["cases"][0]["id"], "C3");
+    assert!(next["complete"].as_bool().unwrap());
+    assert!(
+        !show(&["--limit", "1", "--cursor", &cursor])
+            .status
+            .success()
+    );
+    assert!(!show(&["--limit", "0"]).status.success());
+    assert!(!show(&["--case", "absent"]).status.success());
+    let detail = show(&["--case", "C3"]);
+    assert!(detail.status.success());
+    let detail: serde_json::Value = serde_json::from_slice(&detail.stdout).unwrap();
+    assert_eq!(
+        detail["detail"]["observations"].as_array().unwrap().len(),
+        2
+    );
+    for args in [
+        &["--summary"][..],
+        &["--outcome", "FAIL", "--limit", "1"][..],
+        &["--case", "C3"][..],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args(["verify", "show", root.to_str().unwrap(), &saved.id])
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert!(String::from_utf8_lossy(&output.stdout).contains("Result: Fail"));
+    }
     assert!(
         !Command::new(env!("CARGO_BIN_EXE_dctx0"))
             .args(["verify", "show", root.to_str().unwrap(), "missing"])
@@ -112,6 +177,29 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
             .unwrap()
             .success()
     );
+    for json in [true, false] {
+        let mut args = vec![
+            "verify",
+            "adoption-preview",
+            root.to_str().unwrap(),
+            &saved.id,
+        ];
+        if json {
+            args.push("--json");
+        }
+        let output = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("ADOPTION_NATIVE_ORIGIN_REQUIRED")
+        );
+    }
     assert_eq!(database_before_show, fs::read(&p.database).unwrap());
     let mut store = Store::open(&p.database, AccessMode::ReadWrite).unwrap();
     let artifacts = saved
@@ -128,6 +216,33 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
             .unwrap();
     }
     drop(store);
+    let preview = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+        .args([
+            "verify",
+            "adoption-preview",
+            root.to_str().unwrap(),
+            &saved.id,
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(preview.status.success());
+    let preview: serde_json::Value = serde_json::from_slice(&preview.stdout).unwrap();
+    assert!(
+        preview["issues"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["code"] == "ADOPTION_DETAILS_PRUNED")
+    );
+    assert!(preview["tasks"].as_array().unwrap().iter().all(|t| {
+        t["eligible"] == false
+            && t["blockers"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|i| i["code"] != "TASK_OUTSIDE_EVIDENCE_SCOPE")
+    }));
     let exports = root.join("exports");
     fs::create_dir_all(exports.join("nested")).unwrap();
     let report = serde_json::json!({"evidence":saved,"authored":[null,true,false,-7,9,1.5,"escaped\ntext",{"keep":"unchanged"}]});

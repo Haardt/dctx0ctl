@@ -17,7 +17,9 @@ layout belong to the external test adapter and editable target profiles.
 
 Compilation is not execution. `verify plan` reveals executable obligations and
 unsupported/manual points; native `verify run` supplies actual observations.
-Do not weaken an invariant, remove mandatory cases or change expectations to
+After an authorized spec change, inspect its diff and the resulting task/package
+delta before resuming implementation. Preserve historical results; changed
+requirements need current evidence. Do not weaken an invariant, remove mandatory cases or change expectations to
 accommodate an implementation failure. Unsupported execution should remain explicit.
 
 Use `diff`, `impact` and explicit `rename --dry-run` when requested to understand

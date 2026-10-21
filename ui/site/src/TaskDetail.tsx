@@ -1,5 +1,7 @@
 import Markdown from 'react-markdown';
-import {prunedEvidence,pinnedSnapshot,type Json,type SiteSnapshot,type Snapshot} from './model';
+import {usePinnedSnapshot} from './usePinnedSnapshot';
+import {useTaskState} from './useTaskState';
+import {prunedEvidence,type Json,type SiteSnapshot,type Snapshot} from './model';
 function Text({children}:{children:string}){return <div className="markdown"><Markdown skipHtml components={{img:({alt})=><span>{alt??'Image'}</span>}}>{children}</Markdown></div>}
 function record(value:Json,label=''):import('react').ReactNode {
  if(value===null)return <span className="muted">Not recorded</span>;
@@ -10,12 +12,17 @@ function record(value:Json,label=''):import('react').ReactNode {
 }
 function source(snapshot:Snapshot|undefined,id:string){const span=snapshot?.ir.symbols[id]?.span??snapshot?.ir.nodes.find(n=>n.id===id)?.span;return span?snapshot?.sources.find(s=>s.file===span.file)?.text.split('\n').slice(Number(span.start.line)-1,Number(span.end.line)).join('\n'):undefined}
 export default function TaskDetail({data,id,onSelect}:{data:SiteSnapshot;id:string;onSelect:(id:string)=>void}){
- const session=data.records.tasks,task=session?.definitions[id],state=session?.states[id];if(!session||!task||!state)return null;
- const current=data.tasks.find(t=>t.task_id===id),candidate=session.plan.members.find(m=>m.task_id===id)?.candidate??task.candidate,snapshot=pinnedSnapshot(data,current?session.plan.snapshot_id:task.origin_snapshot),events=session.events.filter(e=>e.task_id===id),links=session.links.filter(l=>l.from===id||l.to===id);
+ const session=data.records.tasks,task=session?.definitions[id],current=data.tasks.find(t=>t.task_id===id);
+ const detail=useTaskState(data,id),state=detail.state;
+ const {snapshot,loading,error}=usePinnedSnapshot(data,task&&session?(current?session.plan.snapshot_id:task.origin_snapshot):null);
+ if(!session||!task||!state)return null;
+ if(detail.loading||detail.error)return <article className="task-description"><h2>T{id} · {task.candidate.title}</h2><p role={detail.error?"alert":"status"}>{detail.error??"Loading recorded task evidence…"}</p></article>;
+ const candidate=session.plan.members.find(m=>m.task_id===id)?.candidate??task.candidate,events=session.events.filter(e=>e.task_id===id),links=session.links.filter(l=>l.from===id||l.to===id);
  return <article className="task-description"><small>T{id} · {candidate.kind} · {current?'Active plan':'Historical task'}</small><h2>{candidate.title}</h2><div className="counts"><span className={'tag '+state.work}>{state.work.toUpperCase()}</span><span className={'tag '+state.check}>{state.check.toUpperCase()}</span>{state.reservation&&<span className="tag">RESERVED</span>}</div><Text>{task.reason}</Text>
  <dl><dt>Actor</dt><dd>{state.actor??'Unassigned'}</dd><dt>Readiness</dt><dd>{current?.ready?'Ready':current?.delivered?'Delivered':current?.blockers.join('; ')||'Not open'}</dd><dt>Requirements</dt><dd>Snapshot {snapshot?.id??task.origin_snapshot}</dd></dl>
  <h3>Assignment</h3><pre><code className="language-dctx0">{candidate.contract}</code></pre><h3>Acceptance</h3><ul>{candidate.acceptance.map((a,i)=><li key={i}><Text>{a}</Text></li>)}</ul>
- <h3>Subjects</h3>{candidate.subjects.map(s=><a className="row" key={s} href={'#'+new URLSearchParams({view:'Spec',id:s,snapshot:snapshot?.id??''})}>{s}</a>)}
+ {loading&&<p role="status">Loading pinned snapshot…</p>}{error&&<p role="alert">{error}</p>}
+ <h3>Subjects</h3>{candidate.subjects.map(s=><a className="row" key={s} href={'#'+new URLSearchParams({view:'Spec',id:s,snapshot:current?session.plan.snapshot_id:task.origin_snapshot})}>{s}</a>)}
  {candidate.types.filter(t=>!candidate.subjects.includes(t)).length>0&&<details><summary>Required type contracts</summary>{candidate.types.filter(t=>!candidate.subjects.includes(t)).map(type=><section key={type}><h3>{type}</h3>{source(snapshot,type)?<pre><code className="language-dctx0">{source(snapshot,type)}</code></pre>:record(snapshot?.ir.data[type]??{status:'Unavailable in pinned snapshot'})}</section>)}</details>}
  {candidate.facts.length>0&&<details><summary>Constraints, examples and decisions</summary>{candidate.facts.map(fact=><section key={fact}><h3>{fact}</h3>{source(snapshot,fact)?<pre><code className="language-dctx0">{source(snapshot,fact)}</code></pre>:<Text>{snapshot?.ir.nodes.find(n=>n.id===fact)?.terms.map(t=>t.text).join(' ')??'Unavailable in pinned snapshot'}</Text>}</section>)}</details>}
  {state.execution_bundle?.documents.length&&<details><summary>Implementation guidance (pinned)</summary>{state.execution_bundle.documents.map((doc,i)=><section key={i}><h3>{doc.path}</h3><Text>{doc.text}</Text></section>)}</details>}

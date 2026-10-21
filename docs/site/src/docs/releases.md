@@ -108,3 +108,20 @@ and distribution tests. Five native builds, version guards, packaging and checks
 remain required. Later releases retain normal validation. The release includes
 [Static Site and Task Live View](site-companion.md), with embedded assets and no
 Bun/Node requirement for end users.
+
+## v0.2.8: pinned workflow context and native diagnostics
+
+Dependency-closed work packages deduplicate complete context and retain pinned
+specification, profile, task and evidence identities. Delta exports support
+resumption; progress reports distinguish Done and historical PASS transitions.
+Compact native summaries, filtered case pages and a read-only adoption preview
+explain current evidence and delivery blockers. Updated embedded skills and an
+external usage-analysis tool support bounded, measurable handoffs.
+
+The companion retains task selection across live refreshes and reads large
+evidence safely. Productive recursive generation alternatives remain available
+when another branch has no bounded inhabitants. Existing task definitions and
+SQLite schemas are unchanged. See [workflow efficiency](../reference/workflow-efficiency.md).
+
+Fresh full validation and all five native platform jobs gate publication. The
+local ARM64 Go race probe cannot run on its 39-bit VMA host; no exemption is added.

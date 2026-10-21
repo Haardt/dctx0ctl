@@ -17,6 +17,9 @@ not automatically the current working tree. Use `--json` for structured reports.
 For spec changes use `$dctx0-language`; for application tasks or an external adapter
 use `$dctx0-implementation`. Keep the user's actual scope and existing authorization.
 Do not invent business requirements or alter a spec merely to pass verification.
+For multi-task implementation, follow the implementation skill's pinned package,
+context-delta and evidence-to-task closure routine. Save the starting plan/event
+pin when measuring progress; current task totals do not measure this run's yield.
 
 `verify plan <spec-root>` projects the selected published requirements without
 running production. `verify run` executes the configured finite scope and stores

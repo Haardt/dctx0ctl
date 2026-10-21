@@ -1,5 +1,7 @@
 //! Managed native execution from a published snapshot, with immutable reports.
 mod adoption;
+mod adoption_preview;
+pub use adoption_preview::{AdoptionPreviewTask, VerificationAdoptionPreview};
 mod attestations;
 mod build;
 mod capture;

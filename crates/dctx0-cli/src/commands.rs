@@ -12,7 +12,10 @@ use std::{fs, io::Write, path::Path};
 pub(crate) fn run(args: &[String], output: &mut dyn Write) -> Result<bool, String> {
     // Keep the established parser microbenchmark independent of the richer
     // command registry; end-to-end check benchmarks include normal dispatch.
-    if args.first().is_some_and(|a| a == "bench-parse") && (2..=3).contains(&args.len()) {
+    if args.first().is_some_and(|a| a == "bench-parse")
+        && (2..=3).contains(&args.len())
+        && !args.iter().any(|a| matches!(a.as_str(), "-h" | "--help"))
+    {
         let iterations = args
             .get(2)
             .map_or(Ok(1usize), |s| s.parse())
@@ -23,7 +26,12 @@ pub(crate) fn run(args: &[String], output: &mut dyn Write) -> Result<bool, Strin
         std::iter::once("dctx0".to_owned()).chain(args.iter().cloned()),
     ) {
         Ok(cli) => cli,
-        Err(error) if error.kind() == clap::error::ErrorKind::DisplayVersion => {
+        Err(error)
+            if matches!(
+                error.kind(),
+                clap::error::ErrorKind::DisplayVersion | clap::error::ErrorKind::DisplayHelp
+            ) =>
+        {
             write!(output, "{error}").map_err(error_message)?;
             return Ok(true);
         }

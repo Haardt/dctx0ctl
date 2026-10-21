@@ -1,22 +1,48 @@
 use axum::{
     Router,
+    body::Bytes,
     extract::State,
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Response},
     routing::get,
 };
-use clap::{Args, Subcommand};
-use dctx0_engine::{Project, site_html_json};
-use dctx0_store::SiteSelection;
+use clap::{Args, Subcommand, ValueEnum};
+use dctx0_engine::{Project, SiteProgress, site_html_json, site_json_with_progress};
+use dctx0_store::{SiteHistory, SiteSelection};
+use sha2::{Digest, Sha256};
 use std::{
     io::Write,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
+mod progress;
+use progress::Progress;
 #[derive(Args)]
 pub(crate) struct SiteArgs {
+    /// Print preparation phases, item counts and elapsed time to stderr.
+    #[arg(long, global = true)]
+    progress: bool,
+    /// Embedded source history; the selected task plan's pinned sources are always included.
+    #[arg(long, global = true, value_enum, default_value = "previous")]
+    history: History,
     #[command(subcommand)]
     command: SiteCommand,
+}
+#[derive(Clone, Copy, Default, ValueEnum)]
+enum History {
+    /// Current and previous distinct snapshots, plus the selected task plan's sources.
+    #[default]
+    Previous,
+    /// Also embed all original snapshots referenced by historical tasks.
+    All,
+}
+impl From<History> for SiteHistory {
+    fn from(value: History) -> Self {
+        match value {
+            History::Previous => Self::Previous,
+            History::All => Self::All,
+        }
+    }
 }
 #[derive(Subcommand)]
 enum SiteCommand {
@@ -43,11 +69,13 @@ enum SiteCommand {
 struct App {
     project: Arc<Project>,
     cache: Arc<Mutex<Option<CachedSite>>>,
+    progress: bool,
+    history: History,
 }
 struct CachedSite {
     revision: dctx0_store::SiteRevision,
-    json: String,
-    html: String,
+    json: Bytes,
+    html: Bytes,
     json_etag: String,
     html_etag: String,
 }
@@ -55,7 +83,7 @@ fn payload(
     app: &App,
     html: bool,
     conditional: Option<&str>,
-) -> Result<(Option<String>, String), String> {
+) -> Result<(Option<Bytes>, String), String> {
     let revision = app.project.site_revision().map_err(crate::error_message)?;
     let mut guard = app
         .cache
@@ -65,19 +93,32 @@ fn payload(
         .as_ref()
         .is_none_or(|cache| cache.revision != revision)
     {
+        // Release an obsolete large payload before constructing its replacement.
+        *guard = None;
+        let mut progress = Progress::new(app.progress);
+        progress.report(SiteProgress::LoadingRecords);
         let data = app
             .project
-            .site_snapshot(&SiteSelection::default())
+            .site_snapshot(&SiteSelection {
+                history: app.history.into(),
+                ..Default::default()
+            })
             .map_err(crate::error_message)?;
-        let json = serde_json::to_string(&data).map_err(crate::error_message)?;
+        let json = site_json_with_progress(&data, &mut |event| progress.report(event))
+            .map_err(crate::error_message)?;
+        let revision = data.records.revision.clone();
+        drop(data);
+        progress.report(SiteProgress::RenderingHtml);
         let html = site_html_json(&json, true);
+        progress.message("Computing HTTP cache hashes");
         *guard = Some(CachedSite {
-            revision: data.records.revision,
-            json_etag: format!("\"{}\"", dctx0_changes::hash(&json)),
-            html_etag: format!("\"{}\"", dctx0_changes::hash(&html)),
-            json,
-            html,
+            revision,
+            json_etag: format!("\"{:x}\"", Sha256::digest(json.as_bytes())),
+            html_etag: format!("\"{:x}\"", Sha256::digest(html.as_bytes())),
+            json: Bytes::from(json),
+            html: Bytes::from(html),
         });
+        progress.message("HTTP payload prepared");
     }
     let cache = guard.as_ref().ok_or("Site cache unavailable")?;
     let (body, etag) = if html {
@@ -139,6 +180,19 @@ async fn api(State(app): State<App>, headers: HeaderMap) -> Response {
     respond(app, headers, false).await
 }
 pub(crate) fn run(args: SiteArgs, db: Option<&Path>, output: &mut dyn Write) -> Result<(), String> {
+    let mut progress = Progress::new(args.progress);
+    let result = run_command(args, db, output, &mut progress);
+    if let Err(error) = &result {
+        progress.message(&format!("FAILED: {error}"));
+    }
+    result
+}
+fn run_command(
+    args: SiteArgs,
+    db: Option<&Path>,
+    output: &mut dyn Write,
+    progress: &mut Progress,
+) -> Result<(), String> {
     match args.command {
         SiteCommand::Export {
             input,
@@ -149,13 +203,15 @@ pub(crate) fn run(args: SiteArgs, db: Option<&Path>, output: &mut dyn Write) -> 
         } => {
             let project = Project::new(&input, db).map_err(crate::error_message)?;
             project
-                .site_export(
+                .site_export_with_progress(
                     &SiteSelection {
                         snapshot,
                         plan,
                         as_of,
+                        history: args.history.into(),
                     },
                     &destination,
+                    &mut |event| progress.report(event),
                 )
                 .map_err(crate::error_message)?;
             writeln!(
@@ -163,13 +219,18 @@ pub(crate) fn run(args: SiteArgs, db: Option<&Path>, output: &mut dyn Write) -> 
                 "Exported {}",
                 destination.join("index.html").display()
             )
-            .map_err(crate::error_message)
+            .map_err(crate::error_message)?;
+            output.flush().map_err(crate::error_message)?;
+            progress.message("READY: export written");
+            Ok(())
         }
         SiteCommand::Serve { input, port } => {
             let project = Project::new(&input, db).map_err(crate::error_message)?;
             let app = App {
                 project: Arc::new(project),
                 cache: Arc::new(Mutex::new(None)),
+                progress: args.progress,
+                history: args.history,
             };
             payload(&app, false, None)?;
             let runtime = tokio::runtime::Runtime::new().map_err(crate::error_message)?;
@@ -184,6 +245,10 @@ pub(crate) fn run(args: SiteArgs, db: Option<&Path>, output: &mut dyn Write) -> 
                 )
                 .map_err(crate::error_message)?;
                 output.flush().map_err(crate::error_message)?;
+                progress.message(&format!(
+                    "READY: http://{} (Ctrl-C to stop)",
+                    listener.local_addr().map_err(crate::error_message)?
+                ));
                 let router = Router::new()
                     .route("/", get(index))
                     .route("/api/site", get(api))
@@ -211,6 +276,8 @@ mod tests {
         let app = App {
             project: Arc::new(project.clone()),
             cache: Arc::new(Mutex::new(None)),
+            progress: false,
+            history: History::Previous,
         };
         let runtime = tokio::runtime::Runtime::new().unwrap();
         assert_eq!(
@@ -303,6 +370,8 @@ mod output_tests {
         assert!(
             run(
                 SiteArgs {
+                    progress: false,
+                    history: History::Previous,
                     command: SiteCommand::Export {
                         input: root.clone(),
                         output: destination.clone(),
@@ -324,6 +393,8 @@ mod output_tests {
             assert!(
                 run(
                     SiteArgs {
+                        progress: false,
+                        history: History::Previous,
                         command: SiteCommand::Serve {
                             input: root.clone(),
                             port: 0
@@ -340,6 +411,8 @@ mod output_tests {
         assert!(
             run(
                 SiteArgs {
+                    progress: false,
+                    history: History::Previous,
                     command: SiteCommand::Serve {
                         input: root.clone(),
                         port

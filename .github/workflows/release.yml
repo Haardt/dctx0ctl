@@ -381,6 +381,7 @@ jobs:
           tag = os.environ['RELEASE_TAG']
           repo = os.environ['GH_REPO']
           Path('target/release-notes.md').write_text(
+              (Path('docs/release-v0.2.8.md').read_text() + '\n\n' if tag == 'v0.2.8' else '') +
               (Path('docs/release-v0.2.7.md').read_text() + '\n\n' if tag == 'v0.2.7' else '') +
               (Path('docs/release-v0.2.6.md').read_text() + '\n\n' if tag == 'v0.2.6' else '') +
               ('## Configurable native dependency resolution\n\nNative TypeScript dependency resolution now defaults to 10,000 references and accepts dependency_resolution.max_references from 1 through 1,000,000. Repeated exact requests use a run-local cache while every reference retains its evidence. Effective limits are pinned for replay and guarded adoption; exhaustion still preserves the prefix and blocks adoption.\n\nThe isolated Company Manager run resolved all 1,018 references with 62 cache hits and 6,246 cases PASS; manual obligations and stale reviews remain open. Existing local workspace checks and 540 Rust test executions passed. New tests, native acceptance and coverage/performance runs were stopped or skipped by explicit maintainer request for this release. Local Go race checking is unsupported on the host VMA layout and Rust debug acceptance timed out; no complete validation claim is made. All five release builds and packaging remain required. See docs/dependency-resolution-validation.json for the exact evidence and limitations.\n\n' if tag == 'v0.2.4' else '') +

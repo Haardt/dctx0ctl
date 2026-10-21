@@ -579,3 +579,81 @@ fn finite_float_ranges_generate_endpoints_and_adjacent_outside_values() {
         )));
     }
 }
+
+#[test]
+fn direct_string_equalities_seed_aliases_and_composites_without_bypassing_contracts() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "equality.dctx0".into(),
+        text: r#"workspace W {
+ value Profile = String { where value == "PlatformJsonV1" }
+ value Reverse = String { where "PlatformJsonV1" == value }
+ value Alias = Profile
+ value Narrow = Alias { length 1..2 }
+ value Conflict = Profile { where value == "Other" }
+ type Payload { profile: Alias }
+ surface Api { operation accept(profile: Alias) -> Alias { pure } }
+}"#
+        .into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let budgets = VerificationBudgets {
+        generated_cases: 1,
+        ..Default::default()
+    };
+    for name in ["W.Profile", "W.Reverse", "W.Alias"] {
+        let corpus = generate_values(&ir, &ty(name), &budgets);
+        assert_eq!(
+            corpus.values,
+            vec![VerificationValue::String("PlatformJsonV1".into())]
+        );
+        assert!(corpus.issues.is_empty(), "{:?}", corpus.issues);
+        assert!(!corpus.exhaustive);
+        valid(&ir, &ty(name), &corpus, &budgets);
+    }
+    let payload = generate_values(&ir, &ty("W.Payload"), &budgets);
+    assert_eq!(payload.values.len(), 1);
+    assert!(payload.issues.is_empty());
+    valid(&ir, &ty("W.Payload"), &payload, &budgets);
+    for name in ["W.Narrow", "W.Conflict"] {
+        let corpus = generate_values(&ir, &ty(name), &budgets);
+        assert!(corpus.values.is_empty());
+        assert!(
+            corpus
+                .issues
+                .iter()
+                .any(|issue| issue.code == "EMPTY_CORPUS")
+        );
+    }
+    let inputs = dctx0_verification::generate_inputs(
+        &ir,
+        &ir.operations["W.Api.accept"].parameters,
+        &budgets,
+    );
+    assert_eq!(inputs.bindings.len(), 1);
+    assert!(inputs.issues.is_empty());
+    let limited = VerificationBudgets {
+        evaluation_steps: 1,
+        collection_size: 0,
+        ..budgets.clone()
+    };
+    assert!(
+        generate_values(&ir, &ty("W.Profile"), &limited)
+            .issues
+            .iter()
+            .any(|issue| issue.code == "GENERATION_BUDGET")
+    );
+    let small = VerificationBudgets {
+        value_bytes: 4,
+        ..budgets.clone()
+    };
+    assert!(
+        generate_values(&ir, &ty("W.Profile"), &small)
+            .values
+            .is_empty()
+    );
+}

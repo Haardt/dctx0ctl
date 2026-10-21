@@ -12,6 +12,10 @@ old Runatron task envelopes or tool names into invented Rust commands.
 Read [references/implementation.md](references/implementation.md) for target and
 evidence details when implementing adapters or interpreting incomplete verification.
 
+For multi-task work, delegation or a resumed context, use the pinned package and
+closure routine in [references/work-packages.md](references/work-packages.md).
+It covers shared context, deltas, bounded handoffs, focused diagnosis and delivery.
+
 Keep task definitions immutable. Claims/reservations, start/release/complete,
 checks and reviews are guarded events. Respect another worker's ownership and
 existing scope; dependency-ready does not itself reserve work. Do not implicitly

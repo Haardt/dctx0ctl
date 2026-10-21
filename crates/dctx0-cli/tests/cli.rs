@@ -142,6 +142,11 @@ fn commands_publish_inspect_rename_and_benchmark_with_machine_readable_output() 
         "persist",
         "check",
         "check-changed",
+        "tasks-package",
+        "tasks-package-delta",
+        "tasks-progress",
+        "verification-diagnostics-summary",
+        "verification-diagnostics-cases",
     ] {
         let output = cli(&[
             "--db",
@@ -389,4 +394,28 @@ fn verification_setup_and_configured_scope_preserve_files_and_never_execute_or_a
             .success()
         );
     }
+}
+
+#[test]
+fn help_succeeds_on_stdout_and_invalid_arguments_still_fail() {
+    for args in [
+        vec!["--help"],
+        vec!["tasks", "--help"],
+        vec!["verify", "show", "--help"],
+        vec!["verify", "adoption-preview", "--help"],
+        vec!["bench-parse", "--help"],
+        vec!["bench-parse", "-h"],
+    ] {
+        let result = cli(&args);
+        assert!(
+            result.status.success(),
+            "{args:?}: {}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(result.stderr.is_empty(), "{args:?}");
+        assert!(String::from_utf8_lossy(&result.stdout).contains("Usage:"));
+    }
+    let result = cli(&["tasks", "--invalid-option"]);
+    assert!(!result.status.success());
+    assert!(!result.stderr.is_empty());
 }

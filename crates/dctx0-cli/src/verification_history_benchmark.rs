@@ -87,6 +87,30 @@ pub(crate) fn benchmark(
                 });
             }
         }
+        if matches!(
+            phase,
+            Phase::VerificationDiagnosticsSummary | Phase::VerificationDiagnosticsCases
+        ) {
+            for index in 0..1000 {
+                let id = format!("diagnostic-{index}");
+                run.required_cases.insert(id.clone());
+                run.cases.push(VerificationCaseRecord {
+                    id,
+                    subject: subject.clone(),
+                    kind: VerificationCaseKind::Contract,
+                    bindings: Default::default(),
+                    setup: vec![],
+                    arguments: vec![],
+                    observations: vec![],
+                    events: None,
+                    resources: None,
+                    states: vec![],
+                    result: serde_json::from_value(unknown.clone())
+                        .map_err(crate::error_message)?,
+                    elapsed_us: 0,
+                });
+            }
+        }
         let saved = store
             .record_verification_run_owned("benchmark", run, std::slice::from_ref(&artifact))
             .map_err(crate::error_message)?;
@@ -96,12 +120,26 @@ pub(crate) fn benchmark(
             phase,
             Phase::VerificationHistoryPublish | Phase::VerificationHistoryLargePublish
         );
-        if !publish {
+        let diagnostics = matches!(
+            phase,
+            Phase::VerificationDiagnosticsSummary | Phase::VerificationDiagnosticsCases
+        );
+        if !publish && !diagnostics {
             drop(corpus.take());
         }
         let start = std::time::Instant::now();
         for index in 0..iterations {
-            if publish {
+            if diagnostics {
+                let page = dctx0_verification::diagnostics::diagnostic_page(
+                    &saved_id,
+                    corpus.as_ref().unwrap(),
+                    Default::default(),
+                    50,
+                    None,
+                    matches!(phase, Phase::VerificationDiagnosticsSummary),
+                )?;
+                std::hint::black_box(serde_json::to_vec(&page).map_err(crate::error_message)?);
+            } else if publish {
                 let mut next = corpus.take().ok_or("Missing benchmark corpus")?;
                 next.started_at_unix_ns = (index as u128 + 1).to_string();
                 let saved = store

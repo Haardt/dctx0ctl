@@ -1,7 +1,7 @@
 //! Versioned, target-neutral bounded input selection. No randomness from the target.
 use dctx0_core::{
-    StatementKind as K, TypeRef, VerificationBudgets, VerificationIssue, VerificationValue as V,
-    WorkspaceIr,
+    ExpressionKind as E, StatementKind as K, TypeRef, VerificationBudgets, VerificationIssue,
+    VerificationValue as V, WorkspaceIr,
 };
 use dctx0_interpreter::{ValueContract, check_value};
 use num_bigint::BigInt;
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
-pub const GENERATOR_VERSION: &str = "dctx0-values-4";
+pub const GENERATOR_VERSION: &str = "dctx0-values-5";
 pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-3";
 
 // Adjacent IEEE-754 values, without the Rust 1.86 next_up/next_down APIs.
@@ -320,7 +320,15 @@ impl Generator<'_> {
                 "Type generation exceeded its recursion or step budget",
             );
         }
-        let mut corpus = if let Some(id) = &ty.symbol_id {
+        let witnesses = self.string_equality_witnesses(ty, depth);
+        let has_witnesses = !witnesses.is_empty();
+        let mut corpus = if has_witnesses {
+            ValueCorpus {
+                values: witnesses,
+                exhaustive: false,
+                issues: Vec::new(),
+            }
+        } else if let Some(id) = &ty.symbol_id {
             let Some(data) = self.ir.data.get(id) else {
                 return ValueCorpus::empty("MISSING_TYPE", "Input declaration is unavailable");
             };
@@ -408,7 +416,9 @@ impl Generator<'_> {
         } else {
             self.builtin(ty, depth)
         };
-        if let Some(id) = &ty.symbol_id {
+        if let Some(id) = &ty.symbol_id
+            && !has_witnesses
+        {
             for node in self
                 .ir
                 .nodes
@@ -508,6 +518,54 @@ impl Generator<'_> {
             corpus.exhaustive = false;
         }
         corpus
+    }
+    /// Only direct equalities provide witnesses; the full contract still decides validity.
+    fn string_equality_witnesses(&mut self, ty: &TypeRef, depth: usize) -> Vec<V> {
+        if self.base(ty, depth) != Some("String") {
+            return Vec::new();
+        }
+        let mut values = Vec::new();
+        let mut current = ty;
+        for _ in depth..=self.budgets.recursion_depth {
+            let Some(id) = &current.symbol_id else { break };
+            for expression in self
+                .ir
+                .nodes
+                .iter()
+                .filter(|node| node.owner == *id && node.kind == K::Where)
+                .flat_map(|node| &node.expressions)
+            {
+                self.steps += 1;
+                if self.steps > self.budgets.evaluation_steps {
+                    self.exhausted = true;
+                    return values;
+                }
+                if let E::Binary {
+                    operator,
+                    left,
+                    right,
+                } = &expression.value
+                    && operator == "=="
+                {
+                    for (variable, literal) in [(left, right), (right, left)] {
+                        if matches!(&variable.value, E::Variable { name } if name == "value")
+                            && let E::Literal { text, literal_kind } = &literal.value
+                            && literal_kind == "String"
+                        {
+                            let value = V::String(text.clone().into());
+                            if !values.contains(&value) {
+                                values.push(value);
+                            }
+                        }
+                    }
+                }
+            }
+            let Some(alias) = self.ir.data.get(id).and_then(|data| data.alias.as_ref()) else {
+                break;
+            };
+            current = alias;
+        }
+        values
     }
     fn base<'a>(&'a self, ty: &'a TypeRef, depth: usize) -> Option<&'a str> {
         if depth > self.budgets.recursion_depth {

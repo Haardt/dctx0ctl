@@ -37,11 +37,32 @@ struct StoredRunView<'a> {
     run: RunView<'a>,
 }
 #[derive(Serialize)]
-struct RecordsView<'a> {
+struct PackedJsonView {
+    encoding: &'static str,
+    data: String,
+}
+#[derive(Serialize)]
+struct StateView {
+    #[serde(flatten)]
+    summary: dctx0_tasks::State,
+    details: PackedJsonView,
+}
+#[derive(Serialize)]
+struct SessionView<'a> {
+    project: &'a str,
+    plan: &'a dctx0_tasks::Plan,
+    event_seq: i64,
+    states: std::collections::BTreeMap<i64, StateView>,
+    definitions: &'a std::collections::BTreeMap<i64, dctx0_tasks::Definition>,
+    links: &'a [dctx0_tasks::HistoryLink],
+    events: &'a [dctx0_tasks::Event],
+}
+#[derive(Serialize)]
+pub(super) struct RecordsView<'a> {
     revision: &'a dctx0_store::SiteRevision,
     snapshot: &'a Snapshot,
     check: &'a HistoryEntry,
-    tasks: &'a Option<dctx0_tasks::Session>,
+    tasks: Option<SessionView<'a>>,
     runs: Vec<StoredRunView<'a>>,
     run_summaries: &'a [dctx0_store::VerificationRunSummary],
     history: &'a [HistoryEntry],
@@ -49,22 +70,125 @@ struct RecordsView<'a> {
     changes: &'a Option<Changes>,
     before: &'a Option<Snapshot>,
     task_snapshot: &'a Option<Snapshot>,
-    requirement_snapshots: &'a std::collections::BTreeMap<String, Snapshot>,
+    requirement_snapshots: std::collections::BTreeMap<&'a str, PackedJsonView>,
+    history_scope: dctx0_store::SiteHistory,
+    omitted_requirement_snapshots: &'a BTreeSet<String>,
     plan_diff: &'a Option<dctx0_tasks::PlanDiff>,
 }
-fn packed_cases(corpus: &[u8]) -> Result<String> {
-    let mut value: serde_json::Value =
-        serde_json::from_reader(flate2::read::GzDecoder::new(corpus))?;
-    decimal_integers(&mut value);
-    let mut encoder = flate2::GzBuilder::new()
+fn packed_browser_json(corpus: &[u8], compression: flate2::Compression) -> Result<String> {
+    let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(corpus));
+    let mut de = serde_json::Deserializer::from_reader(reader);
+    de.disable_recursion_limit();
+    let value = serde_json::Value::deserialize(serde_stacker::Deserializer::new(&mut de))?;
+    de.end()?;
+    packed_value(&value, compression)
+}
+fn packed_value(value: &impl Serialize, compression: flate2::Compression) -> Result<String> {
+    let encoder = flate2::GzBuilder::new()
         .mtime(0)
         .operating_system(255)
-        .write(Vec::new(), flate2::Compression::default());
-    serde_json::to_writer(&mut encoder, &value)?;
+        .write(Vec::new(), compression);
+    let mut writer = std::io::BufWriter::new(encoder);
+    json::write(&mut writer, value)?;
+    let encoder = writer.into_inner().map_err(|error| error.into_error())?;
     Ok(base64::engine::general_purpose::STANDARD.encode(encoder.finish()?))
 }
-pub(super) fn records_value(records: &SiteRecords) -> Result<serde_json::Value> {
+fn session_view<'a>(
+    session: &'a dctx0_tasks::Session,
+    progress: &mut dyn FnMut(SiteProgress),
+) -> Result<SessionView<'a>> {
+    let mut states = std::collections::BTreeMap::new();
+    let total = session.states.len();
+    progress(SiteProgress::PackingTasks {
+        completed: 0,
+        total,
+    });
+    for (id, state) in &session.states {
+        let summary = dctx0_tasks::State {
+            execution_bundle: None,
+            work: state.work,
+            version: state.version,
+            actor: state.actor.clone(),
+            claim: state.claim,
+            reservation: state.reservation,
+            result: state.result.clone(),
+            check: state.check,
+            evidence: Vec::new(),
+            reviews: Vec::new(),
+            ever_started: state.ever_started,
+        };
+        states.insert(
+            *id,
+            StateView {
+                summary,
+                details: PackedJsonView {
+                    encoding: "gzip-base64-json-decimal-integers-v1",
+                    data: packed_value(state, flate2::Compression::fast())?,
+                },
+            },
+        );
+        progress(SiteProgress::PackingTasks {
+            completed: states.len(),
+            total,
+        });
+    }
+    Ok(SessionView {
+        project: &session.project,
+        plan: &session.plan,
+        event_seq: session.event_seq,
+        states,
+        definitions: &session.definitions,
+        links: &session.links,
+        events: &session.events,
+    })
+}
+pub(super) fn records_view<'a>(
+    records: &'a SiteRecords,
+    progress: &mut dyn FnMut(SiteProgress),
+) -> Result<RecordsView<'a>> {
+    // Convert exact browser integers one historical snapshot at a time. Keeping
+    // these compressed also prevents the browser from parsing all old IRs at boot.
+    let trace = std::env::var_os("DCTX0_SITE_TRACE").is_some();
+    if trace {
+        eprintln!(
+            "site: packing {} historical snapshots",
+            records.requirement_snapshots.len()
+        );
+    }
+    let mut requirement_snapshots = std::collections::BTreeMap::new();
+    let total = records.requirement_snapshots.len();
+    progress(SiteProgress::PackingHistory {
+        completed: 0,
+        total,
+    });
+    for (id, compressed) in &records.requirement_snapshots {
+        requirement_snapshots.insert(
+            id.as_str(),
+            PackedJsonView {
+                encoding: "gzip-base64-json-decimal-integers-v1",
+                data: packed_browser_json(compressed, flate2::Compression::fast())?,
+            },
+        );
+        progress(SiteProgress::PackingHistory {
+            completed: requirement_snapshots.len(),
+            total,
+        });
+    }
+    if trace {
+        eprintln!(
+            "site: historical snapshots packed ({} bytes)",
+            requirement_snapshots
+                .values()
+                .map(|value| value.data.len())
+                .sum::<usize>()
+        );
+    }
     let mut runs = Vec::with_capacity(records.runs.len());
+    let total = records.runs.len();
+    progress(SiteProgress::PackingRuns {
+        completed: 0,
+        total,
+    });
     for stored in &records.runs {
         let run = &stored.header;
         runs.push(StoredRunView {
@@ -92,19 +216,41 @@ pub(super) fn records_value(records: &SiteRecords) -> Result<serde_json::Value> 
                     .map(String::as_str)
                     .collect(),
                 case_details_encoding: "gzip-base64-json-decimal-integers-v2",
-                case_details: packed_cases(&stored.corpus)?,
+                case_details: packed_browser_json(&stored.corpus, flate2::Compression::default())?,
                 open_obligations: &run.open_obligations,
                 bounded_obligations: &run.bounded_obligations,
                 artifacts: &run.artifacts,
                 result: &run.result,
             },
         });
+        progress(SiteProgress::PackingRuns {
+            completed: runs.len(),
+            total,
+        });
     }
-    Ok(serde_json::to_value(RecordsView {
+    if trace {
+        eprintln!("site: packing task evidence");
+    }
+    let tasks = records
+        .tasks
+        .as_ref()
+        .map(|session| session_view(session, progress))
+        .transpose()?;
+    if trace {
+        eprintln!(
+            "site: task evidence packed ({} bytes)",
+            tasks.as_ref().map_or(0, |session| session
+                .states
+                .values()
+                .map(|state| state.details.data.len())
+                .sum::<usize>())
+        );
+    }
+    Ok(RecordsView {
         revision: &records.revision,
         snapshot: &records.snapshot,
         check: &records.check,
-        tasks: &records.tasks,
+        tasks,
         runs,
         run_summaries: &records.run_summaries,
         history: &records.history,
@@ -112,7 +258,9 @@ pub(super) fn records_value(records: &SiteRecords) -> Result<serde_json::Value> 
         changes: &records.changes,
         before: &records.before,
         task_snapshot: &records.task_snapshot,
-        requirement_snapshots: &records.requirement_snapshots,
+        requirement_snapshots,
+        history_scope: records.history_scope,
+        omitted_requirement_snapshots: &records.omitted_requirement_snapshots,
         plan_diff: &records.plan_diff,
-    })?)
+    })
 }

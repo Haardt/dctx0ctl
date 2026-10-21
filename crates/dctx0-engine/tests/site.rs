@@ -29,6 +29,53 @@ impl Drop for Temp {
 }
 const SPEC: &str = "workspace W { intent \"Text </script><script>unsafe()</script>\"; value A = Int { range 1..10 }; surface Api { operation get(a: A) -> A { pure } } }";
 #[test]
+fn source_history_is_bounded_without_losing_task_pins_or_mutating_history() {
+    let temp = Temp::new();
+    let p = temp.project();
+    fs::write(temp.0.join("spec.dctx0"), SPEC).unwrap();
+    assert!(p.check().unwrap().ok);
+    let original = p.task_plan("latest").unwrap().snapshot_id;
+    fs::write(temp.0.join("spec.dctx0"), SPEC.replace("1..10", "1..11")).unwrap();
+    assert!(p.check().unwrap().ok);
+    let task_pin = p.task_plan("latest").unwrap().snapshot_id;
+    fs::write(temp.0.join("spec.dctx0"), SPEC.replace("1..10", "1..12")).unwrap();
+    assert!(p.check().unwrap().ok);
+    let previous = p
+        .site_snapshot(&SiteSelection::default())
+        .unwrap()
+        .records
+        .snapshot
+        .id;
+    fs::write(temp.0.join("spec.dctx0"), SPEC.replace("1..10", "1..13")).unwrap();
+    assert!(p.check().unwrap().ok);
+    assert!(p.check().unwrap().ok);
+    let stored = fs::read(&p.database).unwrap();
+    let limited = p.site_snapshot(&SiteSelection::default()).unwrap();
+    assert_eq!(limited.records.before.as_ref().unwrap().id, previous);
+    assert_eq!(limited.records.task_snapshot.as_ref().unwrap().id, task_pin);
+    assert!(limited.records.requirement_snapshots.is_empty());
+    assert!(
+        limited
+            .records
+            .omitted_requirement_snapshots
+            .contains(&original)
+    );
+    let full = p
+        .site_snapshot(&SiteSelection {
+            history: dctx0_store::SiteHistory::All,
+            ..Default::default()
+        })
+        .unwrap();
+    assert!(full.records.requirement_snapshots.contains_key(&original));
+    assert!(full.records.omitted_requirement_snapshots.is_empty());
+    assert_eq!(
+        serde_json::to_value(&limited.tasks).unwrap(),
+        serde_json::to_value(&full.tasks).unwrap()
+    );
+    assert_eq!(limited.records.history.len(), full.records.history.len());
+    assert_eq!(stored, fs::read(&p.database).unwrap());
+}
+#[test]
 fn export_is_deterministic_preserves_unmanaged_files_and_escapes_sources() {
     let temp = Temp::new();
     fs::write(temp.0.join("spec.dctx0"), SPEC).unwrap();
@@ -112,6 +159,7 @@ fn pinned_plans_history_changes_and_done_without_pass_are_projected() {
             plan: Some(plan.id),
             as_of: Some(initial.event_seq),
             snapshot: None,
+            ..Default::default()
         })
         .unwrap();
     assert_eq!(
@@ -149,6 +197,7 @@ fn pinned_plans_history_changes_and_done_without_pass_are_projected() {
             snapshot: Some(plan.snapshot_id),
             plan: Some(plan.id),
             as_of: Some(initial.event_seq),
+            ..Default::default()
         })
         .unwrap();
     assert!(historic.records.before.is_none());

@@ -41,8 +41,9 @@ use std::{
 pub use verification::VerificationSelection;
 pub use verification_discovery::*;
 pub use verification_run::{
-    InspectedVerificationReport, NativeVerificationReport, ReplayChange, TaskAttestation,
-    VerificationLifecycleFixtures, VerificationReplayReport,
+    AdoptionPreviewTask, InspectedVerificationReport, NativeVerificationReport, ReplayChange,
+    TaskAttestation, VerificationAdoptionPreview, VerificationLifecycleFixtures,
+    VerificationReplayReport,
 };
 pub use verification_setup::*;
 

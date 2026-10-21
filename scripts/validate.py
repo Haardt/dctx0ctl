@@ -160,7 +160,7 @@ def benchmark(args):
                 'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
         # Phase timings exclude setup; RSS includes the standalone process and
         # its prepared inputs. SQLite runs use disposable databases only.
-        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
+        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
         phase_iterations = min(args.iterations, 3)
         for name, path in workloads.items():
             for phase in phases:

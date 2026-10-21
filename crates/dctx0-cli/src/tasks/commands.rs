@@ -57,6 +57,31 @@ pub(crate) fn run(
     if args.dry_run && !matches!(args.action, Verb::Plan | Verb::Preview) {
         return Err("--dry-run is available for planning only".into());
     }
+    if args.as_of.is_some()
+        && matches!(
+            args.action,
+            Verb::Start
+                | Verb::ClaimNext
+                | Verb::Release
+                | Verb::Complete
+                | Verb::ClaimSlice
+                | Verb::ReleaseSlice
+                | Verb::RecordCheck
+                | Verb::RecordReview
+                | Verb::AddNote
+                | Verb::Plan
+                | Verb::ProfileUpdate
+                | Verb::FollowUp
+                | Verb::RenewReview
+        )
+    {
+        return Err("--as-of is read-only and cannot select a mutation basis".into());
+    }
+    if (args.from_plan.is_some() || args.from_event.is_some())
+        && !matches!(args.action, Verb::Progress)
+    {
+        return Err("--from-plan/--from-event require tasks progress".into());
+    }
     let project = Project::new(&args.input, db).map_err(error_message)?;
     let profiles = project.profiles(args.project.as_deref(), args.target.as_deref());
     if args.target.is_some() {
@@ -261,10 +286,21 @@ pub(crate) fn run(
                 .map(|s| identifier(s))
                 .transpose()?
                 .or(cursor.as_ref().map(|c| c.plan_id));
-            let as_of = cursor.as_ref().map(|c| c.event_seq);
+            if let (Some(pin), Some(cursor)) = (args.as_of, &cursor) {
+                if pin != cursor.event_seq {
+                    return Err("--as-of conflicts with cursor event pin".into());
+                }
+            }
+            let as_of = args.as_of.or(cursor.as_ref().map(|c| c.event_seq));
             let detail = matches!(
                 args.action,
-                Verb::Show | Verb::Context | Verb::History | Verb::Dependencies | Verb::Slice
+                Verb::Show
+                    | Verb::Context
+                    | Verb::History
+                    | Verb::Dependencies
+                    | Verb::Slice
+                    | Verb::Package
+                    | Verb::PackageDelta
             );
             let session = if detail {
                 project.task_show_session(task()?, selected_plan, as_of)
@@ -284,6 +320,59 @@ pub(crate) fn run(
                 dctx0_changes::hash(&(tag, &args.id, &args.direction, args.transitive, &filters))
             };
             match args.action {
+                Verb::Package | Verb::PackageDelta => {
+                    if cursor.is_some() {
+                        return Err("Packages are complete; --cursor is not supported".into());
+                    }
+                    let needs_local_profiles = session
+                        .slice(task()?, args.domain.as_deref(), args.actor.as_deref())
+                        .map_err(error_message)?
+                        .tasks
+                        .iter()
+                        .any(|task| {
+                            session.states[&task.task_id].execution_bundle.is_none()
+                                && !matches!(
+                                    session.definitions[&task.task_id].adjustment,
+                                    Some(AdjustmentReason::Profile { .. })
+                                )
+                        });
+                    let package_profiles = if needs_local_profiles {
+                        profiles.as_ref().map_err(error_message)?.as_ref()
+                    } else {
+                        None
+                    };
+                    let package = project
+                        .task_package(
+                            &session,
+                            task()?,
+                            args.domain.as_deref(),
+                            args.actor.as_deref(),
+                            package_profiles,
+                        )
+                        .map_err(error_message)?;
+                    if matches!(args.action, Verb::PackageDelta) {
+                        let value: serde_json::Value = read(args.file.as_deref())?;
+                        let before: WorkPackage = serde_json::from_value(
+                            value.pointer("/body/data").unwrap_or(&value).clone(),
+                        )
+                        .map_err(error_message)?;
+                        Body::PackageDelta(
+                            package_delta(&before, &package, &session.links)
+                                .map_err(error_message)?,
+                        )
+                    } else {
+                        Body::Package(package)
+                    }
+                }
+                Verb::Progress => {
+                    let before = project
+                        .task_session(
+                            Some(args.from_plan.ok_or("--from-plan is required")?),
+                            Some(args.from_event.ok_or("--from-event is required")?),
+                        )
+                        .map_err(error_message)?;
+                    Body::Progress(task_progress(&before, &session).map_err(error_message)?)
+                }
                 Verb::List => {
                     if args.all_plans {
                         let mut rows = vec![];

@@ -558,3 +558,162 @@ fn task_benchmarks_measure_every_phase_and_reject_project_state_and_empty_inputs
             .success()
     );
 }
+
+#[test]
+fn packages_deltas_and_progress_are_read_only_and_pin_complete_context() {
+    let t = Temp::new();
+    let plan = t.project().task_plan("latest").unwrap();
+    let session = t.project().task_session(None, None).unwrap();
+    let anchor = plan
+        .members
+        .iter()
+        .find(|m| m.candidate.kind == TaskKind::Operation)
+        .unwrap()
+        .task_id;
+    let id = format!("T{anchor}");
+    let before_db = fs::read(&t.project().database).unwrap();
+    let first = t.ok("package", &[&id]);
+    let package: WorkPackage = serde_json::from_value(first["body"]["data"].clone()).unwrap();
+    package.validate().unwrap();
+    assert_eq!(package.pin.event_seq, session.event_seq);
+    assert_eq!(fs::read(&t.project().database).unwrap(), before_db);
+    assert!(t.md("package", &[&id]).contains("No execution reserved"));
+    let file = t.0.join("package.json");
+    fs::write(&file, serde_json::to_vec(&first).unwrap()).unwrap();
+    let delta = t.ok("package-delta", &[&id, "--file", file.to_str().unwrap()]);
+    assert!(
+        delta["body"]["data"]["changed_tasks"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        t.md("package-delta", &[&id, "--file", file.to_str().unwrap()])
+            .contains("Package delta")
+    );
+    let start_plan = plan.id.to_string();
+    let start_event = session.event_seq.to_string();
+    done(
+        &t.project(),
+        session.next(&Filters::default(), None).unwrap().task_id,
+    );
+    let args = ["--from-plan", &start_plan, "--from-event", &start_event];
+    let progress = t.ok("progress", &args);
+    assert_eq!(
+        progress["body"]["data"]["newly_done"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(
+        progress["body"]["data"]["newly_pass"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(t.md("progress", &args).contains("Done and PASS"));
+    let pinned = t.ok(
+        "package",
+        &[&id, "--plan", &start_plan, "--as-of", &start_event],
+    );
+    assert_eq!(first, pinned);
+    assert!(!t.cmd("progress", &[], true).status.success());
+    assert!(
+        !t.cmd("package", &[&id, "--cursor", "{}"], true)
+            .status
+            .success()
+    );
+}
+
+#[cfg(feature = "typescript")]
+#[test]
+fn packages_use_current_profiles_then_preserve_frozen_claim_context_when_local_profiles_break() {
+    let t = Temp::new();
+    let plan = t.project().task_plan("latest").unwrap();
+    let anchor = plan
+        .members
+        .iter()
+        .find(|m| m.candidate.kind == TaskKind::Operation)
+        .unwrap()
+        .task_id;
+    let id = anchor.to_string();
+    let created = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+        .args([
+            "profile",
+            "typescript",
+            "create",
+            "--project",
+            t.0.to_str().unwrap(),
+            "--default",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        created.status.success(),
+        "{}",
+        String::from_utf8_lossy(&created.stderr)
+    );
+    let current = t.ok("package", &[&id, "--project", t.0.to_str().unwrap()]);
+    assert_eq!(current["body"]["data"]["complete"], true);
+    serde_json::from_value::<WorkPackage>(current["body"]["data"].clone())
+        .unwrap()
+        .validate()
+        .unwrap();
+    let content = current["body"]["data"]["content"].as_object().unwrap();
+    let common = content
+        .iter()
+        .filter(|(_, item)| {
+            item["profile"]["path"]
+                .as_str()
+                .unwrap_or("")
+                .ends_with("/common.md")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        common.len(),
+        1,
+        "Shared profile prose must be transmitted once"
+    );
+    assert!(
+        current["body"]["data"]["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|task| !task["profile_subjects"][common[0].0.as_str()]
+                .as_array()
+                .unwrap()
+                .is_empty())
+    );
+    t.project()
+        .task_action_selected(
+            Action::ClaimSlice {
+                anchor,
+                actor: "worker".into(),
+                domain: None,
+            },
+            Some(&t.0),
+            Some("typescript"),
+        )
+        .unwrap();
+    fs::write(
+        t.0.join(".dctx0/profiles/typescript/manifest.json"),
+        "broken local manifest",
+    )
+    .unwrap();
+    let stored = t.ok("package", &[&id, "--project", t.0.to_str().unwrap()]);
+    assert_eq!(stored["body"]["data"]["complete"], true);
+    assert!(
+        stored["body"]["data"]["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|task| task["implementation"]["origin"] == "stored-execution")
+    );
+    assert!(
+        !t.cmd("start", &[&id, "--actor", "worker", "--as-of", "1"], true)
+            .status
+            .success()
+    );
+    assert!(!t.cmd("list", &["--from-plan", "1"], true).status.success());
+}

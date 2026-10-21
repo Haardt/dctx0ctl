@@ -4,6 +4,9 @@ use crate::*;
 use dctx0_store::{SiteRecords, SiteSelection};
 use serde::Serializer;
 mod evidence;
+mod json;
+mod progress;
+pub use progress::SiteProgress;
 
 #[derive(Debug)]
 pub struct SiteSnapshot {
@@ -14,35 +17,44 @@ pub struct SiteSnapshot {
     pub tasks: Vec<dctx0_tasks::Overview>,
     pub dependencies: Vec<dctx0_tasks::DependencyView>,
 }
-fn decimal_integers(value: &mut serde_json::Value) {
-    match value {
-        serde_json::Value::Number(n) if n.is_i64() || n.is_u64() => {
-            *value = serde_json::Value::String(n.to_string());
-        }
-        serde_json::Value::Array(items) => items.iter_mut().for_each(decimal_integers),
-        serde_json::Value::Object(items) => items.values_mut().for_each(decimal_integers),
-        _ => {}
-    }
-}
 impl Serialize for SiteSnapshot {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        self.browser_value()
+        let json = site_json(self).map_err(serde::ser::Error::custom)?;
+        serde_json::value::RawValue::from_string(json)
             .map_err(serde::ser::Error::custom)?
             .serialize(serializer)
     }
 }
-impl SiteSnapshot {
-    fn browser_value(&self) -> Result<serde_json::Value> {
-        let mut records = evidence::records_value(&self.records)?;
-        let mut tasks = serde_json::to_value(&self.tasks)?;
-        let mut dependencies = serde_json::to_value(&self.dependencies)?;
-        decimal_integers(&mut records);
-        decimal_integers(&mut tasks);
-        decimal_integers(&mut dependencies);
-        Ok(
-            serde_json::json!({"schema_version":self.schema_version,"project":self.project,"notice":self.notice,"records":records,"tasks":tasks,"dependencies":dependencies}),
-        )
-    }
+#[derive(Serialize)]
+struct BrowserSnapshot<'a> {
+    schema_version: &'a serde_json::value::RawValue,
+    project: &'a str,
+    notice: &'a str,
+    records: evidence::RecordsView<'a>,
+    tasks: &'a [dctx0_tasks::Overview],
+    dependencies: &'a [dctx0_tasks::DependencyView],
+}
+/// Stream typed records directly; only the top-level schema version stays numeric.
+pub fn site_json(snapshot: &SiteSnapshot) -> Result<String> {
+    site_json_with_progress(snapshot, &mut |_| {})
+}
+pub fn site_json_with_progress(
+    snapshot: &SiteSnapshot,
+    progress: &mut dyn FnMut(SiteProgress),
+) -> Result<String> {
+    let version = serde_json::value::RawValue::from_string(snapshot.schema_version.to_string())?;
+    let view = BrowserSnapshot {
+        schema_version: &version,
+        project: &snapshot.project,
+        notice: snapshot.notice,
+        records: evidence::records_view(&snapshot.records, progress)?,
+        tasks: &snapshot.tasks,
+        dependencies: &snapshot.dependencies,
+    };
+    let mut bytes = Vec::new();
+    progress(SiteProgress::EncodingJson);
+    json::write(&mut bytes, &view)?;
+    String::from_utf8(bytes).map_err(|error| Error::Invalid(error.to_string()))
 }
 impl Project {
     fn site_store(&self) -> Result<Store> {
@@ -80,19 +92,37 @@ impl Project {
 }
 /// Safe even when a source contains a closing script tag or HTML characters.
 pub fn site_html(snapshot: &SiteSnapshot, live: bool) -> Result<String> {
-    Ok(site_html_json(&serde_json::to_string(snapshot)?, live))
+    Ok(site_html_json(&site_json(snapshot)?, live))
 }
 /// Build the same embedded page from a serialized snapshot, escaping raw-text delimiters.
 pub fn site_html_json(json: &str, live: bool) -> String {
-    let json = json
-        .replace('&', "\\u0026")
-        .replace('<', "\\u003c")
-        .replace('>', "\\u003e");
-    format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>dctx0 · Spec companion</title><style>{}</style></head><body><div id=\"root\"></div><script id=\"site-data\" type=\"application/json\">{json}</script><script>window.__SITE_LIVE__={live};</script><script>{}</script></body></html>",
-        include_str!("../../../ui/site/dist/site.css"),
+    let mut html = format!(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>dctx0 · Spec companion</title><style>{}</style></head><body><div id=\"root\"></div><script id=\"site-data\" type=\"application/json\">",
+        include_str!("../../../ui/site/dist/site.css")
+    );
+    let escapes = json
+        .bytes()
+        .filter(|byte| matches!(*byte, b'&' | b'<' | b'>'))
+        .count();
+    html.reserve(
+        json.len() + escapes * 5 + include_str!("../../../ui/site/dist/site.js").len() + 256,
+    );
+    let mut start = 0;
+    for (offset, token) in json.match_indices(['&', '<', '>']) {
+        html.push_str(&json[start..offset]);
+        html.push_str(match token {
+            "&" => "\\u0026",
+            "<" => "\\u003c",
+            _ => "\\u003e",
+        });
+        start = offset + token.len();
+    }
+    html.push_str(&json[start..]);
+    html.push_str(&format!(
+        "</script><script>window.__SITE_LIVE__={live};</script><script>{}</script></body></html>",
         include_str!("../../../ui/site/dist/site.js")
-    )
+    ));
+    html
 }
 #[derive(Serialize, Deserialize)]
 struct ExportManifest {
@@ -105,9 +135,21 @@ fn content_hash(bytes: &[u8]) -> String {
 }
 impl Project {
     pub fn site_export(&self, selection: &SiteSelection, output: &Path) -> Result<()> {
+        self.site_export_with_progress(selection, output, &mut |_| {})
+    }
+    pub fn site_export_with_progress(
+        &self,
+        selection: &SiteSelection,
+        output: &Path,
+        progress: &mut dyn FnMut(SiteProgress),
+    ) -> Result<()> {
+        progress(SiteProgress::LoadingRecords);
         let snapshot = self.site_snapshot(selection)?;
-        let json = serde_json::to_string(&snapshot)?;
+        let json = site_json_with_progress(&snapshot, progress)?;
+        drop(snapshot);
+        progress(SiteProgress::RenderingHtml);
         let html = site_html_json(&json, false);
+        progress(SiteProgress::WritingExport);
         fs::create_dir_all(output)?;
         let lock = OpenOptions::new()
             .create(true)

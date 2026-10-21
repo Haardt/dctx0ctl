@@ -2,6 +2,12 @@ use clap::{Args, ValueEnum};
 use std::path::PathBuf;
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum Verb {
+    /// Export complete dependency-closed context with shared content references.
+    Package,
+    /// Compare saved --file package with current package for this anchor.
+    PackageDelta,
+    /// Compare task state at explicit start/end event pins.
+    Progress,
     Preview,
     Plan,
     List,
@@ -94,6 +100,12 @@ pub(crate) struct TaskArgs {
     pub(super) budget: usize,
     #[arg(long)]
     pub(super) cursor: Option<String>,
+    #[arg(long)]
+    pub(super) as_of: Option<i64>,
+    #[arg(long)]
+    pub(super) from_plan: Option<i64>,
+    #[arg(long)]
+    pub(super) from_event: Option<i64>,
     #[arg(long)]
     pub(super) format: Option<String>,
     #[arg(long)]

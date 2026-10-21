@@ -4,6 +4,46 @@ use dctx0_tasks::{Action, CandidatePlan, Plan, Receipt, Session};
 use std::collections::BTreeMap;
 
 impl Project {
+    /// Portable context for the actual dependency-closed slice. No claims or checks.
+    pub fn task_package(
+        &self,
+        session: &Session,
+        anchor: i64,
+        domain: Option<&str>,
+        actor: Option<&str>,
+        profiles: Option<&LoadedProfiles>,
+    ) -> Result<dctx0_tasks::WorkPackage> {
+        let snapshot = self.load(&session.plan.snapshot_id)?;
+        let slice = session.slice(anchor, domain, actor)?;
+        let selections = if let Some(p) = profiles {
+            slice
+                .tasks
+                .iter()
+                .map(|task| {
+                    let candidate = &session.member(task.task_id)?.candidate;
+                    Ok((
+                        task.task_id,
+                        dctx0_tasks::select_profiles(
+                            &snapshot,
+                            candidate,
+                            &p.manifest,
+                            &p.documents,
+                        ),
+                    ))
+                })
+                .collect::<dctx0_tasks::Result<BTreeMap<_, _>>>()?
+        } else {
+            BTreeMap::new()
+        };
+        Ok(dctx0_tasks::work_package(
+            session,
+            &snapshot,
+            anchor,
+            domain,
+            actor,
+            &selections,
+        )?)
+    }
     pub fn task_preview(&self, snapshot: &str) -> Result<CandidatePlan> {
         let store = self.store(AccessMode::ReadOnly)?;
         let input = store.load(&self.key(), snapshot)?;

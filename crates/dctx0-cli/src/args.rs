@@ -97,6 +97,8 @@ pub(crate) enum Phase {
     VerificationHistoryRead,
     VerificationHistoryLargePublish,
     VerificationHistoryLargeRead,
+    VerificationDiagnosticsSummary,
+    VerificationDiagnosticsCases,
     VerificationHistorySummary,
     VerificationProject,
     VerificationGenerate,
@@ -116,6 +118,9 @@ pub(crate) enum Phase {
     TasksList,
     TasksContextMd,
     TasksContextJson,
+    TasksPackage,
+    TasksPackageDelta,
+    TasksProgress,
     TasksSlice,
     TasksClaim,
 }

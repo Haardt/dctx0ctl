@@ -55,7 +55,9 @@ pub(crate) fn benchmark(
     }
     if matches!(
         phase,
-        Phase::VerificationHistoryPublish
+        Phase::VerificationDiagnosticsSummary
+            | Phase::VerificationDiagnosticsCases
+            | Phase::VerificationHistoryPublish
             | Phase::VerificationHistoryRead
             | Phase::VerificationHistoryLargePublish
             | Phase::VerificationHistoryLargeRead
@@ -100,7 +102,10 @@ pub(crate) fn benchmark(
     let baseline = dctx0_changes::snapshot(&sources, ir, graph);
     if matches!(
         phase,
-        Phase::TasksPlan
+        Phase::TasksPackage
+            | Phase::TasksPackageDelta
+            | Phase::TasksProgress
+            | Phase::TasksPlan
             | Phase::TasksReconcile
             | Phase::TasksPublish
             | Phase::TasksList
@@ -296,6 +301,14 @@ fn task_benchmark(
         }
     }
     let delta = dctx0_tasks::plan(&changed).map_err(error_message)?;
+    let package = if matches!(phase, Phase::TasksPackageDelta) {
+        Some(
+            dctx0_tasks::work_package(&session, snapshot, anchor, None, None, &Default::default())
+                .map_err(error_message)?,
+        )
+    } else {
+        None
+    };
     let mut elapsed = std::time::Duration::ZERO;
     for iteration in 0..iterations {
         let mut published_candidate = candidate.clone();
@@ -316,6 +329,39 @@ fn task_benchmark(
         };
         let start = std::time::Instant::now();
         match phase {
+            Phase::TasksPackage => {
+                let package = dctx0_tasks::work_package(
+                    &session,
+                    snapshot,
+                    anchor,
+                    None,
+                    None,
+                    &Default::default(),
+                )
+                .map_err(error_message)?;
+                std::hint::black_box(serde_json::to_vec(&package).map_err(error_message)?);
+            }
+            Phase::TasksPackageDelta => {
+                let before = package.as_ref().unwrap();
+                let after = dctx0_tasks::work_package(
+                    &session,
+                    snapshot,
+                    anchor,
+                    None,
+                    None,
+                    &Default::default(),
+                )
+                .map_err(error_message)?;
+                std::hint::black_box(
+                    dctx0_tasks::package_delta(before, &after, &session.links)
+                        .map_err(error_message)?,
+                );
+            }
+            Phase::TasksProgress => {
+                std::hint::black_box(
+                    dctx0_tasks::task_progress(&session, &session).map_err(error_message)?,
+                );
+            }
             Phase::TasksPlan => {
                 std::hint::black_box(dctx0_tasks::plan(snapshot).map_err(error_message)?);
             }

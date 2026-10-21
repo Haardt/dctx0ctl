@@ -4140,3 +4140,148 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         assert!(report.adopted_tasks.is_empty());
     }
 }
+
+#[tokio::test]
+async fn value_only_plans_do_not_require_an_event_observer() {
+    let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
+    f.adapter(&VALUE_ADAPTER.replace("'sessions','values','events'", "'sessions','values'"));
+    let report = f.run(true).await;
+    assert!(matches!(
+        report.evidence.run.result,
+        VerificationResult::Pass
+    ));
+    assert!(
+        !report
+            .evidence
+            .run
+            .open_obligations
+            .iter()
+            .any(|issue| issue.code == "EVENT_OBSERVER_UNAVAILABLE"
+                || issue.code == "ADAPTER_CAPABILITY_UNAVAILABLE")
+    );
+}
+
+#[tokio::test]
+async fn adoption_preview_uses_native_proofs_and_never_publishes_or_rebases_stale_pins() {
+    let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
+    f.adapter(VALUE_ADAPTER);
+    create_profiles(
+        &f.app,
+        &dctx0_target_typescript::Provider,
+        true,
+        false,
+        false,
+    )
+    .unwrap();
+    f.project.task_plan("latest").unwrap();
+    let run = f.run(true).await;
+    assert_eq!(run.evidence.run.result, VerificationResult::Pass);
+    let before = fs::read(&f.project.database).unwrap();
+    let preview = f
+        .project
+        .verification_adoption_preview(Some(&f.app), &run.evidence.id)
+        .unwrap();
+    assert!(preview.issues.is_empty(), "{:?}", preview.issues);
+    assert!(preview.tasks.iter().any(|t| t.eligible), "{preview:?}");
+    assert_eq!(before, fs::read(&f.project.database).unwrap());
+    fs::write(
+        f.app.join("app.ts"),
+        "export function factory(value:number){return value;}",
+    )
+    .unwrap();
+    let stale = f
+        .project
+        .verification_adoption_preview(Some(&f.app), &run.evidence.id)
+        .unwrap();
+    assert!(stale.tasks.iter().all(|t| !t.eligible));
+    assert!(
+        stale
+            .issues
+            .iter()
+            .any(|i| i.code == "ADOPTION_IMPLEMENTATION_CHANGED")
+    );
+    fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
+    let profile = f.app.join(".dctx0/profiles/typescript/common.md");
+    let original_profile = fs::read_to_string(&profile).unwrap();
+    fs::write(
+        &profile,
+        format!("{original_profile}\nUse a changed representation.\n"),
+    )
+    .unwrap();
+    let changed = f
+        .project
+        .verification_adoption_preview(Some(&f.app), &run.evidence.id)
+        .unwrap();
+    assert!(changed.tasks.iter().all(|t| !t.eligible));
+    assert!(changed.tasks.iter().any(|t| {
+        t.blockers
+            .iter()
+            .any(|i| i.code == "ADOPTION_PROFILE_CHANGED")
+    }));
+    fs::write(&profile, original_profile).unwrap();
+    fs::write(
+        f.project.root.join("w.dctx0"),
+        "workspace W { value A = Int { range 1..3 } }",
+    )
+    .unwrap();
+    let drift = f
+        .project
+        .verification_adoption_preview(Some(&f.app), &run.evidence.id)
+        .unwrap();
+    assert!(
+        drift
+            .issues
+            .iter()
+            .any(|i| i.code == "ADOPTION_SPEC_CHANGED")
+    );
+    fs::write(
+        f.project.root.join("w.dctx0"),
+        "workspace W { value A = Int { range 1..2 } }",
+    )
+    .unwrap();
+    let session = f.project.task_session(None, None).unwrap();
+    let id = session.next(&Default::default(), None).unwrap().task_id;
+    f.project
+        .task_action(dctx0_tasks::Action::Start {
+            task: id,
+            actor: "worker".into(),
+            reservation: None,
+        })
+        .unwrap();
+    let stale = f
+        .project
+        .verification_adoption_preview(Some(&f.app), &run.evidence.id)
+        .unwrap();
+    assert!(stale.tasks.iter().all(|t| !t.eligible));
+    assert!(
+        stale
+            .issues
+            .iter()
+            .any(|i| i.code == "ADOPTION_STALE_TASK_PIN")
+    );
+    // Preserve the actual claim and state; the preview cannot claim or deliver.
+    assert_eq!(
+        f.project.task_session(None, None).unwrap().states[&id].work,
+        dctx0_tasks::WorkState::Progress
+    );
+    fs::write(
+        f.project.root.join("w.dctx0"),
+        "workspace W { value B = Int { range 1..3 } }",
+    )
+    .unwrap();
+    assert!(f.project.check().unwrap().ok);
+    f.project.task_plan("latest").unwrap();
+    let replaced = f
+        .project
+        .verification_adoption_preview(Some(&f.app), &run.evidence.id)
+        .unwrap();
+    assert!(replaced.tasks.iter().all(|t| !t.eligible));
+    assert!(
+        replaced
+            .issues
+            .iter()
+            .any(|i| i.code == "ADOPTION_STALE_TASK_PIN")
+    );
+}

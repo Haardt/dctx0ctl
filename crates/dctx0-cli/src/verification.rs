@@ -252,7 +252,32 @@ enum VerifyAction {
         exports: Option<PathBuf>,
     },
     /// Read immutable saved evidence without claiming working-tree freshness.
-    Show { input: PathBuf, run_id: String },
+    Show {
+        input: PathBuf,
+        run_id: String,
+        /// Compact aggregate without individual case rows.
+        #[arg(long)]
+        summary: bool,
+        /// Filter case rows; the full run assessment stays visible.
+        #[arg(long, value_delimiter = ',', value_parser = ["PASS", "FAIL", "UNKNOWN"])]
+        outcome: Vec<String>,
+        #[arg(long)]
+        subject: Vec<String>,
+        /// Exact case ID, including actual observations and bindings.
+        #[arg(long)]
+        case: Option<String>,
+        #[arg(long)]
+        limit: Option<usize>,
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+    /// Explain current adoption eligibility without execution or task changes.
+    AdoptionPreview {
+        input: PathBuf,
+        run_id: String,
+        #[arg(long)]
+        project: Option<PathBuf>,
+    },
     /// Preserve existing testing files and create an unavailable adapter scaffold.
     Init {
         input: PathBuf,
@@ -694,7 +719,44 @@ pub(crate) fn run(
             }
             return Ok(true);
         }
-        VerifyAction::Show { input, run_id } => {
+        VerifyAction::AdoptionPreview {
+            input,
+            run_id,
+            project: application,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let report = project
+                .verification_adoption_preview(application.as_deref(), &run_id)
+                .map_err(crate::error_message)?;
+            if json {
+                crate::render::json(output, &report)?;
+            } else {
+                writeln!(output, "# Adoption preview\n\nRun: {}. Read-only; eligibility must be rechecked transactionally at publication.\n", report.run_id).map_err(crate::error_message)?;
+                for task in &report.tasks {
+                    writeln!(output, "- T{}: eligible: {}", task.task_id, task.eligible)
+                        .map_err(crate::error_message)?;
+                    for issue in &task.blockers {
+                        writeln!(output, "  - {}: {}", issue.code, issue.message)
+                            .map_err(crate::error_message)?;
+                    }
+                }
+                for issue in &report.issues {
+                    writeln!(output, "- {}: {}", issue.code, issue.message)
+                        .map_err(crate::error_message)?;
+                }
+            }
+            return Ok(true);
+        }
+        VerifyAction::Show {
+            input,
+            run_id,
+            summary: summary_only,
+            outcome,
+            subject,
+            case,
+            limit,
+            cursor,
+        } => {
             let project = Project::new(&input, database).map_err(crate::error_message)?;
             let summary = project
                 .verification_summary(&run_id)
@@ -711,6 +773,67 @@ pub(crate) fn run(
                 .map_err(crate::error_message)?
                 .saved_verification_run(&run_id)
                 .map_err(crate::error_message)?;
+            if summary_only
+                || !outcome.is_empty()
+                || !subject.is_empty()
+                || case.is_some()
+                || limit.is_some()
+                || cursor.is_some()
+            {
+                use dctx0_verification::diagnostics::*;
+                let cursor = cursor
+                    .as_deref()
+                    .map(serde_json::from_str::<DiagnosticCursor>)
+                    .transpose()
+                    .map_err(crate::error_message)?;
+                let filter = DiagnosticFilter {
+                    outcomes: outcome.into_iter().collect(),
+                    subjects: subject.into_iter().collect(),
+                    case,
+                };
+                let page = diagnostic_page(
+                    &saved.id,
+                    &saved.run,
+                    filter,
+                    limit.unwrap_or(50),
+                    cursor.as_ref(),
+                    summary_only,
+                )?;
+                if json {
+                    crate::render::json(output, &page)?;
+                } else {
+                    writeln!(output, "# Stored verification diagnostics\n\nRun: {}\nResult: {:?}\nMandatory: {}; recorded: {}; matching: {}\nOutcomes: {:?}\n\nSaved evidence; no current-source or adoption claim.\n", page.run_id, page.summary.result, page.summary.mandatory_cases, page.summary.recorded_cases, page.matching_cases, page.summary.outcomes).map_err(crate::error_message)?;
+                    for case in &page.cases {
+                        writeln!(
+                            output,
+                            "- {} / {}: {:?}",
+                            case.id, case.subject, case.result
+                        )
+                        .map_err(crate::error_message)?;
+                    }
+                    for issue in page
+                        .summary
+                        .open_obligations
+                        .iter()
+                        .chain(&page.summary.incomplete_provenance)
+                    {
+                        writeln!(output, "- {}: {}", issue.code, issue.message)
+                            .map_err(crate::error_message)?;
+                    }
+                    if let Some(detail) = &page.detail {
+                        crate::render::json(output, detail)?;
+                    }
+                    if let Some(cursor) = &page.next_cursor {
+                        writeln!(
+                            output,
+                            "\nMore: --cursor '{}'",
+                            serde_json::to_string(cursor).map_err(crate::error_message)?
+                        )
+                        .map_err(crate::error_message)?;
+                    }
+                }
+                return Ok(true);
+            }
             if json {
                 crate::render::json(output, &saved)?;
             } else {

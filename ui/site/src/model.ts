@@ -6,13 +6,14 @@ export interface Snapshot {id:string; source_hash:string; sources:{file:string;t
 export interface Task {task_id:string;title:string;kind:string;subjects:string[];wave:string;work:string;check:string;ready:boolean;delivered:boolean;blockers:string[];actor:string|null;reservation:string|null;claim:string|null;result_summary:string|null}
 export interface Candidate {key:string;title:string;subjects:string[];acceptance:string[];contract:string;wave:string;kind:string;facts:string[];types:string[]}
 export interface Definition {id:string;candidate:Candidate;reason:string;origin_snapshot:string;before_snapshot:string|null;changes:Json[]}
-export interface TaskState {execution_bundle?:{documents:{path:string;text:string;subjects:string[]}[]}|null;work:string;check:string;result:Json;evidence:Json[];reviews:Json[];actor:string|null;reservation:string|null;claim:string|null}
+export interface TaskState {details?:PackedJson;version?:string;execution_bundle?:{documents:{path:string;text:string;subjects:string[]}[]}|null;work:string;check:string;result:Json;evidence:Json[];reviews:Json[];actor:string|null;reservation:string|null;claim:string|null}
 export interface Session {plan:{id:string;snapshot_id:string;check_run_id:string;parent:string|null;members:{task_id:string;candidate:Candidate}[]};event_seq:string;definitions:Record<string,Definition>;states:Record<string,TaskState>;links:{from:string;to:string;kind:string;reason:string}[];events:{seq:string;task_id:string|null;kind:string;message:string}[]}
 export interface Verdict {status:'PASS'|'FAIL'|'UNKNOWN';issue?:{code:string;message:string}}
 export interface Case {id:string;subject:string;kind:string;result:Verdict;[key:string]:unknown}
 export interface Run {id:string;created_at:string;run:{origin:string;result:Verdict;provenance:{snapshot:string;check_occurrence:string;implementation:Record<string,string>;incomplete:Json[]};selected_subjects:string[];required_subjects:string[];not_selected?:string[];cases:Case[];case_count?:string;required_case_count?:string;case_inventory_complete?:boolean;case_subjects?:string[];case_details?:string;case_details_encoding?:string;required_cases:string[];open_obligations:Json[];artifacts:Json[];[key:string]:unknown}}
 export interface RunSummary {id:string;created_at:string;result:Verdict;selected_subjects:string[];details_available:boolean;pruned_at:string|null;case_count:string;outcomes:string[]}
-export interface SiteSnapshot {schema_version:1;project:string;notice:string;tasks:Task[];dependencies:{task_id:string;prerequisite_id:string;condition:string;reason:string}[];records:{snapshot:Snapshot;check:{run_id:string;timestamp:string};tasks:Session|null;task_snapshot:Snapshot|null;requirement_snapshots?:Record<string,Snapshot>;runs:Run[];run_summaries?:RunSummary[];history:Json[];renames:Json[];changes:Json;before:Snapshot|null;plan_diff:Json}}
+export interface PackedJson {encoding:"gzip-base64-json-decimal-integers-v1";data:string}
+export interface SiteSnapshot {schema_version:1;project:string;notice:string;tasks:Task[];dependencies:{task_id:string;prerequisite_id:string;condition:string;reason:string}[];records:{snapshot:Snapshot;check:{run_id:string;timestamp:string};tasks:Session|null;task_snapshot:Snapshot|null;requirement_snapshots?:Record<string,Snapshot|PackedJson>;history_scope?:"previous"|"all";omitted_requirement_snapshots?:string[];runs:Run[];run_summaries?:RunSummary[];history:Json[];renames:Json[];changes:Json;before:Snapshot|null;plan_diff:Json}}
 export function applicable(run:Run,data:SiteSnapshot) {return run.run.provenance.snapshot===data.records.snapshot.id && run.run.provenance.check_occurrence===data.records.check.run_id}
 export function evidenceStatus(run:Run,data:SiteSnapshot) {if(!applicable(run,data))return 'NOT APPLICABLE';if(run.run.result.status==='PASS'&&(run.run.provenance.incomplete.length||run.run.open_obligations.length||(run.run.not_selected?run.run.not_selected.length>0:run.run.selected_subjects.length<run.run.required_subjects.length)||!(run.run.case_inventory_complete??(run.run.cases.length===run.run.required_cases.length))||(run.run.required_case_count??String(run.run.required_cases.length))==='0'))return 'UNKNOWN';return run.run.result.status}
 export function ancestorIds(id:string,edges:SiteSnapshot['dependencies']) {const ids=new Set([id]);let size=0;while(size!==ids.size){size=ids.size;for(const e of edges)if(ids.has(e.task_id))ids.add(e.prerequisite_id)}return ids}
@@ -32,7 +33,8 @@ export async function decodeCases(run:Run):Promise<Case[]> {
 }
 
 export function pinnedSnapshot(data:SiteSnapshot,id:string|null):Snapshot|undefined {
- return [data.records.snapshot,data.records.task_snapshot,data.records.before,...Object.values(data.records.requirement_snapshots??{})].find(s=>s?.id===id)??undefined;
+ const snapshots=[data.records.snapshot,data.records.task_snapshot,data.records.before,...Object.values(data.records.requirement_snapshots??{})];
+ return snapshots.find((s):s is Snapshot=>!!s&&'id' in s&&s.id===id)??undefined;
 }
 
 // Link an effective inspection only to the exact captured native execution.

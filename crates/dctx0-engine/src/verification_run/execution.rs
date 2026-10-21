@@ -231,7 +231,11 @@ pub(super) async fn execute(
             ));
         }
     }
-    if !events_supported {
+    if !events_supported
+        && plan
+            .capabilities
+            .contains(&dctx0_verification::Capability::Events)
+    {
         run.open_obligations.push(issue(
             "EVENT_OBSERVER_UNAVAILABLE",
             "No actual event observer is declared",

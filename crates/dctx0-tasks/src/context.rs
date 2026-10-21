@@ -37,7 +37,7 @@ pub struct ContextItem {
     pub source: Option<Span>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub type_definition: Option<dctx0_core::DataIr>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub operation_contracts: Vec<dctx0_core::OperationIr>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +73,37 @@ pub fn context_with_profiles(
     cursor: Option<&Cursor>,
     implementation: Option<ProfileSelection>,
 ) -> Result<ContextPage> {
+    let indexes = ContextIndexes::new(session, snapshot);
+    context_indexed(
+        session,
+        snapshot,
+        id,
+        (section, budget, cursor),
+        implementation,
+        &indexes,
+    )
+}
+pub(crate) struct ContextIndexes<'a> {
+    spec: SpecIndex<'a>,
+    overviews: Vec<Overview>,
+}
+impl<'a> ContextIndexes<'a> {
+    pub(crate) fn new(session: &Session, snapshot: &'a Snapshot) -> Self {
+        Self {
+            spec: SpecIndex::new(&snapshot.ir),
+            overviews: session.overviews(),
+        }
+    }
+}
+pub(crate) fn context_indexed(
+    session: &Session,
+    snapshot: &Snapshot,
+    id: i64,
+    page: (&str, usize, Option<&Cursor>),
+    implementation: Option<ProfileSelection>,
+    indexes: &ContextIndexes<'_>,
+) -> Result<ContextPage> {
+    let (section, budget, cursor) = page;
     if budget == 0 || snapshot.id != session.plan.snapshot_id {
         return Err(Error::Invalid("Context budget or snapshot mismatch".into()));
     }
@@ -107,7 +138,7 @@ pub fn context_with_profiles(
         )
     };
 
-    let index = SpecIndex::new(&snapshot.ir);
+    let index = &indexes.spec;
     let allowed = [
         "core",
         "implementation",
@@ -164,7 +195,7 @@ pub fn context_with_profiles(
         });
     } else {
         for subject in &c.subjects {
-            let (item, raw) = specification(snapshot, &index, subject, "contract");
+            let (item, raw) = specification(snapshot, index, subject, "contract");
             if raw && matches!(section, "core" | "contract") {
                 covered.push(item.source.clone().unwrap());
             }
@@ -177,7 +208,7 @@ pub fn context_with_profiles(
         if c.subjects.contains(ty) && section != "types" {
             continue;
         }
-        let (item, raw) = specification(snapshot, &index, ty, "types");
+        let (item, raw) = specification(snapshot, index, ty, "types");
         if raw && matches!(section, "core" | "types") {
             covered.push(item.source.clone().unwrap());
         }
@@ -264,7 +295,7 @@ pub fn context_with_profiles(
             source: None,
         });
     }
-    let rows = session.overviews();
+    let rows = &indexes.overviews;
     for dep in session.related(id, false, false)? {
         let r = rows
             .iter()

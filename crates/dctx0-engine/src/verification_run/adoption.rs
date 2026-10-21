@@ -13,6 +13,16 @@ pub(super) fn publish(
     saved: &StoredVerificationRun,
     artifacts: &[VerificationArtifact],
 ) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
+    evaluate(project, application, plan, saved, artifacts, false)
+}
+pub(super) fn evaluate(
+    project: &Project,
+    application: &Path,
+    plan: &ProgramPlan,
+    saved: &StoredVerificationRun,
+    artifacts: &[VerificationArtifact],
+    preview: bool,
+) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
     if saved.run.origin != VerificationRunOrigin::Native {
         return Ok((
             vec![],
@@ -80,6 +90,61 @@ pub(super) fn publish(
         ));
     }
     let session = project.task_session(None, None)?;
+    if preview
+        && (session.plan.id != pin.plan_id
+            || session.event_seq != pin.event_sequence
+            || session.plan.snapshot_id != run.provenance.snapshot
+            || session.plan.check_run_id != run.provenance.check_occurrence)
+    {
+        return Ok((
+            vec![],
+            vec![issue(
+                "ADOPTION_STALE_TASK_PIN",
+                "Plan, check occurrence or task events changed since native execution",
+            )],
+            None,
+        ));
+    }
+    let mut changed_profiles = BTreeSet::new();
+    if preview {
+        let profiles = match project.profiles(Some(application), Some(&run.provenance.target)) {
+            Ok(Some(profiles)) => profiles,
+            Ok(None) => {
+                return Ok((
+                    vec![],
+                    vec![issue(
+                        "ADOPTION_PROFILE_UNAVAILABLE",
+                        "Selected profiles are unavailable",
+                    )],
+                    None,
+                ));
+            }
+            Err(error) => {
+                return Ok((
+                    vec![],
+                    vec![issue("ADOPTION_PROFILE_CHANGED", error.to_string())],
+                    None,
+                ));
+            }
+        };
+        let snapshot = project.load(&run.provenance.snapshot)?;
+        for id in pin.requirements.keys() {
+            let Some(member) = session.plan.members.iter().find(|m| m.task_id == *id) else {
+                continue;
+            };
+            let selection = dctx0_tasks::select_profiles(
+                &snapshot,
+                &member.candidate,
+                &profiles.manifest,
+                &profiles.documents,
+            );
+            if !selection.missing_files.is_empty()
+                || pin.profile_bundles.get(id) != Some(&selection.bundle.hash)
+            {
+                changed_profiles.insert(*id);
+            }
+        }
+    }
     let description = artifacts
         .iter()
         .find(|a| a.reference.media_type == "application/vnd.dctx0.adapter-description+json")
@@ -136,6 +201,9 @@ pub(super) fn publish(
             .iter()
             .map(|p| p.code.clone())
             .collect::<Vec<_>>();
+        if changed_profiles.contains(id) {
+            incomplete.push("ADOPTION_PROFILE_CHANGED".into());
+        }
         incomplete.extend(
             coverage
                 .missing_requirements
@@ -199,7 +267,7 @@ pub(super) fn publish(
             },
         );
     }
-    let proposal = match propose_adoption(
+    let mut proposal = match propose_adoption(
         &session,
         &run.provenance.snapshot,
         run.provenance.check_occurrence,
@@ -215,6 +283,17 @@ pub(super) fn publish(
             ));
         }
     };
+    if preview {
+        for blocker in &mut proposal.blocked {
+            if changed_profiles.contains(&blocker.task_id)
+                && blocker.code == "INCOMPLETE_REQUIREMENTS"
+            {
+                blocker.code = "ADOPTION_PROFILE_CHANGED".into();
+                blocker.reason = "Selected profile bundle changed or is incomplete".into();
+            }
+        }
+        return Ok((vec![], vec![], Some(proposal)));
+    }
     let mut issues = proposal
         .blocked
         .iter()

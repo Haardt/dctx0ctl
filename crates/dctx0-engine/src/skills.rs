@@ -51,6 +51,10 @@ fn bundle(name: &str) -> Result<BTreeMap<&'static str, &'static str>> {
                 "references/implementation.md",
                 include_str!("../../../skills/dctx0-implementation/references/implementation.md"),
             ),
+            (
+                "references/work-packages.md",
+                include_str!("../../../skills/dctx0-implementation/references/work-packages.md"),
+            ),
         ],
         _ => return Err(Error::Invalid(format!("Unknown skill: {name}"))),
     };
