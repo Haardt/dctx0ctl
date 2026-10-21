@@ -47,3 +47,14 @@ class WorkflowMetricsTests(unittest.TestCase):
         self.assertEqual(report['fail_to_current_pass_seconds'], [120])
         for change in [dict(mandatory_complete=False), dict(source_current=False), dict(outcome='UNKNOWN'), dict(finished_at='2026-10-21T09:00:00Z'), dict(started_at='2026-10-21T10:02:00')]:
             with self.assertRaises(ValueError): metrics.summarize(self.progress, [self.package], [], [dict(passed, **change)])
+
+    def test_overlapping_receipts_measure_repairs_by_result_availability(self):
+        identity = dict.fromkeys(('spec_sources', 'implementation', 'dependencies', 'adapter', 'configuration', 'scope', 'inputs'), 'hash-1')
+        failed = dict(package_id='package', run_id='fail', identity=identity, outcome='FAIL', mandatory_complete=True, source_current=True, started_at='2026-10-21T10:00:00Z', finished_at='2026-10-21T10:03:00Z')
+        early_pass = dict(failed, run_id='early', outcome='PASS', started_at='2026-10-21T10:01:00Z', finished_at='2026-10-21T10:02:00Z')
+        report = metrics.receipt_metrics([failed, early_pass], {'package'})
+        self.assertEqual(report['first_pass_yield'], 0)
+        self.assertEqual(report['fail_to_current_pass_seconds'], [])
+        repair = dict(early_pass, run_id='repaired', finished_at='2026-10-21T10:04:00Z')
+        report = metrics.receipt_metrics([repair, failed, early_pass], {'package'})
+        self.assertEqual(report['fail_to_current_pass_seconds'], [60])

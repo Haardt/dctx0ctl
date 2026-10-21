@@ -1424,3 +1424,95 @@ fn progress_counts_added_deliveries_and_removed_pass_separately_from_common_task
     assert_eq!(after.states[&old], before.states[&old]);
     assert_eq!(report.history_links.len(), 1);
 }
+
+#[test]
+fn requirement_replacement_deltas_transmit_new_bodies_and_preserve_historical_pass() {
+    let before_snapshot = snap("workspace W { type A = Int }");
+    let after_snapshot = snap("workspace W { type A = String }");
+    let mut before = session(&before_snapshot);
+    let old = before
+        .plan
+        .members
+        .iter()
+        .find(|m| {
+            m.candidate.subjects.contains(&"W.A".into()) && m.candidate.kind == TaskKind::Contract
+        })
+        .unwrap()
+        .task_id;
+    before.states.get_mut(&old).unwrap().work = WorkState::Done;
+    before.states.get_mut(&old).unwrap().check = CheckStatus::Pass;
+    let first = work_package(&before, &before_snapshot, old, None, None, &BTreeMap::new()).unwrap();
+    let mut after = session(&after_snapshot);
+    let replacement = 10000;
+    let member = after
+        .plan
+        .members
+        .iter_mut()
+        .find(|m| m.task_id == old)
+        .unwrap();
+    member.task_id = replacement;
+    let mut definition = after.definitions[&old].clone();
+    definition.id = replacement;
+    after.definitions.insert(replacement, definition);
+    after
+        .definitions
+        .insert(old, before.definitions[&old].clone());
+    after.states.insert(replacement, State::default());
+    after.states.insert(old, before.states[&old].clone());
+    after.event_seq = before.event_seq + 1;
+    after.plan.id += 1;
+    let link = HistoryLink {
+        from: old,
+        to: replacement,
+        kind: "changed".into(),
+        reason: "A now requires String values".into(),
+    };
+    after.links = vec![
+        link.clone(),
+        HistoryLink {
+            to: 99999,
+            ..link.clone()
+        },
+    ];
+    let second = work_package(
+        &after,
+        &after_snapshot,
+        replacement,
+        None,
+        None,
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    let delta = package_delta(&first, &second, &after.links).unwrap();
+    assert_eq!(delta.added_tasks, [replacement]);
+    assert_eq!(delta.removed_tasks, [old]);
+    assert!(delta.spec_sources_changed);
+    assert_eq!(delta.history_links, [link]);
+    assert!(!delta.added_content.is_empty() && !delta.removed_content.is_empty());
+    assert!(
+        delta
+            .added_content
+            .values()
+            .any(|item| item.text.contains("type A = String"))
+    );
+    assert_eq!(after.states[&old].check, CheckStatus::Pass);
+    assert_eq!(after.states[&replacement].check, CheckStatus::Unverified);
+    let mut content = first.content;
+    for key in &delta.removed_content {
+        content.remove(key);
+    }
+    content.extend(delta.added_content);
+    WorkPackage {
+        schema_version: 1,
+        id: delta.after,
+        pin: delta.after_pin,
+        spec_source_hash: delta.after_spec_source_hash,
+        slice: delta.after_slice,
+        tasks: delta.after_tasks,
+        content,
+        complete: delta.after_complete,
+        limitations: delta.after_limitations,
+    }
+    .validate()
+    .unwrap();
+}

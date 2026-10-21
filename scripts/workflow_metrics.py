@@ -55,7 +55,8 @@ def receipt_metrics(receipts, package_ids):
         first = checks[0][2]
         first_pass += first['outcome'] == 'PASS' and first['mandatory_complete'] and first['source_current']
         failed_at = None
-        for start, finish, receipt in checks:
+        # Concurrent checks may finish in a different order from their starts.
+        for start, finish, receipt in sorted(checks, key=lambda row: row[1]):
             if receipt['outcome'] == 'FAIL' and failed_at is None:
                 failed_at = finish
             if failed_at and receipt['outcome'] == 'PASS' and receipt['mandatory_complete'] and receipt['source_current']:

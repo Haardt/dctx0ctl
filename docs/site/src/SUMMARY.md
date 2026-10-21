@@ -46,3 +46,4 @@
 - [Actual call observation in examples](reference/call-observation.md)
 
 - [Large source-bound review inputs](reference/inspection-inputs.md)
+- [Pinned workflow packages and measurements](reference/workflow-efficiency.md)

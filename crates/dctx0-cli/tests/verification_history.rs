@@ -130,6 +130,18 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
     let filtered: serde_json::Value = serde_json::from_slice(&filtered.stdout).unwrap();
     assert_eq!(filtered["matching_cases"], 2);
     assert_eq!(filtered["cases"][0]["id"], "C1");
+    for subject in ["W", "W.Number"] {
+        let result = show(&["--subject", subject]);
+        assert!(result.status.success());
+        let result: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(result["matching_cases"], 3);
+        assert_eq!(result["summary"]["result"]["status"], "FAIL");
+    }
+    let unrelated = show(&["--subject", "W.Numb"]);
+    assert!(unrelated.status.success());
+    let unrelated: serde_json::Value = serde_json::from_slice(&unrelated.stdout).unwrap();
+    assert_eq!(unrelated["matching_cases"], 0);
+    assert_eq!(unrelated["summary"]["result"]["status"], "FAIL");
     let cursor = serde_json::to_string(&filtered["next_cursor"]).unwrap();
     let next = show(&[
         "--outcome",

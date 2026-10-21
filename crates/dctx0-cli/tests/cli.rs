@@ -281,6 +281,31 @@ fn verification_core_benchmarks_measure_both_compiled_examples_without_native_cl
             assert!(result["elapsed_ms"].as_f64().unwrap() > 0.0);
             assert!(result["peak_rss_bytes"].as_u64().unwrap() > 0);
         }
+        #[cfg(feature = "typescript")]
+        {
+            let temporary = Sandbox::new("repeated-discovery");
+            let database = temporary.0.join("history.sqlite3");
+            let output = cli(&[
+                "--db",
+                database.to_str().unwrap(),
+                "bench",
+                input.to_str().unwrap(),
+                "verification-discover",
+                "2",
+            ]);
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(report["iterations"], 2);
+            assert!(report["files"].as_u64().unwrap() > 0);
+            assert_eq!(
+                report["application_source_hash"].as_str().unwrap().len(),
+                64
+            );
+        }
     }
 }
 
