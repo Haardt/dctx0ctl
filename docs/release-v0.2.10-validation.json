@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "release": "v0.2.10",
+  "release_commit": "c65a9f556cd28ea344b8477ef6e0d9ac61651acc",
+  "local_validation_scope": "focused; not full workspace coverage acceptance",
+  "focused_validation": {
+    "status": "pass",
+    "report": "benchmarks/history/20261022T153343.728986Z-24216.json",
+    "command": "CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 python3 scripts/validate.py --focus workflow-tools --example cinema --samples 1 --iterations 1",
+    "python_tests": 38,
+    "rust_test_executions": 7,
+    "workspace_check_build_format_clippy": "pass",
+    "elapsed_ms": 1141550.196,
+    "peak_process_tree_rss_bytes": 981549056,
+    "memory_method": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process"
+  },
+  "preceding_targeted_checks": {
+    "status": "pass",
+    "cli_unit_tests": 9,
+    "gc_unit_tests": 1,
+    "commands": [
+      "cargo test -p dctx0-cli --bin dctx0 --all-features --locked",
+      "cargo test -p dctx0-engine --lib storage_engine_compaction_preview_exports_and_restart_keep_history_honest --all-features --locked"
+    ],
+    "continuation": "The first validation continuation was stopped to reclaim generated Cargo debug caches before restarting with debug symbols/incremental caching disabled. Targeted test results remain valid; the stopped continuation does not count as a complete gate.",
+    "guard_elapsed_ms": 325683.602,
+    "guard_peak_process_tree_rss_bytes": 1526947840
+  },
+  "performance": {
+    "status": "complete",
+    "workloads": 81,
+    "baseline_comparison": "unassessed; reduced development samples/iterations",
+    "baseline_promoted": false,
+    "native_go": "complete",
+    "native_rust": "complete",
+    "editor": "PASS"
+  },
+  "installation": {
+    "path": "/home/massenhaft/.cargo/bin/dctx0",
+    "version": "dctx0 0.2.10",
+    "sha256": "f46e4ca262301856dbc7ee4218bf85e57c9661e6cd448d758d9af3efec0be486",
+    "installed_cli_smoke": "PASS: isolated specification check returns ok=true and valid multiline JSON ending with a newline"
+  },
+  "coverage": "Not rerun locally for this release; normal CI gates remain required.",
+  "github_release_workflow": "https://github.com/Haardt/dctx0ctl/actions/runs/39802259743",
+  "github_release_status_at_recording": "in_progress; Linux x86_64 native distribution job passed; publication remains gated on all required jobs",
+  "unrelated_worktree_changes": "Bug.md was excluded from release commits and remains untouched."
+}
