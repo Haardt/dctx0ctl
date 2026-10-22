@@ -1,5 +1,6 @@
 mod args;
 mod benchmark;
+mod codec_scaffold;
 mod commands;
 mod editors;
 mod harness_benchmark;

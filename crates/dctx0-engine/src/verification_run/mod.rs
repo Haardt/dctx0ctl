@@ -10,6 +10,7 @@ mod execution;
 mod pins;
 mod program_inspection;
 mod replay;
+mod review_changes;
 pub(crate) mod rust_build;
 mod shrink;
 mod task_reviews;
@@ -25,6 +26,7 @@ use dctx0_target_sdk::{
 use dctx0_verification::{LifecycleCaseInput, ProgramPlan, ProjectionFixtures};
 pub use program_inspection::InspectedVerificationReport;
 pub use replay::{ReplayChange, VerificationReplayReport};
+pub use review_changes::ReviewChangesReport;
 use std::{
     collections::{BTreeMap, BTreeSet},
     time::{Instant, SystemTime, UNIX_EPOCH},

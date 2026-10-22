@@ -47,3 +47,5 @@
 
 - [Large source-bound review inputs](reference/inspection-inputs.md)
 - [Pinned workflow packages and measurements](reference/workflow-efficiency.md)
+
+- [Editable TypeScript wire codecs](reference/codec-scaffolds.md)

@@ -1218,3 +1218,50 @@ aggregate local validation is partial. v0.2.8 publication requires fresh full CI
 validation and all five native platform gates. See
 `docs/site/src/reference/workflow-efficiency.md` and
 `docs/workflow-efficiency-validation.json` for scope, raw metrics and provenance.
+
+## Configurable codec and review workflow checkpoint (2026-10-22)
+
+`verify scaffold-codecs` generates editable TypeScript testing-only codecs from
+current published IR. Integer, option and enum defaults plus qualified-type
+exceptions are explicit CLI/configuration inputs. Existing files are preserved;
+dry-run proposals do not create files. Codecs convert representations, not business
+rules or production validation. `verify review-changes` compares the selected
+current task's latest review with current sources and supplies a blank renewal
+template; spec drift blocks that template. It never renews approval or testing PASS.
+`tasks package-apply` validates and reconstructs a complete package offline, with
+Markdown by default and direct package JSON under `--json`/`--format json`.
+`tasks show`, native proof/adoption guards, compiler goldens and SQLite schemas
+remain unchanged. Company Manager is a read-only reference for this increment.
+
+The final coupled local run passes 586 regular all-feature Rust executions plus
+one deferred benchmark check, 587 instrumented Rust executions, 38 Python tests
+and 77 Bun codec conformance cases. Nine additional isolated release-CLI-to-Bun
+representation checks pass. Both Go and Rust Cinema applications pass 5,674 cases,
+five actual mutations and replay. Fresh isolated coverage is 35,646/36,587 merged
+source lines (97.43%) and 2,896/2,984 LLVM functions (97.05%), with unchanged 97%
+thresholds and no new exclusions. Raw LLVM lines are 37,334/38,622 (96.67%);
+regions are 94.22%, not branch completeness. Non-Rust generated helper coverage
+is retained separately: 217/294 lines and 31/36 functions across two configurations.
+
+QA runs serially with test/dev optimization level 1, no debug symbols or incremental
+cache, and explicit debug assertions/overflow checks enabled. These local profile
+settings are recorded; normal release CI remains required. The process tree peaks
+at 1,065,418,752 bytes under a 2,866,156,885-byte watchdog budget. All 81 uninstrumented
+release speed/RSS workloads complete on stable compilation inputs with one sample,
+one measured iteration and one warm-up. Baseline comparison remains unassessed;
+no baseline was promoted. The latest 20 measurement records are retained.
+
+Local aggregate validation is incomplete solely because qualified Go Race reports
+`RACE_HOST_VMA_UNSUPPORTED` on this ARM64 host. Do not report a local full gate PASS.
+The two deliberately interrupted intermediate runs remain documented separately.
+See `docs/workflow-tools-validation.json`,
+`docs/site/src/reference/codec-scaffolds.md` and
+`docs/site/src/reference/workflow-efficiency.md` for scope, raw metrics and provenance.
+
+Workflow follow-up (2026-10-22): TypeScript codec generator v2 supplies a separate
+`decodeInput` path for contract-invalid shapes, while strict decoding and explicit
+representation failures remain. Read-only review comparison follows explicit
+ReviewRenewal ancestry and identifies `previous_task`; it never inherits approval.
+Focused workflow validation passes, with 81 coupled release measurements and
+929,284,096 bytes peak sampled process-tree RSS. Full coverage was not rerun;
+see `docs/workflow-tools-followup-validation.json`. The accepted baseline is unchanged.

@@ -303,3 +303,52 @@ pub fn package_delta(
             .collect(),
     })
 }
+
+/// Reconstruct a portable package without consulting history or the working tree.
+pub fn apply_package_delta(before: &WorkPackage, delta: &PackageDelta) -> Result<WorkPackage> {
+    before.validate()?;
+    if delta.before != before.id
+        || delta.before_pin != before.pin
+        || delta.after_pin.project != before.pin.project
+        || delta.after_pin.event_seq < before.pin.event_seq
+    {
+        return Err(Error::Invalid(
+            "Delta does not belong to this package and ordered project pins".into(),
+        ));
+    }
+    let mut content = before.content.clone();
+    let mut removed = BTreeSet::new();
+    for id in &delta.removed_content {
+        if !removed.insert(id) || content.remove(id).is_none() {
+            return Err(Error::Invalid(
+                "Delta removes an unknown or duplicate content item".into(),
+            ));
+        }
+    }
+    for (id, item) in &delta.added_content {
+        if before.content.contains_key(id) || removed.contains(id) {
+            return Err(Error::Invalid("Delta adds an existing content item".into()));
+        }
+        content.insert(id.clone(), item.clone());
+    }
+    let after = WorkPackage {
+        schema_version: before.schema_version,
+        id: delta.after.clone(),
+        pin: delta.after_pin.clone(),
+        spec_source_hash: delta.after_spec_source_hash.clone(),
+        slice: delta.after_slice.clone(),
+        tasks: delta.after_tasks.clone(),
+        content,
+        complete: delta.after_complete,
+        limitations: delta.after_limitations.clone(),
+    };
+    after.validate()?;
+    // Validate the explanatory delta as well as the reconstructed content identity.
+    let expected = package_delta(before, &after, &delta.history_links)?;
+    if hash(&expected) != hash(delta) {
+        return Err(Error::Invalid(
+            "Delta metadata disagrees with reconstructed package".into(),
+        ));
+    }
+    Ok(after)
+}

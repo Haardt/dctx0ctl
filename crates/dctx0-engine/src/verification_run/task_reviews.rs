@@ -1,6 +1,6 @@
 //! Source-bound task reviews supplement execution without rewriting native results.
 use super::*;
-use dctx0_tasks::{ConformanceReview, ReviewReport, ReviewedRequirement, TaskKind};
+use dctx0_tasks::{ConformanceReview, ReviewReport, TaskKind, empty_review_subjects};
 
 impl Project {
     pub(crate) fn validate_conformance_action(
@@ -58,18 +58,7 @@ impl Project {
                 requirements_hash: member.candidate.requirements_hash.clone(),
                 spec_source_hash: snapshot.source_hash,
                 implementation_artifacts: Capture::inventory(&application)?,
-                subjects: subjects
-                    .into_iter()
-                    .map(|subject| {
-                        (
-                            subject,
-                            ReviewedRequirement {
-                                report: String::new(),
-                                limitations: vec![],
-                            },
-                        )
-                    })
-                    .collect(),
+                subjects: empty_review_subjects(subjects),
             }),
         })
     }
@@ -234,6 +223,14 @@ mod tests {
                 .subjects
                 .is_empty()
         );
+        let initial_changes = project.review_changes(Some(&app), review).unwrap();
+        assert!(!initial_changes.changes.comparable);
+        assert!(initial_changes.previous.is_none());
+        assert_eq!(
+            initial_changes.template.unwrap().judgement,
+            "request-changes"
+        );
+        assert!(project.review_changes(Some(&app), contract).is_err());
         let started = project
             .task_action(Action::Start {
                 task: contract,
@@ -330,6 +327,47 @@ mod tests {
                 .len(),
             3
         );
+        let before_seq = project.task_session(None, None).unwrap().event_seq;
+        let current_changes = project.review_changes(Some(&app), review).unwrap();
+        assert!(current_changes.changes.comparable);
+        assert!(current_changes.changes.files.is_empty());
+        fs::write(app.join("app.ts"), "export const changed = 1;").unwrap();
+        fs::write(app.join("added.ts"), "export const added = true;").unwrap();
+        let changed = project.review_changes(Some(&app), review).unwrap();
+        assert!(
+            changed
+                .changes
+                .files
+                .iter()
+                .any(|f| f.path == "app.ts" && f.before.is_some() && f.after.is_some())
+        );
+        assert!(
+            changed
+                .changes
+                .files
+                .iter()
+                .any(|f| f.path == "added.ts" && f.before.is_none())
+        );
+        fs::remove_file(app.join("added.ts")).unwrap();
+        fs::remove_file(app.join("app.ts")).unwrap();
+        assert!(
+            project
+                .review_changes(Some(&app), review)
+                .unwrap()
+                .changes
+                .files
+                .iter()
+                .any(|f| f.path == "app.ts" && f.after.is_none())
+        );
+        fs::write(
+            app.join("app.ts"),
+            "export function factory(value:number){return value;}",
+        )
+        .unwrap();
+        assert_eq!(
+            project.task_session(None, None).unwrap().event_seq,
+            before_seq
+        );
         fs::write(
             spec.join("w.dctx0"),
             format!("{text}\n// changed reviewed specification\n"),
@@ -342,6 +380,10 @@ mod tests {
                 .to_string()
                 .contains("changed specification")
         );
+        let drift = project.review_changes(Some(&app), review).unwrap();
+        assert!(drift.template.is_none());
+        assert!(!drift.blockers.is_empty());
+        assert!(drift.changes.specification_changed);
         fs::write(spec.join("w.dctx0"), text).unwrap();
         project
             .task_action(Action::Complete {
@@ -368,6 +410,23 @@ mod tests {
                 .subjects
                 .is_empty()
         );
+        let renewed = project
+            .task_renew_review(review, Some(&app), "Changed source needs review")
+            .unwrap();
+        let successor = renewed.members.iter().find(|m| {
+            matches!(project.task_session(None, None).unwrap().definitions[&m.task_id].adjustment,
+                Some(dctx0_tasks::AdjustmentReason::ReviewRenewal { source, .. }) if source == review)
+        }).unwrap().task_id;
+        let seq = project.task_session(None, None).unwrap().event_seq;
+        let comparison = project.review_changes(Some(&app), successor).unwrap();
+        assert_eq!(comparison.previous_task, Some(review));
+        assert!(comparison.changes.comparable);
+        assert!(!comparison.changes.files.is_empty());
+        assert_eq!(comparison.previous.unwrap().judgement, report.judgement);
+        assert_eq!(comparison.template.unwrap().reviewer, "");
+        let session = project.task_session(None, None).unwrap();
+        assert_eq!(session.event_seq, seq);
+        assert!(session.states[&successor].reviews.is_empty());
         fs::remove_dir_all(root).unwrap();
     }
 }

@@ -82,7 +82,35 @@ pub(crate) fn run(
     {
         return Err("--from-plan/--from-event require tasks progress".into());
     }
-    let project = Project::new(&args.input, db).map_err(error_message)?;
+    if matches!(args.action, Verb::PackageApply) {
+        let unwrap =
+            |value: serde_json::Value| value.pointer("/body/data").unwrap_or(&value).clone();
+        let before: WorkPackage =
+            serde_json::from_value(unwrap(read(args.file.as_deref())?)).map_err(error_message)?;
+        let delta_path = args.delta.as_deref().ok_or("--delta is required")?;
+        let delta: PackageDelta =
+            serde_json::from_value(unwrap(read(Some(delta_path))?)).map_err(error_message)?;
+        let package = apply_package_delta(&before, &delta).map_err(error_message)?;
+        if global_json || args.format.as_deref() == Some("json") {
+            return json(output, &package);
+        }
+        let report = Output {
+            schema_version: 2,
+            plan_id: Some(package.pin.plan_id),
+            snapshot_id: Some(package.pin.snapshot_id.clone()),
+            event_seq: package.pin.event_seq,
+            verification_evidence: vec![],
+            body: Body::Package(package),
+        };
+        return output
+            .write_all(markdown(&report).as_bytes())
+            .map_err(error_message);
+    }
+    if args.delta.is_some() {
+        return Err("--delta requires tasks package-apply".into());
+    }
+    let project = Project::new(args.input.as_deref().ok_or("Spec root is required")?, db)
+        .map_err(error_message)?;
     let profiles = project.profiles(args.project.as_deref(), args.target.as_deref());
     if args.target.is_some() {
         profiles.as_ref().map_err(error_message)?;

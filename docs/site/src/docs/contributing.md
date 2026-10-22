@@ -74,3 +74,21 @@ target/docs-tools/mdbook serve docs/site --hostname 127.0.0.1 --port 4180
 The generated site is `target/docs-site`. Navigation, search, themes, and code copying are bundled locally. Authored chapters are under `docs/site/src`; generated output stays ignored.
 
 GitHub Actions builds and deploys this book through `.github/workflows/pages.yml`. Enable GitHub Pages with **GitHub Actions** as its source in repository settings. Changes to the documentation on `main` rebuild the published site.
+
+## Codec/workflow QA checkpoint
+
+The 2026-10-22 local tooling validation passes 97.43% merged Rust source lines
+and 97.05% raw LLVM functions, with unchanged 97% thresholds and no new exclusions.
+Raw LLVM lines remain separate at 96.67%; this is not complete branch coverage.
+All 81 release speed/RSS workloads complete with reduced development samples;
+the baseline is unassessed and unchanged. Local aggregate validation remains
+incomplete because this ARM64 host cannot run the qualified Go race detector.
+
+The resource-conscious local run used `CARGO_PROFILE_DEV_OPT_LEVEL=1`,
+`CARGO_PROFILE_TEST_OPT_LEVEL=1`, `CARGO_PROFILE_DEV_DEBUG=0`,
+`CARGO_PROFILE_TEST_DEBUG=0` and `CARGO_INCREMENTAL=0`, with dev/test debug
+assertions and overflow checks explicitly enabled. Builds and tests stayed serial
+under the one-third-available-RAM watchdog. These local settings do not change the
+release benchmark profile or CI thresholds. Exact commands, environment, raw
+coverage and measured RSS are retained in `docs/workflow-tools-validation.json`;
+see [workflow efficiency](../reference/workflow-efficiency.md).

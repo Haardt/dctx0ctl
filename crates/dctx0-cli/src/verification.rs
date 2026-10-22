@@ -145,6 +145,16 @@ pub(crate) struct VerifyArgs {
 }
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Generate editable testing codecs from published IR and explicit representations.
+    ScaffoldCodecs(crate::codec_scaffold::CodecScaffoldArgs),
+    /// Compare the latest task review to current sources; no renewal or approval.
+    ReviewChanges {
+        input: PathBuf,
+        #[arg(long, value_parser = task_id)]
+        task: i64,
+        #[arg(long)]
+        project: Option<PathBuf>,
+    },
     /// Build captured Rust production and execute the repository self specification.
     #[command(name = "self")]
     SelfCheck {
@@ -324,6 +334,21 @@ pub(crate) fn run(
     output: &mut dyn Write,
 ) -> Result<bool, String> {
     let (input, application, subject, task, historical_check, fixtures) = match args.action {
+        VerifyAction::ScaffoldCodecs(args) => {
+            return crate::codec_scaffold::run(args, database, json, output);
+        }
+        VerifyAction::ReviewChanges {
+            input,
+            task,
+            project: application,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let report = project
+                .review_changes(application.as_deref(), task)
+                .map_err(crate::error_message)?;
+            crate::render::json(output, &report)?;
+            return Ok(true);
+        }
         VerifyAction::SelfCheck { input, subject } => {
             #[cfg(feature = "rust")]
             {

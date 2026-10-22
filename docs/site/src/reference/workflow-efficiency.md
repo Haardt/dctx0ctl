@@ -179,3 +179,113 @@ The local Go race probe remains unavailable on its ARM64 VMA host, so aggregate
 local validation stays partial. Publication requires fresh full CI and all five
 platform gates. `docs/workflow-efficiency-validation.json` retains the exact
 results, prior failures and provenance.
+
+## Apply a saved delta
+
+```sh
+dctx0 tasks package-apply --file package.json --delta delta.json --json > next-package.json
+```
+
+This command needs no spec root, application, database or native toolchain. Both
+inputs accept direct objects or the established `body.data` CLI envelope. It
+reconstructs the complete next package, verifies source and target identities,
+ordered project pins, content references and explanatory delta metadata, then
+prints the direct package with `--json` (or `--format json`). The default is the
+complete Markdown package view, following the other task commands. Keep the full
+JSON output for the next `package-delta`.
+Do not use the same file as shell input and output: shell redirection truncates
+it before the command reads it.
+
+Only added content and tasks marked `reload_context` need reloading into a retained
+agent context. Shared constraints, acceptance and types stay complete. An agent
+without the retained context still needs the referenced full bodies. `tasks show`
+and its complete requirements remain available with the existing output shape.
+
+## Prepare a source-bound review renewal
+
+```sh
+dctx0 verify review-changes path/to/spec --project path/to/app --task T42 --json
+```
+
+The read-only report compares the selected task's latest stored review with its
+pinned requirements and current application inventory. It reports changed, added
+and removed files with old/new hashes; changes to requirements, snapshot and spec
+sources; the complete affected duty group; and historical findings. A missing or
+legacy review is explicitly noncomparable. A later rejection or actionable finding
+is never replaced by an older approval. When a renewed task has no report, explicit `ReviewRenewal` ancestry supplies
+the nearest predecessor's latest judgement. `previous_task` identifies that
+source; unrelated history is never selected and approval is never inherited.
+
+`template` contains a fresh empty request-changes report suitable for substantive
+renewal; it never inherits approval text or reviewer identity. Spec drift instead
+produces a blocker and no template. Check and publish current task requirements
+explicitly before renewing. The command writes no events and supplies no new
+execution evidence. Existing inventory-wide review acceptance rules remain intact;
+there is no inference from one changed file to a particular duty and no automatic
+review-hash refresh. This API handles stored dctx0 task reviews, not consumer-specific
+inspection JSON formats.
+
+The coupled runner adds `tasks-package-apply`, `tasks-review-changes` and
+`verification-codecs` to the release phases. Package apply uses a prepared complete
+Cinema package and an unchanged delta, including serialization of the result.
+Review comparison uses a synthetic source-bound report constructed from Cinema
+requirements and source hashes; it measures the pure comparison, not filesystem
+capture, review reasoning or native execution. Core measurements report post-exec
+VmHWM including preparation; phase runtime excludes preparation. See
+[codec scaffolds](codec-scaffolds.md) for generation scope and configuration.
+
+## Tooling validation checkpoint — 2026-10-22
+
+The final coupled run passes 586 regular all-feature Rust executions plus the
+separately deferred benchmark check, 587 instrumented Rust executions, 38 Python
+tests and 77 Bun codec cases. The isolated release CLI-to-Bun check passes nine
+representation scenarios. Go and Rust Cinema each pass all 5,674 required cases,
+five meaningful production mutations and repaired replay. Local aggregate status
+is **incomplete** solely for `RACE_HOST_VMA_UNSUPPORTED`; the unavailable native
+race detector is not replaced with ordinary Go tests.
+
+Fresh isolated Rust coverage is 35,646/36,587 merged source lines (97.43%) and
+2,896/2,984 LLVM functions (97.05%). Raw LLVM lines are 96.67% and raw regions are
+94.22%; neither establishes complete branch coverage. The 97% thresholds remain
+unchanged and no exclusions were added. TypeScript helper coverage is separate:
+217/294 source lines and 31/36 functions across the two generated configurations.
+
+The 81 release workloads complete in
+`benchmarks/history/20261022T011947.427072Z-18852.json`. New phase samples are:
+
+| Phase | Elapsed ms | Peak RSS bytes |
+| --- | ---: | ---: |
+| `tasks-package-apply` | 2.761231 | 29,409,280 |
+| `tasks-review-changes` | 0.007384 | 27,803,648 |
+| `verification-codecs` | 0.269230 | 11,059,200 |
+
+Runtime excludes preparation; RSS includes it. The review phase measures a pure
+comparison of a synthetic report, not filesystem capture or review reasoning.
+These reduced development measurements use one warm-up, sample and measured
+iteration. The baseline is incompatible/unassessed and unchanged; no regression
+or throughput improvement is inferred. Recent comparable history remains in the
+raw record, with the newest 20 runs retained.
+
+The serial QA run uses test/dev optimization level 1 with debug assertions and
+overflow checks enabled, no debug symbols and no incremental cache. The sampled
+process tree peaks at 1,065,418,752 bytes against a 2,866,156,885-byte budget.
+Release measurements remain uninstrumented and use the ordinary release profile.
+`docs/workflow-tools-validation.json` records the exact environment, complete
+checks, unchanged source pins, baseline hash and raw measurements. The two earlier
+intentionally interrupted runs are explicitly incomplete and supply no baseline.
+
+## Workflow follow-up validation (2026-10-22)
+
+Codec generator version 2 adds `decodeInput` for contract-invalid native shapes;
+strict `decode` remains available. Review comparison follows explicit renewal
+ancestry and publishes `previous_task`, without copying approval or emitting events.
+
+`python3 scripts/validate.py --focus workflow-tools --samples 1 --iterations 1`
+passes 38 Python tests, seven focused Rust tests, one deferred benchmark test,
+strict TypeScript checking and 79 Bun cases, alongside workspace check/build,
+formatting and Clippy. This is targeted development validation, not a replacement
+for full workspace coverage acceptance. All 81 release workloads and separate
+native costs completed. The guarded run took 700,382.502 ms with peak sampled
+process-tree RSS of 929,284,096 bytes against a 3,604,647,936-byte limit. Reduced
+samples remain unassessed against the accepted baseline, which was not promoted.
+`docs/workflow-tools-followup-validation.json` retains full measurement provenance.

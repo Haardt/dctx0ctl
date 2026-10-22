@@ -125,3 +125,17 @@ SQLite schemas are unchanged. See [workflow efficiency](../reference/workflow-ef
 
 Fresh full validation and all five native platform jobs gate publication. The
 local ARM64 Go race probe cannot run on its 39-bit VMA host; no exemption is added.
+
+## v0.2.9: editable codec scaffolds and workflow continuation
+
+Optional TypeScript codec scaffolds accept CLI/configuration differences and
+per-type overrides. Strict decoding and a separate input decoder keep negative
+contract tests connected to actual production validators. Offline package-delta
+application reconstructs complete packages; read-only review comparisons follow
+explicit renewal ancestry without inheriting approval. Embedded skills document
+the full handoff. Existing examples need no migration; wire contracts, task
+definitions and SQLite schemas are unchanged.
+
+Fresh full workspace validation and all five native platform jobs gate publication.
+Local evidence remains scoped in `docs/workflow-tools-validation.json` and
+`docs/workflow-tools-followup-validation.json`; the accepted baseline is unchanged.

@@ -91,6 +91,7 @@ pub(crate) enum Command {
 pub(crate) enum Phase {
     SiteSnapshot,
     VerificationHarness,
+    VerificationCodecs,
     VerificationDiscover,
     VerificationInit,
     VerificationHistoryPublish,
@@ -120,6 +121,8 @@ pub(crate) enum Phase {
     TasksContextJson,
     TasksPackage,
     TasksPackageDelta,
+    TasksPackageApply,
+    TasksReviewChanges,
     TasksProgress,
     TasksSlice,
     TasksClaim,

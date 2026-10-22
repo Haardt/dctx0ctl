@@ -6,6 +6,8 @@ pub(crate) enum Verb {
     Package,
     /// Compare saved --file package with current package for this anchor.
     PackageDelta,
+    /// Reconstruct a package from --file and --delta without history access.
+    PackageApply,
     /// Compare task state at explicit start/end event pins.
     Progress,
     Preview,
@@ -37,7 +39,7 @@ pub(crate) enum Verb {
 pub(crate) struct TaskArgs {
     #[arg(value_enum)]
     pub(super) action: Verb,
-    pub(super) input: PathBuf,
+    pub(super) input: Option<PathBuf>,
     #[arg(long)]
     pub(super) project: Option<PathBuf>,
     #[arg(long)]
@@ -86,6 +88,8 @@ pub(crate) struct TaskArgs {
     pub(super) artifact: Vec<String>,
     #[arg(long)]
     pub(super) file: Option<PathBuf>,
+    #[arg(long)]
+    pub(super) delta: Option<PathBuf>,
     #[arg(long)]
     pub(super) finding: Option<String>,
     #[arg(long, default_value = "core")]

@@ -42,8 +42,8 @@ pub use verification::VerificationSelection;
 pub use verification_discovery::*;
 pub use verification_run::{
     AdoptionPreviewTask, InspectedVerificationReport, NativeVerificationReport, ReplayChange,
-    TaskAttestation, VerificationAdoptionPreview, VerificationLifecycleFixtures,
-    VerificationReplayReport,
+    ReviewChangesReport, TaskAttestation, VerificationAdoptionPreview,
+    VerificationLifecycleFixtures, VerificationReplayReport,
 };
 pub use verification_setup::*;
 
@@ -182,3 +182,6 @@ mod profile_publication_tests {
 
 mod review_input;
 pub use review_input::{DEFAULT_REVIEW_INPUT_BYTES, read_review_input};
+
+mod codecs;
+pub use codecs::*;

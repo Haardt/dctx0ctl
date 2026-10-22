@@ -73,6 +73,9 @@ pub(crate) fn benchmark(
     if matches!(phase, Phase::VerificationDiscover) {
         return crate::verification_discovery_benchmark::benchmark(project, iterations, output);
     }
+    if matches!(phase, Phase::VerificationCodecs) {
+        return crate::codec_scaffold::benchmark(&ir, iterations, sources.len(), output);
+    }
     if matches!(phase, Phase::VerificationHarness) {
         return crate::harness_benchmark::benchmark(&ir, iterations, sources.len(), output);
     }
@@ -104,6 +107,8 @@ pub(crate) fn benchmark(
         phase,
         Phase::TasksPackage
             | Phase::TasksPackageDelta
+            | Phase::TasksPackageApply
+            | Phase::TasksReviewChanges
             | Phase::TasksProgress
             | Phase::TasksPlan
             | Phase::TasksReconcile
@@ -301,13 +306,50 @@ fn task_benchmark(
         }
     }
     let delta = dctx0_tasks::plan(&changed).map_err(error_message)?;
-    let package = if matches!(phase, Phase::TasksPackageDelta) {
+    let package = if matches!(phase, Phase::TasksPackageDelta | Phase::TasksPackageApply) {
         Some(
             dctx0_tasks::work_package(&session, snapshot, anchor, None, None, &Default::default())
                 .map_err(error_message)?,
         )
     } else {
         None
+    };
+    let package_patch = package
+        .as_ref()
+        .map(|before| dctx0_tasks::package_delta(before, before, &[]))
+        .transpose()
+        .map_err(error_message)?;
+    let review_binding = dctx0_tasks::ConformanceReview {
+        snapshot: snapshot.id.clone(),
+        requirements_hash: session
+            .member(anchor)
+            .map_err(error_message)?
+            .candidate
+            .requirements_hash
+            .clone(),
+        spec_source_hash: snapshot.source_hash.clone(),
+        implementation_artifacts: snapshot
+            .sources
+            .iter()
+            .map(|source| (source.file.clone(), dctx0_changes::hash(&source.text)))
+            .collect(),
+        subjects: dctx0_tasks::empty_review_subjects(
+            session
+                .plan
+                .members
+                .iter()
+                .filter(|member| member.candidate.kind == dctx0_tasks::TaskKind::Review)
+                .flat_map(|member| {
+                    dctx0_tasks::conformance_subjects(&snapshot.ir, &member.candidate)
+                }),
+        ),
+    };
+    let previous_review = dctx0_tasks::ReviewReport {
+        reviewer: "benchmark-fixture".into(),
+        judgement: "approved".into(),
+        summary: "Synthetic comparison baseline; no review authority".into(),
+        findings: vec![],
+        conformance: Some(review_binding.clone()),
     };
     let mut elapsed = std::time::Duration::ZERO;
     for iteration in 0..iterations {
@@ -356,6 +398,20 @@ fn task_benchmark(
                     dctx0_tasks::package_delta(before, &after, &session.links)
                         .map_err(error_message)?,
                 );
+            }
+            Phase::TasksPackageApply => {
+                let after = dctx0_tasks::apply_package_delta(
+                    package.as_ref().unwrap(),
+                    package_patch.as_ref().unwrap(),
+                )
+                .map_err(error_message)?;
+                std::hint::black_box(serde_json::to_vec(&after).map_err(error_message)?);
+            }
+            Phase::TasksReviewChanges => {
+                std::hint::black_box(dctx0_tasks::compare_review_bindings(
+                    Some(&previous_review),
+                    &review_binding,
+                ));
             }
             Phase::TasksProgress => {
                 std::hint::black_box(

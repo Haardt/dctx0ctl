@@ -22,7 +22,18 @@ needed; do not put transient execution instructions in reviewed specs.
 After resuming, use `tasks package-delta <spec-root> T<anchor> --project
 <app-root> --file <previous-package.json> --json`. It reports new/removed tasks,
 requirement, prerequisite, profile, state and evidence changes and new content.
-Reload tasks marked `reload_context`; retain unchanged content by its reference.
+Save the delta separately, then reconstruct and validate the next complete package:
+
+```sh
+dctx0 tasks package-apply --file previous-package.json --delta delta.json --json > next-package.json
+```
+
+Retain `next-package.json` for the next comparison. The command checks both package
+identities, pins and content references without opening project history. Do not
+replace the prior package with the delta itself. Reload tasks marked
+`reload_context` and newly added contents; retain unchanged content by its reference.
+Read all required constraints, examples and type contracts before implementation;
+shared references avoid retransmission, not requirements.
 The delta is a comparison of pinned requirements and selected profiles, not a
 working-tree freshness check. A saved package never overrides new claims or
 changed requirements. Implementation changes still require relevant reinspection.
@@ -49,6 +60,15 @@ Before ending a package, reconcile implementation, evidence and task state.
 Use `verify adoption-preview <spec-root> <run-id> --project <app-root> --json`
 to explain native adoption blockers; it never adopts, refreshes or executes.
 Existing guarded verification/delivery commands remain the publication path.
+For a stale assigned review, use `verify review-changes <spec-root> --task T<id>
+--project <app-root> --json`. Inspect changed/added/removed files and historical
+findings, then fill the empty current template after substantive review. A source
+group covers all its assigned duties; the tool does not infer which individual
+duty a changed file affects. Spec drift blocks a current template. This read-only
+comparison never renews approval or changes task state. When a renewed task has
+no report, it follows only explicit review-renewal ancestry; `previous_task` names
+the source of the nearest latest judgement. That report is comparison context,
+not an inherited approval.
 Deliver authored reviews separately where required. Preserve Done/Unverified if
 PASS requirements are not satisfied and name the missing evidence explicitly.
 Retain result artifacts and decisions with the ordinary guarded task completion.

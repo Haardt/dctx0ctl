@@ -144,6 +144,8 @@ fn commands_publish_inspect_rename_and_benchmark_with_machine_readable_output() 
         "check-changed",
         "tasks-package",
         "tasks-package-delta",
+        "tasks-package-apply",
+        "tasks-review-changes",
         "tasks-progress",
         "verification-diagnostics-summary",
         "verification-diagnostics-cases",
@@ -261,6 +263,8 @@ fn verification_core_benchmarks_measure_both_compiled_examples_without_native_cl
         for phase in [
             #[cfg(feature = "typescript")]
             "verification-harness",
+            #[cfg(feature = "typescript")]
+            "verification-codecs",
             #[cfg(feature = "typescript")]
             "verification-init",
             "verification-history-publish",

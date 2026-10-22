@@ -23,6 +23,23 @@ Preserve exact numbers and report unsupported native representations rather than
 rounding. Each independent case starts fresh; lifecycle actions share one session.
 Record actual calls, events, state and accesses through real observers.
 
+For TypeScript representation boilerplate, use `verify scaffold-codecs <spec-root>
+--project <app-root> --target typescript --subject <qualified-name> --integer number
+--option null --enum string`. A published current check is required. Pass
+`--type <qualified-type>=bigint` (or another supported representation) for per-type
+exceptions; `--config <file>` retains versioned defaults and CLI flags override them.
+Use `--dry-run --json` to inspect the proposal. Existing files are preserved; use a
+new `--output candidate-wire-codecs.ts` basename when regenerating edited codecs.
+The generated `encode`/`decode` convert wire representations only; `decode`
+requires the contract's structural shape. Use `decodeInput` for negative contract
+tests so missing/extra fields, wrong primitive kinds and unknown enum names reach
+the actual production validator. Keep conversion outside the application-call
+exception handler: a codec failure is never production rejection. Unrepresentable
+values still need an explicit custom mapping. A permissive validator must remain
+observable as accepting an invalid input. Existing edited scaffolds need the v2
+helper merged from a separately generated proposal; installation does not replace
+them. Actual production validators and calls must still run.
+
 Managed builds/workers have separate deadlines and resource limits. The optional
 Linux/systemd collective cap can be disabled with DCTX0_MEMORY_GUARD=0. Native
 execution is not a security sandbox. Unsupported toolchains, incomplete dependency

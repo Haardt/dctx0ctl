@@ -1516,3 +1516,127 @@ fn requirement_replacement_deltas_transmit_new_bodies_and_preserve_historical_pa
     .validate()
     .unwrap();
 }
+
+#[test]
+fn package_deltas_reconstruct_exact_targets_and_reject_tampering() {
+    let snapshot = snap(SPEC);
+    let session = session(&snapshot);
+    let anchor = session.plan.members.last().unwrap().task_id;
+    let before = work_package(&session, &snapshot, anchor, None, None, &BTreeMap::new()).unwrap();
+    let delta = package_delta(&before, &before, &[]).unwrap();
+    assert_eq!(
+        serde_json::to_value(apply_package_delta(&before, &delta).unwrap()).unwrap(),
+        serde_json::to_value(&before).unwrap()
+    );
+    let mut after = before.clone();
+    // Obtain a valid target with removed tasks/content through a different anchor.
+    let next = session.plan.members.first().unwrap().task_id;
+    let smaller = work_package(&session, &snapshot, next, None, None, &BTreeMap::new()).unwrap();
+    let removed = package_delta(&before, &smaller, &[]).unwrap();
+    assert_eq!(
+        apply_package_delta(&before, &removed).unwrap().id,
+        smaller.id
+    );
+    let added = package_delta(&smaller, &before, &[]).unwrap();
+    assert_eq!(apply_package_delta(&smaller, &added).unwrap().id, before.id);
+    assert!(apply_package_delta(&smaller, &removed).is_err());
+    after.id = "corrupt".into();
+    assert!(apply_package_delta(&after, &delta).is_err());
+    for variant in 0..10 {
+        let mut invalid = delta.clone();
+        match variant {
+            0 => invalid.before = "foreign".into(),
+            1 => invalid.before_pin.event_seq += 1,
+            2 => invalid.after_pin.project = "foreign".into(),
+            3 => invalid.after_pin.event_seq -= 1,
+            4 => invalid.after = "wrong target".into(),
+            5 => invalid.removed_content.push("absent".into()),
+            6 => {
+                let (id, item) = before.content.first_key_value().unwrap();
+                invalid.added_content.insert(id.clone(), item.clone());
+            }
+            7 => invalid.spec_sources_changed = !invalid.spec_sources_changed,
+            8 => invalid.after_tasks[0].context.push("missing".into()),
+            _ => invalid.after_complete = !invalid.after_complete,
+        }
+        assert!(
+            apply_package_delta(&before, &invalid).is_err(),
+            "variant {variant}"
+        );
+    }
+    if let Some(id) = removed.removed_content.first() {
+        let mut invalid = removed.clone();
+        invalid.removed_content.push(id.clone());
+        assert!(apply_package_delta(&before, &invalid).is_err());
+    }
+}
+
+#[test]
+fn review_comparison_preserves_latest_judgement_and_reports_complete_group_changes() {
+    let binding = ConformanceReview {
+        snapshot: "snapshot".into(),
+        requirements_hash: "requirements".into(),
+        spec_source_hash: "sources".into(),
+        implementation_artifacts: [
+            ("kept.ts".into(), "old".into()),
+            ("removed.ts".into(), "old".into()),
+        ]
+        .into(),
+        subjects: empty_review_subjects(["W.Review".into()]),
+    };
+    assert!(!compare_review_bindings(None, &binding).comparable);
+    let mut previous = ReviewReport {
+        reviewer: "agent".into(),
+        judgement: "approved".into(),
+        summary: "Substantive review".into(),
+        findings: vec![],
+        conformance: Some(binding.clone()),
+    };
+    assert!(
+        compare_review_bindings(Some(&previous), &binding)
+            .reasons
+            .is_empty()
+    );
+    let mut current = binding.clone();
+    current
+        .implementation_artifacts
+        .insert("kept.ts".into(), "new".into());
+    current.implementation_artifacts.remove("removed.ts");
+    current
+        .implementation_artifacts
+        .insert("added.ts".into(), "new".into());
+    current.snapshot = "next".into();
+    current.requirements_hash = "changed".into();
+    current.spec_source_hash = "changed".into();
+    current.subjects = empty_review_subjects(["W.NewReview".into()]);
+    let delta = compare_review_bindings(Some(&previous), &current);
+    assert_eq!(delta.files.len(), 3);
+    assert!(delta.files[0].before.is_none());
+    assert!(delta.files[2].after.is_none());
+    assert!(delta.snapshot_changed && delta.specification_changed && delta.requirements_changed);
+    assert_eq!(
+        delta.affected_subjects,
+        ["W.Review".into(), "W.NewReview".into()].into()
+    );
+    previous.judgement = "request-changes".into();
+    assert!(
+        !compare_review_bindings(Some(&previous), &binding)
+            .reasons
+            .is_empty()
+    );
+    previous.judgement = "approved".into();
+    previous.findings.push(Finding {
+        id: "F1".into(),
+        severity: "high".into(),
+        description: "Fix".into(),
+        task_ids: vec![],
+        action_required: true,
+    });
+    assert!(
+        !compare_review_bindings(Some(&previous), &binding)
+            .reasons
+            .is_empty()
+    );
+    previous.conformance = None;
+    assert!(!compare_review_bindings(Some(&previous), &binding).comparable);
+}

@@ -366,13 +366,27 @@ Changed requirements create new adaptation tasks with explicit predecessor links
 
 For worker coordination, use `tasks claim-next` or `tasks claim-slice` with an actor. Transitions require the returned claim/reservation and version guards. Context includes required types and acceptance criteria; large contexts expose missing sections and pinned continuation cursors. See [tasks](docs/site/src/docs/workflow.md) and [profiles](docs/site/src/docs/profiles.md).
 
+Generate editable testing codecs from a current published specification with
+`verify scaffold-codecs <spec-root> --project <app-root> --target typescript`.
+Pass defaults such as `--integer number --option null --enum string` and per-type
+exceptions such as `--type Shop.Sequence=bigint`; `--config` accepts a versioned
+JSON configuration. Existing files are preserved; `--dry-run --json` shows the
+proposal. See [wire-codec scaffolds](docs/site/src/reference/codec-scaffolds.md).
+
+Use `verify review-changes <spec-root> --project <app-root> --task T42 --json`
+to compare the latest task review with current sources and get an empty renewal
+template. It does not renew approvals or change work/testing status.
+
 For a complete dependency-closed handoff, use `tasks package <spec-root> T42
 --project <app-root> --json`; `tasks package-delta ... --file package.json`
 returns changed context and state. `tasks progress <spec-root> --from-plan P
 --from-event E --json` compares explicit endpoints. Compact diagnostics are
 available through `verify show <spec-root> RUN --summary` or
 `--outcome FAIL,UNKNOWN --limit 50`; `verify adoption-preview` explains current
-eligibility without task changes. See [work packages and workflow measurements](docs/site/src/reference/workflow-efficiency.md)
+eligibility without task changes.
+`tasks package-apply --file package.json --delta delta.json --json` validates and
+reconstructs the full next package without opening project history; retain that
+output for the next delta. See [work packages and workflow measurements](docs/site/src/reference/workflow-efficiency.md)
 for pins, cursors, delivery, external usage receipts and the coupled validation/
 release speed/RAM command `python3 scripts/validate.py --coverage --samples 1 --iterations 1`.
 
@@ -626,3 +640,8 @@ Go tests do not replace this check. The same one-third-RAM guard applies.
 The v0.2.7 host diagnosis, real CI race execution, coverage, published asset
 checks and bounded local measurements are retained in
 [the validation evidence](docs/go-race-validation.json).
+
+For bounded codec/review/package workflow regression checks together with release
+speed and peak-RSS measurements, run
+`CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=1 python3 scripts/validate.py --focus workflow-tools --samples 1 --iterations 1`.
+This is partial development validation; full coverage acceptance still uses workspace focus.
