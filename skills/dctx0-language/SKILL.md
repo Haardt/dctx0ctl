@@ -10,6 +10,9 @@ report missing business decisions instead of inferring assertions from narrative
 Read [references/language.md](references/language.md) for syntax and identity rules.
 Use the project's complete examples for complex supported clauses, then validate
 with `dctx0 check <spec-root>`. `parse <file-or-root>` diagnoses syntax alone.
+Independent dctx0 commands may run in parallel against the same local database;
+SQLite transactions and locks protect it, and `check` takes the project lock.
+Coordinate concurrent spec edits separately so checks see the intended sources.
 
 Keep source composition and implementation binding distinct. A spec can span
 sorted files through top-level fragments; application names, libraries and file

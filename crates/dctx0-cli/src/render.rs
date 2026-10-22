@@ -2,7 +2,7 @@ use crate::error_message;
 use std::io::Write;
 
 pub(crate) fn json(output: &mut dyn Write, value: &impl serde::Serialize) -> Result<(), String> {
-    serde_json::to_writer(&mut *output, value).map_err(error_message)?;
+    serde_json::to_writer_pretty(&mut *output, value).map_err(error_message)?;
     writeln!(output).map_err(error_message)?;
     Ok(())
 }
@@ -44,4 +44,24 @@ pub(crate) fn display_changes(
         .map_err(error_message)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn json_reports_split_large_collections_into_searchable_lines() {
+        let value = serde_json::json!({"items": (0..10_000).collect::<Vec<_>>()});
+        let mut output = Vec::new();
+        json(&mut output, &value).unwrap();
+        let text = String::from_utf8(output).unwrap();
+        assert!(text.ends_with('\n'));
+        assert!(text.lines().count() > 10_000);
+        assert!(text.lines().all(|line| line.len() < 80));
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&text).unwrap(),
+            value
+        );
+    }
 }

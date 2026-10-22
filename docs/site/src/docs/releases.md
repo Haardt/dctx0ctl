@@ -139,3 +139,14 @@ definitions and SQLite schemas are unchanged.
 Fresh full workspace validation and all five native platform jobs gate publication.
 Local evidence remains scoped in `docs/workflow-tools-validation.json` and
 `docs/workflow-tools-followup-validation.json`; the accepted baseline is unchanged.
+
+## v0.2.10: searchable JSON reports and parallel CLI guidance
+
+CLI JSON reports and reduced verification GC exports use indented lines with a
+trailing newline. This intentionally changes output whitespace so large reports
+can be searched line by line; JSON values and internal hash/transport formats
+are unchanged. Existing exports are not automatically rewritten.
+
+Embedded skills document parallel dctx0 commands sharing a protected local
+SQLite database, atomic worker claims and separate coordination of file edits.
+Normal workspace validation and all five native distribution gates apply.

@@ -136,7 +136,8 @@ pub(super) fn clean(
                     return Err(Error::Invalid("Export changed during gc".into()));
                 }
                 // After reduction this contains metadata, not the original embedded case corpus.
-                let bytes = serde_json::to_vec(&value)?;
+                let mut bytes = serde_json::to_vec_pretty(&value)?;
+                bytes.push(b'\n');
                 if !dry_run {
                     atomic_write(&path, &bytes)?;
                 }

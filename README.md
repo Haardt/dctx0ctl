@@ -358,7 +358,7 @@ dctx0 impact <spec-root> <qualified-symbol> --snapshot latest --json
 dctx0 rename <spec-root> <qualified-symbol> <new-name> --dry-run --json
 ```
 
-`parse` also accepts a single file. Snapshot selectors accept `latest`, a full hash, or an unambiguous hexadecimal prefix of at least eight characters. `--json` supplies structured output; task commands default to Markdown. Global `--db <path>` selects another SQLite database.
+`parse` also accepts a single file. Snapshot selectors accept `latest`, a full hash, or an unambiguous hexadecimal prefix of at least eight characters. `--json` supplies indented, multiline structured output with a trailing newline so redirected reports can be searched line by line; task commands default to Markdown. Global `--db <path>` selects another SQLite database.
 
 Specs remain source files. Derived history defaults to `<spec-root>/.dctx0ctl/state.sqlite3`. Successful checks publish transactionally; failed compilation preserves the last valid head. Semantic cycles are supported, while task prerequisites form a separate DAG.
 

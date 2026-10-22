@@ -102,8 +102,11 @@ fn storage_engine_compaction_preview_exports_and_restart_keep_history_honest() {
             .iter()
             .any(|e| e.status.starts_with("skipped:"))
     );
-    let reduced: serde_json::Value =
-        serde_json::from_slice(&fs::read(exports.join("report.json")).unwrap()).unwrap();
+    let reduced_bytes = fs::read(exports.join("report.json")).unwrap();
+    let reduced_text = std::str::from_utf8(&reduced_bytes).unwrap();
+    assert!(reduced_text.ends_with('\n'));
+    assert!(reduced_text.lines().count() > 1);
+    let reduced: serde_json::Value = serde_json::from_slice(&reduced_bytes).unwrap();
     assert!(reduced["evidence"].get("run").is_none());
     assert_eq!(reduced["evidence"]["summary"]["details_available"], false);
     assert_eq!(reduced["siblings"], body["siblings"]);

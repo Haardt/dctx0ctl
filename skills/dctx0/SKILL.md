@@ -13,6 +13,22 @@ Identify the reviewed spec root and the separate application root. `check <spec-
 compiles and publishes a valid snapshot; failed compilation preserves the previous
 head. Read-only history, task and verification reports describe pinned inputs,
 not automatically the current working tree. Use `--json` for structured reports.
+Current CLI JSON reports are indented across multiple lines and end with a newline,
+so redirected reports can be searched line by line. Preserve these line breaks
+when saving reports; compacting a large report creates huge lines that can make
+`grep` consume substantial memory. Older saved reports may still be compact;
+use a JSON-aware tool such as `jq` to select fields rather than recursively
+searching entire artifact directories.
+
+Run independent dctx0 commands in parallel when useful, including against the
+same local SQLite database: database locking and transactions protect access.
+Do not serialize all CLI calls merely because they share a database. WAL permits
+readers alongside a writer; write transactions are serialized and wait up to five
+seconds for a busy database before failing. `check` also takes an exclusive project
+lock. Use the CLI's atomic task claims/reservations and guarded transitions for
+parallel workers; a read-only `next` does not reserve work. On a lock timeout or
+stale-state conflict, reread the current state before deciding whether to retry;
+do not blindly repeat a workflow that may already have published earlier steps.
 
 For spec changes use `$dctx0-language`; for application tasks or an external adapter
 use `$dctx0-implementation`. Keep the user's actual scope and existing authorization.

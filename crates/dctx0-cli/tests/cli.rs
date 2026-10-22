@@ -47,7 +47,11 @@ fn cli_parses_files_and_recursive_workspaces_and_reports_failures() {
     let path = sandbox.0.to_str().unwrap();
     let output = cli(&["parse", path]);
     assert!(output.status.success());
-    assert_eq!(String::from_utf8(output.stdout).unwrap().lines().count(), 2);
+    let documents = serde_json::Deserializer::from_slice(&output.stdout)
+        .into_iter::<serde_json::Value>()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(documents.len(), 2);
     let file = sandbox.0.join("a.dctx0");
     assert!(cli(&["parse", file.to_str().unwrap()]).status.success());
     let output = cli(&["bench-parse", path, "2"]);

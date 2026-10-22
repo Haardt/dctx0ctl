@@ -18,7 +18,12 @@ It covers shared context, deltas, bounded handoffs, focused diagnosis and delive
 
 Keep task definitions immutable. Claims/reservations, start/release/complete,
 checks and reviews are guarded events. Respect another worker's ownership and
-existing scope; dependency-ready does not itself reserve work. Do not implicitly
+existing scope; dependency-ready does not itself reserve work. Independent dctx0
+commands can run in parallel against the same local database; SQLite WAL, write
+transactions and project locks protect shared state. Use atomic claims/reservations
+for workers. Database protection does not coordinate edits to application files;
+keep concurrent file ownership clear. On a busy timeout or stale-state conflict,
+reload state before retrying. Do not implicitly
 expand a task to unrelated application changes. Ask only for genuinely missing
 requirements or authorization not already supplied by the user.
 
