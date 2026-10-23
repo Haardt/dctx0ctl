@@ -1,0 +1,458 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "scope": "Compact verification reports, SQLite schema 6, public SQL view version 1",
+  "implementation_status": "implemented",
+  "local_validation_status": "incomplete",
+  "limitations": [
+    "Qualified Go Race unavailable: RACE_HOST_VMA_UNSUPPORTED on this ARM64 host (39-bit VMA). Local aggregate validation is incomplete.",
+    "Release measurements use one sample, one measured iteration and one warm-up. Baseline environment/settings are incompatible; no regression acceptance or baseline promotion is claimed.",
+    "LLVM region and raw line metrics are retained separately; merged source lines and raw LLVM functions are the 97% acceptance gates. No branch completeness claim."
+  ],
+  "coupled_command": "CARGO_BUILD_JOBS=2 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 CARGO_PROFILE_DEV_INCREMENTAL=false CARGO_PROFILE_TEST_INCREMENTAL=false CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true python3 scripts/validate.py --coverage --samples 1 --iterations 1 --example cinema",
+  "record": "benchmarks/history/20261022T210832.294844Z-11158.json",
+  "source_hash_before": "346d1aa3276e9df97be457c267a4bed8d81bbd07857820f7a4166342c3cba462",
+  "source_hash_after": "346d1aa3276e9df97be457c267a4bed8d81bbd07857820f7a4166342c3cba462",
+  "validation_steps": [
+    {
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        "--cwd",
+        "examples/cinema"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        "--cwd",
+        "fixtures/conformance/adaptive-typescript/direct"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        "--cwd",
+        "fixtures/conformance/adaptive-typescript/service"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "run",
+        "--cwd",
+        "examples/cinema",
+        "typecheck"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "test",
+        "examples/cinema/src",
+        "./examples/cinema/.dctx0/testing/typescript/http-integration.test.ts",
+        "./examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--workspace",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--workspace",
+        "--all-features",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--features",
+        "rust",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--features",
+        "go",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "go",
+        "mod",
+        "download",
+        "-C",
+        "examples/cinema-go"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-C",
+        "examples/cinema-go",
+        "-coverprofile=/home/massenhaft/workspaces/conpinion/dctx0ctl/target/go-cinema.coverage",
+        "./..."
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "-C",
+        "examples/cinema-go",
+        "./..."
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/go_race.py"
+      ],
+      "returncode": 2,
+      "status": "unavailable",
+      "evidence": "target/go-cinema/race.json"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/go_cinema_acceptance.py",
+        "--binary",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/debug/dctx0"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--manifest-path",
+        "examples/cinema-rust/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--manifest-path",
+        "examples/cinema-rust/Cargo.toml",
+        "--all-targets",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/rust_cinema_acceptance.py",
+        "--binary",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/debug/dctx0"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--manifest-path",
+        "examples/cinema-rust/Cargo.toml",
+        "--all-features",
+        "--offline",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--manifest-path",
+        "examples/cinema-rust/.dctx0/testing/rust/Cargo.toml",
+        "--lib",
+        "--offline",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/editor_acceptance.py",
+        "--binary",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/debug/dctx0",
+        "--functional-only"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/coverage.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/query_acceptance.py",
+        "--measure-only",
+        "--binary",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+        "--samples",
+        "1"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/sbin/python3",
+        "scripts/dependency_resolution_acceptance.py",
+        "--binary",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0"
+      ],
+      "returncode": 0
+    }
+  ],
+  "coverage": {
+    "lines": 37746,
+    "covered_lines": 36722,
+    "line_percent": 97.287129762094,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "cce4b3033e4bd3dab841a7404cbaa589cbdcb945059e6e35edc84fe8f9c515c1",
+    "source_hash_after": "cce4b3033e4bd3dab841a7404cbaa589cbdcb945059e6e35edc84fe8f9c515c1",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3078,
+        "covered": 2986,
+        "percent": 97.01104613385316
+      },
+      "instantiations": {
+        "count": 7597,
+        "covered": 4604,
+        "percent": 60.60286955377122
+      },
+      "lines": {
+        "count": 39838,
+        "covered": 38454,
+        "percent": 96.5259300165671
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 60517,
+        "covered": 56815,
+        "notcovered": 3702,
+        "percent": 93.88271064329031
+      }
+    }
+  },
+  "release_workloads": 81,
+  "performance_gate": "unassessed",
+  "process_tree_peak_rss_bytes": 1262026752,
+  "process_tree_measurement": "Linux process-tree RSS sum sampled every 50ms; shared pages counted per process",
+  "query_focused_record": "benchmarks/history/queries/20261022T194815.489643Z-9420.json",
+  "query_coupled_record": "benchmarks/history/queries/20261022T210759.215498Z-18070.json",
+  "query_workloads_per_run": 14,
+  "prior_attempts": [
+    {
+      "record": "benchmarks/history/20261022T193841.833279Z-25048.json",
+      "status": "incomplete",
+      "reason": "Intermediate consumer failures, function coverage below threshold, Go performance timeout and unavailable GNU time; corrected in final run. Source drift prevents acceptance."
+    },
+    {
+      "record": "target/query-final-validation.log",
+      "status": "interrupted",
+      "reason": "Deliberately stopped before expensive checks to add indexed-header integrity validation; not a passing run."
+    }
+  ],
+  "baseline_changed": false,
+  "coverage_thresholds_changed": false,
+  "new_coverage_exclusions": [],
+  "reference_application": "Company Manager remains read-only",
+  "query_stress_record": "benchmarks/history/queries/20261022T215411.805591Z-22709.json",
+  "query_stress_status": "complete",
+  "query_stress_checks": 55,
+  "query_stress_storage": {
+    "cinema": {
+      "raw_corpus_bytes": 169060747,
+      "legacy_compressed_bytes": 553719,
+      "legacy_compression_ms": 1457.8611540055135,
+      "cases": 10000,
+      "payload_bytes": 16384,
+      "oversized_case_payload_bytes": 2097152,
+      "database_bytes": 21065728,
+      "case_body_bytes": 2832991,
+      "case_raw_bytes": 168960707,
+      "metadata_bytes": 2659939,
+      "index_page_bytes": 4005888,
+      "export_bytes": 169062244
+    },
+    "cinema-go": {
+      "raw_corpus_bytes": 169060747,
+      "legacy_compressed_bytes": 553719,
+      "legacy_compression_ms": 1189.8990769986995,
+      "cases": 10000,
+      "payload_bytes": 16384,
+      "oversized_case_payload_bytes": 2097152,
+      "database_bytes": 21065728,
+      "case_body_bytes": 2832991,
+      "case_raw_bytes": 168960707,
+      "metadata_bytes": 2659939,
+      "index_page_bytes": 4005888,
+      "export_bytes": 169062244
+    }
+  },
+  "query_stress_source_hash_before": "346d1aa3276e9df97be457c267a4bed8d81bbd07857820f7a4166342c3cba462",
+  "query_stress_source_hash_after": "346d1aa3276e9df97be457c267a4bed8d81bbd07857820f7a4166342c3cba462"
+}

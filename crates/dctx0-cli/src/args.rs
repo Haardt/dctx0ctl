@@ -31,6 +31,8 @@ pub(crate) enum Command {
     /// Install bundled skills (compatible shorthand for skills install).
     Install(crate::skills::SkillInstallArgs),
     Site(crate::site::SiteArgs),
+    Query(crate::query::QueryArgs),
+    Storage(crate::storage::StorageArgs),
     Verify(crate::verification::VerifyArgs),
     Tasks(Box<crate::tasks::TaskArgs>),
     Profile(crate::profiles::ProfileArgs),

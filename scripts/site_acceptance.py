@@ -54,7 +54,7 @@ def main():
             tmp=Path(tmp);app=tmp/'cinema';shutil.copytree(ROOT/'examples/cinema',app,ignore=shutil.ignore_patterns('node_modules','.dctx0ctl','target','.bin','cinema.sqlite3*'))
             shutil.copytree(ROOT/'examples/cinema/node_modules',app/'node_modules')
             spec=app/'dctx0';out=tmp/'export'
-            def cli(label,*command,allowed=(0,)):return run(label,[binary,'--json',*command],allowed=allowed)
+            def cli(label,*command,allowed=(0,)):return run(label,[binary,'--json',*command,*(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])],allowed=allowed)
             cli('isolated-check','check',spec);plan=json.loads(cli('isolated-plan','tasks','plan',spec))['body']['data'];
             # Actual bounded native contract run, not synthesized browser evidence.
             native=json.loads(cli('native-cinema-contract','verify','run',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(0,1))); assert native['evidence']['run']['cases']

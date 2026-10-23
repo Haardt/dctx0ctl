@@ -44,3 +44,5 @@ Honor the project's test budget and validation workflow. Group expensive checks
 when appropriate and measure performance last if requested. Preserve genuine
 mandatory cases and meaningful tests. Editing profiles or completing work does
 not establish PASS. Commit/push/deployment actions follow the user's authorization.
+
+For inventory and verification investigations, read [the query guide](references/query.md). Start with filtered lists or SQL aggregates, then fetch individual details.

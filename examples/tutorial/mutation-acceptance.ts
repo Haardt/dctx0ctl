@@ -47,15 +47,15 @@ for(const mutation of mutations){
   const original=await readFile(file,'utf8');assert.ok(original.includes(mutation.from),'Mutation no longer matches '+mutation.name);
   await writeFile(file,original.replace(mutation.from,mutation.to));
   await command(['check','dctx0','--json'],project);
-  const native=(await command(['verify','run','dctx0','--project','.','--subject',mutation.subject,'--no-adopt','--json'],project,[0,1])).evidence;
+  const native=(await command(['verify','run','dctx0','--project','.','--subject',mutation.subject,'--no-adopt','--json','--full'],project,[0,1])).evidence;
   const failing=native.run.cases.filter((entry:any)=>entry.result.status==='FAIL');
   assert.ok(failing.length,'Mutation was not detected by a real failed case: '+mutation.name);
   const item:any={step:mutation.step,name:mutation.name,subject:mutation.subject,result:'detected',native_run:native.id,cases:native.run.cases.length,counterexample:failing[0]};
   if(mutation.replay){
-    const failed=await command(['verify','replay','dctx0',native.id,'--case',failing[0].id,'--project','.','--json'],project,[0,1]);
+    const failed=await command(['verify','replay','dctx0',native.id,'--case',failing[0].id,'--project','.','--json','--full'],project,[0,1]);
     assert.equal(failed.case_result.status,'FAIL','Replay lost the counterexample');
     await writeFile(file,original);
-    const fixed=await command(['verify','replay','dctx0',native.id,'--case',failing[0].id,'--project','.','--json'],project,[0,1]);
+    const fixed=await command(['verify','replay','dctx0',native.id,'--case',failing[0].id,'--project','.','--json','--full'],project,[0,1]);
     assert.equal(fixed.case_result.status,'PASS','Replay did not execute the restored actual code');
     assert.ok(fixed.changes.some((entry:any)=>entry.component.startsWith('implementation:')),'Changed implementation must be reported');
     item.replay={failing:{result:failed.case_result,case:failed.replayed_case,changes:failed.changes},restored:{result:fixed.case_result,case:fixed.replayed_case,changes:fixed.changes},preserves_input:true};
@@ -77,7 +77,7 @@ for(const rejection of ['request-changes','high-finding','missing-review','stale
   assert.match(report.error,rejection==='stale-source'?/New source inspection required: src\/board.ts/:/Effective assessment incomplete/,'An unrelated technical error is not policy acceptance');
   const run=report.error.match(/inspect run ([a-f0-9]{64})/)?.[1];
   if(run){
-    const saved=await command(['verify','show','dctx0',run,'--json'],project);
+    const saved=await command(['verify','show','dctx0',run,'--json','--full'],project);
     assert.notEqual(saved.run.result.status,'PASS');
     report.effective_result=saved.run.result;report.open_obligations=saved.run.open_obligations;
   }

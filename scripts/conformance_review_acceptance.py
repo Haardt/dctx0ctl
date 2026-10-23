@@ -58,7 +58,7 @@ def main():
 
 
             def invoke(*command, success=True):
-                result = subprocess.run([str(binary), '--json', *map(str, command)], cwd=ROOT, env={**os.environ, 'DCTX0_MEMORY_GUARD': '0'}, capture_output=True, text=True, timeout=240)
+                result = subprocess.run([str(binary), '--json', *map(str, command), *(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])], cwd=ROOT, env={**os.environ, 'DCTX0_MEMORY_GUARD': '0'}, capture_output=True, text=True, timeout=240)
                 if success and result.returncode:
                     raise RuntimeError(f'{target}: {command}: {result.stderr}\n{result.stdout[:2000]}')
                 return json.loads(result.stdout)
@@ -72,6 +72,16 @@ def main():
             # below rejects this host, before the isolated application is removed.
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.with_name(f'{args.report.stem}-{variant}-native.json').write_text(json.dumps(native, indent=2) + '\n')
+            # Preserve host identity, supervision and separate native build/worker
+            # metrics before the isolated database is removed.
+            retained = {}
+            for media, contents, expected in saved_verification_artifacts(spec / '.dctx0ctl/state.sqlite3', native['evidence']['id']):
+                assert hashlib.sha256(contents).hexdigest() == expected
+                if media in ('application/vnd.dctx0.runtime-identity+json', 'application/vnd.dctx0.native-audit+json', 'application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):
+                    retained[media] = json.loads(contents)
+                if media == 'application/vnd.dctx0.go-build-inputs+json':
+                    receipt = json.loads(contents)
+                    retained['go_compile'] = {key: receipt[key] for key in ('build_elapsed_us', 'build_peak_rss_bytes', 'go_version', 'binary_hash')}
             run = native['evidence']['run']
             assert len(run['cases']) == len(run['required_cases']) == 5674, f'{variant}: {len(run["cases"])}/{len(run["required_cases"])} cases; {run["result"]}; {run["provenance"]["incomplete"]}'
             assert all(case['result']['status'] == 'PASS' for case in run['cases']), f'{variant}: failing cases: {[(case["id"], case["result"]) for case in run["cases"] if case["result"]["status"] != "PASS"][:5]}'
@@ -140,16 +150,6 @@ def main():
             assert complete['tasks'] == 105 and complete['open_tasks'] == 0
             assert complete['non_pass_tasks'] == len(complete['reviewed_tasks']) == 4
             assert complete['mandatory_cases'] == 5674 and complete['result']['status'] == 'PASS'
-            # Preserve host identity, supervision and separate native build/worker
-            # metrics before the isolated database is removed.
-            retained = {}
-            for media, contents, expected in saved_verification_artifacts(spec / '.dctx0ctl/state.sqlite3', native['evidence']['id']):
-                assert hashlib.sha256(contents).hexdigest() == expected
-                if media in ('application/vnd.dctx0.runtime-identity+json', 'application/vnd.dctx0.native-audit+json', 'application/vnd.dctx0.runtime-metrics+json', 'application/vnd.dctx0.build-audit+json'):
-                    retained[media] = json.loads(contents)
-                if media == 'application/vnd.dctx0.go-build-inputs+json':
-                    receipt = json.loads(contents)
-                    retained['go_compile'] = {key: receipt[key] for key in ('build_elapsed_us', 'build_peak_rss_bytes', 'go_version', 'binary_hash')}
             report['targets'][variant] = {**complete, 'native_artifacts': retained}
     report['status'] = 'pass'
     args.report.parent.mkdir(parents=True, exist_ok=True)

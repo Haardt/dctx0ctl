@@ -56,6 +56,8 @@ def main():
         copy_application(project)
         prefix = [binary, '--json']
         def run(label, *command):
+            if command[:2] in (('verify','run'),('verify','replay')):
+                command = (*command, '--full')
             data, sample = measure([*prefix, *command])
             report['samples'][label] = sample
             return data

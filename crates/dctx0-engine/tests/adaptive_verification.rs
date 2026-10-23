@@ -229,10 +229,10 @@ async fn one_plan_verifies_direct_service_and_real_http_paths_and_detects_busine
         );
         assert_eq!(
             f.project
-                .saved_verification_run(&good.evidence.id)
+                .verification_summary(&good.evidence.id)
                 .unwrap()
-                .run,
-            good.evidence.run
+                .result,
+            good.evidence.run.result
         );
     }
     assert_eq!(

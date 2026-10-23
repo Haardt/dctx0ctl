@@ -25,6 +25,23 @@ impl Drop for Temp {
         fs::remove_dir_all(&self.0).unwrap();
     }
 }
+#[test]
+fn storage_recovery_rejects_invalid_journals_without_changing_live_history() {
+    let t = Temp::new();
+    let project = t.project();
+    assert!(project.check().unwrap().ok);
+    let original = fs::read(&project.database).unwrap();
+    let journal = project.database.with_extension("storage-install.json");
+    for value in [
+        serde_json::json!({"source":project.database}),
+        serde_json::json!({"source":"different-project","backup":t.0.join("outside.sqlite3")}),
+    ] {
+        fs::write(&journal, serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(project.storage_recover().is_err());
+        assert_eq!(fs::read(&project.database).unwrap(), original);
+        assert!(journal.exists());
+    }
+}
 fn run(p: &Project) -> dctx0_store::StoredVerificationRun {
     let mut store = p.store(AccessMode::ReadWrite).unwrap();
     let snapshot = store.latest(&p.key()).unwrap().unwrap();
@@ -94,7 +111,7 @@ fn storage_engine_compaction_preview_exports_and_restart_keep_history_honest() {
     .unwrap();
     let report = p.verification_gc(false, true, Some(&exports)).unwrap();
     assert!(report.compacted);
-    assert_eq!(report.storage.full_runs_after, 3);
+    assert_eq!(report.storage.full_runs_after, 1);
     assert!(report.exports.iter().any(|e| e.status == "reduced"));
     assert!(
         report
@@ -143,7 +160,7 @@ fn storage_engine_compaction_preview_exports_and_restart_keep_history_honest() {
     assert_eq!(p.verification_history(0, 200).unwrap().len(), 5);
     let site = p.site_snapshot(&Default::default()).unwrap();
     let wire = serde_json::to_value(site).unwrap();
-    assert_eq!(wire["records"]["runs"].as_array().unwrap().len(), 3);
+    assert_eq!(wire["records"]["runs"].as_array().unwrap().len(), 1);
     assert_eq!(
         wire["records"]["run_summaries"].as_array().unwrap().len(),
         5

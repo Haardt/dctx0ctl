@@ -65,10 +65,163 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
         .unwrap();
     drop(store);
     p.task_plan("latest").unwrap();
+    let cli = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let sql = "SELECT c.subject,c.outcome,COUNT(*) FROM dctx0_cases c JOIN dctx0_runs r USING(run_id) WHERE c.run_id=:run_id GROUP BY c.subject,c.outcome ORDER BY c.subject,c.outcome";
+    let parameter = format!("run_id=\"{}\"", saved.id);
+    for json in [false, true] {
+        for args in [
+            vec!["query", "schema", root.to_str().unwrap()],
+            vec![
+                "query",
+                "sql",
+                root.to_str().unwrap(),
+                "--sql",
+                sql,
+                "--param",
+                &parameter,
+            ],
+            vec!["query", "prepare", root.to_str().unwrap()],
+        ] {
+            let mut args = args;
+            if json {
+                args.push("--json");
+            }
+            let result = cli(&args);
+            assert!(
+                result.status.success(),
+                "{}",
+                String::from_utf8_lossy(&result.stderr)
+            );
+        }
+    }
+    let export = root.join("export.json");
+    let result = cli(&[
+        "verify",
+        "export",
+        root.to_str().unwrap(),
+        &saved.id,
+        "--output",
+        export.to_str().unwrap(),
+    ]);
+    assert!(result.status.success());
+    assert_eq!(
+        serde_json::from_slice::<dctx0_store::StoredVerificationRun>(&fs::read(&export).unwrap())
+            .unwrap(),
+        saved
+    );
+    let result = cli(&[
+        "verify",
+        "export",
+        root.to_str().unwrap(),
+        &saved.id,
+        "--case",
+        "C3",
+        "--output",
+        export.to_str().unwrap(),
+    ]);
+    assert!(result.status.success());
+    assert_eq!(
+        serde_json::from_slice::<VerificationCaseRecord>(&fs::read(&export).unwrap()).unwrap(),
+        run.cases[2]
+    );
+    let queryfile = root.join("investigation.sql");
+    fs::write(
+        &queryfile,
+        "SELECT task_id,title,ready FROM dctx0_tasks WHERE work=:work ORDER BY wave,task_id",
+    )
+    .unwrap();
+    assert!(
+        cli(&[
+            "query",
+            "sql",
+            root.to_str().unwrap(),
+            "--file",
+            queryfile.to_str().unwrap(),
+            "--param",
+            "work=\"Open\"",
+            "--json"
+        ])
+        .status
+        .success()
+    );
+    for extra in [
+        vec!["--param", "x=[]"],
+        vec!["--param", "work=null", "--param", "work=true"],
+        vec!["--param", "!bad=1"],
+        vec!["--param", "wrong"],
+        vec!["--max-output-bytes", "1"],
+        vec!["--sql", "SELECT 1"],
+        vec!["--plan", "999999"],
+        vec!["--as-of", "-1"],
+    ] {
+        let mut args = vec![
+            "query",
+            "sql",
+            root.to_str().unwrap(),
+            "--file",
+            queryfile.to_str().unwrap(),
+        ];
+        args.extend(extra);
+        assert!(!cli(&args).status.success());
+    }
+    {
+        use std::io::Write;
+        let mut child = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args([
+                "query",
+                "sql",
+                root.to_str().unwrap(),
+                "--file",
+                "-",
+                "--json",
+            ])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(b"SELECT COUNT(*) FROM dctx0_tasks")
+            .unwrap();
+        let result = child.wait_with_output().unwrap();
+        assert!(result.status.success());
+        assert!(
+            serde_json::from_slice::<serde_json::Value>(&result.stdout).unwrap()["rows"][0][0]
+                .as_i64()
+                .unwrap()
+                > 0
+        );
+    }
+    for unsafe_sql in [
+        "SELECT * FROM query_rows",
+        "SELECT * FROM verification_runs",
+        "DELETE FROM dctx0_tasks",
+        "PRAGMA user_version",
+        "SELECT 1;SELECT 2",
+    ] {
+        assert!(
+            !cli(&["query", "sql", root.to_str().unwrap(), "--sql", unsafe_sql])
+                .status
+                .success()
+        );
+    }
     let database_before_show = fs::read(&p.database).unwrap();
     fs::write(root.join("w.dctx0"), "invalid now").unwrap();
     for json in [false, true] {
-        let mut args = vec!["verify", "show", root.to_str().unwrap(), saved.id.as_str()];
+        let mut args = vec![
+            "verify",
+            "show",
+            root.to_str().unwrap(),
+            saved.id.as_str(),
+            "--full",
+        ];
         if json {
             args.push("--json");
         }
@@ -122,9 +275,16 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
     let compact = show(&["--summary"]);
     assert!(compact.status.success());
     let compact: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
-    assert_eq!(compact["summary"]["recorded_cases"], 3);
+    assert_eq!(compact["summary"]["case_count"], 3);
     assert_eq!(compact["summary"]["result"]["status"], "FAIL");
-    assert_eq!(compact["cases"].as_array().unwrap().len(), 0);
+    assert!(compact.get("cases").is_none());
+    let filtered_summary = show(&["--summary", "--outcome", "PASS"]);
+    assert!(filtered_summary.status.success());
+    let filtered_summary: serde_json::Value =
+        serde_json::from_slice(&filtered_summary.stdout).unwrap();
+    assert_eq!(filtered_summary["matching_cases"], 1);
+    assert_eq!(filtered_summary["summary"]["result"]["status"], "FAIL");
+    assert!(filtered_summary["cases"].as_array().unwrap().is_empty());
     let filtered = show(&["--outcome", "FAIL,UNKNOWN", "--limit", "1"]);
     assert!(filtered.status.success());
     let filtered: serde_json::Value = serde_json::from_slice(&filtered.stdout).unwrap();
@@ -344,5 +504,164 @@ fn show_reads_saved_scope_outcomes_and_provenance_after_source_changes_without_m
         fs::read(exports.join("malformed.json")).unwrap(),
         b"{unfinished"
     );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn storage_commands_build_verified_copies_preserve_task_queries_and_keep_a_backup() {
+    let root = std::env::temp_dir().join(format!("dctx0-cli-compact-{}", std::process::id()));
+    fs::create_dir(&root).unwrap();
+    fs::write(root.join("w.dctx0"), "workspace W { type A = Int }").unwrap();
+    let binary = env!("CARGO_BIN_EXE_dctx0");
+    let call = |args: Vec<String>| -> serde_json::Value {
+        let out = Command::new(binary)
+            .args(&args)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{args:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let spec = root.to_str().unwrap().to_owned();
+    call(vec!["check".into(), spec.clone()]);
+    call(vec!["tasks".into(), "plan".into(), spec.clone()]);
+    let before = call(vec!["storage".into(), "inspect".into(), spec.clone()]);
+    assert_eq!(before["schema_version"], 7);
+    let preview = call(vec![
+        "storage".into(),
+        "compact".into(),
+        spec.clone(),
+        "--dry-run".into(),
+    ]);
+    assert_eq!(preview["dry_run"], true);
+    let destination = root.join("copy.sqlite3");
+    let copy = call(vec![
+        "storage".into(),
+        "compact".into(),
+        spec.clone(),
+        "--output".into(),
+        destination.to_str().unwrap().into(),
+    ]);
+    assert_eq!(copy["installed"], false);
+    let query = call(vec![
+        "--db".into(),
+        destination.to_str().unwrap().into(),
+        "query".into(),
+        "sql".into(),
+        spec.clone(),
+        "--sql".into(),
+        "SELECT COUNT(*) FROM dctx0_tasks".into(),
+    ]);
+    assert_eq!(query["rows"][0][0], 1);
+    let prepared = call(vec!["storage".into(), "compact".into(), spec.clone()]);
+    assert_eq!(prepared["installed"], false);
+    let candidate = prepared["destination"].as_str().unwrap();
+    use sha2::{Digest, Sha256};
+    let evidence = root.join("comparison.json");
+    let source = root.join(".dctx0ctl/state.sqlite3");
+    let mut record = serde_json::json!({"status":"complete","source":source,"copy":candidate,"copy_sha256":format!("{:x}",Sha256::digest(fs::read(candidate).unwrap())),"binary_hashes":{"new":format!("{:x}",Sha256::digest(fs::read(binary).unwrap()))}});
+    fs::write(&evidence, serde_json::to_vec(&record).unwrap()).unwrap();
+    let verified = call(vec![
+        "storage".into(),
+        "verify-copy".into(),
+        spec.clone(),
+        "--copy".into(),
+        candidate.into(),
+    ]);
+    assert_eq!(verified["integrity_ok"], true);
+    record["status"] = serde_json::json!("failed-regression");
+    fs::write(&evidence, serde_json::to_vec(&record).unwrap()).unwrap();
+    assert!(
+        !Command::new(binary)
+            .args([
+                "storage",
+                "install-copy",
+                &spec,
+                "--copy",
+                candidate,
+                "--evidence",
+                evidence.to_str().unwrap()
+            ])
+            .status()
+            .unwrap()
+            .success()
+    );
+    record["status"] = serde_json::json!("complete");
+    fs::write(&evidence, serde_json::to_vec(&record).unwrap()).unwrap();
+    let original = fs::read(candidate).unwrap();
+    let mut damaged = original.clone();
+    damaged[0] ^= 1;
+    fs::write(candidate, damaged).unwrap();
+    assert!(
+        !Command::new(binary)
+            .args([
+                "storage",
+                "install-copy",
+                &spec,
+                "--copy",
+                candidate,
+                "--evidence",
+                evidence.to_str().unwrap()
+            ])
+            .status()
+            .unwrap()
+            .success()
+    );
+    fs::write(candidate, original).unwrap();
+    let installed = call(vec![
+        "storage".into(),
+        "install-copy".into(),
+        spec.clone(),
+        "--copy".into(),
+        candidate.into(),
+        "--evidence".into(),
+        evidence.to_str().unwrap().into(),
+    ]);
+    assert_eq!(installed["installed"], true);
+    assert!(std::path::Path::new(installed["backup"].as_str().unwrap()).exists());
+    let again = call(vec![
+        "query".into(),
+        "sql".into(),
+        spec,
+        "--sql".into(),
+        "SELECT COUNT(*) FROM dctx0_tasks".into(),
+    ]);
+    assert_eq!(again["rows"], query["rows"]);
+    let mut recovered = call(vec![
+        "storage".into(),
+        "recover".into(),
+        root.to_str().unwrap().into(),
+    ]);
+    assert_eq!(recovered["recovered"], false);
+    let journal = source.with_extension("storage-install.json");
+    fs::write(
+        &journal,
+        serde_json::to_vec(&serde_json::json!({"source":source,"backup":installed["backup"]}))
+            .unwrap(),
+    )
+    .unwrap();
+    recovered = call(vec![
+        "storage".into(),
+        "recover".into(),
+        root.to_str().unwrap().into(),
+    ]);
+    assert_eq!(recovered["restored_backup"], false);
+    fs::write(
+        &journal,
+        serde_json::to_vec(&serde_json::json!({"source":source,"backup":installed["backup"]}))
+            .unwrap(),
+    )
+    .unwrap();
+    fs::remove_file(&source).unwrap();
+    recovered = call(vec![
+        "storage".into(),
+        "recover".into(),
+        root.to_str().unwrap().into(),
+    ]);
+    assert_eq!(recovered["restored_backup"], true);
     fs::remove_dir_all(root).unwrap();
 }

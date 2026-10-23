@@ -33,14 +33,15 @@ pub(super) fn event(
     message: &str,
     state: Option<&State>,
 ) -> Result<i64> {
-    let data = state.map(serde_json::to_string).transpose()?;
+    let data = state.map(|s| storage::store(tx, s)).transpose()?;
     tx.execute(
         "INSERT INTO task_events(project,task_id,kind,message,state_data) VALUES(?1,?2,?3,?4,?5)",
         params![project, id, kind, message, data],
     )?;
     let seq = tx.last_insert_rowid();
     if let (Some(id), Some(state)) = (id, state) {
-        tx.execute("INSERT INTO task_states(task_id,work,actor,version,data) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(task_id) DO UPDATE SET work=excluded.work,actor=excluded.actor,version=excluded.version,data=excluded.data",params![id,format!("{:?}",state.work),state.actor,state.version,serde_json::to_string(state)?])?;
+        storage::state_metadata(tx, seq, id, state)?;
+        tx.execute("INSERT INTO task_states(task_id,work,actor,version,data) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(task_id) DO UPDATE SET work=excluded.work,actor=excluded.actor,version=excluded.version,data=excluded.data",params![id,format!("{:?}",state.work),state.actor,state.version,storage::store(tx,state)?])?;
     }
     Ok(seq)
 }
@@ -49,6 +50,23 @@ pub(crate) fn session(
     project: &str,
     plan_id: Option<i64>,
     as_of: Option<i64>,
+) -> Result<Session> {
+    session_inner(connection, project, plan_id, as_of, false)
+}
+pub(crate) fn metadata_session(
+    connection: &Connection,
+    project: &str,
+    plan_id: Option<i64>,
+    as_of: Option<i64>,
+) -> Result<Session> {
+    session_inner(connection, project, plan_id, as_of, true)
+}
+fn session_inner(
+    connection: &Connection,
+    project: &str,
+    plan_id: Option<i64>,
+    as_of: Option<i64>,
+    metadata: bool,
 ) -> Result<Session> {
     let id = plan_id
         .or(head(connection, project)?)
@@ -64,8 +82,10 @@ pub(crate) fn session(
             |r| r.get(0),
         )
         .optional()?;
-    let plan: Plan =
-        decode(&data.ok_or_else(|| invalid(format!("Unknown plan P{id} at event {seq}")))?)?;
+    let plan: Plan = storage::load(
+        connection,
+        &data.ok_or_else(|| invalid(format!("Unknown plan P{id} at event {seq}")))?,
+    )?;
     let mut definitions = BTreeMap::new();
     let mut states = BTreeMap::new();
     let mut statement = connection
@@ -74,14 +94,20 @@ pub(crate) fn session(
         Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
     })? {
         let (id, data) = row?;
-        definitions.insert(id, decode::<Definition>(&data)?);
+        definitions.insert(id, storage::load::<Definition>(connection, &data)?);
     }
-    let mut statement=connection.prepare("SELECT task_id,state_data FROM task_events WHERE project=?1 AND state_data IS NOT NULL AND seq IN (SELECT max(seq) FROM task_events WHERE project=?1 AND state_data IS NOT NULL AND seq<=?2 GROUP BY task_id)")?;
+    let state_sql = if metadata && storage::version(connection)? >= 7 {
+        "SELECT task_id,data FROM storage_state_metadata WHERE event_seq IN (SELECT max(event_seq) FROM storage_state_metadata WHERE event_seq<=?2 AND task_id IN (SELECT id FROM tasks WHERE project=?1) GROUP BY task_id)"
+    } else {
+        "SELECT task_id,state_data FROM task_events WHERE project=?1 AND state_data IS NOT NULL AND seq IN (SELECT max(seq) FROM task_events WHERE project=?1 AND state_data IS NOT NULL AND seq<=?2 GROUP BY task_id)"
+    };
+    let mut statement = connection.prepare(state_sql)?;
+    /* let mut statement=connection.prepare("SELECT task_id,state_data FROM task_events WHERE project=?1 AND state_data IS NOT NULL AND seq IN (SELECT max(seq) FROM task_events WHERE project=?1 AND state_data IS NOT NULL AND seq<=?2 GROUP BY task_id)")?; */
     for row in statement.query_map(params![project, seq], |r| {
         Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
     })? {
         let (id, data) = row?;
-        states.insert(id, decode::<State>(&data)?);
+        states.insert(id, storage::load::<State>(connection, &data)?);
     }
     let mut events = vec![];
     let mut statement=connection.prepare("SELECT seq,task_id,kind,message FROM task_events WHERE project=?1 AND seq<=?2 ORDER BY seq")?;
@@ -172,6 +198,43 @@ impl Store {
     ) -> Result<Session> {
         let tx = self.connection.unchecked_transaction()?;
         let result = session(&tx, project, plan, as_of)?;
+        tx.commit()?;
+        Ok(result)
+    }
+    pub fn task_detail_session(
+        &self,
+        project: &str,
+        task: i64,
+        plan: Option<i64>,
+        as_of: Option<i64>,
+    ) -> Result<Session> {
+        let tx = self.connection.unchecked_transaction()?;
+        let mut selected = metadata_session(&tx, project, plan, as_of)?;
+        let mut ids = std::collections::BTreeSet::from([task]);
+        ids.extend(
+            selected
+                .related(task, false, true)?
+                .into_iter()
+                .map(|edge| edge.prerequisite_id),
+        );
+        let mut statement=tx.prepare("SELECT state_data FROM task_events WHERE project=?1 AND task_id=?2 AND state_data IS NOT NULL AND seq<=?3 ORDER BY seq DESC LIMIT 1")?;
+        for id in ids {
+            let raw: String =
+                statement.query_row(params![project, id, selected.event_seq], |r| r.get(0))?;
+            selected.states.insert(id, storage::load(&tx, &raw)?);
+        }
+        drop(statement);
+        tx.commit()?;
+        Ok(selected)
+    }
+    pub fn task_metadata_session(
+        &self,
+        project: &str,
+        plan: Option<i64>,
+        as_of: Option<i64>,
+    ) -> Result<Session> {
+        let tx = self.connection.unchecked_transaction()?;
+        let result = metadata_session(&tx, project, plan, as_of)?;
         tx.commit()?;
         Ok(result)
     }

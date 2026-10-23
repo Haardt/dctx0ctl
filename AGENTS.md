@@ -1265,3 +1265,64 @@ ReviewRenewal ancestry and identifies `previous_task`; it never inherits approva
 Focused workflow validation passes, with 81 coupled release measurements and
 929,284,096 bytes peak sampled process-tree RSS. Full coverage was not rerun;
 see `docs/workflow-tools-followup-validation.json`. The accepted baseline is unchanged.
+
+
+Compact verification and SQL checkpoint (2026-10-22): SQLite schema 6 stores
+ordered metadata, required-case inventories and independently compressed, shared
+case bodies. Normal verification receipts are compact; `--full` preserves full
+JSON and `verify export` writes atomically. `query prepare` explicitly converts
+legacy data; reads never migrate. Public SQL view version 1 exposes pinned task,
+run, case and source metadata with bound parameters, read-only authorization and
+row/byte/time limits. Task readiness, adoption rules, canonical run identities,
+artifact hashes and the three-complete-run retention policy remain unchanged.
+
+The final coupled workspace validation passes checks, formatting, Clippy, regular
+and feature-matrix tests, Go/Rust Cinema acceptance and fresh isolated coverage.
+Merged source lines are 36,722/37,746 (97.2871%); raw LLVM functions are
+2,986/3,078 (97.0110%). Raw LLVM lines are 38,454/39,838 (96.5259%) and regions
+56,815/60,517 (93.8827%); these are not branch-completeness claims. Thresholds and
+exclusions are unchanged. Compilation inputs remain stable throughout validation.
+All 81 release speed/RSS workloads and 14 separate query workloads complete with
+one sample, one measured iteration and one warm-up. The process-tree watchdog
+records 1,262,026,752 bytes peak RSS. Local aggregate validation remains incomplete
+solely because qualified Go Race reports `RACE_HOST_VMA_UNSUPPORTED`. Performance
+comparison is unassessed against the incompatible accepted baseline; no baseline
+is promoted. See `docs/query-validation.json` and
+`docs/site/src/reference/queries.md` for commands, contracts and retained evidence.
+
+The additional 10,000-case stress run passes 55 assertions and 14 release query
+measurements on stable inputs for both spec workspaces. Each synthetic corpus is
+169,060,747 raw bytes; summary child RSS is about 9.3 MB and full export about
+21 MB. Payloads are deliberately compressible; this is bounded-memory evidence,
+not a representative compression-ratio claim or accepted performance baseline.
+
+Minimum-storage checkpoint (2026-10-23): schema 7 shares compressed immutable
+snapshot/task/report objects and exact-byte report chunks, with separate metadata
+for task/SQL reads. All historical task plans, states, events, pinned requirements
+and PASS remain. Verification retains latest/latest FAIL or UNKNOWN bodies, pending
+publications and direct inspection/replay sources; metadata explicitly identifies
+pruned bodies. Public query views are version 2; old schemas remain readable and
+conversion/install/recovery are explicit. Normal verification JSON is compact;
+`--full` and atomic file exports preserve the complete representation.
+
+The final coupled run `20261023T200957.238723Z-10701.json` passes executable
+workspace/feature/native checks and coverage: 38,028/39,134 merged source lines
+(97.17%) and 3,115/3,211 raw LLVM functions (97.01%), with stable compilation
+inputs, no new exclusions and unchanged thresholds. This is not branch coverage.
+All 81 release speed/RSS workloads completed; general baseline comparisons remain
+predominantly unassessed and the accepted baseline is unchanged. Aggregate
+validation remains incomplete solely because this ARM64 host cannot run Go Race
+(`RACE_HOST_VMA_UNSUPPORTED`); no full aggregate PASS is claimed.
+
+Company Manager was compared on an isolated reference and then migrated under its
+project lock with a synced schema-5 backup. Size fell from 4,863,143,936 to
+340,631,552 bytes (93.00%). All 166 snapshots, 176 plans, 4,281 tasks, 8,558 events,
+1,339 run summaries and 1,261 historical PASS states remain; plan 176/event 8558
+are unchanged. The paired five-sample comparison preserves SQL results and exact
+full exports, with SQL 83–98% faster and 72–97% lower peak RSS; full-export runtime
+is effectively unchanged. Its 20% speed/10% RAM limits pass without promotion.
+Two Cinema-root stress runs cover 10,000 synthetic cases each, with separate
+summary/list/detail/source/preparation/export measurements. Synthetic storage is
+not native evidence. The exact measured CLI is installed locally and all three
+Company Manager skills use the shared query guide. See
+`docs/storage-compaction-validation.json` for reports, hashes, scope and backups.

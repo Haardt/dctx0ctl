@@ -35,6 +35,8 @@ pub struct CaseDiagnostic {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticPage {
+    #[serde(default = "details_available")]
+    pub details_available: bool,
     pub schema_version: u32,
     pub run_id: String,
     pub snapshot: String,
@@ -121,6 +123,7 @@ pub fn diagnostic_page(
         offset.saturating_add(limit).min(selected.len())
     };
     Ok(DiagnosticPage {
+        details_available: true,
         schema_version: 1,
         run_id: run_id.into(),
         snapshot: run.provenance.snapshot.clone(),
@@ -166,4 +169,8 @@ pub fn diagnostic_page(
         complete: end == selected.len(),
         filter,
     })
+}
+
+fn details_available() -> bool {
+    true
 }

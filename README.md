@@ -645,3 +645,32 @@ For bounded codec/review/package workflow regression checks together with releas
 speed and peak-RSS measurements, run
 `CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=1 python3 scripts/validate.py --focus workflow-tools --samples 1 --iterations 1`.
 This is partial development validation; full coverage acceptance still uses workspace focus.
+
+Verification JSON defaults to compact receipts; consumers requiring the complete
+legacy report must select `--full`. Use `dctx0 verify show spec RUN_ID --case CASE_ID`
+for one detail or `dctx0 verify export spec RUN_ID --output report.json` for an
+atomic full export. Schema 6 keeps case bodies individually compressed in SQLite.
+Existing history is prepared explicitly with `dctx0 query prepare spec`.
+Explore `dctx0 query schema spec --json` before using bounded read-only SQL, e.g.
+`dctx0 query sql spec --sql "SELECT task_id,title FROM dctx0_tasks WHERE ready=1 ORDER BY task_id" --json`.
+See [public query contracts](docs/site/src/reference/queries.md) for parameters,
+historical pins, limits and the JSON compatibility change. Accepted performance
+baselines and existing JSON exports are unchanged.
+
+Run `python3 scripts/query_acceptance.py --samples 3` for coupled query tests and
+14 release speed/RSS workloads covering both Cinema spec roots. It records
+synthetic-case payloads, database/index/body sizes and preparation/compression
+costs in `benchmarks/history/queries/` (latest 20), without a baseline promotion.
+The full `python3 scripts/validate.py --coverage` runner and CI also execute these
+query measurements after building the release CLI.
+
+SQLite schema 7 reduces history size by sharing compressed immutable objects and
+exact report strings while keeping task history and PASS provenance. Public SQL
+view version 2 adds task-evidence metadata and per-case body availability. Use
+`dctx0 storage inspect spec --json` to inspect size and
+`dctx0 storage compact spec --output compact.sqlite3 --json` to build a verified
+copy. Compare it with
+`python3 scripts/storage_compaction_acceptance.py --spec spec --copy compact.sqlite3 --old-binary /path/to/previous/dctx0 --samples 5`
+before `dctx0 storage install-copy spec --copy compact.sqlite3 --evidence COMPARISON.json`.
+Installation keeps a backup; existing JSON exports remain untouched. See
+[storage and query contracts](docs/site/src/reference/queries.md).

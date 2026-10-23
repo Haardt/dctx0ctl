@@ -105,7 +105,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             serde_json::to_vec(&inputs).unwrap(),
         )
         .unwrap();
-        let unavailable = call(&["verify", "run", input, "--no-adopt", "--json"]);
+        let unavailable = call(&["verify", "run", input, "--no-adopt", "--json", "--full"]);
         assert!(!unavailable.status.success());
         let report: dctx0_engine::NativeVerificationReport =
             serde_json::from_slice(&unavailable.stdout).unwrap();
@@ -155,7 +155,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         serde_json::to_vec(&fixtures).unwrap(),
     )
     .unwrap();
-    let executed = call(&["verify", "run", input, "--no-adopt", "--json"]);
+    let executed = call(&["verify", "run", input, "--no-adopt", "--json", "--full"]);
     let report: dctx0_engine::NativeVerificationReport =
         serde_json::from_slice(&executed.stdout).unwrap();
     let lifecycle = report
@@ -184,7 +184,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             &path,
         ];
         if json {
-            args.push("--json");
+            args.extend(["--json", "--full"]);
         }
         let replay = call(&args);
         assert!(
@@ -217,6 +217,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         "--case",
         &path,
         "--json",
+        "--full",
     ]);
     assert!(!failed.status.success());
     let failed: dctx0_engine::VerificationReplayReport =
@@ -241,6 +242,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         &path,
         "--minimized",
         "--json",
+        "--full",
     ]);
     assert!(!minimized.status.success());
     let minimized: dctx0_engine::VerificationReplayReport =

@@ -174,7 +174,7 @@ return {async invoke(call){const v=call.arguments[0];return {kind:'returned',val
     const checked=await command(binary,['check',specs,'--json']);assert.equal(checked.code,0,checked.stderr);
     const initialized=await command(binary,['verify','init',specs,'--project',app,'--target','typescript','--subject','Adaptive.Counter.next','--json']);
     assert.equal(initialized.code,0,initialized.stderr);
-    const invoke=async(args:string[],success=true)=>{const result=await command(binary,[...args,'--json']);if(success)assert.equal(result.code,0,result.stderr+'\n'+result.stdout.slice(0,1000));return JSON.parse(result.stdout);};
+    const invoke=async(args:string[],success=true)=>{const result=await command(binary,[...args,'--json','--full']);if(success)assert.equal(result.code,0,result.stderr+'\n'+result.stdout.slice(0,1000));return JSON.parse(result.stdout);};
     const run=await invoke(['verify','run',specs,'--project',app,'--no-adopt']);
     assert.equal(run.evidence.run.result.status,'PASS');
     assert(run.evidence.run.cases.length>0);

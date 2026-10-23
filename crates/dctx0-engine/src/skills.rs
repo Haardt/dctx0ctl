@@ -31,11 +31,21 @@ pub fn skill_catalog() -> Vec<SkillDescription> {
 }
 fn bundle(name: &str) -> Result<BTreeMap<&'static str, &'static str>> {
     let entries = match name {
-        "dctx0" => vec![("SKILL.md", include_str!("../../../skills/dctx0/SKILL.md"))],
+        "dctx0" => vec![
+            ("SKILL.md", include_str!("../../../skills/dctx0/SKILL.md")),
+            (
+                "references/query.md",
+                include_str!("../../../skills/query-guide.md"),
+            ),
+        ],
         "dctx0-language" => vec![
             (
                 "SKILL.md",
                 include_str!("../../../skills/dctx0-language/SKILL.md"),
+            ),
+            (
+                "references/query.md",
+                include_str!("../../../skills/query-guide.md"),
             ),
             (
                 "references/language.md",
@@ -46,6 +56,10 @@ fn bundle(name: &str) -> Result<BTreeMap<&'static str, &'static str>> {
             (
                 "SKILL.md",
                 include_str!("../../../skills/dctx0-implementation/SKILL.md"),
+            ),
+            (
+                "references/query.md",
+                include_str!("../../../skills/query-guide.md"),
             ),
             (
                 "references/implementation.md",

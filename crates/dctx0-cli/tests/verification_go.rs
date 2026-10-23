@@ -3,8 +3,13 @@
 use std::{fs, process::Command};
 fn cli(args: &[&str]) -> serde_json::Value {
     let output = Command::new(env!("CARGO_BIN_EXE_dctx0"))
-        .arg("--json")
+        .args(["--json"])
         .args(args)
+        .args(if args.get(1) == Some(&"run") {
+            vec!["--full"]
+        } else {
+            vec![]
+        })
         .output()
         .unwrap();
     assert!(

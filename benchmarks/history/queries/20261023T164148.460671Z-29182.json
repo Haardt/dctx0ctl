@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261023T164148.460671Z",
+  "status": "incomplete",
+  "checks": [
+    {
+      "command": [
+        "/usr/sbin/cc",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/query-acceptance/20261023T164148.460671Z/query-timer.c",
+        "-o",
+        "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/query-acceptance/20261023T164148.460671Z/query-timer"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 150.20861601806246,
+      "peak_rss_bytes": 44789760,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261023T164148.460671Z/0001-build-timer.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 44633.43946498935,
+      "peak_rss_bytes": 707477504,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261023T164148.460671Z/0002-check.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--bin",
+        "dctx0",
+        "--test",
+        "verification_history",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 42809.909540985245,
+      "peak_rss_bytes": 756527104,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261023T164148.460671Z/0003-check.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 53494.315465010004,
+      "peak_rss_bytes": 711593984,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261023T164148.460671Z/0004-check.log"
+    }
+  ],
+  "measurements": {},
+  "source_hash_before": "bde9a14053b0c31cc973fe568a73fbedd447a24475c9607b7f7b369a6503a4c7",
+  "revision": "61cc4d6ec506b8648259cb5397d5b47734e543ad",
+  "dirty_worktree": "M .gitignore\n M AGENTS.md\n M Bug.md\n M Cargo.toml\n M README.md\n D benchmarks/history/20261013T123303.811037Z-1867616.json\n D benchmarks/history/20261013T123746.840199Z-1870817.json\n M crates/dctx0-cli/src/args.rs\n M crates/dctx0-cli/src/commands.rs\n M crates/dctx0-cli/src/main.rs\n M crates/dctx0-cli/src/render.rs\n M crates/dctx0-cli/src/tasks/commands.rs\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-cli/tests/self_verification.rs\n M crates/dctx0-cli/tests/verification_go.rs\n M crates/dctx0-cli/tests/verification_history.rs\n M crates/dctx0-cli/tests/verification_inspection.rs\n M crates/dctx0-cli/tests/verification_inspection_large.rs\n M crates/dctx0-cli/tests/verification_lifecycle.rs\n M crates/dctx0-cli/tests/verification_run.rs\n M crates/dctx0-cli/tests/verification_rust.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/skills.rs\n M crates/dctx0-engine/src/tasks.rs\n M crates/dctx0-store/src/lib.rs\n M crates/dctx0-store/src/tasks/actions.rs\n M crates/dctx0-store/src/tasks/mod.rs\n M crates/dctx0-store/src/tasks/native_proof.rs\n M crates/dctx0-store/src/tasks/profiles.rs\n M crates/dctx0-store/src/tasks/publish.rs\n M crates/dctx0-store/src/tasks/read.rs\n M crates/dctx0-store/src/tasks/tests.rs\n M crates/dctx0-store/src/verification.rs\n M crates/dctx0-store/src/verification/codec.rs\n M crates/dctx0-store/src/verification/maintenance.rs\n M crates/dctx0-store/src/verification/summaries.rs\n M crates/dctx0-store/src/verification/tests.rs\n M crates/dctx0-store/tests/store.rs\n M crates/dctx0-store/tests/verification.rs\n M crates/dctx0-verification/src/diagnostics.rs\n M docs/site/src/SUMMARY.md\n M docs/site/src/reference/verification-storage.md\n M docs/site/src/reference/workflow-efficiency.md\n M examples/tutorial/mutation-acceptance.ts\n M examples/tutorial/verify-series.ts\n M examples/tutorial/verify-variants.ts\n M scripts/conformance_review_acceptance.py\n M scripts/container_case/accept.py\n M scripts/dependency_resolution_acceptance.py\n M scripts/framework_acceptance.py\n M scripts/go_cinema_acceptance.py\n M scripts/go_cinema_performance.py\n M scripts/native_portability.py\n M scripts/release_platform.ts\n M scripts/rust_cinema_acceptance.py\n M scripts/rust_cinema_performance.py\n M scripts/self_verification_acceptance.py\n M scripts/site_acceptance.py\n M scripts/validate.py\n M skills/dctx0-implementation/SKILL.md\n M skills/dctx0-language/SKILL.md\n M skills/dctx0/SKILL.md\n?? benchmarks/history/20261022T193841.833279Z-25048.json\n?? benchmarks/history/20261022T210832.294844Z-11158.json\n?? benchmarks/history/dependency-resolution/20261022T193816.377038Z-7249.json\n?? benchmarks/history/dependency-resolution/20261022T210814.893687Z-18201.json\n?? benchmarks/history/queries/\n?? benchmarks/history/storage/20261022T182807.283142Z-24570.json\n?? benchmarks/history/storage/20261023T160446.140847Z-14057.json\n?? benchmarks/history/storage/20261023T160827.720436Z-16118.json\n?? crates/dctx0-cli/src/query.rs\n?? crates/dctx0-cli/src/storage.rs\n?? crates/dctx0-engine/src/storage.rs\n?? crates/dctx0-store/src/query.rs\n?? crates/dctx0-store/src/storage.rs\n?? crates/dctx0-store/src/storage/\n?? crates/dctx0-store/src/storage_maintenance.rs\n?? crates/dctx0-store/src/storage_spec.rs\n?? crates/dctx0-store/src/verification/cases.rs\n?? docs/query-validation.json\n?? docs/site/src/reference/queries.md\n?? scripts/query_acceptance.py\n?? scripts/storage_compaction_acceptance.py\n?? skills/dctx0-implementation/references/query.md\n?? skills/dctx0-language/references/query.md\n?? skills/dctx0/references/\n?? skills/query-guide.md",
+  "toolchain": "rustc 1.99.0-nightly (14cae6813 2026-07-08)",
+  "platform": "Linux arch 6.6.143-09589-gf9e106250941 #1 SMP PREEMPT Wed, 26 Aug 2026 12:08:14 -0700 aarch64 GNU/Linux",
+  "hardware": {
+    "cpu": "Architecture:                            aarch64\nCPU op-mode(s):                          64-bit\nByte Order:                              Little Endian\nCPU(s):                                  7\nOn-line CPU(s) list:                     0-6\nVendor ID:                               ARM\nModel name:                              Cortex-A720\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      4\nSocket(s):                               1\nStepping:                                r0p1\nBogoMIPS:                                26.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm sb dcpodp sve2 sveaes svepmull svebitperm svesha3 svesm4 flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti ecv afp wfxt\nModel name:                              Cortex-X4\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      3\nSocket(s):                               1\nStepping:                                r0p1\nBogoMIPS:                                26.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 sm3 sm4 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm sb dcpodp sve2 sveaes svepmull svebitperm svesha3 svesm4 flagm2 frint svei8mm svebf16 i8mm bf16 dgh bti ecv afp wfxt\nVulnerability Gather data sampling:      Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; CSV2, BHB\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected",
+    "cpu_count": 7
+  },
+  "settings": {
+    "samples": 1,
+    "iterations": 1,
+    "warmup": 1,
+    "cache": "warm OS cache",
+    "profile": "release, uninstrumented",
+    "seed": 42
+  },
+  "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+  "baseline": "unassessed: new workloads; accepted baseline unchanged",
+  "timer_source_sha256": "ef46641ed75aed22074ee816c09d398973dcd4ff2df2ef797fc135ca42b8b8c5",
+  "timer_binary_sha256": "0340548bec580fe6efcb392e8c181be74775b80abdb54d8dc2616262c0eb86cc",
+  "test_failures": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 44633.43946498935,
+      "peak_rss_bytes": 707477504,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261023T164148.460671Z/0002-check.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "elapsed_ms": 53494.315465010004,
+      "peak_rss_bytes": 711593984,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261023T164148.460671Z/0004-check.log"
+    }
+  ],
+  "error": "Release build failed; query measurements incomplete"
+}

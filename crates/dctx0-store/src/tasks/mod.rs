@@ -11,7 +11,7 @@ mod publish;
 mod read;
 mod schema;
 use read::{event, latest_check};
-pub(super) use read::{head, session, watermark};
+pub(super) use read::{head, metadata_session, session, watermark};
 
 pub(super) use schema::{MIGRATION, PROFILE_MIGRATION};
 fn invalid(message: impl Into<String>) -> Error {

@@ -446,7 +446,7 @@ impl Project {
                 generator,
                 cancel,
                 true,
-                Some((plan, lifecycles)),
+                Some((plan, lifecycles, Some(run_id.to_owned()))),
             )
             .await?;
         let replayed = if case.kind == VerificationCaseKind::EntityIdentity {

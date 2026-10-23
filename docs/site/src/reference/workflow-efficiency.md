@@ -85,8 +85,9 @@ Cursors bind run, outcome/subject/case filter and limit. `complete` refers to th
 selected diagnostic listing; `summary_only` explicitly marks omitted rows.
 Filtering never converts an incomplete run into PASS. Legacy unfiltered show
 and its full JSON shape remain unchanged. Summaries of pruned runs explicitly
-retain unavailable detail/replay status. Compact history queries avoid corpus
-loading; filtered diagnosis of a retained run currently decodes its saved corpus.
+retain unavailable detail/replay status. Compact history and prepared case-list queries avoid body loading; an exact-case
+request opens only its selected body. Existing histories need explicit
+`query prepare`; see [public SQL and compact reports](queries.md).
 
 ## Explain adoption before delivery
 

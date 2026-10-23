@@ -210,6 +210,14 @@ pub(crate) fn read_run(
         run.cases = corpus.cases;
         run.required_cases = corpus.required_cases;
     }
+    if version >= 6 && cases::prepared(connection, id)? {
+        cases::validate_header(&run)?;
+        run.required_cases = cases::requirements(connection, id)?;
+        run.cases = cases::read_all(connection, id)?;
+        if json_hash(&run)? != id {
+            return Err(invalid("Reconstructed run digest is corrupt"));
+        }
+    }
     Ok(StoredVerificationRun {
         id: id.into(),
         created_at: row.0,

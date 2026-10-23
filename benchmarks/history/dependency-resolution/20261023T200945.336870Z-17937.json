@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "id": "20261023T200945.336870Z-17937",
+  "timestamp": "2026-10-23T20:09:45.336870+00:00",
+  "status": "complete",
+  "metadata": {
+    "revision": "61cc4d6ec506b8648259cb5397d5b47734e543ad",
+    "dirty_worktree": true,
+    "source_hash_before": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336",
+    "binary_sha256": "78abbf7b2d4447f82a67b4bb2b035ae22cbb6635dd01d9970aa9cb8a9a138a56",
+    "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "logical_cpus": 7,
+    "rust": "rustc 1.99.0-nightly (14cae6813 2026-07-08)\nbinary: rustc\ncommit-hash: 14cae681329a63c622a6e1fbe1d30f9374bc51d8\ncommit-date: 2026-07-08\nhost: aarch64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8",
+    "bun": "1.4.2",
+    "source_hash_after": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336"
+  },
+  "workload": {
+    "references": 1200,
+    "cycle_back_to": 600,
+    "seed": 42,
+    "generated_cases": 100,
+    "features": "all-features",
+    "build": "release without coverage",
+    "warmups": 1,
+    "samples": 3,
+    "cache": "prebuilt CLI and Bun; one unrecorded warmup per fixture; fresh capture each run; warm OS filesystem cache"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "New workloads have no accepted baseline; existing baselines unchanged"
+  },
+  "workloads": {
+    "chain": {
+      "raw_samples": [
+        {
+          "elapsed_ms": 931.7880000162404,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 20287488,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 551.867,
+          "worker_peak_rss_bytes": 63205376,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 1202,
+            "worker_requests": 1202,
+            "cache_hits": 0,
+            "traversal_complete": true,
+            "stop_reason": null
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 10000
+          },
+          "native_cases": 19
+        },
+        {
+          "elapsed_ms": 993.8726150139701,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 19812352,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 594.84,
+          "worker_peak_rss_bytes": 63008768,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 1202,
+            "worker_requests": 1202,
+            "cache_hits": 0,
+            "traversal_complete": true,
+            "stop_reason": null
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 10000
+          },
+          "native_cases": 19
+        },
+        {
+          "elapsed_ms": 913.9387689938303,
+          "peak_rss_bytes": 64487424,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 21045248,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 533.857,
+          "worker_peak_rss_bytes": 64987136,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 1202,
+            "worker_requests": 1202,
+            "cache_hits": 0,
+            "traversal_complete": true,
+            "stop_reason": null
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 10000
+          },
+          "native_cases": 19
+        }
+      ],
+      "median_elapsed_ms": 931.7880000162404,
+      "median_peak_rss_bytes": 63221760,
+      "median_engine_peak_rss_bytes": 20287488,
+      "median_worker_peak_rss_bytes": 63205376
+    },
+    "repeated": {
+      "raw_samples": [
+        {
+          "elapsed_ms": 823.2781540136784,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 18980864,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 473.635,
+          "worker_peak_rss_bytes": 42704896,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 1201,
+            "worker_requests": 2,
+            "cache_hits": 1199,
+            "traversal_complete": true,
+            "stop_reason": null
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 10000
+          },
+          "native_cases": 19
+        },
+        {
+          "elapsed_ms": 791.3345379929524,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 17469440,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 441.631,
+          "worker_peak_rss_bytes": 42545152,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 1201,
+            "worker_requests": 2,
+            "cache_hits": 1199,
+            "traversal_complete": true,
+            "stop_reason": null
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 10000
+          },
+          "native_cases": 19
+        },
+        {
+          "elapsed_ms": 870.3583850001451,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 17440768,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 489.056,
+          "worker_peak_rss_bytes": 42487808,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 1201,
+            "worker_requests": 2,
+            "cache_hits": 1199,
+            "traversal_complete": true,
+            "stop_reason": null
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 10000
+          },
+          "native_cases": 19
+        }
+      ],
+      "median_elapsed_ms": 823.2781540136784,
+      "median_peak_rss_bytes": 63221760,
+      "median_engine_peak_rss_bytes": 17469440,
+      "median_worker_peak_rss_bytes": 42545152
+    },
+    "budget-stop": {
+      "raw_samples": [
+        {
+          "elapsed_ms": 799.4719999842346,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 19021824,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 418.47,
+          "worker_peak_rss_bytes": 42860544,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 16,
+            "worker_requests": 2,
+            "cache_hits": 14,
+            "traversal_complete": false,
+            "stop_reason": "reference-budget"
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 16
+          },
+          "native_cases": 19
+        },
+        {
+          "elapsed_ms": 835.6451540021226,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 18255872,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 489.77,
+          "worker_peak_rss_bytes": 42471424,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 16,
+            "worker_requests": 2,
+            "cache_hits": 14,
+            "traversal_complete": false,
+            "stop_reason": "reference-budget"
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 16
+          },
+          "native_cases": 19
+        },
+        {
+          "elapsed_ms": 841.4486150140874,
+          "peak_rss_bytes": 63221760,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+          "direct_process_peak_rss_bytes": 17313792,
+          "direct_process_memory_scope": "Linux direct-process VmHWM sampled every 10 ms; excludes descendants and pre-exec inherited peaks; final exit interval may be missed",
+          "engine_elapsed_ms": 452.396,
+          "worker_peak_rss_bytes": 42463232,
+          "worker_memory_scope": "Bun post-exec /proc/self/status VmHWM; unavailable off Linux",
+          "dependency_summary": {
+            "schema_version": 1,
+            "processed_references": 16,
+            "worker_requests": 2,
+            "cache_hits": 14,
+            "traversal_complete": false,
+            "stop_reason": "reference-budget"
+          },
+          "limits": {
+            "schema_version": 1,
+            "resolver_version": "dctx0-native-resolver-2",
+            "max_references": 16
+          },
+          "native_cases": 19
+        }
+      ],
+      "median_elapsed_ms": 835.6451540021226,
+      "median_peak_rss_bytes": 63221760,
+      "median_engine_peak_rss_bytes": 18255872,
+      "median_worker_peak_rss_bytes": 42471424
+    }
+  }
+}

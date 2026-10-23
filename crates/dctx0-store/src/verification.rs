@@ -4,8 +4,9 @@ use dctx0_core::{VerificationArtifactRef, VerificationResult, VerificationRun};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+pub(crate) mod cases;
 pub(crate) mod codec;
-mod maintenance;
+pub(crate) mod maintenance;
 mod summaries;
 pub use maintenance::*;
 pub use summaries::*;
@@ -130,6 +131,42 @@ fn validate(run: &VerificationRun, artifacts: &[VerificationArtifact]) -> Result
     }
     Ok(())
 }
+pub(crate) fn register_parents(
+    c: &Connection,
+    project: &str,
+    id: &str,
+    artifacts: &[VerificationArtifact],
+    parent: Option<&str>,
+) -> Result<()> {
+    if crate::storage::version(c)? >= 7 {
+        let inferred = artifacts
+            .iter()
+            .filter(|a| a.reference.media_type == "application/vnd.dctx0.native-parent+json")
+            .filter_map(|a| serde_json::from_slice::<serde_json::Value>(&a.contents).ok())
+            .filter_map(|v| v["native_run"].as_str().map(str::to_owned))
+            .collect::<BTreeSet<_>>();
+        for parent in parent
+            .into_iter()
+            .chain(inferred.iter().map(String::as_str))
+        {
+            let same: bool = c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM verification_runs WHERE id=?1 AND project=?2)",
+                params![parent, project],
+                |r| r.get(0),
+            )?;
+            if !same {
+                return Err(invalid("Derived run parent is absent from this project"));
+            }
+            if parent != id {
+                c.execute(
+                    "INSERT OR IGNORE INTO verification_run_parents VALUES(?1,?2)",
+                    params![id, parent],
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
 impl Store {
     pub fn record_verification_run(
         &mut self,
@@ -137,7 +174,7 @@ impl Store {
         run: &VerificationRun,
         artifacts: &[VerificationArtifact],
     ) -> Result<StoredVerificationRun> {
-        let (id, created_at) = self.persist_verification_run(project, run, artifacts)?;
+        let (id, created_at) = self.persist_verification_run(project, run, artifacts, None)?;
         Ok(StoredVerificationRun {
             id,
             created_at,
@@ -151,7 +188,16 @@ impl Store {
         run: VerificationRun,
         artifacts: &[VerificationArtifact],
     ) -> Result<StoredVerificationRun> {
-        let (id, created_at) = self.persist_verification_run(project, &run, artifacts)?;
+        self.record_verification_run_owned_from(project, run, artifacts, None)
+    }
+    pub fn record_verification_run_owned_from(
+        &mut self,
+        project: &str,
+        run: VerificationRun,
+        artifacts: &[VerificationArtifact],
+        parent: Option<&str>,
+    ) -> Result<StoredVerificationRun> {
+        let (id, created_at) = self.persist_verification_run(project, &run, artifacts, parent)?;
         Ok(StoredVerificationRun {
             id,
             created_at,
@@ -163,16 +209,13 @@ impl Store {
         project: &str,
         run: &VerificationRun,
         artifacts: &[VerificationArtifact],
+        parent: Option<&str>,
     ) -> Result<(String, String)> {
         self.require_write()?;
         validate(run, artifacts)?;
         let id = codec::json_hash(run)?;
         let data = serde_json::to_string(&codec::Header(run))?;
         let summary = serde_json::to_string(&VerificationRunSummary::new(&id, run)?)?;
-        let (corpus_hash, length, bytes) = codec::compress_json(&codec::Corpus {
-            cases: &run.cases,
-            required_cases: &run.required_cases,
-        })?;
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -218,7 +261,16 @@ impl Store {
                 let (media, stored, encoding, length): (String, Vec<u8>, String, Option<i64>) = tx.query_row(
                     "SELECT media_type,bytes,encoding,raw_length FROM verification_artifacts WHERE hash=?1", [&artifact.reference.hash],
                     |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?;
-                if media != artifact.reference.media_type
+                if encoding == "pruned"
+                    && media == artifact.reference.media_type
+                    && length == Some(artifact.reference.bytes as i64)
+                {
+                    let (encoding, bytes) = codec::encode(&artifact.contents)?;
+                    tx.execute(
+                        "UPDATE verification_artifacts SET bytes=?2,encoding=?3 WHERE hash=?1",
+                        params![artifact.reference.hash, bytes, encoding],
+                    )?;
+                } else if media != artifact.reference.media_type
                     || codec::decode_bytes(&encoding, stored, length)? != artifact.contents
                 {
                     return Err(invalid(
@@ -235,14 +287,15 @@ impl Store {
             let saved = self.verification_run(project, &id)?;
             return Ok((id, saved.created_at));
         }
-        maintenance::insert_corpus(&tx, &corpus_hash, length, &bytes)?;
-        tx.execute("INSERT INTO verification_runs(id,project,snapshot_id,check_id,origin,result,data,corpus_hash,summary) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",params![id,project,run.provenance.snapshot,run.provenance.check_occurrence,serde_json::to_string(&run.origin)?,serde_json::to_string(&run.result)?,data,corpus_hash,summary])?;
+        tx.execute("INSERT INTO verification_runs(id,project,snapshot_id,check_id,origin,result,data,corpus_hash,summary) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",params![id,project,run.provenance.snapshot,run.provenance.check_occurrence,serde_json::to_string(&run.origin)?,serde_json::to_string(&run.result)?,data,Option::<String>::None,summary])?;
         for artifact in artifacts {
             tx.execute(
                 "INSERT INTO verification_run_artifacts(run_id,artifact_hash) VALUES(?1,?2)",
                 params![id, artifact.reference.hash],
             )?;
         }
+        cases::store(&tx, &id, run)?;
+        register_parents(&tx, project, &id, artifacts, parent)?;
         maintenance::prune(&tx, project)?;
         tx.commit()?;
         let created_at = self.connection.query_row(
@@ -256,7 +309,10 @@ impl Store {
         if !self.has_verification_history()? {
             return Err(Error::Missing(format!("Verification run {id}")));
         }
-        codec::read_run(&self.connection, project, id)
+        let tx = self.connection.unchecked_transaction()?;
+        let run = codec::read_run(&tx, project, id)?;
+        tx.commit()?;
+        Ok(run)
     }
     pub fn verification_runs(&self, project: &str) -> Result<Vec<StoredVerificationRun>> {
         if !self.has_verification_history()? {
@@ -265,7 +321,9 @@ impl Store {
         let version: i64 = self
             .connection
             .pragma_query_value(None, "user_version", |r| r.get(0))?;
-        let sql = if version >= 5 {
+        let sql = if version >= 7 {
+            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL ORDER BY rowid DESC"
+        } else if version >= 5 {
             "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL ORDER BY rowid DESC LIMIT 3"
         } else {
             "SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3"
@@ -280,6 +338,24 @@ impl Store {
         if !self.has_verification_history()? {
             return Err(Error::Missing(format!("Verification artifact {hash}")));
         }
+        if storage::version(&self.connection)? < 5 {
+            return codec::read_artifact(&self.connection, run_id, hash);
+        }
+        let available: bool = self
+            .connection
+            .query_row(
+                "SELECT pruned_at IS NULL FROM verification_runs WHERE id=?1",
+                [run_id],
+                |r| r.get(0),
+            )
+            .optional()?
+            .unwrap_or(false);
+        if !available {
+            let metadata:bool=self.connection.query_row("SELECT EXISTS(SELECT 1 FROM verification_artifacts WHERE hash=?1 AND encoding!='pruned' AND media_type IN ('application/vnd.dctx0.runtime-metrics+json','application/vnd.dctx0.runtime-identity+json'))",[hash],|r|r.get(0))?;
+            if !metadata {
+                return Err(Error::DetailsPruned(run_id.into()));
+            }
+        }
         codec::read_artifact(&self.connection, run_id, hash)
     }
     fn has_verification_history(&self) -> Result<bool> {
@@ -291,4 +367,4 @@ impl Store {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

@@ -47,6 +47,8 @@ pub(crate) fn run(args: &[String], output: &mut dyn Write) -> Result<bool, Strin
         Command::Skills(args) => crate::skills::run(args, cli.json, output)?,
         Command::Install(args) => crate::skills::install(args, cli.json, output)?,
         Command::Site(args) => crate::site::run(args, cli.db.as_deref(), output)?,
+        Command::Storage(args) => crate::storage::run(args, cli.db.as_deref(), output)?,
+        Command::Query(args) => crate::query::run(args, cli.db.as_deref(), cli.json, output)?,
         Command::Verify(args) => {
             valid = crate::verification::run(args, cli.db.as_deref(), cli.json, output)?
         }

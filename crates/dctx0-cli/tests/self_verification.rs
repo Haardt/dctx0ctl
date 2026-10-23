@@ -168,7 +168,7 @@ fn close(&mut self)->Result<(),String>{Ok(())}}
         String::from_utf8_lossy(&published.stderr)
     );
     let effective: serde_json::Value = serde_json::from_slice(&published.stdout).unwrap();
-    assert_eq!(effective["assessment"]["result"]["status"], "PASS");
+    assert_eq!(effective["summary"]["result"]["status"], "PASS");
     write(
         &root,
         "crates/dctx0-cli/src/lib.rs",

@@ -94,6 +94,11 @@ impl Project {
             .store(AccessMode::ReadOnly)?
             .task_session(&self.key(), plan, as_of)?)
     }
+    pub fn task_metadata_session(&self, plan: Option<i64>, as_of: Option<i64>) -> Result<Session> {
+        Ok(self
+            .store(AccessMode::ReadOnly)?
+            .task_metadata_session(&self.key(), plan, as_of)?)
+    }
     pub fn task_show_session(
         &self,
         task: i64,
@@ -106,7 +111,7 @@ impl Project {
         } else {
             store.task_membership(&self.key(), task, as_of)?
         };
-        let session = store.task_session(&self.key(), Some(plan), as_of)?;
+        let session = store.task_detail_session(&self.key(), task, Some(plan), as_of)?;
         session.member(task)?;
         Ok(session)
     }

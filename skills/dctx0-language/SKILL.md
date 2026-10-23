@@ -29,3 +29,5 @@ Use `diff`, `impact` and explicit `rename --dry-run` when requested to understan
 changes and continuity. Plain remove/add edits do not imply a rename. `stableId`
 retains its data-contract meaning; it is not universal symbol identity. Never
 edit derived SQLite history to change requirements or outcomes.
+
+For inventory and verification investigations, read [the query guide](references/query.md). Start with filtered lists or SQL aggregates, then fetch individual details.

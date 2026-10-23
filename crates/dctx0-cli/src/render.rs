@@ -46,9 +46,72 @@ pub(crate) fn display_changes(
     Ok(())
 }
 
+/// Buffer only up to the explicit response budget; never emit a partial JSON value.
+pub(crate) fn bounded_json(
+    output: &mut dyn Write,
+    value: &impl serde::Serialize,
+    max: u64,
+) -> Result<(), String> {
+    with_output_limit(output, max, |buffer| json(buffer, value))
+}
+
+pub(crate) fn with_output_limit<T>(
+    output: &mut dyn Write,
+    max: u64,
+    action: impl FnOnce(&mut dyn Write) -> Result<T, String>,
+) -> Result<T, String> {
+    struct Buffer {
+        bytes: Vec<u8>,
+        max: u64,
+    }
+    impl Write for Buffer {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if self.bytes.len() as u64 + bytes.len() as u64 > self.max {
+                return Err(std::io::Error::other(
+                    "OUTPUT_LIMIT_EXCEEDED: use --max-output-bytes or verify export",
+                ));
+            }
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut buffer = Buffer { bytes: vec![], max };
+    let result = action(&mut buffer)?;
+    output.write_all(&buffer.bytes).map_err(error_message)?;
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn flushing_or_exceeding_a_response_budget_never_publishes_partial_output() {
+        let mut published = b"existing".to_vec();
+        let result: Result<(), String> = with_output_limit(&mut published, 100, |buffer| {
+            buffer.write_all(b"partial").map_err(error_message)?;
+            buffer.flush().map_err(error_message)?;
+            Err("cancelled".into())
+        });
+        assert!(result.is_err());
+        assert_eq!(published, b"existing");
+        assert!(
+            with_output_limit(&mut published, 3, |buffer| {
+                buffer.write_all(b"large").map_err(error_message)
+            })
+            .is_err()
+        );
+        assert_eq!(published, b"existing");
+        with_output_limit(&mut published, 4, |buffer| {
+            buffer.write_all(b"done").map_err(error_message)?;
+            buffer.flush().map_err(error_message)
+        })
+        .unwrap();
+        assert_eq!(published, b"existingdone");
+    }
 
     #[test]
     fn json_reports_split_large_collections_into_searchable_lines() {

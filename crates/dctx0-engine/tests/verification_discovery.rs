@@ -34,6 +34,31 @@ impl Drop for Fixture {
 }
 
 #[test]
+fn unavailable_structural_inspection_preserves_history_and_does_not_publish_a_check() {
+    struct Unavailable;
+    impl dctx0_target_sdk::ImplementationInspector for Unavailable {
+        fn inspect(
+            &self,
+            _: &[dctx0_target_sdk::InspectionSource],
+        ) -> Result<dctx0_target_sdk::InspectionReport, dctx0_target_sdk::Error> {
+            Err(dctx0_target_sdk::Error::Invalid(
+                "structural inspection unavailable".into(),
+            ))
+        }
+    }
+    let fixture = Fixture::new();
+    let project = fixture.project();
+    project.check().unwrap();
+    let before = fs::read(&project.database).unwrap();
+    let error = project
+        .discover_verification(&fixture.0.join("app"), &Unavailable)
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("structural inspection unavailable"));
+    assert_eq!(fs::read(&project.database).unwrap(), before);
+}
+
+#[test]
 fn discovery_is_read_only_does_not_execute_sources_and_keeps_ambiguity_visible() {
     let f = Fixture::new();
     let p = f.project();

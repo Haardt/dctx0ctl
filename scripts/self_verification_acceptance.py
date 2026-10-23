@@ -83,7 +83,7 @@ def main():
                 try:
                     path.write_text(original.replace(needle,replacement,1))
                     # Native run builds the worker against this captured real production mutation.
-                    result=measured([str(captured_cli),'verify','run',str(captured/'dctx0'),'--project',str(captured),'--subject',subject,'--no-adopt','--json'])
+                    result=measured([str(captured_cli),'verify','run',str(captured/'dctx0'),'--project',str(captured),'--subject',subject,'--no-adopt','--json', '--full'])
                     evidence=json.loads(result['stdout'])
                     failures=[case['id'] for case in evidence['evidence']['run']['cases'] if case['result']['status']=='FAIL']
                     report['mutations'].append({'name':name,'source':str(path.relative_to(captured)),'failures':failures,'result':{key:value for key,value in result.items() if key!='stdout'}})
@@ -98,7 +98,7 @@ def main():
         report['measurements'].append({'phase':'native-worker','samples':self_report['runtime_measurements'],'memory_method':'worker-reported /proc VmHWM, captured in native artifacts','passed':True})
         replay_source = None
         for phase in ('warm-finite-plan', 'replay'):
-            command = ([str(captured_cli),'verify','run',str(captured/'dctx0'),'--project',str(captured),'--no-adopt','--json'] if phase == 'warm-finite-plan' else [str(captured_cli),'verify','replay',str(captured/'dctx0'),replay_source[0],'--project',str(captured),'--case',replay_source[1],'--json'])
+            command = ([str(captured_cli),'verify','run',str(captured/'dctx0'),'--project',str(captured),'--no-adopt','--json', '--full'] if phase == 'warm-finite-plan' else [str(captured_cli),'verify','replay',str(captured/'dctx0'),replay_source[0],'--project',str(captured),'--case',replay_source[1],'--json', '--full'])
             # Replay the most recent complete corpus: mutation and warm runs
             # legitimately expire the original under the three-run policy.
 

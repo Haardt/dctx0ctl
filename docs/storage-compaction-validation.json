@@ -1,0 +1,2257 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-23",
+  "status": "implemented-and-installed",
+  "scope": "Schema 7 minimum storage; preserve all task/snapshot/event history and historical PASS; Company Manager read-only paired reference before installation",
+  "preservation": {
+    "snapshots": 166,
+    "plans": 176,
+    "tasks": 4281,
+    "events": 8558,
+    "states": 4281,
+    "run_summaries": 1339,
+    "task_pass": 1261,
+    "task_unverified": 3020,
+    "work": {
+      "Done": 1331,
+      "Open": 2907,
+      "Progress": 43
+    },
+    "compared_payload_tables": 9,
+    "compared_payload_rows": 18509
+  },
+  "storage": {
+    "before_bytes": 4863143936,
+    "after_bytes": 340631552,
+    "reduction_percent": 92.99565144518067,
+    "before_schema": 5,
+    "after_schema": 7,
+    "top_tables_before": [
+      {
+        "name": "snapshots",
+        "bytes": 2330898432
+      },
+      {
+        "name": "task_events",
+        "bytes": 739897344
+      },
+      {
+        "name": "task_states",
+        "bytes": 450592768
+      },
+      {
+        "name": "task_plans",
+        "bytes": 387039232
+      },
+      {
+        "name": "edges",
+        "bytes": 352165888
+      },
+      {
+        "name": "nodes",
+        "bytes": 203341824
+      },
+      {
+        "name": "edges_target",
+        "bytes": 143798272
+      },
+      {
+        "name": "sqlite_autoindex_nodes_1",
+        "bytes": 83116032
+      },
+      {
+        "name": "task_dependencies",
+        "bytes": 82825216
+      },
+      {
+        "name": "tasks",
+        "bytes": 31068160
+      },
+      {
+        "name": "task_dependents",
+        "bytes": 16773120
+      },
+      {
+        "name": "execution_bundles",
+        "bytes": 15331328
+      },
+      {
+        "name": "verification_runs",
+        "bytes": 12754944
+      },
+      {
+        "name": "verification_artifacts",
+        "bytes": 3813376
+      },
+      {
+        "name": "verification_corpora",
+        "bytes": 3330048
+      }
+    ],
+    "top_tables_after": [
+      {
+        "name": "storage_objects",
+        "bytes": 181633024
+      },
+      {
+        "name": "storage_state_metadata",
+        "bytes": 21700608
+      },
+      {
+        "name": "sqlite_autoindex_storage_relation_members_1",
+        "bytes": 13373440
+      },
+      {
+        "name": "storage_relation_members",
+        "bytes": 12414976
+      },
+      {
+        "name": "verification_case_index",
+        "bytes": 12292096
+      },
+      {
+        "name": "verification_runs",
+        "bytes": 12271616
+      },
+      {
+        "name": "storage_chunks",
+        "bytes": 11862016
+      },
+      {
+        "name": "sqlite_autoindex_storage_spec_members_1",
+        "bytes": 7671808
+      },
+      {
+        "name": "storage_spec_members",
+        "bytes": 7127040
+      },
+      {
+        "name": "tasks",
+        "bytes": 6696960
+      },
+      {
+        "name": "storage_spec_texts",
+        "bytes": 5156864
+      },
+      {
+        "name": "verification_case_bodies",
+        "bytes": 5140480
+      },
+      {
+        "name": "storage_spec_nodes",
+        "bytes": 3870720
+      },
+      {
+        "name": "sqlite_autoindex_verification_requirements_1",
+        "bytes": 2842624
+      },
+      {
+        "name": "sqlite_autoindex_verification_case_index_1",
+        "bytes": 2842624
+      }
+    ]
+  },
+  "paired_comparison": {
+    "report": "benchmarks/history/compaction/20261023T185745.717811Z-10066.json",
+    "status": "complete",
+    "settings": {
+      "samples": 5,
+      "warmup": 1,
+      "iterations": 1,
+      "cache": "warm OS cache; separate CLI process per sample",
+      "profile": "release, uninstrumented",
+      "speed_tolerance_percent": 20,
+      "ram_tolerance_percent": 10
+    },
+    "copy_sha256": "72d3ff0ed640b75c937d5e75e24ff6758192751a610352703c1dd495b51a11ee",
+    "binary_hashes": {
+      "old": "0441424a16d94eb866e351c02fd86ca998bc27ec55dce6a62f027984335a4880",
+      "new": "78abbf7b2d4447f82a67b4bb2b035ae22cbb6635dd01d9970aa9cb8a9a138a56"
+    },
+    "measurements": {
+      "task-counts": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 6195.158385,
+              "peak_rss_bytes": 670748672,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0005.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0005-task-counts-old.log"
+            },
+            {
+              "elapsed_ms": 5015.904001,
+              "peak_rss_bytes": 670924800,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0006.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0006-task-counts-old.log"
+            },
+            {
+              "elapsed_ms": 4978.822077,
+              "peak_rss_bytes": 671014912,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0007.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0007-task-counts-old.log"
+            },
+            {
+              "elapsed_ms": 4459.800615,
+              "peak_rss_bytes": 671121408,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0008.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0008-task-counts-old.log"
+            },
+            {
+              "elapsed_ms": 4590.587385,
+              "peak_rss_bytes": 670867456,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0009.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0009-task-counts-old.log"
+            }
+          ],
+          "elapsed_ms": 4978.822077,
+          "peak_rss_bytes": 671121408
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 506.401538,
+              "peak_rss_bytes": 86847488,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0011.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0011-task-counts-new.log"
+            },
+            {
+              "elapsed_ms": 498.971307,
+              "peak_rss_bytes": 85872640,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0012.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0012-task-counts-new.log"
+            },
+            {
+              "elapsed_ms": 489.26623,
+              "peak_rss_bytes": 87031808,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0013.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0013-task-counts-new.log"
+            },
+            {
+              "elapsed_ms": 520.263692,
+              "peak_rss_bytes": 86536192,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0014.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0014-task-counts-new.log"
+            },
+            {
+              "elapsed_ms": 500.128077,
+              "peak_rss_bytes": 87019520,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0015.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0015-task-counts-new.log"
+            }
+          ],
+          "elapsed_ms": 500.128077,
+          "peak_rss_bytes": 87031808
+        },
+        "elapsed_ms_delta": -4478.6939999999995,
+        "elapsed_ms_delta_percent": -89.95489155335807,
+        "peak_rss_bytes_delta": -584089600,
+        "peak_rss_bytes_delta_percent": -87.0318832088277
+      },
+      "ready-tasks": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 4291.617308,
+              "peak_rss_bytes": 670994432,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0017.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0017-ready-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 4757.271307,
+              "peak_rss_bytes": 670875648,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0018.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0018-ready-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 5831.401923,
+              "peak_rss_bytes": 670851072,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0019.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0019-ready-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 4686.868308,
+              "peak_rss_bytes": 671117312,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0020.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0020-ready-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 4223.644923,
+              "peak_rss_bytes": 671068160,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0021.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0021-ready-tasks-old.log"
+            }
+          ],
+          "elapsed_ms": 4686.868308,
+          "peak_rss_bytes": 671117312
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 587.713923,
+              "peak_rss_bytes": 86016000,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0023.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0023-ready-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 506.552846,
+              "peak_rss_bytes": 86724608,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0024.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0024-ready-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 489.976923,
+              "peak_rss_bytes": 86093824,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0025.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0025-ready-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 510.147769,
+              "peak_rss_bytes": 85581824,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0026.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0026-ready-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 508.176923,
+              "peak_rss_bytes": 87367680,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0027.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT task_id,ready,delivered FROM dctx0_tasks WHERE work='Open' ORDER BY wave,task_id LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0027-ready-tasks-new.log"
+            }
+          ],
+          "elapsed_ms": 508.176923,
+          "peak_rss_bytes": 87367680
+        },
+        "elapsed_ms_delta": -4178.691385,
+        "elapsed_ms_delta_percent": -89.15743115434682,
+        "peak_rss_bytes_delta": -583749632,
+        "peak_rss_bytes_delta_percent": -86.98175737120606
+      },
+      "source-join": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 15640.474155,
+              "peak_rss_bytes": 671031296,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0029.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0029-source-join-old.log"
+            },
+            {
+              "elapsed_ms": 17028.532001,
+              "peak_rss_bytes": 670814208,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0030.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0030-source-join-old.log"
+            },
+            {
+              "elapsed_ms": 16488.141617,
+              "peak_rss_bytes": 671076352,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0031.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0031-source-join-old.log"
+            },
+            {
+              "elapsed_ms": 16119.988924,
+              "peak_rss_bytes": 670920704,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0032.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0032-source-join-old.log"
+            },
+            {
+              "elapsed_ms": 16671.618693,
+              "peak_rss_bytes": 670842880,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0033.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0033-source-join-old.log"
+            }
+          ],
+          "elapsed_ms": 16488.141617,
+          "peak_rss_bytes": 671076352
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 713.928924,
+              "peak_rss_bytes": 86745088,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0035.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0035-source-join-new.log"
+            },
+            {
+              "elapsed_ms": 679.585923,
+              "peak_rss_bytes": 86446080,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0036.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0036-source-join-new.log"
+            },
+            {
+              "elapsed_ms": 701.951385,
+              "peak_rss_bytes": 86208512,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0037.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0037-source-join-new.log"
+            },
+            {
+              "elapsed_ms": 686.434231,
+              "peak_rss_bytes": 86306816,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0038.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0038-source-join-new.log"
+            },
+            {
+              "elapsed_ms": 688.417231,
+              "peak_rss_bytes": 85770240,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0039.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject,r.file,r.start_line LIMIT 100",
+                "--timeout-seconds",
+                "60",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0039-source-join-new.log"
+            }
+          ],
+          "elapsed_ms": 688.417231,
+          "peak_rss_bytes": 86745088
+        },
+        "elapsed_ms_delta": -15799.724386000002,
+        "elapsed_ms_delta_percent": -95.8247736646669,
+        "peak_rss_bytes_delta": -584331264,
+        "peak_rss_bytes_delta_percent": -87.07373792244731
+      },
+      "case-counts": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 4837.572615,
+              "peak_rss_bytes": 671178752,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0041.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0041-case-counts-old.log"
+            },
+            {
+              "elapsed_ms": 5621.50777,
+              "peak_rss_bytes": 671252480,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0042.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0042-case-counts-old.log"
+            },
+            {
+              "elapsed_ms": 5707.968,
+              "peak_rss_bytes": 671207424,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0043.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0043-case-counts-old.log"
+            },
+            {
+              "elapsed_ms": 4886.395308,
+              "peak_rss_bytes": 671047680,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0044.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0044-case-counts-old.log"
+            },
+            {
+              "elapsed_ms": 5142.619077,
+              "peak_rss_bytes": 671019008,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0045.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0045-case-counts-old.log"
+            }
+          ],
+          "elapsed_ms": 5142.619077,
+          "peak_rss_bytes": 671252480
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 344.331615,
+              "peak_rss_bytes": 37330944,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0047.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0047-case-counts-new.log"
+            },
+            {
+              "elapsed_ms": 249.670539,
+              "peak_rss_bytes": 36978688,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0048.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0048-case-counts-new.log"
+            },
+            {
+              "elapsed_ms": 273.688923,
+              "peak_rss_bytes": 37339136,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0049.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0049-case-counts-new.log"
+            },
+            {
+              "elapsed_ms": 307.409,
+              "peak_rss_bytes": 37343232,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0050.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0050-case-counts-new.log"
+            },
+            {
+              "elapsed_ms": 278.469538,
+              "peak_rss_bytes": 36708352,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0051.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,outcome,COUNT(*) FROM dctx0_cases WHERE run_id=:run GROUP BY subject,outcome ORDER BY subject,outcome",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "run=\"087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0051-case-counts-new.log"
+            }
+          ],
+          "elapsed_ms": 278.469538,
+          "peak_rss_bytes": 37343232
+        },
+        "elapsed_ms_delta": -4864.149539,
+        "elapsed_ms_delta_percent": -94.58506387833711,
+        "peak_rss_bytes_delta": -633909248,
+        "peak_rss_bytes_delta_percent": -94.43678301195997
+      },
+      "spec-search": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 4909.031077,
+              "peak_rss_bytes": 670908416,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0053.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0053-spec-search-old.log"
+            },
+            {
+              "elapsed_ms": 4875.349924,
+              "peak_rss_bytes": 671064064,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0054.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0054-spec-search-old.log"
+            },
+            {
+              "elapsed_ms": 5599.767385,
+              "peak_rss_bytes": 671141888,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0055.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0055-spec-search-old.log"
+            },
+            {
+              "elapsed_ms": 5123.776924,
+              "peak_rss_bytes": 670998528,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0056.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0056-spec-search-old.log"
+            },
+            {
+              "elapsed_ms": 4847.338846,
+              "peak_rss_bytes": 670720000,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0057.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0057-spec-search-old.log"
+            }
+          ],
+          "elapsed_ms": 4909.031077,
+          "peak_rss_bytes": 671141888
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 74.500539,
+              "peak_rss_bytes": 18554880,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0059.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0059-spec-search-new.log"
+            },
+            {
+              "elapsed_ms": 80.084923,
+              "peak_rss_bytes": 19005440,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0060.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0060-spec-search-new.log"
+            },
+            {
+              "elapsed_ms": 91.725,
+              "peak_rss_bytes": 19230720,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0061.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0061-spec-search-new.log"
+            },
+            {
+              "elapsed_ms": 78.289154,
+              "peak_rss_bytes": 18706432,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0062.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0062-spec-search-new.log"
+            },
+            {
+              "elapsed_ms": 55.844615,
+              "peak_rss_bytes": 19320832,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0063.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT subject,text FROM dctx0_facts WHERE text LIKE :text ORDER BY subject LIMIT 10",
+                "--timeout-seconds",
+                "60",
+                "--param",
+                "text=\"%Company%\"",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0063-spec-search-new.log"
+            }
+          ],
+          "elapsed_ms": 78.289154,
+          "peak_rss_bytes": 19320832
+        },
+        "elapsed_ms_delta": -4830.741923,
+        "elapsed_ms_delta_percent": -98.40520149960338,
+        "peak_rss_bytes_delta": -651821056,
+        "peak_rss_bytes_delta_percent": -97.12120010008971
+      },
+      "historical-tasks": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 277.381539,
+              "peak_rss_bytes": 44638208,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0065.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0065-historical-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 296.496231,
+              "peak_rss_bytes": 44875776,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0066.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0066-historical-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 284.825231,
+              "peak_rss_bytes": 45424640,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0067.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0067-historical-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 285.900616,
+              "peak_rss_bytes": 45056000,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0068.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0068-historical-tasks-old.log"
+            },
+            {
+              "elapsed_ms": 289.725154,
+              "peak_rss_bytes": 45481984,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0069.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0069-historical-tasks-old.log"
+            }
+          ],
+          "elapsed_ms": 285.900616,
+          "peak_rss_bytes": 45481984
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 44.631615,
+              "peak_rss_bytes": 12451840,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0071.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0071-historical-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 50.492615,
+              "peak_rss_bytes": 12369920,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0072.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0072-historical-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 53.611615,
+              "peak_rss_bytes": 12644352,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0073.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0073-historical-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 41.515077,
+              "peak_rss_bytes": 12722176,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0074.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0074-historical-tasks-new.log"
+            },
+            {
+              "elapsed_ms": 49.039616,
+              "peak_rss_bytes": 12562432,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0075.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "query",
+                "sql",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "--sql",
+                "SELECT work,check_status,COUNT(*) FROM dctx0_tasks GROUP BY work,check_status ORDER BY work,check_status",
+                "--timeout-seconds",
+                "60",
+                "--plan",
+                "1",
+                "--as-of",
+                "10",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0075-historical-tasks-new.log"
+            }
+          ],
+          "elapsed_ms": 49.039616,
+          "peak_rss_bytes": 12722176
+        },
+        "elapsed_ms_delta": -236.86100000000002,
+        "elapsed_ms_delta_percent": -82.84732062277193,
+        "peak_rss_bytes_delta": -32759808,
+        "peak_rss_bytes_delta_percent": -72.02809798270893
+      },
+      "single-case-old": {
+        "elapsed_ms": 46.435077,
+        "peak_rss_bytes": 22700032,
+        "command": [
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0076.rss",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+          "--db",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+          "verify",
+          "show",
+          "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+          "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+          "--case",
+          "CompanyManager.AgentTools.JsonMember:value:0",
+          "--max-output-bytes",
+          "67108864",
+          "--json"
+        ],
+        "exit_code": 0,
+        "log": "target/storage-comparison/20261023T185745.717811Z/0076-single-case-old.log"
+      },
+      "single-case-new": {
+        "elapsed_ms": 88.277616,
+        "peak_rss_bytes": 22974464,
+        "command": [
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0077.rss",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+          "--db",
+          "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+          "verify",
+          "show",
+          "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+          "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+          "--case",
+          "CompanyManager.AgentTools.JsonMember:value:0",
+          "--max-output-bytes",
+          "67108864",
+          "--json"
+        ],
+        "exit_code": 0,
+        "log": "target/storage-comparison/20261023T185745.717811Z/0077-single-case-new.log"
+      },
+      "full-export": {
+        "old": {
+          "samples": [
+            {
+              "elapsed_ms": 1040.877231,
+              "peak_rss_bytes": 21811200,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0079.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/old-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0079-export-old.log"
+            },
+            {
+              "elapsed_ms": 1040.364231,
+              "peak_rss_bytes": 21143552,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0080.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/old-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0080-export-old.log"
+            },
+            {
+              "elapsed_ms": 1000.361615,
+              "peak_rss_bytes": 20414464,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0081.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/old-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0081-export-old.log"
+            },
+            {
+              "elapsed_ms": 994.070769,
+              "peak_rss_bytes": 20471808,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0082.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/old-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0082-export-old.log"
+            },
+            {
+              "elapsed_ms": 1101.275692,
+              "peak_rss_bytes": 21762048,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0083.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/dctx0-before-storage7",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/old-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0083-export-old.log"
+            }
+          ],
+          "elapsed_ms": 1040.364231,
+          "peak_rss_bytes": 21811200,
+          "sha256": "479b0bbb1a345f8e53ecc9e1f11669bf11a021cb3be6c72d31dd45686c04f980",
+          "bytes": 42966583
+        },
+        "new": {
+          "samples": [
+            {
+              "elapsed_ms": 1017.709539,
+              "peak_rss_bytes": 20185088,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0085.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/new-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0085-export-new.log"
+            },
+            {
+              "elapsed_ms": 1036.015077,
+              "peak_rss_bytes": 20705280,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0086.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/new-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0086-export-new.log"
+            },
+            {
+              "elapsed_ms": 1048.160923,
+              "peak_rss_bytes": 20586496,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0087.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/new-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0087-export-new.log"
+            },
+            {
+              "elapsed_ms": 1015.618846,
+              "peak_rss_bytes": 20914176,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0088.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/new-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0088-export-new.log"
+            },
+            {
+              "elapsed_ms": 1036.619,
+              "peak_rss_bytes": 20942848,
+              "command": [
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/timer",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/0089.rss",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/release/dctx0",
+                "--db",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-storage7-final.sqlite3",
+                "verify",
+                "export",
+                "/home/massenhaft/workspaces/conpinion/company-manager/spec",
+                "087885093e159fb4338a2c9c39991ef1785141ccd53e1c08b3a959ee015e02d9",
+                "--output",
+                "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/new-full.json",
+                "--json"
+              ],
+              "exit_code": 0,
+              "log": "target/storage-comparison/20261023T185745.717811Z/0089-export-new.log"
+            }
+          ],
+          "elapsed_ms": 1036.015077,
+          "peak_rss_bytes": 20942848,
+          "sha256": "479b0bbb1a345f8e53ecc9e1f11669bf11a021cb3be6c72d31dd45686c04f980",
+          "bytes": 42966583
+        },
+        "elapsed_ms_delta": -4.349153999999999,
+        "elapsed_ms_delta_percent": -0.4180414772449015,
+        "peak_rss_bytes_delta": -868352,
+        "peak_rss_bytes_delta_percent": -3.981220657276996
+      }
+    },
+    "verification": {
+      "compared_rows": 18509,
+      "compared_tables": 9,
+      "integrity_ok": true
+    },
+    "regressions": [],
+    "source_hash_before": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336",
+    "source_hash_after": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336"
+  },
+  "focused_validation": {
+    "report": "benchmarks/history/queries/20261023T184552.679756Z-7916.json",
+    "status": "complete",
+    "release_workloads": 14
+  },
+  "large_synthetic_validation": {
+    "report": "benchmarks/history/queries/20261023T190616.608847Z-10533.json",
+    "status": "complete",
+    "cases_per_example": 10000,
+    "release_workloads": 14,
+    "scope": "Imported synthetic storage only; no native execution/adoption claim",
+    "storage": {
+      "cinema": {
+        "raw_corpus_bytes": 169060747,
+        "legacy_compressed_bytes": 553719,
+        "legacy_compression_ms": 662.3374609916937,
+        "cases": 10000,
+        "payload_bytes": 16384,
+        "oversized_case_payload_bytes": 2097152,
+        "database_bytes": 16982016,
+        "case_body_bytes": 2832991,
+        "case_raw_bytes": 168960707,
+        "metadata_bytes": 2659939,
+        "index_page_bytes": 4005888,
+        "export_bytes": 169062244
+      },
+      "cinema-go": {
+        "raw_corpus_bytes": 169060747,
+        "legacy_compressed_bytes": 553719,
+        "legacy_compression_ms": 692.7495390118565,
+        "cases": 10000,
+        "payload_bytes": 16384,
+        "oversized_case_payload_bytes": 2097152,
+        "database_bytes": 16982016,
+        "case_body_bytes": 2832991,
+        "case_raw_bytes": 168960707,
+        "metadata_bytes": 2659939,
+        "index_page_bytes": 4005888,
+        "export_bytes": 169062244
+      }
+    },
+    "measurements": {
+      "cinema/prepare": {
+        "elapsed_ms": 2966.111385,
+        "peak_rss_bytes": 194048000,
+        "workload_version": 1
+      },
+      "cinema/summary": {
+        "elapsed_ms": 8.338154,
+        "peak_rss_bytes": 11194368,
+        "workload_version": 1
+      },
+      "cinema/task-aggregate": {
+        "elapsed_ms": 32.197616,
+        "peak_rss_bytes": 15364096,
+        "workload_version": 1
+      },
+      "cinema/filtered-cases": {
+        "elapsed_ms": 56.766154,
+        "peak_rss_bytes": 18825216,
+        "workload_version": 1
+      },
+      "cinema/single-case": {
+        "elapsed_ms": 59.530692,
+        "peak_rss_bytes": 20148224,
+        "workload_version": 1
+      },
+      "cinema/source-join": {
+        "elapsed_ms": 60.516308,
+        "peak_rss_bytes": 15298560,
+        "workload_version": 1
+      },
+      "cinema/full-export": {
+        "elapsed_ms": 1924.532923,
+        "peak_rss_bytes": 20996096,
+        "workload_version": 1
+      },
+      "cinema-go/prepare": {
+        "elapsed_ms": 3281.477,
+        "peak_rss_bytes": 193998848,
+        "workload_version": 1
+      },
+      "cinema-go/summary": {
+        "elapsed_ms": 8.999769,
+        "peak_rss_bytes": 9437184,
+        "workload_version": 1
+      },
+      "cinema-go/task-aggregate": {
+        "elapsed_ms": 35.883462,
+        "peak_rss_bytes": 15605760,
+        "workload_version": 1
+      },
+      "cinema-go/filtered-cases": {
+        "elapsed_ms": 56.775077,
+        "peak_rss_bytes": 19423232,
+        "workload_version": 1
+      },
+      "cinema-go/single-case": {
+        "elapsed_ms": 41.00123,
+        "peak_rss_bytes": 18718720,
+        "workload_version": 1
+      },
+      "cinema-go/source-join": {
+        "elapsed_ms": 64.627461,
+        "peak_rss_bytes": 14999552,
+        "workload_version": 1
+      },
+      "cinema-go/full-export": {
+        "elapsed_ms": 2051.752615,
+        "peak_rss_bytes": 20955136,
+        "workload_version": 1
+      }
+    }
+  },
+  "full_validation": {
+    "report": "benchmarks/history/20261023T200957.238723Z-10701.json",
+    "log": "target/storage7-final-validation.log",
+    "command": "python3 scripts/validate.py --coverage --samples 1 --iterations 1 --example cinema",
+    "measurement_status": "complete",
+    "validation_status": "incomplete",
+    "nonzero_steps": [
+      {
+        "command": [
+          "/usr/sbin/python3",
+          "scripts/go_race.py"
+        ],
+        "returncode": 2,
+        "status": "unavailable",
+        "evidence": "target/go-cinema/race.json"
+      }
+    ],
+    "validation_source_hash_before": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336",
+    "validation_source_hash_after": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336",
+    "measurement_source_hash_before": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336",
+    "measurement_source_hash_after": "e4c84d445e58e677880fb836d3b49c541116d5a55609d6e1c0793d500b59d336",
+    "release_workloads": 81,
+    "baseline_gate": "unassessed",
+    "unassessed_workloads": 80,
+    "scope": "All executable workspace/feature/native checks and coverage passed; aggregate remains incomplete solely because Go Race is unavailable on this host. General baseline comparisons are predominantly unassessed; the paired Company Manager comparison passed its gates.",
+    "process_tree_peak_rss_bytes": 1510559744,
+    "process_tree_elapsed_ms": 3750073.209
+  },
+  "installation": {
+    "installed_binary": "/home/massenhaft/.cargo/bin/dctx0",
+    "binary_backup": "/home/massenhaft/.local/state/dctx0/backups/dctx0-before-schema7-20261023T201044.473300Z",
+    "old_sha256": "0441424a16d94eb866e351c02fd86ca998bc27ec55dce6a62f027984335a4880",
+    "sha256": "78abbf7b2d4447f82a67b4bb2b035ae22cbb6635dd01d9970aa9cb8a9a138a56",
+    "installed_at": "20261023T201044.473300Z",
+    "skill_backup": "/home/massenhaft/.local/state/dctx0/backups/company-manager-skills-20261023T201044.473300Z.tar.gz",
+    "database_installed": true,
+    "binary_installed": true,
+    "company_manager_skills_updated": true,
+    "database": "/home/massenhaft/workspaces/conpinion/company-manager/spec/.dctx0ctl/state.sqlite3",
+    "database_bytes": 340631552,
+    "database_backup": "/home/massenhaft/workspaces/conpinion/company-manager/spec/.dctx0ctl/backups/state-before-schema7-1792786405314091026.sqlite3",
+    "database_backup_bytes": 4863143936,
+    "live_database_sha256": "72d3ff0ed640b75c937d5e75e24ff6758192751a610352703c1dd495b51a11ee",
+    "matches_compared_copy": true,
+    "skills": {
+      "schema_version": 1,
+      "installations": [
+        {
+          "skill": "dctx0",
+          "agents": [
+            "agents"
+          ],
+          "directory": "/home/massenhaft/workspaces/conpinion/company-manager/.agents/skills/dctx0",
+          "status": "installed"
+        },
+        {
+          "skill": "dctx0-implementation",
+          "agents": [
+            "agents"
+          ],
+          "directory": "/home/massenhaft/workspaces/conpinion/company-manager/.agents/skills/dctx0-implementation",
+          "status": "installed"
+        },
+        {
+          "skill": "dctx0-language",
+          "agents": [
+            "agents"
+          ],
+          "directory": "/home/massenhaft/workspaces/conpinion/company-manager/.agents/skills/dctx0-language",
+          "status": "installed"
+        }
+      ],
+      "warnings": []
+    },
+    "skill_validation": "All three quick_validate.py checks passed; all bundled files exactly match the expected embedded files and shared query guide.",
+    "live_sql": {
+      "view_version": 2,
+      "pins": {
+        "plan": 176,
+        "as_of": 8558,
+        "snapshot": "56e4fca34a27250366f2091518f14d042a83a9c40a81ba332ca754d3dd8910c2"
+      },
+      "columns": [
+        "work",
+        "check_status",
+        "tasks"
+      ],
+      "rows": [
+        [
+          "Done",
+          "PASS",
+          837
+        ],
+        [
+          "Done",
+          "UNVERIFIED",
+          70
+        ],
+        [
+          "Open",
+          "UNVERIFIED",
+          400
+        ],
+        [
+          "Progress",
+          "UNVERIFIED",
+          43
+        ]
+      ],
+      "complete": true,
+      "availability": [
+        "Historical pins; no working-tree freshness. Historical case metadata can outlive its body; check body_available. Older already-pruned runs may have no case metadata. Implementation references are limited to captured evidence."
+      ]
+    },
+    "application_source_changed": false,
+    "backup_validation": {
+      "path": "/home/massenhaft/workspaces/conpinion/company-manager/spec/.dctx0ctl/backups/state-before-schema7-1792786405314091026.sqlite3",
+      "bytes": 4863143936,
+      "schema_version": 5,
+      "counts": {
+        "snapshots": 166,
+        "task_plans": 176,
+        "tasks": 4281,
+        "task_events": 8558,
+        "task_states": 4281,
+        "verification_runs": 1339
+      },
+      "check_states": [
+        [
+          "pass",
+          1261
+        ],
+        [
+          "unverified",
+          3020
+        ]
+      ]
+    },
+    "logical_task_states_changed": false
+  },
+  "baseline": "Accepted benchmarks/baseline.json unchanged; no promotion; paired local comparison is separate",
+  "limitations": [
+    "Go Race requires a compatible host; this ARM64 host reports RACE_HOST_VMA_UNSUPPORTED.",
+    "Schema 7 retains latest and latest FAIL/UNKNOWN bodies plus pending publications and immediate inspection/replay sources; old body absence is explicit.",
+    "Historical task PASS is preserved, not re-execution against the current Company Manager application."
+  ],
+  "earlier_attempts": [
+    {
+      "report": "benchmarks/history/20261023T183155.181803Z-20132.json",
+      "status": "incomplete",
+      "reason": "Old retention assumptions, native artifact collection after pruning, and source edits during validation; corrected before final run.",
+      "initial_coverage": {
+        "source_lines": 39117,
+        "covered_lines": 37941,
+        "line_percent": 96.99363448117187,
+        "llvm_functions": 3210,
+        "covered_functions": 3095,
+        "function_percent": 96.41744548286604,
+        "instrumented_exit_code": 101
+      }
+    },
+    {
+      "report": "benchmarks/history/compaction/20261023T185027.703635Z-9724.json",
+      "status": "incomplete",
+      "reason": "The previous binary emits no export JSON receipt; driver now validates the actual exported files."
+    }
+  ],
+  "coverage": {
+    "status": "pass",
+    "merged_source_lines": {
+      "lines": 39134,
+      "covered_lines": 38028,
+      "line_percent": 97.17381305258854
+    },
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3211,
+        "covered": 3115,
+        "percent": 97.0102771722205
+      },
+      "instantiations": {
+        "count": 7942,
+        "covered": 4847,
+        "percent": 61.02996726265424
+      },
+      "lines": {
+        "count": 41307,
+        "covered": 39827,
+        "percent": 96.41707216694508
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 63460,
+        "covered": 59358,
+        "notcovered": 4102,
+        "percent": 93.53608572329026
+      }
+    },
+    "instrumented_exit_code": 0,
+    "source_hash_before": "99dc9d28c3f286c310115ac36280e30149f13fd5f1a355fd7640e49a7a0436d4",
+    "source_hash_after": "99dc9d28c3f286c310115ac36280e30149f13fd5f1a355fd7640e49a7a0436d4",
+    "scope": "workspace",
+    "raw_exports": {
+      "llvm": "target/coverage/llvm.json",
+      "lcov": "target/coverage/workspace.lcov",
+      "merged": "target/coverage/source-summary.json"
+    },
+    "exclusions_added": false,
+    "thresholds_changed": false,
+    "branch_completeness_claimed": false
+  },
+  "temporary_database_cleanup": {
+    "removed": [
+      {
+        "path": "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/company-manager-schema7.sqlite3",
+        "bytes": 531632128
+      },
+      {
+        "path": "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185027.703635Z/reference.sqlite3",
+        "bytes": 4956291072
+      },
+      {
+        "path": "/home/massenhaft/workspaces/conpinion/dctx0ctl/target/storage-comparison/20261023T185745.717811Z/reference.sqlite3",
+        "bytes": 4956291072
+      }
+    ],
+    "bytes_freed": 10444214272,
+    "retained": "Live database, synced schema-5 backup, previous binary and skill backups, raw sample JSON/logs and exact full exports. Only disposable agent-created SQLite comparison/prototype copies were removed."
+  },
+  "local_release_upgrade": {
+    "version": "0.2.11",
+    "binary_sha256": "a5c1751dabf83a86637ec1d6ab001db89f5ef226c58b5d0bab8bf463007ab593",
+    "binary_backup": "/home/massenhaft/.local/state/dctx0/backups/dctx0-before-v0.2.11-20261023T203155.486008Z",
+    "acceptance": "benchmarks/history/release/20261023T202902.696681Z-19967.json",
+    "note": "Version-only package/lockfile bump after the recorded feature validation and paired comparison; original installation proof and measured binary hashes remain historical."
+  }
+}

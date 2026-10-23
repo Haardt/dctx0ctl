@@ -3,6 +3,12 @@ use dctx0_changes::{Changes, RenameMapping, Snapshot, diff};
 pub use dctx0_changes::{HistoryEntry, HistoryReader, HistoryWriter, RenameEvent};
 use dctx0_changes::{LineagePath, RenameLineage};
 use dctx0_core::Diagnostic;
+mod storage;
+mod storage_maintenance;
+mod storage_spec;
+pub use storage_maintenance::*;
+mod query;
+pub use query::*;
 mod site;
 pub use site::*;
 mod tasks;
@@ -18,7 +24,7 @@ pub enum Error {
     Sql(#[from] rusqlite::Error),
     #[error("Snapshot JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Unsupported database schema {0}; expected 1 through 5")]
+    #[error("Unsupported database schema {0}; expected 1 through 7")]
     Schema(i64),
     #[error("Snapshot not found or ambiguous: {0}")]
     Missing(String),
@@ -27,7 +33,7 @@ pub enum Error {
     #[error("Verification history: {0}")]
     Verification(String),
     #[error(
-        "Verification run {0}: details were pruned; replay and new evidence publication are unavailable"
+        "DETAILS_PRUNED: Verification run {0}: details were pruned; replay and new evidence publication are unavailable"
     )]
     DetailsPruned(String),
     #[error("Storage IO: {0}")]
@@ -67,13 +73,14 @@ fn decode<T: serde::de::DeserializeOwned>(json: &str) -> std::result::Result<T, 
     Ok(value)
 }
 fn validate_version(version: i64) -> Result<()> {
-    if !matches!(version, 1..=5) {
+    if !matches!(version, 1..=7) {
         return Err(Error::Schema(version));
     }
     Ok(())
 }
 fn initialize(connection: &mut Connection, version: i64, mode: AccessMode) -> Result<()> {
-    if version < 5 && mode == AccessMode::ReadWrite {
+    let fresh = version == 0;
+    if version < 6 && mode == AccessMode::ReadWrite {
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         // Recheck under the write lock: another process may have initialized.
         let version: i64 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
@@ -95,6 +102,14 @@ fn initialize(connection: &mut Connection, version: i64, mode: AccessMode) -> Re
         let version: i64 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
         if version == 4 {
             tx.execute_batch(verification::STORAGE_MIGRATION)?;
+        }
+        let version: i64 = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
+        if version == 5 {
+            tx.execute_batch(verification::cases::MIGRATION)?;
+        }
+        if fresh && storage::version(&tx)? < 7 {
+            tx.execute_batch(storage::MIGRATION)?;
+            tx.execute_batch(storage::chunks::SCHEMA)?;
         }
         let version = tx.pragma_query_value(None, "user_version", |row| row.get(0))?;
         validate_version(version)?;
@@ -153,6 +168,27 @@ impl Store {
             maintenance_lock,
         })
     }
+    pub(crate) fn snapshot_id(&self, project: &str, id: &str) -> Result<String> {
+        if id == "latest" {
+            return self
+                .connection
+                .query_row(
+                    "SELECT latest FROM projects WHERE project=?1 AND latest IS NOT NULL",
+                    [project],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .ok_or_else(|| Error::Missing(id.into()));
+        }
+        if !(8..=64).contains(&id.len()) || !id.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(Error::Missing(id.into()));
+        }
+        let ids=self.connection.prepare("SELECT DISTINCT s.id FROM snapshots s JOIN checks c ON c.snapshot_id=s.id WHERE c.project=?1 AND s.id LIKE ?2")?.query_map(params![project,format!("{id}%")],|r|r.get::<_,String>(0))?.collect::<std::result::Result<Vec<_>,_>>()?;
+        match ids.as_slice() {
+            [id] => Ok(id.clone()),
+            _ => Err(Error::Missing(id.into())),
+        }
+    }
     fn require_write(&self) -> Result<()> {
         if self.mode == AccessMode::ReadWrite {
             Ok(())
@@ -166,7 +202,8 @@ impl HistoryReader for Store {
     type Error = Error;
     fn latest(&self, project: &str) -> Result<Option<Snapshot>> {
         let data:Option<String>=self.connection.query_row("SELECT s.data FROM projects p JOIN snapshots s ON s.id=p.latest WHERE p.project=?1",[project],|r|r.get(0)).optional()?;
-        data.map(|s| decode(&s).map_err(Error::from)).transpose()
+        data.map(|s| storage::load(&self.connection, &s))
+            .transpose()
     }
     fn load(&self, project: &str, id: &str) -> Result<Snapshot> {
         if id == "latest" {
@@ -186,7 +223,7 @@ impl HistoryReader for Store {
         if records.len() != 1 {
             return Err(Error::Missing(id.into()));
         }
-        Ok(decode(&records[0])?)
+        storage::load(&self.connection, &records[0])
     }
     fn history(&self, project: &str) -> Result<Vec<HistoryEntry>> {
         let mut statement=self.connection.prepare("SELECT id,snapshot_id,status,source_hash,created_at,diagnostics FROM checks WHERE project=?1 ORDER BY id DESC")?;
@@ -287,25 +324,33 @@ impl HistoryWriter for Store {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let before:Option<String>=tx.query_row("SELECT s.data FROM projects p JOIN snapshots s ON s.id=p.latest WHERE p.project=?1",[project],|r|r.get(0)).optional()?;
-        let before: Option<Snapshot> = before.as_deref().map(decode).transpose()?;
+        let before: Option<Snapshot> = before
+            .as_deref()
+            .map(|s| storage::load(&tx, s))
+            .transpose()?;
         let changes = diff(
             before.as_ref(),
             snapshot,
             event.map_or(&[], |e| e.mappings.as_slice()),
         );
-        tx.execute("INSERT OR IGNORE INTO snapshots(id,source_hash,semantic_hash,data) VALUES(?1,?2,?3,?4)",params![snapshot.id,snapshot.source_hash,snapshot.semantic_hash,serde_json::to_string(snapshot)?])?;
-        for (id, node) in &snapshot.graph.nodes {
-            let f = &snapshot.fingerprints[id];
-            tx.execute("INSERT OR IGNORE INTO nodes(snapshot_id,id,kind,contract_hash,behavior_hash,facts_hash) VALUES(?1,?2,?3,?4,?5,?6)",params![snapshot.id,id,node.kind.as_str(),f.contract,f.behavior,f.facts])?;
+        tx.execute("INSERT OR IGNORE INTO snapshots(id,source_hash,semantic_hash,data) VALUES(?1,?2,?3,?4)",params![snapshot.id,snapshot.source_hash,snapshot.semantic_hash,storage::store(&tx, snapshot)?])?;
+        if tx.pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))? >= 6 {
+            query::project_snapshot(&tx, snapshot)?;
         }
-        let count: i64 = tx.query_row(
-            "SELECT count(*) FROM edges WHERE snapshot_id=?1",
-            [&snapshot.id],
-            |r| r.get(0),
-        )?;
-        if count == 0 {
-            for edge in &snapshot.graph.edges {
-                tx.execute("INSERT INTO edges(snapshot_id,source,target,kind,origins) VALUES(?1,?2,?3,?4,?5)",params![snapshot.id,edge.from,edge.to,serde_json::to_string(&edge.kind)?,serde_json::to_string(&edge.origins)?])?;
+        if storage::version(&tx)? < 7 {
+            for (id, node) in &snapshot.graph.nodes {
+                let f = &snapshot.fingerprints[id];
+                tx.execute("INSERT OR IGNORE INTO nodes(snapshot_id,id,kind,contract_hash,behavior_hash,facts_hash) VALUES(?1,?2,?3,?4,?5,?6)",params![snapshot.id,id,node.kind.as_str(),f.contract,f.behavior,f.facts])?;
+            }
+            let count: i64 = tx.query_row(
+                "SELECT count(*) FROM edges WHERE snapshot_id=?1",
+                [&snapshot.id],
+                |r| r.get(0),
+            )?;
+            if count == 0 {
+                for edge in &snapshot.graph.edges {
+                    tx.execute("INSERT INTO edges(snapshot_id,source,target,kind,origins) VALUES(?1,?2,?3,?4,?5)",params![snapshot.id,edge.from,edge.to,serde_json::to_string(&edge.kind)?,serde_json::to_string(&edge.origins)?])?;
+                }
             }
         }
         tx.execute("INSERT INTO projects(project,latest) VALUES(?1,?2) ON CONFLICT(project) DO UPDATE SET latest=excluded.latest",params![project,snapshot.id])?;

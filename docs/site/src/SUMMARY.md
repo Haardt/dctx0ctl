@@ -43,6 +43,7 @@
 - [Static Site and Task Live View](docs/site-companion.md)
 
 - [Verification history storage](reference/verification-storage.md)
+- [Compact reports and public SQL](reference/queries.md)
 - [Actual call observation in examples](reference/call-observation.md)
 
 - [Large source-bound review inputs](reference/inspection-inputs.md)

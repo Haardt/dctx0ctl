@@ -333,7 +333,7 @@ pub(crate) fn run(
             let session = if detail {
                 project.task_show_session(task()?, selected_plan, as_of)
             } else {
-                project.task_session(selected_plan, as_of)
+                project.task_metadata_session(selected_plan, as_of)
             }
             .map_err(error_message)?;
             report.plan_id = Some(session.plan.id);
@@ -394,7 +394,7 @@ pub(crate) fn run(
                 }
                 Verb::Progress => {
                     let before = project
-                        .task_session(
+                        .task_metadata_session(
                             Some(args.from_plan.ok_or("--from-plan is required")?),
                             Some(args.from_event.ok_or("--from-event is required")?),
                         )
@@ -416,7 +416,7 @@ pub(crate) fn run(
                                 cached.entry(plan)
                             {
                                 let historical = project
-                                    .task_session(Some(plan), Some(session.event_seq))
+                                    .task_metadata_session(Some(plan), Some(session.event_seq))
                                     .map_err(error_message)?;
                                 entry.insert(
                                     historical

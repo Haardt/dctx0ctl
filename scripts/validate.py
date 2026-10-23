@@ -486,6 +486,10 @@ def main():
         validation_steps.append({'command': command, 'returncode': returncode})
         passed = passed and returncode == 0
     record = benchmark(args)
+    query_command = [sys.executable, 'scripts/query_acceptance.py', '--measure-only', '--binary', str(ROOT / 'target/release/dctx0'), '--samples', str(args.samples)]
+    query_code = subprocess.run(query_command, cwd=ROOT).returncode
+    validation_steps.append({'command': query_command, 'returncode': query_code})
+    passed = passed and query_code == 0
     dependency_command = [sys.executable, 'scripts/dependency_resolution_acceptance.py', '--binary', str(ROOT / 'target/release/dctx0')]
     dependency_code = subprocess.run(dependency_command, cwd=ROOT).returncode
     validation_steps.append({'command': dependency_command, 'returncode': dependency_code})

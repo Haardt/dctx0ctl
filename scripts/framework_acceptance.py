@@ -44,7 +44,7 @@ def run(command, cwd, record, label, allowed=(0,), timeout=900):
 
 
 def cli(binary, project, record, label, *command, allowed=(0,)):
-    output=run([binary,'--json',*command],ROOT,record,label,allowed=allowed)
+    output=run([binary,'--json',*command,*(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])],ROOT,record,label,allowed=allowed)
     try: return json.loads(output)
     except json.JSONDecodeError as error: raise RuntimeError(f'{label}: invalid CLI JSON: {output[-2000:]}') from error
 

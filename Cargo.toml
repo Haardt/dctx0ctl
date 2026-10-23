@@ -3,7 +3,7 @@ members = ["crates/dctx0-lsp", "crates/dctx0-target-sdk", "crates/dctx0-core", "
 resolver = "3"
 
 [workspace.package]
-version = "0.2.10"
+version = "0.2.11"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
@@ -28,7 +28,7 @@ serde_json = { version = "1", features = ["unbounded_depth", "raw_value"] }
 serde_stacker = "0.1"
 sha2 = "0.10"
 petgraph = "0.8"
-rusqlite = { version = "0.38", features = ["bundled"] }
+rusqlite = { version = "0.38", features = ["bundled", "hooks", "limits", "extra_check", "backup"] }
 thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 fs2 = "0.4"

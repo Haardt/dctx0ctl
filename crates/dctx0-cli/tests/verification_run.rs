@@ -37,7 +37,7 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
         for json in [true, false] {
             let mut args = vec!["verify", "run", specs.to_str().unwrap(), "--no-adopt"];
             if json {
-                args.push("--json");
+                args.extend(["--json", "--full"]);
             }
             let run = call(&args);
             assert!(!run.status.success());
@@ -58,6 +58,7 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
                     "--case",
                     &report.evidence.run.cases[0].id,
                     "--json",
+                    "--full",
                 ]);
                 assert!(!replay.status.success());
                 let repeated: dctx0_engine::VerificationReplayReport =
@@ -74,11 +75,40 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
                     specs.to_str().unwrap(),
                     &report.evidence.id,
                     "--json",
+                    "--full",
                 ]);
                 assert!(show.status.success());
                 let saved: dctx0_store::StoredVerificationRun =
                     serde_json::from_slice(&show.stdout).unwrap();
                 assert_eq!(saved, report.evidence);
+                let compact = call(&[
+                    "verify",
+                    "run",
+                    specs.to_str().unwrap(),
+                    "--no-adopt",
+                    "--json",
+                ]);
+                assert!(!compact.status.success());
+                let compact: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+                assert_eq!(compact["schema_version"], 1);
+                assert_eq!(compact["summary"]["result"]["status"], "UNKNOWN");
+                assert!(compact.get("evidence").is_none());
+                assert!(compact.get("cases").is_none());
+                assert!(compact["summary"]["case_count"].as_u64().unwrap() > 0);
+                let compact_replay = call(&[
+                    "verify",
+                    "replay",
+                    specs.to_str().unwrap(),
+                    compact["summary"]["id"].as_str().unwrap(),
+                    "--case",
+                    &report.evidence.run.cases[0].id,
+                    "--json",
+                ]);
+                assert!(!compact_replay.status.success());
+                let compact_replay: serde_json::Value =
+                    serde_json::from_slice(&compact_replay.stdout).unwrap();
+                assert_eq!(compact_replay["schema_version"], 1);
+                assert!(compact_replay.get("evidence").is_none());
             } else {
                 assert!(String::from_utf8_lossy(&run.stdout).contains("Native verification"));
             }

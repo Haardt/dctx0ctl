@@ -116,13 +116,14 @@ fn immutable_runs_artifacts_and_occurrences_roundtrip_without_task_adoption() {
     );
     let mut later = run.clone();
     later.started_at_unix_ns = "1234567890000000001".into();
-    assert_ne!(
-        s.record_verification_run("p", &later, &artifacts)
+    let latest = s.record_verification_run("p", &later, &artifacts).unwrap();
+    assert_ne!(latest.id, saved.id);
+    assert_eq!(s.verification_runs("p").unwrap().len(), 1);
+    assert!(
+        !s.verification_run_summary("p", &saved.id)
             .unwrap()
-            .id,
-        saved.id
+            .details_available
     );
-    assert_eq!(s.verification_runs("p").unwrap().len(), 2);
     let c = rusqlite::Connection::open(t.path()).unwrap();
     for table in [
         "task_events",
@@ -138,7 +139,11 @@ fn immutable_runs_artifacts_and_occurrences_roundtrip_without_task_adoption() {
     }
     drop(s);
     let mut reader = Store::open(&t.path(), AccessMode::ReadOnly).unwrap();
-    assert_eq!(reader.verification_run("p", &saved.id).unwrap(), saved);
+    assert_eq!(reader.verification_run("p", &latest.id).unwrap(), latest);
+    assert!(matches!(
+        reader.verification_run("p", &saved.id),
+        Err(dctx0_store::Error::DetailsPruned(_))
+    ));
     assert!(
         reader
             .record_verification_run("p", &run, &artifacts)
@@ -255,14 +260,14 @@ fn artifact_corruption_and_transaction_failure_never_publish_half_a_run() {
     assert!(s.verification_runs("p").is_err());
 }
 #[test]
-fn readers_accept_legacy_schemas_without_migrating_and_writers_add_schema_five() {
+fn readers_accept_legacy_schemas_without_migrating_and_writers_add_schema_six() {
     for version in 1..=3 {
         let t = Temp::new();
         let mut writer = Store::open(&t.path(), AccessMode::ReadWrite).unwrap();
         let (run, _) = fixture(&mut writer);
         drop(writer);
         let c = rusqlite::Connection::open(t.path()).unwrap();
-        c.execute_batch("DROP TABLE verification_revisions; DROP TABLE verification_corpora; DROP TABLE verification_adoptions; DROP TABLE verification_task_links; DROP TABLE verification_run_artifacts; DROP TABLE verification_runs; DROP TABLE verification_artifacts;").unwrap();
+        c.execute_batch("DROP TABLE query_spec_rows; DROP TABLE query_snapshots; DROP TABLE verification_case_index; DROP TABLE verification_requirements; DROP TABLE verification_case_projections; DROP TABLE verification_case_bodies; DROP TABLE verification_revisions; DROP TABLE verification_corpora; DROP TABLE verification_adoptions; DROP TABLE verification_task_links; DROP TABLE verification_run_artifacts; DROP TABLE verification_runs; DROP TABLE verification_artifacts;").unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
         let before = fs::read(t.path()).unwrap();
@@ -288,7 +293,7 @@ fn readers_accept_legacy_schemas_without_migrating_and_writers_add_schema_five()
                 .unwrap()
                 .pragma_query_value(None, "user_version", |r| r.get::<_, i64>(0))
                 .unwrap(),
-            5
+            6
         );
     }
 }

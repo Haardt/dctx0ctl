@@ -65,7 +65,7 @@ fn bind(
     if let Some(bundle) = &state.execution_bundle {
         tx.execute(
             "INSERT OR IGNORE INTO execution_bundles(hash,data) VALUES(?1,?2)",
-            params![bundle.hash, serde_json::to_string(bundle)?],
+            params![bundle.hash, storage::store(tx, bundle)?],
         )?;
     }
     Ok(())
@@ -252,7 +252,7 @@ fn apply_action(
                 output.message="Slice work is already owned; continue using each task's existing claim or reservation".into();
                 return Ok(output);
             }
-            tx.execute("INSERT INTO task_groups(project,plan_id,actor,status,data) VALUES(?1,?2,?3,'active',?4)",params![session.project,session.plan.id,actor,serde_json::to_string(&slice)?])?;
+            tx.execute("INSERT INTO task_groups(project,plan_id,actor,status,data) VALUES(?1,?2,?3,'active',?4)",params![session.project,session.plan.id,actor,storage::store(tx,&slice)?])?;
             let group = tx.last_insert_rowid();
             for id in &slice.open_work {
                 let mut state = session.states[id].clone();
@@ -401,7 +401,8 @@ impl Store {
             "SELECT a.data FROM verification_adoptions a JOIN verification_runs r ON r.id=a.run_id WHERE r.project=?1 AND r.id=?2",
             params![project, run_id], |row| row.get(0),
         ).optional()?;
-        Ok(data.map(|data| decode(&data)).transpose()?)
+        data.map(|data| storage::load(&self.connection, &data))
+            .transpose()
     }
     /// Apply a guarded, ordered result batch in one transaction using the same
     /// start/complete/check rules as individual actions. No imported report or
@@ -495,7 +496,7 @@ impl Store {
                 )
                 .optional()?;
             if let Some(receipt) = receipt {
-                let receipt: TaskDeliveryPublicationReceipt = decode(&receipt)?;
+                let receipt: TaskDeliveryPublicationReceipt = storage::load(&tx, &receipt)?;
                 if receipt.request_hash != request_hash {
                     return Err(conflict("Run already has a different delivery receipt"));
                 }
@@ -585,7 +586,7 @@ impl Store {
             [&snapshot_id],
             |r| r.get(0),
         )?;
-        let snapshot: Snapshot = decode(&data)?;
+        let snapshot: Snapshot = storage::load(&tx, &data)?;
         let inputs = Some((profiles.0, profiles.1, &snapshot));
         let mut seen = BTreeSet::new();
         let mut receipts = vec![];
@@ -743,7 +744,7 @@ impl Store {
             }
             tx.execute(
                 "INSERT INTO verification_adoptions(run_id,data) VALUES(?1,?2)",
-                params![run_id, serde_json::to_string(&receipt)?],
+                params![run_id, storage::store(&tx, &receipt)?],
             )?;
         }
         tx.commit()?;
@@ -778,7 +779,7 @@ impl Store {
                 [&session.plan.snapshot_id],
                 |r| r.get(0),
             )?;
-            Some(decode::<Snapshot>(&data)?)
+            Some(storage::load::<Snapshot>(&tx, &data)?)
         } else {
             None
         };

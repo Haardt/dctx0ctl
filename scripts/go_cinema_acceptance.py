@@ -17,6 +17,8 @@ PREFIX = 'HomeCinema.MovieNight.'
 
 def invoke(binary, project, *args, expect=None):
     command = [str(binary), '--json', *args]
+    if args[:2] in (('verify', 'run'), ('verify', 'replay')):
+        command.append('--full')
     result = subprocess.run(command, cwd=ROOT, env={**os.environ, 'DCTX0_MEMORY_GUARD': '0'}, capture_output=True, text=True)
     if expect is not None and result.returncode != expect:
         raise RuntimeError(f'{command}: {result.stderr}\n{result.stdout[:2000]}')

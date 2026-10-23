@@ -23,7 +23,7 @@ pub(super) fn insert_task(
     };
     tx.execute(
         "UPDATE tasks SET data=?1 WHERE id=?2",
-        params![serde_json::to_string(&definition)?, id],
+        params![storage::store(tx, &definition)?, id],
     )?;
     let seq = event(
         tx,
@@ -52,8 +52,10 @@ pub(super) fn store_plan(tx: &Connection, project: &str, mut plan: Plan) -> Resu
             "INSERT INTO task_members(plan_id,task_id,wave) VALUES(?1,?2,?3)",
             params![plan.id, m.task_id, m.candidate.wave as i64],
         )?;
-        for p in &m.candidate.prerequisites {
-            tx.execute("INSERT INTO task_dependencies(plan_id,task_id,prerequisite_id,condition,reason) VALUES(?1,?2,?3,?4,?5)",params![plan.id,m.task_id,ids[&p.key],serde_json::to_string(&p.condition)?,p.reason])?;
+        if storage::version(tx)? < 7 {
+            for p in &m.candidate.prerequisites {
+                tx.execute("INSERT INTO task_dependencies(plan_id,task_id,prerequisite_id,condition,reason) VALUES(?1,?2,?3,?4,?5)",params![plan.id,m.task_id,ids[&p.key],serde_json::to_string(&p.condition)?,p.reason])?;
+            }
         }
     }
     let seq = event(
@@ -66,7 +68,7 @@ pub(super) fn store_plan(tx: &Connection, project: &str, mut plan: Plan) -> Resu
     )?;
     tx.execute(
         "UPDATE task_plans SET data=?1,created_seq=?2 WHERE id=?3",
-        params![serde_json::to_string(&plan)?, seq, plan.id],
+        params![storage::store(tx, &plan)?, seq, plan.id],
     )?;
     tx.execute("INSERT INTO task_heads(project,plan_id) VALUES(?1,?2) ON CONFLICT(project) DO UPDATE SET plan_id=excluded.plan_id",params![project,plan.id])?;
     Ok(plan)
@@ -176,14 +178,14 @@ impl Store {
                 )
             })
             .transpose()?
-            .map(|s| decode::<Snapshot>(&s))
+            .map(|s| storage::load::<Snapshot>(&tx, &s))
             .transpose()?;
         let target_data: String = tx.query_row(
             "SELECT data FROM snapshots WHERE id=?1",
             [&candidate.snapshot_id],
             |r| r.get(0),
         )?;
-        let target_snapshot: Snapshot = decode(&target_data)?;
+        let target_snapshot: Snapshot = storage::load(&tx, &target_data)?;
         let target_delta = DeltaIndex::new(&target_snapshot);
         let previous_delta = previous_snapshot.as_ref().map(DeltaIndex::new);
         let mut members = vec![];
@@ -214,11 +216,11 @@ impl Store {
                     }
                     let data: String =
                         tx.query_row("SELECT data FROM tasks WHERE id=?1", [id], |r| r.get(0))?;
-                    let mut definition: Definition = decode(&data)?;
+                    let mut definition: Definition = storage::load(&tx, &data)?;
                     definition.changes = changes;
                     tx.execute(
                         "UPDATE tasks SET data=?1 WHERE id=?2",
-                        params![serde_json::to_string(&definition)?, id],
+                        params![storage::store(&tx, &definition)?, id],
                     )?;
                 }
                 for (from, kind) in &p.predecessors {
@@ -374,7 +376,7 @@ impl Store {
             )?;
             let data: String =
                 tx.query_row("SELECT data FROM tasks WHERE id=?1", [new], |r| r.get(0))?;
-            let mut definition: Definition = decode(&data)?;
+            let mut definition: Definition = storage::load(&tx, &data)?;
             definition.adjustment = Some(if let Some(source_hash) = renewal {
                 AdjustmentReason::ReviewRenewal {
                     source,
@@ -390,7 +392,7 @@ impl Store {
             });
             tx.execute(
                 "UPDATE tasks SET data=?1 WHERE id=?2",
-                params![serde_json::to_string(&definition)?, new],
+                params![storage::store(&tx, &definition)?, new],
             )?;
             tx.execute("INSERT INTO task_links(project,from_id,to_id,kind,reason) VALUES(?1,?2,?3,'follow-up',?4)",params![project,id,new,origin])?;
             members

@@ -40,7 +40,7 @@ for(const step of inventory.steps.filter((step:any)=>!requested.length||requeste
   if(await Bun.file(resolve(project,'.dctx0/testing/typescript/resource-observer.test.ts')).exists())await execute(['bun','test','./.dctx0/testing/typescript/resource-observer.test.ts'],project,prefix+'-observer.log');
   const complete=JSON.parse(await execute([binary,'verify','complete','dctx0','--project','.','--json'],project,prefix+'-complete.log'));
   assert.equal(complete.result.status,'PASS');assert.equal(complete.open_tasks,0);assert.equal(complete.non_pass_tasks,0);
-  const saved=JSON.parse(await execute([binary,'verify','show','dctx0',complete.native_run,'--json'],project,'/tmp/dctx0-tutorial-saved-'+step.number+'.json'));
+  const saved=JSON.parse(await execute([binary,'verify','show','dctx0',complete.native_run,'--json','--full'],project,'/tmp/dctx0-tutorial-saved-'+step.number+'.json'));
   const run=saved.run;assert.equal(run.required_cases.length,run.cases.length);
   assert.ok(run.cases.every((entry:any)=>entry.result.status==='PASS'),'Unexecuted or failing native case');
   const metricsArtifact=run.artifacts.find((artifact:any)=>artifact.media_type==='application/vnd.dctx0.runtime-metrics+json');

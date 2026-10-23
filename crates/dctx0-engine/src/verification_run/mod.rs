@@ -90,7 +90,7 @@ impl Project {
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
         no_adopt: bool,
-        pinned: Option<(ProgramPlan, VerificationLifecycleFixtures)>,
+        pinned: Option<(ProgramPlan, VerificationLifecycleFixtures, Option<String>)>,
     ) -> Result<NativeVerificationReport> {
         let (_, config) = self.verification_configuration(application)?;
         let limits = config
@@ -139,9 +139,10 @@ impl Project {
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
         no_adopt: bool,
-        pinned: Option<(ProgramPlan, VerificationLifecycleFixtures)>,
+        pinned: Option<(ProgramPlan, VerificationLifecycleFixtures, Option<String>)>,
         limits: NativeLimits,
     ) -> Result<NativeVerificationReport> {
+        let parent = pinned.as_ref().and_then(|(_, _, parent)| parent.clone());
         let supervision = limits.supervision_capabilities();
         let historical = selection.historical_check.is_some() || pinned.is_some();
         let no_adopt = no_adopt || historical;
@@ -158,7 +159,7 @@ impl Project {
             Default::default()
         };
         let (mut plan, pinned_lifecycles) = match pinned {
-            Some((plan, lifecycles)) => (plan, Some(lifecycles)),
+            Some((plan, lifecycles, _)) => (plan, Some(lifecycles)),
             None => (
                 self.verification_plan(selection, &fixtures, config.budgets.clone())?,
                 None,
@@ -702,7 +703,7 @@ impl Project {
         }
         let saved = self
             .store(AccessMode::ReadWrite)?
-            .record_verification_run_owned(&self.key(), run, &artifacts)?;
+            .record_verification_run_owned_from(&self.key(), run, &artifacts, parent.as_deref())?;
         let (adopted_tasks, adoption_issues, adoption_proposal) = if no_adopt {
             (vec![], vec![], None)
         } else {

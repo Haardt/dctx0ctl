@@ -142,6 +142,11 @@ fn outcome_summary(
 pub(crate) struct VerifyArgs {
     #[command(subcommand)]
     action: VerifyAction,
+    /// Preserve the complete legacy JSON report (explicit opt-in).
+    #[arg(long, global = true)]
+    full: bool,
+    #[arg(long, global = true, default_value_t = 1_048_576, value_parser = clap::value_parser!(u64).range(1..=67_108_864))]
+    max_output_bytes: u64,
 }
 #[derive(Subcommand)]
 enum VerifyAction {
@@ -261,6 +266,15 @@ enum VerifyAction {
         #[arg(long)]
         exports: Option<PathBuf>,
     },
+    /// Atomically export complete saved evidence or one exact case.
+    Export {
+        input: PathBuf,
+        run_id: String,
+        #[arg(long)]
+        case: Option<String>,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Read immutable saved evidence without claiming working-tree freshness.
     Show {
         input: PathBuf,
@@ -333,6 +347,32 @@ pub(crate) fn run(
     json: bool,
     output: &mut dyn Write,
 ) -> Result<bool, String> {
+    if !args.full
+        && matches!(
+            &args.action,
+            VerifyAction::Run { .. }
+                | VerifyAction::Complete { .. }
+                | VerifyAction::Inspect { .. }
+                | VerifyAction::Attest { .. }
+                | VerifyAction::Replay { .. }
+                | VerifyAction::Show { .. }
+        )
+    {
+        crate::render::with_output_limit(output, args.max_output_bytes, |output| {
+            run_inner(args, database, json, output)
+        })
+    } else {
+        run_inner(args, database, json, output)
+    }
+}
+fn run_inner(
+    args: VerifyArgs,
+    database: Option<&Path>,
+    json: bool,
+    output: &mut dyn Write,
+) -> Result<bool, String> {
+    let full = args.full;
+    let max_output_bytes = args.max_output_bytes;
     let (input, application, subject, task, historical_check, fixtures) = match args.action {
         VerifyAction::ScaffoldCodecs(args) => {
             return crate::codec_scaffold::run(args, database, json, output);
@@ -426,7 +466,24 @@ pub(crate) fn run(
                     ))
                     .map_err(crate::error_message)?;
                 if json {
-                    crate::render::json(output, &report)?;
+                    if full {
+                        crate::render::json(output, &report)?;
+                    } else {
+                        let summary = project
+                            .verification_summary(&report.inspected_run)
+                            .map_err(crate::error_message)?;
+                        crate::render::bounded_json(
+                            output,
+                            &{
+                                let mut compact =
+                                    serde_json::to_value(&report).map_err(crate::error_message)?;
+                                compact["summary"] =
+                                    serde_json::to_value(summary).map_err(crate::error_message)?;
+                                compact
+                            },
+                            max_output_bytes,
+                        )?;
+                    }
                 } else {
                     writeln!(output, "# Complete verification\n\nResult: PASS\nMandatory native cases: {}\nTasks: {}; unfinished: {}; without PASS: {}\nSource-bound review tasks: {:?}\nNative result: {:?}\nNative run: `{}`\nEffective run: `{}`\nBasis: {}", report.mandatory_cases, report.tasks, report.open_tasks, report.non_pass_tasks, report.reviewed_tasks, report.native_result, report.native_run, report.inspected_run, report.basis).map_err(crate::error_message)?;
                 }
@@ -454,7 +511,16 @@ pub(crate) fn run(
                 .map_err(crate::error_message)?;
             let pass = report.assessment.result == dctx0_core::VerificationResult::Pass;
             if json {
-                crate::render::json(output, &report)?;
+                if full {
+                    crate::render::json(output, &report)?;
+                } else {
+                    compact_run(
+                        output,
+                        &report.evidence,
+                        serde_json::json!({}),
+                        max_output_bytes,
+                    )?;
+                }
             } else {
                 writeln!(output,"# Effective verification\n\nNative source: `{run_id}`\nInspected report: `{}`\nResult: {:?}\nOpen obligations: {}\nAutomatic and agent results are retained separately. No new execution or task adoption.",report.evidence.id,report.assessment.result,report.assessment.open_obligations.len()).map_err(crate::error_message)?;
             }
@@ -475,7 +541,19 @@ pub(crate) fn run(
                 .publish_task_attestations(application.as_deref(), &run_id, &reports)
                 .map_err(crate::error_message)?;
             if json {
-                crate::render::json(output, &receipt)?;
+                if full {
+                    crate::render::json(output, &receipt)?;
+                } else {
+                    let summary = Project::new(&input, database)
+                        .map_err(crate::error_message)?
+                        .verification_summary(&run_id)
+                        .map_err(crate::error_message)?;
+                    crate::render::bounded_json(
+                        output,
+                        &serde_json::json!({"schema_version":1,"summary":summary,"attestation":{"run_id":receipt.run_id,"request_hash":receipt.request_hash,"event_sequence":receipt.event_sequence,"delivered_tasks":receipt.deliveries.iter().filter_map(|r|r.task_id).collect::<Vec<_>>()}}),
+                        max_output_bytes,
+                    )?;
+                }
             } else {
                 writeln!(output, "# Agent inspection delivery\n\n{} tasks delivered with agent evidence. Native run `{run_id}` remains unchanged. Event sequence: {}.", receipt.deliveries.len(), receipt.event_sequence).map_err(crate::error_message)?;
             }
@@ -598,7 +676,16 @@ pub(crate) fn run(
                     Some(dctx0_core::VerificationResult::Pass)
                 );
                 if json {
-                    crate::render::json(output, &report)?;
+                    if full {
+                        crate::render::json(output, &report)?;
+                    } else {
+                        compact_run(
+                            output,
+                            &report.evidence.evidence,
+                            serde_json::json!({"original_run":report.original_run,"original_case":report.original_case,"case_result":report.case_result}),
+                            max_output_bytes,
+                        )?;
+                    }
                 } else {
                     writeln!(output,"# Verification replay\n\nOriginal run: `{}`; case: `{}`\nNew run: `{}`\nMinimized input: {}\nSelected case result: {:?}\n{} provenance changes. This is a new case comparison; no task adoption or whole-application claim.",report.original_run,report.original_case,report.evidence.evidence.id,report.minimized_input,report.case_result,report.changes.len()).map_err(crate::error_message)?;
                     for change in &report.changes {
@@ -653,7 +740,16 @@ pub(crate) fn run(
                     dctx0_core::VerificationResult::Pass
                 );
                 if json {
-                    crate::render::json(output, &report)?;
+                    if full {
+                        crate::render::json(output, &report)?;
+                    } else {
+                        compact_run(
+                            output,
+                            &report.evidence,
+                            serde_json::json!({"adopted_tasks":report.adopted_tasks,"adoption_issues":report.adoption_issues}),
+                            max_output_bytes,
+                        )?;
+                    }
                 } else {
                     writeln!(output,"# Native verification\n\nRun: `{}`\nSnapshot: `{}`; check occurrence: {}\nResult: {:?}\n\n{} mandatory cases; {} recorded cases; {} open obligations.\n",report.evidence.id,report.evidence.run.provenance.snapshot,report.evidence.run.provenance.check_occurrence,report.evidence.run.result,report.evidence.run.required_cases.len(),report.evidence.run.cases.len(),report.evidence.run.open_obligations.len()).map_err(crate::error_message)?;
                     if let Some(supervision) = &report.supervision {
@@ -696,7 +792,7 @@ pub(crate) fn run(
                 .verification_history(offset, limit)
                 .map_err(crate::error_message)?;
             if json {
-                crate::render::json(output, &page)?;
+                crate::render::bounded_json(output, &page, max_output_bytes)?;
             } else {
                 for item in page {
                     writeln!(
@@ -772,6 +868,26 @@ pub(crate) fn run(
             }
             return Ok(true);
         }
+        VerifyAction::Export {
+            input,
+            run_id,
+            case,
+            output: destination,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let store = project
+                .store(dctx0_store::AccessMode::ReadOnly)
+                .map_err(crate::error_message)?;
+            store
+                .export_verification(
+                    &project.root.display().to_string(),
+                    &run_id,
+                    case.as_deref(),
+                    &destination,
+                )
+                .map_err(crate::error_message)?;
+            return Ok(true);
+        }
         VerifyAction::Show {
             input,
             run_id,
@@ -794,10 +910,24 @@ pub(crate) fn run(
                 }
                 return Ok(true);
             }
-            let saved = Project::new(&input, database)
-                .map_err(crate::error_message)?
-                .saved_verification_run(&run_id)
-                .map_err(crate::error_message)?;
+            if !full
+                && outcome.is_empty()
+                && subject.is_empty()
+                && case.is_none()
+                && limit.is_none()
+                && cursor.is_none()
+            {
+                if json {
+                    crate::render::bounded_json(
+                        output,
+                        &serde_json::json!({"schema_version":1,"summary":summary}),
+                        max_output_bytes,
+                    )?;
+                } else {
+                    writeln!(output,"# Stored verification summary\n\nRun: `{}`\nSnapshot: `{}`; check occurrence: {}\nResult: {:?}\nMandatory: {}; recorded: {}; missing: {}\nOutcomes (PASS/FAIL/UNKNOWN): {:?}\nOpen obligations: {}\nDetails available: {}\nSaved evidence; no working-tree freshness.\n",summary.id,summary.snapshot,summary.check_occurrence,summary.result,summary.required_case_count,summary.case_count,summary.missing_case_count,summary.outcomes,summary.open_obligation_count,summary.details_available).map_err(crate::error_message)?;
+                }
+                return Ok(true);
+            }
             if summary_only
                 || !outcome.is_empty()
                 || !subject.is_empty()
@@ -816,16 +946,20 @@ pub(crate) fn run(
                     subjects: subject.into_iter().collect(),
                     case,
                 };
-                let page = diagnostic_page(
-                    &saved.id,
-                    &saved.run,
-                    filter,
-                    limit.unwrap_or(50),
-                    cursor.as_ref(),
-                    summary_only,
-                )?;
+                let page = project
+                    .store(dctx0_store::AccessMode::ReadOnly)
+                    .map_err(crate::error_message)?
+                    .verification_diagnostics(
+                        &project.root.display().to_string(),
+                        &run_id,
+                        filter,
+                        limit.unwrap_or(50),
+                        cursor.as_ref(),
+                        summary_only,
+                    )
+                    .map_err(crate::error_message)?;
                 if json {
-                    crate::render::json(output, &page)?;
+                    crate::render::bounded_json(output, &page, max_output_bytes)?;
                 } else {
                     writeln!(output, "# Stored verification diagnostics\n\nRun: {}\nResult: {:?}\nMandatory: {}; recorded: {}; matching: {}\nOutcomes: {:?}\n\nSaved evidence; no current-source or adoption claim.\n", page.run_id, page.summary.result, page.summary.mandatory_cases, page.summary.recorded_cases, page.matching_cases, page.summary.outcomes).map_err(crate::error_message)?;
                     for case in &page.cases {
@@ -846,7 +980,7 @@ pub(crate) fn run(
                             .map_err(crate::error_message)?;
                     }
                     if let Some(detail) = &page.detail {
-                        crate::render::json(output, detail)?;
+                        crate::render::bounded_json(output, detail, max_output_bytes)?;
                     }
                     if let Some(cursor) = &page.next_cursor {
                         writeln!(
@@ -859,6 +993,9 @@ pub(crate) fn run(
                 }
                 return Ok(true);
             }
+            let saved = project
+                .saved_verification_run(&run_id)
+                .map_err(crate::error_message)?;
             if json {
                 crate::render::json(output, &saved)?;
             } else {
@@ -1022,4 +1159,20 @@ pub(crate) fn run(
         writeln!(output,"\n{} subjects outside the selected closure.\n{} manual requirements, {} explanatory intents and {} suites retained in the JSON plan.",plan.not_selected.len(),mandatory,explanatory,plan.suites.len()).map_err(crate::error_message)?;
     }
     Ok(valid)
+}
+
+fn compact_run(
+    output: &mut dyn Write,
+    saved: &dctx0_store::StoredVerificationRun,
+    extra: serde_json::Value,
+    max: u64,
+) -> Result<(), String> {
+    let mut summary = dctx0_store::VerificationRunSummary::new(&saved.id, &saved.run)
+        .map_err(crate::error_message)?;
+    summary.created_at = saved.created_at.clone();
+    crate::render::bounded_json(
+        output,
+        &serde_json::json!({"schema_version":1,"summary":summary,"created_at":saved.created_at,"missing_cases":saved.run.required_cases.len().saturating_sub(saved.run.cases.len()),"open_obligation_count":saved.run.open_obligations.len(),"extra":extra,"details":{"show":format!("verify show <spec> {} --case CASE_ID",saved.id),"export":format!("verify export <spec> {} --output report.json",saved.id)}}),
+        max,
+    )
 }

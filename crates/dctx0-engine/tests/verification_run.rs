@@ -63,6 +63,71 @@ const VALUE_ADAPTER: &str = r#"import {factory} from '../../../app.ts';
 export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.A',role:'contract',artifact:'app.ts',entry_point:'factory'}],artifacts:['app.ts'],capabilities:['sessions','values','events'],representations:{Int:'safe integer'}};},async begin(){return {async invoke(){throw Error('No operation');},async validate(subject,value){let result;try{result=factory(value.kind==='integer'||value.kind==='float'?Number(value.value):value.kind==='unit'?undefined:value.value);}catch(error){return {kind:'rejected',reason:String(error)};}return {kind:'accepted',value:{kind:'integer',value:String(result)}};},async close(){}};}};"#;
 
 #[tokio::test]
+async fn explicit_native_limits_reject_generation_and_observer_failures_without_publishing_evidence()
+ {
+    struct Unavailable(bool);
+    impl dctx0_target_sdk::HarnessGenerator for Unavailable {
+        fn generate(
+            &self,
+            request: &dctx0_target_sdk::HarnessRequest,
+        ) -> std::result::Result<dctx0_target_sdk::HarnessBundle, dctx0_target_sdk::Error> {
+            if self.0 {
+                BunHarness.generate(request)
+            } else {
+                Err(dctx0_target_sdk::Error::Invalid(
+                    "generation unavailable".into(),
+                ))
+            }
+        }
+        fn scaffold(&self) -> dctx0_target_sdk::Artifact {
+            BunHarness.scaffold()
+        }
+        fn module_observer_artifacts(
+            &self,
+            _: &[dctx0_target_sdk::InspectionSource],
+            _: &str,
+        ) -> std::result::Result<Vec<dctx0_target_sdk::Artifact>, dctx0_target_sdk::Error> {
+            Err(dctx0_target_sdk::Error::Invalid(
+                "observer unavailable".into(),
+            ))
+        }
+    }
+    let fixture = Fixture::new("workspace W { value A = Int }", "W.A");
+    let before = fixture.project.history().unwrap();
+    for observer in [false, true] {
+        let error = fixture
+            .project
+            .run_verification_with_native_limits(
+                Some(&fixture.app),
+                Default::default(),
+                &Unavailable(observer),
+                &NativeCancellation::default(),
+                true,
+                NativeLimits::default(),
+            )
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains(if observer {
+                "observer unavailable"
+            } else {
+                "generation unavailable"
+            }),
+            "{error}"
+        );
+        assert!(
+            fixture
+                .project
+                .verification_history(0, 200)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(fixture.project.history().unwrap().len(), before.len());
+    }
+}
+
+#[tokio::test]
 async fn storage_native_retention_preserves_task_results_but_expires_replay_and_new_publication() {
     let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
     fs::write(f.app.join("app.ts"),"export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
@@ -119,7 +184,7 @@ async fn storage_native_retention_preserves_task_results_but_expires_replay_and_
             .iter()
             .filter(|s| s.details_available)
             .count(),
-        3
+        1
     );
     let error = f
         .project
@@ -581,9 +646,10 @@ async fn explicitly_historical_current_check_never_adopts_current_tasks() {
     assert_eq!(after_historical.event_seq, before_historical.event_seq);
     assert_eq!(
         f.project
-            .saved_verification_run(&result.evidence.id)
-            .unwrap(),
-        result.evidence
+            .verification_summary(&result.evidence.id)
+            .unwrap()
+            .result,
+        result.evidence.run.result
     );
     assert_eq!(
         f.project
@@ -1026,9 +1092,10 @@ async fn missing_required_profile_documents_block_adoption_until_a_new_complete_
     assert_ne!(complete.evidence.id, incomplete.evidence.id);
     assert_eq!(
         f.project
-            .saved_verification_run(&incomplete.evidence.id)
-            .unwrap(),
-        incomplete.evidence
+            .verification_summary(&incomplete.evidence.id)
+            .unwrap()
+            .result,
+        incomplete.evidence.run.result
     );
 }
 
@@ -1838,9 +1905,8 @@ async fn actual_factory_results_are_stored_immutably_mutations_fail_and_tasks_do
     );
     assert_eq!(
         f.project
-            .saved_verification_run(&first.evidence.id)
+            .verification_summary(&first.evidence.id)
             .unwrap()
-            .run
             .result,
         VerificationResult::Pass
     );
@@ -2843,7 +2909,7 @@ async fn failing_real_operation_is_shrunk_and_minimized_input_replays_against_ne
     assert!(replay.evidence.adopted_tasks.is_empty());
     // Version 1 recorded candidates remain executable inputs, even though new
     // runs use the bounded version 2 candidate generator.
-    let mut store = dctx0_store::Store::open(
+    let store = dctx0_store::Store::open(
         &f.root.join("spec/.dctx0ctl/state.sqlite3"),
         AccessMode::ReadWrite,
     )
@@ -2864,15 +2930,6 @@ async fn failing_real_operation_is_shrunk_and_minimized_input_replays_against_ne
             artifacts.push(artifact);
         }
     }
-    let mut legacy = report.evidence.run.clone();
-    legacy.origin = VerificationRunOrigin::Imported;
-    legacy.artifacts = artifacts
-        .iter()
-        .map(|artifact| artifact.reference.clone())
-        .collect();
-    let legacy = store
-        .record_verification_run(&f.project.key(), &legacy, &artifacts)
-        .unwrap();
     drop(store);
     let contract = report
         .evidence
@@ -2919,6 +2976,17 @@ async fn failing_real_operation_is_shrunk_and_minimized_input_replays_against_ne
             .iter()
             .any(|change| change.component == "implementation:app.ts")
     );
+    let mut store = dctx0_store::Store::open(&f.project.database, AccessMode::ReadWrite).unwrap();
+    let mut legacy = report.evidence.run.clone();
+    legacy.origin = VerificationRunOrigin::Imported;
+    legacy.artifacts = artifacts
+        .iter()
+        .map(|artifact| artifact.reference.clone())
+        .collect();
+    let legacy = store
+        .record_verification_run(&f.project.key(), &legacy, &artifacts)
+        .unwrap();
+    drop(store);
     fs::write(f.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<3||value>10)throw TypeError('invalid');return value;} export function nextValue(value:number){return value+2;}").unwrap();
     let old = f
         .project
@@ -3633,16 +3701,6 @@ async fn real_bun_dependency_chain_above_one_thousand_references_and_cycle_is_co
     assert!(summary["processed_references"].as_u64().unwrap() >= 1201);
     assert_eq!(summary["traversal_complete"], true);
     set_dependency_budget(&f, 16);
-    let partial = f.run(true).await;
-    assert!(
-        partial
-            .evidence
-            .run
-            .provenance
-            .incomplete
-            .iter()
-            .any(|i| i.code == "DEPENDENCY_RESOLUTION_BUDGET")
-    );
     assert_eq!(
         f.project.saved_verification_run(&full.evidence.id).unwrap(),
         full.evidence
@@ -3679,6 +3737,16 @@ async fn real_bun_dependency_chain_above_one_thousand_references_and_cycle_is_co
     assert_eq!(
         f.project.task_session(None, None).ok().map(|s| s.event_seq),
         before
+    );
+    let partial = f.run(true).await;
+    assert!(
+        partial
+            .evidence
+            .run
+            .provenance
+            .incomplete
+            .iter()
+            .any(|i| i.code == "DEPENDENCY_RESOLUTION_BUDGET")
     );
 }
 
@@ -3733,8 +3801,11 @@ async fn exhausted_native_dependency_budget_cannot_adopt_otherwise_passing_contr
         sufficient.adoption_issues
     );
     assert_eq!(
-        f.project.saved_verification_run(&run.evidence.id).unwrap(),
-        run.evidence
+        f.project
+            .verification_summary(&run.evidence.id)
+            .unwrap()
+            .result,
+        run.evidence.run.result
     );
 }
 
@@ -4007,7 +4078,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         .project
         .replay_verification(
             Some(&f.app),
-            &original.evidence.id,
+            &mutated.evidence.id,
             &identity.id,
             &BunHarness,
             &NativeCancellation::default(),

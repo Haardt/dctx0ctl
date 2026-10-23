@@ -91,9 +91,9 @@ def main():
                 original = source.read_bytes()
                 assert original.count(b'if (count > highest)') == 1
                 source.write_bytes(original.replace(b'if (count > highest)', b'if (count >= highest)'))
-                broken = json.loads(run('cinema-ts-mutation', [binary, 'verify', 'run', spec, '--project', app, '--subject', 'HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner', '--no-adopt', '--json'], allowed=(1,)))
+                broken = json.loads(run('cinema-ts-mutation', [binary, 'verify', 'run', spec, '--project', app, '--subject', 'HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner', '--no-adopt', '--json', '--full'], allowed=(1,)))
                 case = next(case for case in broken['evidence']['run']['cases'] if case['result']['status'] == 'FAIL')
-                replay = [binary, 'verify', 'replay', spec, broken['evidence']['id'], '--case', case['id'], '--project', app, '--json']
+                replay = [binary, 'verify', 'replay', spec, broken['evidence']['id'], '--case', case['id'], '--project', app, '--json', '--full']
                 assert json.loads(run('cinema-ts-broken-replay', replay, allowed=(1,)))['case_result']['status'] == 'FAIL'
                 source.write_bytes(original)
                 repaired = json.loads(run('cinema-ts-repaired-replay', replay))
@@ -124,7 +124,7 @@ def main():
                 run('release-check', [binary, 'check', spec, '--json'])
                 run('release-generation', [binary, 'verify', 'init', spec, '--project', app, '--target', 'typescript', '--subject', 'Adaptive.Counter.next', '--json'])
                 for cache in ('first-project', 'warm-project'):
-                    run('release-execution-' + cache, [binary, 'verify', 'run', spec, '--project', app, '--no-adopt', '--json'])
+                    run('release-execution-' + cache, [binary, 'verify', 'run', spec, '--project', app, '--no-adopt', '--json', '--full'])
         except (OSError, ValueError, RuntimeError, TimeoutError, UnboundLocalError) as error:
             failure = (failure + '\n' if failure else '') + str(error)
             record.update(status='failed', failure=failure)

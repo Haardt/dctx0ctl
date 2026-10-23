@@ -4,6 +4,14 @@ use dctx0_core::VerificationRunOrigin;
 /// Historical outcome, never a replacement for full execution evidence.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerificationRunSummary {
+    #[serde(default = "summary_version")]
+    pub schema_version: u32,
+    #[serde(default)]
+    pub open_obligation_count: usize,
+    #[serde(default)]
+    pub open_obligation_count_available: bool,
+    #[serde(default)]
+    pub missing_case_count: usize,
     pub id: String,
     pub created_at: String,
     pub started_at_unix_ns: String,
@@ -25,7 +33,7 @@ pub struct VerificationRunSummary {
     pub pruned_at: Option<String>,
 }
 impl VerificationRunSummary {
-    pub(super) fn new(id: &str, run: &VerificationRun) -> Result<Self> {
+    pub fn new(id: &str, run: &VerificationRun) -> Result<Self> {
         let mut outcomes = [0; 3];
         for case in &run.cases {
             outcomes[match case.result {
@@ -35,6 +43,10 @@ impl VerificationRunSummary {
             }] += 1;
         }
         Ok(Self {
+            schema_version: 1,
+            open_obligation_count: run.open_obligations.len(),
+            open_obligation_count_available: true,
+            missing_case_count: run.required_cases.len().saturating_sub(run.cases.len()),
             id: id.into(),
             created_at: String::new(),
             started_at_unix_ns: run.started_at_unix_ns.clone(),
@@ -130,6 +142,23 @@ pub(super) fn summary(
             legacy.finish(id)?
         }
     };
+    summary.missing_case_count = summary
+        .required_case_count
+        .saturating_sub(summary.case_count);
+    if !summary.open_obligation_count_available && pruned.is_none() {
+        #[derive(Deserialize)]
+        struct Obligations {
+            open_obligations: Vec<dctx0_core::VerificationIssue>,
+        }
+        let header: String = connection.query_row(
+            "SELECT data FROM verification_runs WHERE project=?1 AND id=?2",
+            params![project, id],
+            |r| r.get(0),
+        )?;
+        let header: Obligations = decode(&header)?;
+        summary.open_obligation_count = header.open_obligations.len();
+        summary.open_obligation_count_available = true;
+    }
     summary.created_at = created;
     summary.details_available = pruned.is_none();
     summary.pruned_at = pruned;
@@ -152,6 +181,8 @@ struct LegacySummary {
     required_cases: BTreeSet<String>,
     cases: Vec<LegacyCase>,
     result: VerificationResult,
+    #[serde(default)]
+    open_obligations: Vec<dctx0_core::VerificationIssue>,
 }
 impl LegacySummary {
     fn finish(self, id: &str) -> Result<VerificationRunSummary> {
@@ -164,6 +195,10 @@ impl LegacySummary {
             }] += 1;
         }
         Ok(VerificationRunSummary {
+            schema_version: 1,
+            open_obligation_count: self.open_obligations.len(),
+            open_obligation_count_available: true,
+            missing_case_count: self.required_cases.len().saturating_sub(self.cases.len()),
             id: id.into(),
             created_at: String::new(),
             started_at_unix_ns: self.started_at_unix_ns,
@@ -189,4 +224,8 @@ impl LegacySummary {
             pruned_at: None,
         })
     }
+}
+
+fn summary_version() -> u32 {
+    1
 }

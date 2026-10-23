@@ -86,7 +86,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             .arg("--file")
             .arg(&file);
         if json {
-            command.arg("--json");
+            command.args(["--json", "--full"]);
         }
         let output = command.output().unwrap();
         assert!(
@@ -95,6 +95,26 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             String::from_utf8_lossy(&output.stderr)
         );
         if json {
+            let compact = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+                .args(["verify", "inspect"])
+                .arg(&spec)
+                .arg(&native.evidence.id)
+                .arg("--project")
+                .arg(&app)
+                .arg("--file")
+                .arg(&file)
+                .arg("--json")
+                .output()
+                .unwrap();
+            assert!(
+                compact.status.success(),
+                "{}",
+                String::from_utf8_lossy(&compact.stderr)
+            );
+            let compact: serde_json::Value = serde_json::from_slice(&compact.stdout).unwrap();
+            assert_eq!(compact["schema_version"], 1);
+            assert_eq!(compact["summary"]["result"]["status"], "PASS");
+            assert!(compact.get("evidence").is_none());
             let report: InspectedVerificationReport =
                 serde_json::from_slice(&output.stdout).unwrap();
             assert_eq!(report.assessment.result, VerificationResult::Pass);

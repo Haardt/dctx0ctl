@@ -14,69 +14,61 @@ pub struct VerificationGcReport {
     pub logical_bytes_before: u64,
     pub logical_bytes_after: u64,
 }
-pub(super) fn insert_corpus(
-    connection: &Connection,
-    hash: &str,
-    length: u64,
-    bytes: &[u8],
-) -> Result<()> {
-    let inserted = connection.execute(
-        "INSERT OR IGNORE INTO verification_corpora(hash,bytes,raw_length) VALUES(?1,?2,?3)",
-        params![hash, bytes, length as i64],
-    )?;
-    if inserted == 0 {
-        let (stored, raw_length): (Vec<u8>, i64) = connection.query_row(
-            "SELECT bytes,raw_length FROM verification_corpora WHERE hash=?1",
-            [hash],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
-        if raw_length != length as i64 {
-            return Err(invalid(
-                "Existing case corpus conflicts with its immutable digest",
-            ));
-        }
-        if stored != bytes {
-            // Valid gzip encoders may produce different bytes for identical
-            // content. Identity belongs to the uncompressed corpus.
-            codec::validate_corpus(&stored, raw_length, hash)?;
-        }
-    }
-    Ok(())
-}
 pub(super) fn store_body(connection: &Connection, id: &str, run: &VerificationRun) -> Result<()> {
-    let (hash, length, bytes) = codec::compress_json(&codec::Corpus {
-        cases: &run.cases,
-        required_cases: &run.required_cases,
-    })?;
-    insert_corpus(connection, &hash, length, &bytes)?;
+    cases::store(connection, id, run)?;
     connection.execute(
-        "UPDATE verification_runs SET data=?2,corpus_hash=?3,summary=?4 WHERE id=?1",
+        "UPDATE verification_runs SET data=?2,corpus_hash=NULL,summary=?3 WHERE id=?1",
         params![
             id,
             serde_json::to_string(&codec::Header(run))?,
-            hash,
             serde_json::to_string(&VerificationRunSummary::new(id, run)?)?
         ],
     )?;
     Ok(())
 }
-pub(super) fn prune(connection: &Connection, project: &str) -> Result<u64> {
+
+fn prunable(connection: &Connection, project: &str) -> Result<Vec<String>> {
     let ids = {
-        let mut statement = connection.prepare("SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) ORDER BY rowid")?;
+        let sql = if crate::storage::version(connection)? >= 7 {
+            "WITH newest(id) AS (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 1), problem(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND json_extract(result,'$.status') IN ('FAIL','UNKNOWN') ORDER BY rowid DESC LIMIT 1), pending(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND (id IN (SELECT l.run_id FROM verification_task_links l JOIN task_states s ON s.task_id=l.task_id WHERE s.work!='Done') OR EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(data) THEN data ELSE '{}' END,'$.provenance.task_pin.requirements') required JOIN task_states s ON s.task_id=CAST(required.key AS INTEGER) WHERE s.work='Progress' OR (s.work='Open' AND s.actor IS NOT NULL)))), seeds(id) AS (SELECT id FROM newest UNION SELECT id FROM problem UNION SELECT id FROM pending), kept(id) AS (SELECT id FROM seeds UNION SELECT p.parent FROM verification_run_parents p JOIN seeds s ON p.child=s.id) SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM kept) ORDER BY rowid"
+        } else {
+            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) ORDER BY rowid"
+        };
+        let mut statement = connection.prepare(sql)?;
         statement
             .query_map([project], |r| r.get::<_, String>(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?
     };
+    Ok(ids)
+}
+pub(crate) fn prune(connection: &Connection, project: &str) -> Result<u64> {
+    let ids = prunable(connection, project)?;
     for id in &ids {
         let mut summary = summaries::summary(connection, project, id)?;
         summary.details_available = false;
-        connection.execute("UPDATE verification_runs SET data='',corpus_hash=NULL,summary=?2,pruned_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?1", params![id,serde_json::to_string(&summary)?])?;
-        connection.execute(
-            "DELETE FROM verification_run_artifacts WHERE run_id=?1",
-            [id],
-        )?;
+        let compact = crate::storage::version(connection)? >= 7;
+        connection.execute(if compact {"UPDATE verification_runs SET corpus_hash=NULL,summary=?2,pruned_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?1"} else {"UPDATE verification_runs SET data='',corpus_hash=NULL,summary=?2,pruned_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?1"}, params![id,serde_json::to_string(&summary)?])?;
+        if !compact {
+            connection.execute("DELETE FROM verification_case_index WHERE run_id=?1", [id])?;
+            connection.execute(
+                "DELETE FROM verification_requirements WHERE run_id=?1",
+                [id],
+            )?;
+            connection.execute(
+                "DELETE FROM verification_case_projections WHERE run_id=?1",
+                [id],
+            )?;
+            connection.execute(
+                "DELETE FROM verification_run_artifacts WHERE run_id=?1",
+                [id],
+            )?;
+        }
+    }
+    if crate::storage::version(connection)? >= 7 {
+        connection.execute("UPDATE verification_artifacts SET bytes=x'',encoding='pruned' WHERE media_type NOT IN ('application/vnd.dctx0.runtime-metrics+json','application/vnd.dctx0.runtime-identity+json') AND NOT EXISTS(SELECT 1 FROM verification_run_artifacts l JOIN verification_runs r ON r.id=l.run_id WHERE l.artifact_hash=verification_artifacts.hash AND r.pruned_at IS NULL)",[])?;
     }
     connection.execute("DELETE FROM verification_artifacts WHERE NOT EXISTS(SELECT 1 FROM verification_run_artifacts r WHERE r.artifact_hash=verification_artifacts.hash)", [])?;
+    connection.execute("DELETE FROM verification_case_bodies WHERE NOT EXISTS(SELECT 1 FROM verification_case_index i JOIN verification_runs r ON r.id=i.run_id WHERE i.body_hash=verification_case_bodies.hash AND r.pruned_at IS NULL)", [])?;
     connection.execute("DELETE FROM verification_corpora WHERE NOT EXISTS(SELECT 1 FROM verification_runs r WHERE r.corpus_hash=verification_corpora.hash)", [])?;
     connection.execute("INSERT INTO verification_revisions(project,revision) VALUES(?1,1) ON CONFLICT(project) DO UPDATE SET revision=revision+1",[project])?;
     Ok(ids.len() as u64)
@@ -115,6 +107,13 @@ fn totals(connection: &Connection, project: &str) -> Result<(u64, u64, u64)> {
             [],
             |r| r.get::<_, i64>(0).map(|n| n as u64),
         )?;
+    }
+    if schema >= 6 {
+        bytes += connection.query_row(
+            "SELECT coalesce(sum(length(bytes)),0) FROM verification_case_bodies",
+            [],
+            |r| r.get::<_, i64>(0),
+        )? as u64;
     }
     Ok((runs, artifacts, bytes))
 }
@@ -190,8 +189,11 @@ impl Store {
                 .write(true)
                 .open(lock_path)?,
         };
-        fs2::FileExt::try_lock_exclusive(&guard)?;
-        if self.verification_storage_version()? != expected_version {
+        let signature = crate::storage_maintenance::source_signature(&self.connection)?;
+        crate::storage::lock_exclusive(&guard)?;
+        if crate::storage_maintenance::source_signature(&self.connection)? != signature
+            || self.verification_storage_version()? != expected_version
+        {
             return Err(invalid("History changed during compaction; rerun gc"));
         }
         self.connection.execute_batch("PRAGMA locking_mode=EXCLUSIVE; PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;")?;
@@ -219,11 +221,16 @@ impl Store {
     }
     pub fn verification_gc_preview(&self, project: &str) -> Result<VerificationGcReport> {
         let (runs, artifacts, bytes) = totals(&self.connection, project)?;
+        let after = if crate::storage::version(&self.connection)? >= 7 {
+            runs.saturating_sub(prunable(&self.connection, project)?.len() as u64)
+        } else {
+            runs.min(3)
+        };
         Ok(VerificationGcReport {
             dry_run: true,
             full_runs_before: runs,
-            full_runs_after: runs.min(3),
-            pruned_runs: runs.saturating_sub(3),
+            full_runs_after: after,
+            pruned_runs: runs.saturating_sub(after),
             artifacts_before: artifacts,
             artifacts_after: artifacts,
             logical_bytes_before: bytes,
@@ -284,6 +291,43 @@ impl Store {
         project: &str,
         destination: &Path,
     ) -> Result<VerificationGcReport> {
+        if crate::storage::version(&self.connection)? >= 7 {
+            let names=self.connection.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'verification_%'")?.query_map([],|r|r.get::<_,String>(0))?.collect::<std::result::Result<Vec<_>,_>>()?;
+            let known = [
+                "verification_corpora",
+                "verification_artifacts",
+                "verification_runs",
+                "verification_run_artifacts",
+                "verification_task_links",
+                "verification_adoptions",
+                "verification_revisions",
+                "verification_case_bodies",
+                "verification_case_index",
+                "verification_case_projections",
+                "verification_requirements",
+                "verification_run_parents",
+            ];
+            if names.iter().any(|name| !known.contains(&name.as_str())) {
+                return Err(invalid(
+                    "Unrecognized history table; refusing verification compaction",
+                ));
+            }
+            let (runs, artifacts, bytes) = totals(&self.connection, project)?;
+            self.storage_compact_project_copy(Some(project), destination)?;
+            let target = Store::open(destination, AccessMode::ReadOnly)?;
+            let (after, artifacts_after, logical_bytes_after) =
+                totals(&target.connection, project)?;
+            return Ok(VerificationGcReport {
+                dry_run: false,
+                full_runs_before: runs,
+                full_runs_after: after,
+                pruned_runs: runs.saturating_sub(after),
+                artifacts_before: artifacts,
+                artifacts_after,
+                logical_bytes_before: bytes,
+                logical_bytes_after,
+            });
+        }
         let source = self
             .connection
             .path()
@@ -296,7 +340,24 @@ impl Store {
             .write(true)
             .create_new(true)
             .open(destination)?;
-        let mut target = Store::open(destination, AccessMode::ReadWrite)?;
+        let connection = Connection::open(destination)?;
+        connection.pragma_update(None, "foreign_keys", true)?;
+        connection.busy_timeout(Duration::from_secs(5))?;
+        for migration in [
+            crate::SCHEMA,
+            crate::tasks::MIGRATION,
+            crate::tasks::PROFILE_MIGRATION,
+            MIGRATION,
+            STORAGE_MIGRATION,
+            cases::MIGRATION,
+        ] {
+            connection.execute_batch(migration)?;
+        }
+        let mut target = Store {
+            connection,
+            mode: AccessMode::ReadWrite,
+            maintenance_lock: None,
+        };
         target
             .connection
             .execute_batch("PRAGMA journal_mode=DELETE;")?;

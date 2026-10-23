@@ -40,7 +40,7 @@ impl Store {
             [&old.plan.snapshot_id],
             |r| r.get(0),
         )?;
-        let snapshot: Snapshot = decode(&data)?;
+        let snapshot: Snapshot = storage::load(&tx, &data)?;
         let current = profile_changes_at_check(
             &old,
             &snapshot,
@@ -122,14 +122,14 @@ impl Store {
             )?;
             let data: String =
                 tx.query_row("SELECT data FROM tasks WHERE id=?1", [id], |r| r.get(0))?;
-            let mut definition: Definition = decode(&data)?;
+            let mut definition: Definition = storage::load(&tx, &data)?;
             definition.adjustment = Some(AdjustmentReason::Profile {
                 source,
                 desired: desired.clone(),
             });
             tx.execute(
                 "UPDATE tasks SET data=?1 WHERE id=?2",
-                params![serde_json::to_string(&definition)?, id],
+                params![storage::store(&tx, &definition)?, id],
             )?;
             tx.execute("INSERT INTO task_links(project,from_id,to_id,kind,reason) VALUES(?1,?2,?3,'profile-update',?4)",params![project,source,id,origin])?;
             members[i] = Member {
@@ -156,7 +156,7 @@ impl Store {
                 request_hash,
                 project,
                 plan.id,
-                serde_json::to_string(preview)?
+                storage::store(&tx, preview)?
             ],
         )?;
         tx.commit()?;

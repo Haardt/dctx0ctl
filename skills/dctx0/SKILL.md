@@ -53,3 +53,5 @@ Product commands require Rust and the selected native toolchain, not Python.
 Repository QA scripts are separate. Java currently supplies editable profiles;
 TypeScript/Bun, Go and Rust supply executable native targets. Respect project
 AGENTS.md and editable profiles without presenting their prose as automatic proof.
+
+For inventory and verification investigations, read [the query guide](references/query.md). Start with filtered lists or SQL aggregates, then fetch individual details.

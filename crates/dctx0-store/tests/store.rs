@@ -174,7 +174,9 @@ fn missing_schema_tables_abort_publication_without_resetting_history() {
     let snapshot = snap("workspace W {}");
     store.publish("p", &snapshot, None).unwrap();
     let connection = rusqlite::Connection::open(&path).unwrap();
-    connection.execute_batch("DROP TABLE edges").unwrap();
+    connection
+        .execute_batch("DROP TABLE query_snapshots")
+        .unwrap();
     assert!(store.publish("p", &snapshot, None).is_err());
     assert_eq!(store.history("p").unwrap().len(), 1);
     assert_eq!(store.latest("p").unwrap().unwrap(), snapshot);

@@ -1,4 +1,6 @@
 //! Filesystem and history orchestration. Semantic compilation remains pure.
+mod storage;
+pub use storage::*;
 mod site;
 pub use site::*;
 mod editors;

@@ -150,3 +150,22 @@ are unchanged. Existing exports are not automatically rewritten.
 Embedded skills document parallel dctx0 commands sharing a protected local
 SQLite database, atomic worker claims and separate coordination of file edits.
 Normal workspace validation and all five native distribution gates apply.
+
+## v0.2.11: compact verification, public SQL and minimum storage
+
+Verification JSON defaults to compact receipts; full consumers explicitly use
+`--full` or atomic file export. Public SQL views expose task/evidence/case metadata
+and pinned spec text with scalar parameters, joins, aggregates, historical pins
+and enforced read-only resource limits.
+
+Schema 7 shares immutable compressed history while preserving all task plans,
+events and historical PASS. Explicit copy conversion and verified installation
+retain a rollback backup; ordinary reads never migrate or repair data. Run/case
+metadata identifies detail availability after retention. Embedded skills share
+one query guide. See the query and verification-storage references for contracts.
+
+The Company Manager comparison measured a 93% database reduction and identical
+SQL results/full exports, with 83–98% faster SQL workloads. Local coverage reaches
+97.17% source lines and 97.01% LLVM functions; Go Race is unavailable on the local
+ARM64 host, so no full local aggregate PASS is claimed. Normal tag CI and five
+native platform gates remain mandatory. The accepted baseline is unchanged.

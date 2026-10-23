@@ -21,17 +21,17 @@ run('native-go-test',['go','test','./textcase'])
 run('cli-empty',['./casecli','upper','']);run('cli-unicode',['./casecli','upper','Grüße café'])
 assert run('cli-missing',['./casecli'],(2,)).startswith('usage:')
 assert 'unknown command' in run('cli-unknown',['./casecli','typo','hello'],(2,))
-run('verify-baseline',['dctx0','verify','run','dctx0','--project',str(ROOT),'--no-adopt','--json'])
+run('verify-baseline',['dctx0','verify','run','dctx0','--project',str(ROOT),'--no-adopt','--json','--full'])
 good=json.loads((E/'verify-baseline.log').read_text());assert good['evidence']['run']['result']['status']=='PASS'
 source=ROOT/'textcase/textcase.go';original=source.read_text();source.write_text(original.replace('strings.ToUpper(text)','text'))
-run('verify-mutated',['dctx0','verify','run','dctx0','--project',str(ROOT),'--no-adopt','--json'],(1,))
+run('verify-mutated',['dctx0','verify','run','dctx0','--project',str(ROOT),'--no-adopt','--json','--full'],(1,))
 bad=json.loads((E/'verify-mutated.log').read_text());assert bad['evidence']['run']['result']['status']=='FAIL'
 failed=next(c for c in bad['evidence']['run']['cases'] if c['result']['status']=='FAIL');case=failed['id'];rid=bad['evidence']['id']
-run('replay-mutated',['dctx0','verify','replay','dctx0',rid,'--case',case,'--project',str(ROOT),'--json'],(1,))
+run('replay-mutated',['dctx0','verify','replay','dctx0',rid,'--case',case,'--project',str(ROOT),'--json','--full'],(1,))
 source.write_text(original)
-run('replay-repaired',['dctx0','verify','replay','dctx0',rid,'--case',case,'--project',str(ROOT),'--json'])
-run('verify-repaired',['dctx0','verify','run','dctx0','--project',str(ROOT),'--no-adopt','--json'])
-run('verify-adopt',['dctx0','verify','run','dctx0','--project',str(ROOT),'--json'])
+run('replay-repaired',['dctx0','verify','replay','dctx0',rid,'--case',case,'--project',str(ROOT),'--json','--full'])
+run('verify-repaired',['dctx0','verify','run','dctx0','--project',str(ROOT),'--no-adopt','--json','--full'])
+run('verify-adopt',['dctx0','verify','run','dctx0','--project',str(ROOT),'--json','--full'])
 run('tasks-final',['dctx0','tasks','list','dctx0','--json'])
 summary={'release':'v0.1.0','container':'dctx0-case-acceptance','base_image':'golang:1.25.5','cases':len(good['evidence']['run']['cases']),'examples':sum(c['kind']=='example' for c in good['evidence']['run']['cases']),'baseline':'PASS','mutation':'FAIL','failed_case':case,'failed_run':rid,'broken_replay_exit':1,'repaired_replay_exit':0,'repaired':'PASS','agents':'Codex/Claude skill installation and agent guidance; no external LLM sessions started','spec_scope':'8 explicit casing examples plus generated String result-contract checks; no general all-Unicode casing proof','memory_limit_bytes':3221225472,'cpus':2,'measurements':samples}
 (E/'summary.json').write_text(json.dumps(summary,indent=2))

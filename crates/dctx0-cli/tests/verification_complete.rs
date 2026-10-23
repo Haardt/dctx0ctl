@@ -5,6 +5,76 @@ use dctx0_target_typescript::BunHarness;
 use dctx0_verification::program_inspection::InspectedReview;
 use std::{collections::BTreeMap, fs, path::PathBuf, process::Command};
 
+#[cfg(target_os = "linux")]
+#[test]
+fn complete_delegates_to_available_memory_supervision_and_propagates_its_exit_status() {
+    use std::os::unix::fs::PermissionsExt;
+    let root =
+        std::env::temp_dir().join(format!("dctx0-memory-supervision-{}", std::process::id()));
+    fs::create_dir(&root).unwrap();
+    for (name, script) in [
+        (
+            "systemd-run",
+            "#!/bin/sh\nif [ \"$1\" = --version ]; then exit 0; fi\nprintf '%s\\n' \"$@\" > \"$GUARD_LOG\"\nexit \"$GUARD_STATUS\"\n",
+        ),
+        ("systemctl", "#!/bin/sh\nexit \"$SYSTEMCTL_STATUS\"\n"),
+    ] {
+        let file = root.join(name);
+        fs::write(&file, script).unwrap();
+        fs::set_permissions(file, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let log = root.join("delegated.txt");
+    for status in [0, 7] {
+        let result = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+            .args([
+                "verify",
+                "complete",
+                "missing-spec-for-supervision",
+                "--project",
+                "missing-app-for-supervision",
+                "--json",
+            ])
+            .env("PATH", &root)
+            .env("GUARD_LOG", &log)
+            .env("GUARD_STATUS", status.to_string())
+            .env("SYSTEMCTL_STATUS", "0")
+            .env("DCTX0_MEMORY_GUARD", "1")
+            .env_remove("DCTX0_COMPLETE_MEMORY_GUARDED")
+            .output()
+            .unwrap();
+        assert_eq!(
+            result.status.success(),
+            status == 0,
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let delegated = fs::read_to_string(&log).unwrap();
+        assert!(delegated.contains("MemoryMax="));
+        assert!(delegated.contains("MemorySwapMax=0"));
+        assert!(delegated.contains("missing-spec-for-supervision"));
+    }
+    fs::remove_file(&log).unwrap();
+    let result = Command::new(env!("CARGO_BIN_EXE_dctx0"))
+        .args([
+            "verify",
+            "complete",
+            "missing-spec-for-supervision",
+            "--project",
+            "missing-app-for-supervision",
+            "--json",
+        ])
+        .env("PATH", &root)
+        .env("SYSTEMCTL_STATUS", "1")
+        .env("DCTX0_MEMORY_GUARD", "1")
+        .env_remove("DCTX0_COMPLETE_MEMORY_GUARDED")
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(!log.exists());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("unavailable"));
+    fs::remove_dir_all(root).unwrap();
+}
+
 struct Fixture {
     root: PathBuf,
     app: PathBuf,

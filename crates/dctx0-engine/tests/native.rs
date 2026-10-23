@@ -262,6 +262,22 @@ async fn missing_runtime_invalid_limits_timeouts_and_cancellation_never_return_a
             .kind,
         NativeFailureKind::Unavailable
     );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let unavailable = t.0.join("non-executable-runtime");
+        fs::write(&unavailable, "#!/bin/sh\nexit 0\n").unwrap();
+        fs::set_permissions(&unavailable, fs::Permissions::from_mode(0o600)).unwrap();
+        missing.program = unavailable.to_string_lossy().into_owned();
+        assert_eq!(
+            NativeWorker::spawn(&missing, &t.0, limits())
+                .await
+                .err()
+                .unwrap()
+                .kind,
+            NativeFailureKind::Unavailable
+        );
+    }
     for bad in [
         NativeLimits {
             case: Duration::ZERO,

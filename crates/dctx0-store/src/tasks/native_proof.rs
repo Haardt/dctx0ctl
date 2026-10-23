@@ -50,7 +50,7 @@ pub(super) fn validate_open_obligations(
             [&run.provenance.snapshot],
             |row| row.get(0),
         )?;
-        let snapshot: Snapshot = decode(&data)?;
+        let snapshot: Snapshot = storage::load(tx, &data)?;
         if hash != run.provenance.plan_hash
             || !dctx0_verification::validate_entity_identity_cases(&snapshot.ir, &plan, &run.cases)
         {
@@ -82,7 +82,7 @@ pub(super) fn validate_open_obligations(
         [&run.provenance.snapshot],
         |row| row.get(0),
     )?;
-    let snapshot: Snapshot = decode(&data)?;
+    let snapshot: Snapshot = storage::load(tx, &data)?;
     let resolved =
         dctx0_verification::resolved_state_preconditions(&snapshot.ir, &plan, &run.cases);
     if !resolved.is_empty() {

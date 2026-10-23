@@ -96,7 +96,7 @@ for (const report of reports) {
     await Bun.write(file, source.replace('return value + 1n;', 'return value + 2n;'));
     await execute(['bun', 'install', '--frozen-lockfile'], project);
     await execute([binary, 'check', 'dctx0'], project);
-    const saved = JSON.parse(await execute([binary, 'verify', 'run', 'dctx0', '--project', '.', '--subject', 'Tutorial.Board.Actions.increment', '--no-adopt', '--json'], project, [0, 1]));
+    const saved = JSON.parse(await execute([binary, 'verify', 'run', 'dctx0', '--project', '.', '--subject', 'Tutorial.Board.Actions.increment', '--no-adopt', '--json','--full'], project, [0, 1]));
     const run = saved.evidence.run;
     assert.equal(run.result.status, 'FAIL', 'Real production mutation must fail through HTTP');
     const failure = run.cases.find((entry: any) => entry.result.status === 'FAIL');
@@ -109,7 +109,7 @@ for (const report of reports) {
 if (!skipPerformance) {
 for (const report of reports) {
   const project = join(root, 'examples/tutorial-variants', report.name);
-  const measurement = await measured([binary, 'verify', 'run', 'dctx0', '--project', '.', '--no-adopt', '--json'], project);
+  const measurement = await measured([binary, 'verify', 'run', 'dctx0', '--project', '.', '--no-adopt', '--json','--full'], project);
   const saved = JSON.parse(measurement.output);
   const run = saved.evidence.run;
   assert.equal(run.result.status, 'PASS');

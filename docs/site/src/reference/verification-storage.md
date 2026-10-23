@@ -1,7 +1,11 @@
 # Verification history storage
 
-Each project retains the latest three published verification runs with complete
-case details. Native and imported runs share this limit, regardless of scope.
+Schema 7 retains the newest published verification run and newest FAIL/UNKNOWN
+run with complete case details. Pending publications are protected by their task
+IDs; the direct sources of retained inspection/replay workflows are also protected.
+The protection does not recursively retain an unlimited chain of ancestors.
+Native and imported runs share this policy, regardless of scope. Schemas 5/6
+retain their previous three-run policy until explicit conversion.
 Saving the same run again does not extend its lifetime or change its publication
 order. Different executions have different execution times and identities.
 
@@ -18,8 +22,10 @@ details beside the historical check. This metadata does not rewrite saved tasks.
 
 ## Stored evidence
 
-The store separates run headers from a content-addressed gzip case corpus. Runs
-derived by source inspection can share their unchanged cases. Public full-run
+Schemas 6/7 separate run headers, ordered case metadata, mandatory case inventories
+and independently compressed, content-addressed case bodies. Runs derived by
+source inspection share unchanged case bodies. Schema 5 whole-corpus gzip storage
+remains readable until explicit preparation converts it. Public full-run
 JSON remains schema 1; run IDs still hash that original JSON representation.
 Artifact hashes and lengths refer to original, uncompressed contents. Artifacts
 of at least 4 KiB are compressed when compression saves space.
@@ -30,10 +36,11 @@ lifecycle assessment diagnostics are persisted only for FAIL, UNKNOWN and
 incomplete execution. Successful cases are still assessed normally. Plans,
 mandatory inventories, provenance and proof-relevant central assessments remain.
 
-SQLite schema 5 adds the storage representation and retention metadata. Read-only
-access supports schemas 1–5 without migration. Writers migrate the schema
-additively; existing bodies are converted by explicit maintenance. Older CLI
-versions cannot open schema 5. Snapshot, compiler-check, rename and task history
+Schema 5 introduced retention metadata; schema 6 adds addressable case storage and
+public query projections. Schema 7 adds shared snapshot/task/report storage. Read-only access supports schemas 1–7 without migration.
+Writers migrate additively; `dctx0 query prepare SPEC` explicitly converts existing
+retained bodies and prepares pinned spec projections. The CLI must support the stored schema; schema-6 binaries cannot
+open schema 7. Snapshot, compiler-check, rename and task history
 are not pruned.
 
 ## Inspect and maintain history
@@ -45,14 +52,19 @@ dctx0 verify gc path/to/spec --dry-run --json
 dctx0 verify gc path/to/spec --compact --json
 ```
 
-History pages contain at most 200 summaries and do not decode schema-5 case
-corpora. Rust callers use `verification_run_summaries` for paginated history;
-`verification_runs` now returns at most three complete runs. Show returns the established full report for retained runs and an
-explicit summary for pruned runs. The Site includes historical summaries and
-processes complete compressed corpora one run at a time.
+History pages contain at most 200 summaries and do not decode case bodies. Rust
+callers use `verification_run_summaries` for paginated history; `verification_runs`
+returns the retained complete runs, including protected pending publications. Show defaults to a summary; filters select
+metadata pages and `--case` opens one body. `--full` preserves the earlier complete
+JSON. `verify export SPEC RUN_ID --output report.json` streams an atomic full export.
+The Site includes historical summaries and reconstructs complete corpora through
+the shared storage abstraction. See [compact reports and SQL](queries.md) for the
+intentional JSON compatibility change, preparation and public view contracts.
 
 Normal publication atomically prunes obsolete detail and deletes unreferenced
-artifacts. Shared artifacts remain while another complete run needs them. SQLite
+artifacts. Small runtime-identity and runtime-metrics records remain as measurement
+metadata, even after execution bodies expire. Shared execution artifacts remain
+while another complete run needs them. SQLite
 can reuse freed pages; reducing the physical file requires `gc --compact`.
 Compaction builds and checks a separate replacement while preserving the source,
 then replaces it atomically under the project lock. Source changes or unavailable
@@ -150,3 +162,46 @@ images; first-party debug code remains unoptimized. All performance workloads
 use release builds without coverage instrumentation. See
 `docs/verification-storage-validation.json` for precise scope, commands, raw
 reports and remaining aggregate limitations.
+
+## Minimum retained history (schema 7)
+
+All task plans, definitions, states, events, requirements and pinned snapshots stay
+readable, including historical PASS provenance. Large immutable JSON values share
+compressed content-addressed objects; long report strings additionally share
+exact-byte chunks. This removes repetition without changing public values,
+ordering, IDs or artifact hashes. Compact event/evidence metadata and indexed spec
+projections let agents list, aggregate and join without loading execution bodies.
+Redundant internal graph and dependency copies are reconstructed from their
+canonical snapshot/plan when needed. No application-code full-text index is added.
+
+`storage compact` prepares a resumable verified copy; it does not replace the live
+file. `storage verify-copy` compares preserved logical rows and validates retained
+body hashes. `storage install-copy` accepts a successful comparison for the exact
+copy and CLI binary, verifies the source again, and retains a synced backup under
+`.dctx0ctl/backups/`. `storage recover` resolves an interrupted installation under
+the project lock. These storage commands are separate from `verify gc`, whose
+legacy export-reduction/maintenance behavior is described above. Existing JSON
+exports are untouched by storage conversion.
+
+## Schema 7 acceptance (2026-10-23)
+
+Company Manager's checked copy was installed with a schema-5 backup after comparing
+18,509 preserved payload rows across nine tables. The live database is
+340,631,552 bytes instead of 4,863,143,936 bytes (93% smaller). All task and snapshot
+history remains, including 1,261 historical PASS states. Five paired samples show
+identical SQL results, case details and canonical full exports. SQL workloads are
+83–98% faster with 72–97% less peak RSS; full-export time is effectively unchanged.
+The accepted baseline and existing JSON exports were not changed.
+
+The 10,000-case synthetic workloads separately measure preparation, summary,
+aggregation, filtered cases, one case, source joins and streaming export. Their
+169 MB raw corpora occupy about 17 MB each; summaries take 8–9 ms and 9–11 MB RSS.
+These compressible imported fixtures are storage tests, not native execution.
+
+Final workspace coverage is 97.17% merged source lines and 97.01% LLVM functions,
+with raw LLVM totals retained separately and no new exclusions. Executable native
+and feature checks pass. The overall gate remains incomplete because Go Race is
+unavailable on this ARM64 host; general baseline comparisons remain predominantly
+unassessed. See `docs/storage-compaction-validation.json` in the repository for
+exact commands, raw-sample report links, hashes, earlier failed attempts and backup
+locations.

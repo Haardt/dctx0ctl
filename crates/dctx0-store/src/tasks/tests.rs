@@ -39,7 +39,7 @@ fn legacy_readers_never_migrate_and_writers_preserve_existing_history() {
     assert_eq!(reader.latest("p").unwrap().unwrap().id, input.id);
     drop(reader);
     let writer = Store::open(&file, AccessMode::ReadWrite).unwrap();
-    assert_eq!(schema(&writer.connection).unwrap(), 5);
+    assert_eq!(schema(&writer.connection).unwrap(), 6);
     assert_eq!(writer.history("p").unwrap().len(), 1);
     assert_eq!(writer.latest("p").unwrap().unwrap().id, input.id);
     assert!(writer.task_check("missing").is_err());
@@ -54,7 +54,7 @@ fn every_publication_write_failure_rolls_back_the_complete_plan() {
         "task_states",
         "task_plans",
         "task_members",
-        "task_dependencies",
+        "storage_state_metadata",
         "task_heads",
     ] {
         let mut store = Store {
@@ -159,7 +159,9 @@ fn missing_tables_snapshots_and_updated_row_failures_never_reset_state() {
         let (store, _, _) = prepared();
         store
             .connection
-            .execute_batch(&format!("DROP TABLE {table}"))
+            .execute_batch(&format!(
+                "PRAGMA foreign_keys=OFF; DROP TABLE {table}; PRAGMA foreign_keys=ON;"
+            ))
             .unwrap();
         if table == "task_events" {
             assert!(store.task_sequence("p").is_err());
@@ -479,7 +481,7 @@ fn schema_two_readers_preserve_bytes_and_writers_add_profile_tables() {
     drop(reader);
     assert_eq!(before, fs::read(&file).unwrap());
     let writer = Store::open(&file, AccessMode::ReadWrite).unwrap();
-    assert_eq!(schema(&writer.connection).unwrap(), 5);
+    assert_eq!(schema(&writer.connection).unwrap(), 6);
     let count: i64 = writer
         .connection
         .query_row("SELECT COUNT(*) FROM execution_bundles", [], |r| r.get(0))
@@ -1276,6 +1278,13 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
             }
             _ => unreachable!(),
         }
+        store
+            .connection
+            .execute(
+                "DELETE FROM verification_case_projections WHERE run_id=?1",
+                [&run_id],
+            )
+            .unwrap();
         // Simulate a corrupt/legacy imported storage row to exercise rejection
         // independently of the normal immutable recording validations.
         store

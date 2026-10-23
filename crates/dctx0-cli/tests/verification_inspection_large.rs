@@ -129,7 +129,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             .arg(&app)
             .arg("--file")
             .arg(&file)
-            .arg("--json")
+            .args(["--json", "--full"])
             .args(extra)
             .output()
             .unwrap()
