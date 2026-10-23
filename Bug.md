@@ -1,83 +1,149 @@
-# Bug: Vollständige Quellreviews scheitern an der 1-MiB-Eingabegrenze
+# Bug: Native Beispielprüfung verliert Call-Observer bei „exactly 0“
 
-Stand: 17.10.2026. Reproduziert mit `/home/massenhaft/.cargo/bin/dctx0`, Version **0.2.4**, im Verbraucherprojekt `../company-manager`. Dieser Bericht ersetzt den vorherigen, inzwischen als umgesetzt dokumentierten Speicherbericht. Dessen Ergebnis bleibt in `docs/verification-storage-company-manager.json` und der Storage-Dokumentation erhalten.
+## Auftrag
 
-## Problem und Auswirkung
+Den verbleibenden UNKNOWN-Fall aus Company Manager in dctx0 beheben und mit
+nativen Regressionstests absichern. Die Assertion und die Unterscheidung zwischen
+fehlender Beobachtung und tatsächlich null Aufrufen müssen erhalten bleiben.
 
-`dctx0 verify inspect` lehnt Eingabedateien über 1.048.576 Bytes ab. Ein vollständiger `ProgramInspection` bindet seine Beurteilung an den Implementierungs-Hashvektor des nativen Laufs. Beim ersten hier untersuchten Company-Manager-Lauf enthielt dieser 543 Implementierungsartefakte; ein einzelner vollständiger Review benötigte bereits rund 65 KiB. 19 Runner-Pflichten beziehungsweise 47 Knowledge-Pflichten passen zusammen nicht in die erlaubte Eingabe.
+Beobachtete Umgebung: dctx0 0.2.4, Bun 1.3.2, Linux arm64.
+Consumer: `/home/massenhaft/workspaces/conpinion/company-manager`.
 
-Die nativen Fälle können alle bestehen und die Provenienz vollständig sein, während die nötigen Quellreviews technisch nicht gemeinsam eingereicht werden können. Das ist eine andere Begrenzung als die bereits aufgehobene Zahl generierter Testfälle. Nicht jeder offene Company-Manager-Punkt entsteht dadurch: Dort gibt es auch echte Implementierungslücken und veraltete Reviews, die unabhängig behoben werden müssen.
+## Fachlicher Zweck
 
-## Minimaler reproduzierbarer Nachweis
+Wenn das Lesen eines kanonischen Wissensdokuments ausfällt, darf Company Manager
+nicht ersatzweise Dokumentbytes über den Kanal-Storage lesen. Die Prüfung soll
+belegen, dass `Storage.content("artifact-1")` dabei exakt nullmal aufgerufen wird.
+Ein Fehler beim Wissenszugriff darf keinen alternativen Inhaltszugriff eröffnen.
 
-Aus `../company-manager` ausführen. Der Datensatz ist gültiges JSON (führender Leerraum und ein leeres Array), enthält keine behaupteten PASS-Ergebnisse und überschreitet die Grenze um zwei Bytes:
+## Tatsächliches Ergebnis
 
-```sh
-python3 - <<'PYCODE'
-from pathlib import Path
-Path('/tmp/dctx0-inspection-size-probe.json').write_bytes(b' ' * 1_048_576 + b'[]')
-PYCODE
+Fall-ID:
 
-dctx0 verify inspect spec <native-run-id> --project . \
-  --file /tmp/dctx0-inspection-size-probe.json --json
+```text
+CompanyManager.ChannelArtifacts.Ledger.Memory outage never falls back to channel document bytes
 ```
 
-Tatsächlich: Exit **1**, `Inspection input exceeds 1 MiB`, vor JSON-Parsing und Laufprüfung. Für diesen reinen Größen-Nachweis kann `<native-run-id>` daher durch einen beliebigen Platzhalter ersetzt werden. Für die fachliche Akzeptanz unten ist ein echter vollständiger nativer Lauf erforderlich.
+Aktueller gespeicherter Befund:
 
-Die bereits erfassten lokalen Nachweise liegen unter:
+```json
+{
+  "status": "UNKNOWN",
+  "issue": {
+    "code": "TRACE_OBSERVER_REQUIRED",
+    "message": "Actual collaborator calls were not observed"
+  }
+}
+```
 
-- `../company-manager/.artifacts/verification/dctx0-audit/inspection-size-probe.json`
-- `../company-manager/.artifacts/verification/dctx0-audit/inspection-size-probe.log`
-- `../company-manager/docs/dctx0-inspection-limit.md`
+Position: `spec/channel-artifacts-services.dctx0:215`, Spalten 14–59.
+Der native Herkunftsnachweis ist COMPLETE; es gibt keine Provenance-Lücken.
+Der Adapter deklariert `call-observation` und zeichnet tatsächliche Storage-Aufrufe
+auf. Der TypeScript-Worker kann eine verfügbare, leere Aufrufliste liefern.
 
-## Bestätigte Ursachen
+UNKNOWN ist hier weder ein nachgewiesener Produktfehler noch ein bestandener
+Sicherheitsnachweis: Die Auswertung erhält die benötigte Beobachtung nicht.
 
-1. `crates/dctx0-cli/src/verification.rs`, `VerifyAction::Inspect`: `take(1_048_577)` und anschließende Prüfung `bytes.len() > 1_048_576` mit obiger Fehlermeldung.
-2. `VerifyAction::Attest` im selben Modul enthält ebenfalls eine 1-MiB-Grenze. Deren Größenproblem ist im Code bestätigt; ein großer echter Attestation-Datensatz wurde hier nicht separat ausgeführt.
-3. Einfaches Aufteilen in mehrere Inspect-Aufrufe führt derzeit nicht zu einem kumulierten Gesamtergebnis: `crates/dctx0-engine/src/verification_run/program_inspection.rs` akzeptiert als Basis ausschließlich einen vollständigen, passenden Lauf mit `VerificationRunOrigin::Native`. Der abgeleitete Inspektionslauf erhält `VerificationRunOrigin::Imported`. Ein Folgeaufruf auf diesem abgeleiteten Lauf wird abgewiesen; mehrere unabhängige Aufrufe auf denselben nativen Ursprung vereinigen ihre Inspektionen nicht.
+## Reproduktion im vorhandenen Consumer
 
-Die Herkunftsprüfung schützt korrekt die Evidenz. Sie sollte nicht einfach entfernt werden, um diese Grenze zu umgehen.
+```sh
+cd /home/massenhaft/workspaces/conpinion/company-manager
+bun run spec:verify --scope=channel-artifacts
+```
 
-## Gewünschte Korrektur
+Den vorhandenen Package-Befehl verwenden: Er begrenzt den aggregierten
+Prozessbaum auf ein gemessenes RSS-Budget von 3072 MiB und verarbeitet die großen
+nativen Berichte inkrementell. Keine parallelen schweren Prüfläufe starten.
 
-Vollständige, quellgebundene Review-Gruppen müssen verarbeitet werden können. Eine ausreichend große kontrollierte oder konfigurierbare Eingabegrenze wäre eine direkte Korrektur. Alternativ kann das Format den unveränderten Implementierungsvektor einmal pro Gruppe binden und Wiederholungen vermeiden. CLI, Engine, öffentliche Verträge und gegebenenfalls `verify complete`/Attest gemeinsam auf vergleichbare Grenzen prüfen.
+Das unveränderte Beispiel lautet:
 
-Falls kumulierte Einreichung vorgesehen wird, braucht sie eine explizite gemeinsame Basis und verständliche Konfliktregeln. Fremde, veraltete oder widersprüchliche Reviews dürfen nicht stillschweigend zusammengeführt werden. Keine Lockerung der Bindung an Snapshot, Plan, Implementierung, erforderliche Fälle oder native Beobachtungen; kein automatisches PASS für nicht beurteilte Pflichten. Keine Abwärtskompatibilität erforderlich.
+```dctx0
+example "Memory outage never falls back to channel document bytes" {
+  when result = Evidence.read("artifact-1")
+  expect result fails ArtifactUnavailable
+  expect calls Storage.content("artifact-1") exactly 0
+}
+```
 
-## Akzeptanz und Tests
+Die tatsächliche Implementierung wird über
+`.dctx0/testing/typescript/artifacts-adapter.ts` aufgerufen. Die Fixture
+`.dctx0/testing/typescript/artifacts/artifact-native-fixture.ts` verwendet Core/Hono
+mit einem expliziten beobachtbaren Storage-Port-Testdouble. Sie legt kanonische
+Wissensdokumente an und macht für das benannte Beispiel nur den Memory-Zugriff
+unverfügbar. Storage-Aufrufe werden tatsächlich aufgezeichnet; das erwartete
+Domain-Ergebnis wird nicht als Konstante im Adapter nachgebaut.
 
-- Eine gültige Gruppe über 1 MiB gegen einen echten nativen Lauf vollständig verarbeiten; die Resultate sämtlicher eingereichter Pflichten erscheinen im effektiven Ergebnis.
-- Repräsentative Gruppen von mindestens 19 und 47 vollständigen Inspektionen mit großem Quellvektor prüfen. Unbeurteilte Pflichten bleiben UNKNOWN.
-- Ein nativer FAIL, fehlende/duplizierte Fälle und unvollständige Provenienz werden durch Reviews niemals zu PASS.
-- Abweichende Quellhashes, Snapshot-/Planbindung, unbekannte Pflichten und widersprüchliche doppelte Beurteilungen weiterhin ablehnen.
-- Ungültiges JSON und eine etwaige neue Ressourcenobergrenze verständlich und ohne teilweise Veröffentlichung zurückweisen; Speicherverbrauch mit einer realistischen großen Gruppe messen.
-- Falls Kumulation implementiert wird: getrennte Einreichungen ergeben nachweislich denselben effektiven Stand wie eine gemeinsame Gruppe; falsche Eltern/Scopes und veraltete Quellen werden abgewiesen.
-- Eine reine Erhöhung der Grenze nicht als fachlichen Review der Company-Manager-Lücken ausgeben.
+## Vorhandene Belege
 
-## Abgrenzung: Bun-Pipe-Fehler im Verbraucher bereits behoben
+Alle folgenden Pfade liegen im Company-Manager-Checkout:
 
-Company Manager exportiert für Knowledge rund 240 MB natives JSON. Unter Bun 1.3.2 brach das Einlesen über `ReadableStream`/`Response.text()` mit `#getInternalBuffer`/`#pull` und `RangeError: Out of memory` ab. Der Verbraucher schreibt stdout jetzt zuerst vollständig in eine private Datei und liest erst nach Prozessende; die Übersicht behält alle Fall-IDs, Urteile und Provenienzfelder, während vollständige Eingaben/Beobachtungen in den Rohberichten verbleiben. Ein Prozesstest prüft unveränderte Bytes und den tatsächlichen Exitcode. Der Knowledge-Lauf bestand danach 10.657/10.657 Fälle ohne diesen Abbruch.
+- `.artifacts/verification/native-execution-channel-artifacts.json`: vollständige
+  native Eingaben und Beobachtungen, ungefähr 219 MiB.
+- `.artifacts/verification/native-assessment-channel-artifacts.json`: kompakte
+  Fallurteile und unveränderter UNKNOWN-Befund.
+- `.artifacts/verification/native-scopes.json`: letzter vollständiger Lauf über
+  15 konfigurierte Bereiche; 49.045 erfasste Pflichtfälle, davon 49.044 PASS,
+  ein UNKNOWN und null FAIL, mit COMPLETE-Provenance.
+- `.artifacts/verification/feature-completion/verify.log`: zugehöriger Gesamtlauf,
+  begonnen am 2026-10-18 um 02:45:04 UTC.
 
-Dies ist **kein nachgewiesener dctx0-Engine-Fehler** und kein Anlass, native Evidenz zu kürzen. Optional kann ein kompakter, explizit auf vollständige Rohdaten verweisender CLI-Ausgabemodus die Verbraucher entlasten. Der frühere SQLite-Speicherbefund wird hier nicht erneut als ungelöster Fehler behauptet.
+Der betroffene Einzelbereich enthält 7.314 Pflichtfälle: 7.313 PASS und diesen
+UNKNOWN-Fall. Die 49.045 Fälle des Gesamtlaufs sind überwiegend generierte
+Vertrags-/Randwertfälle, keine ebenso vielen handgeschriebenen Produkttests.
 
-## Umsetzung im Release-Kandidaten 0.2.5
+## Ansatzpunkt aus der bisherigen Quellprüfung
 
-Die 1-MiB-Grenzen in Inspect, Attest und Complete wurden durch einen gemeinsamen
-streamenden Reader mit 64 MiB Standard und `--max-input-bytes` ersetzt. Vollständige
-Gruppen werden gegen dieselbe native Basis verarbeitet; es gibt keine implizite
-Kumulation und keine Lockerung der Herkunftsprüfung. Ungültige Bindungen und
-doppelte Pflichten werden vor Veröffentlichung abgewiesen.
+Diese Stellen vor einer Änderung am aktuellen dctx0-Stand erneut prüfen:
 
-Die lokale Release-Abnahme verarbeitet 19 beziehungsweise 47 quellgebundene
-Reviews mit mindestens 543 Implementierungsartefakten. Ihre JSON-Dateien messen
-1.497.179 und 3.703.635 Bytes; Laufzeiten/RSS liegen bei 93,13 ms/21.987.328 Bytes
-und 122,58 ms/30.572.544 Bytes. Eine unbeurteilte Pflicht bleibt UNKNOWN. Tests
-für falsche Quellen/Snapshots/Pläne, unbekannte und widersprüchliche doppelte
-Pflichten, native FAILs, fehlende/doppelte Fälle, unvollständige Provenienz,
-ungültiges JSON und Ressourcenobergrenzen bestehen. Die separaten Complete-Tests
-verwenden ebenfalls Notizen über 1 MiB.
+- `crates/dctx0-verification/src/scenario.rs`: `Scenario::value` verwendet nach
+  bisheriger Analyse gewöhnliches `evaluate(...)` ohne `ObservationContext`.
+  `Expectation::Assertion` wertet darüber die Call-Count-Expression aus.
+  `Scenario::deliver` reicht den tatsächlichen optionalen Call-Trace nicht bis
+  zu dieser Auswertung durch.
+- `crates/dctx0-interpreter/src/observed.rs`: verlangt für Call-Count-Ausdrücke
+  zu Recht einen tatsächlichen Beobachtungskontext.
+- `targets/typescript/harness/worker.ts`: unterscheidet über die deklarierte
+  Capability bereits zwischen fehlendem Observer und vorhandener leerer Liste
+  (`calls: []`). Diese Unterscheidung muss bis zur Assertion erhalten bleiben.
 
-Details und reproduzierbare Befehle stehen in
-[Large source-bound review inputs](docs/site/src/reference/inspection-inputs.md).
-Dies behebt die Transportgrenze, bewertet aber keine Company-Manager-Lücke.
-Die erneute vollständige CI und das Release sind noch ausstehend.
+Tatsächliche Aufrufbeobachtungen durch den nativen Beispielpfad weiterreichen und
+beobachtungsabhängige Assertions mit diesem Kontext auswerten. Operationsidentität,
+Argumente und die Reihenfolge mehrerer `when`-Schritte müssen erhalten bleiben.
+
+## Zugehöriger Fehler in der Capability-Projektion
+
+Im selben Bericht verlangt die Call-Count-Assertion zusätzlich `mock-injection`,
+obwohl dieses Beispiel kein `given` enthält und tatsächliche Aufrufe beobachtet:
+
+```json
+{
+  "code": "ADAPTER_CAPABILITY_UNAVAILABLE",
+  "message": "The selected plan requires adapter capability mock-injection"
+}
+```
+
+Call-Beobachtung und vorbereitete Mock-Antworten müssen getrennt bleiben.
+Der Consumer darf keine nicht implementierte Mock-Capability vortäuschen müssen,
+um eine tatsächliche Null-Aufruf-Beobachtung auszuwerten.
+
+## Akzeptanz und Regressionstests
+
+1. Verfügbarer Observer und null passende tatsächliche Aufrufe: `exactly 0` PASS.
+2. Verfügbarer Observer und ein passender tatsächlicher Aufruf: dieselbe Assertion FAIL.
+3. Fehlender Observer: weiterhin UNKNOWN; keine erfundene leere Liste.
+4. Abweichende Argumente und andere Operationsziele zählen nicht als Treffer.
+5. `exactly 1`, mehrere geordnete `when`-Schritte und deklarierte Anwendungsfehler
+   behalten ihre tatsächlichen Beobachtungen. Mock-Vorgaben werden nicht als
+   zusätzliche tatsächliche Aufrufe gezählt.
+6. Ein Adapter mit `call-observation`, ohne `mock-injection` und ohne `given`
+   kann tatsächliche Aufrufanzahlen prüfen.
+7. Den obigen Consumer-Bereich vollständig wiederholen: alle Pflichtfälle
+   erfassen, COMPLETE-Provenance beibehalten und das konkrete Beispiel mit PASS
+   nachweisen. Eventuell verbleibende manuelle Pflichten separat ausweisen.
+
+Keine Assertion entfernen oder abschwächen, UNKNOWN nicht durch ein manuelles
+PASS ersetzen und historische Belege nicht umschreiben. Einen neuen nativen
+Nachweis mit tatsächlicher Ausführung erzeugen.
+
+Diese Übergabe beschreibt ausschließlich diesen Observer-/Projektionsfall.
+Es wurden dafür keine dctx0-Implementierungsdateien verändert.
