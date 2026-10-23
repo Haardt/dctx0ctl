@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "0.2.11",
   "tag": "v0.2.11",
-  "status": "local-preflight-complete-publication-pending",
+  "status": "corrected-unpublished-release-ci-pending",
   "version_change": "Package metadata and lockfile versions only; feature validation and paired database measurements precede the release version bump.",
   "distribution_acceptance": "benchmarks/history/release/20261023T202902.696681Z-19967.json",
   "distribution_status": "complete",
@@ -13,5 +13,20 @@
   "format_check": "cargo fmt --all -- --check: pass",
   "tag_validation": "python3 scripts/release.py validate-tag v0.2.11: pass",
   "full_feature_validation": "docs/storage-compaction-validation.json",
-  "publication_gate": "Existing full tag validation and all five native distribution jobs; no new exception."
+  "publication_gate": "Existing full tag validation and all five native distribution jobs; no new exception.",
+  "ci_attempts": [
+    {
+      "run_id": 40019952223,
+      "revision": "96645d122e5d427c9cec1a68e8cc0707a4df302c",
+      "status": "failed",
+      "step": "Rust product self-verification and production mutations",
+      "reason": "Self-verification correctly rejected symlinks in three bundled skill query references.",
+      "correction": "Use regular source reference files matching the canonical shared guide; retain strict symlink rejection and test actual repository inventory."
+    }
+  ],
+  "source_capture_regression": {
+    "command": "cargo test -p dctx0-engine --lib --all-features --locked repository_skill_references",
+    "status": "pass",
+    "scope": "All three source references are regular files; complete repository inventory contains their canonical hashes."
+  }
 }

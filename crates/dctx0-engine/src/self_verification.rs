@@ -330,6 +330,22 @@ pub async fn verify_self(
 mod tests {
     use super::*;
     #[test]
+    fn repository_skill_references_are_regular_self_verification_inputs() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let guide = fs::read(root.join("skills/query-guide.md")).unwrap();
+        for name in ["dctx0", "dctx0-language", "dctx0-implementation"] {
+            let relative = format!("skills/{name}/references/query.md");
+            let path = root.join(&relative);
+            assert!(fs::symlink_metadata(&path).unwrap().is_file(), "{relative}");
+            assert_eq!(fs::read(&path).unwrap(), guide, "{relative}");
+            #[cfg(unix)]
+            assert_eq!(
+                inventory(&root).unwrap()[&relative],
+                format!("{:x}", Sha256::digest(&guide))
+            );
+        }
+    }
+    #[test]
     fn self_inventory_captures_embedded_inputs_and_ignores_databases_builds_and_modules() {
         let root =
             std::env::temp_dir().join(format!("dctx0-self-inventory-{}", std::process::id()));
