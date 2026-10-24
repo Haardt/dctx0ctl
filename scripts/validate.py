@@ -409,6 +409,7 @@ def main():
             [sys.executable, 'scripts/go_race.py'],
             ['cargo', 'build', '-p', 'dctx0-cli', '--all-features', '--locked'],
             [sys.executable, 'scripts/go_cinema_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0')],
+            ['cargo', 'fetch', '--manifest-path', 'examples/cinema-rust/.dctx0/testing/rust/Cargo.toml', '--locked'],
             ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/Cargo.toml','--locked','--offline','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
             ['cargo','clippy','--manifest-path','examples/cinema-rust/Cargo.toml','--all-targets','--locked','--offline','--','-D','warnings'],
             [sys.executable,'scripts/rust_cinema_acceptance.py','--binary',str(ROOT / 'target/debug/dctx0')],
@@ -438,8 +439,10 @@ def main():
         # Fresh installs materialize dependency inputs that the provenance
         # inventory deliberately hashes. Prepare them before pinning that
         # inventory, then retain the same source-change guard for every check.
-        preparation = [command for command in commands if command[:2] == ['bun', 'install']]
-        commands = [command for command in commands if command[:2] != ['bun', 'install']]
+        def prepares_inputs(command):
+            return command[:2] in (['bun', 'install'], ['cargo', 'fetch'])
+        preparation = [command for command in commands if prepares_inputs(command)]
+        commands = [command for command in commands if not prepares_inputs(command)]
         for command in preparation:
             print('+ ' + ' '.join(command), flush=True)
             returncode = subprocess.run(command, cwd=ROOT, env=functional_environment).returncode

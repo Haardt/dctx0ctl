@@ -858,7 +858,7 @@ fn suspended_calls_require_ordered_matching_observations_and_real_pure_operation
             observation,
         }]);
         assert!(
-            matches!(&outcome, O::ApplicationFailure(i) if i.code == "APPLICATION_EXCEPTION")
+            matches!(&outcome, O::Unknown(i) if i.code == "APPLICATION_EXCEPTION")
                 || matches!(&outcome, O::Unknown(i) if i.code == "OPERATION_UNAVAILABLE")
         );
     }

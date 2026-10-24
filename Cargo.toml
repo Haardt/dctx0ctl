@@ -3,7 +3,7 @@ members = ["crates/dctx0-lsp", "crates/dctx0-target-sdk", "crates/dctx0-core", "
 resolver = "3"
 
 [workspace.package]
-version = "0.2.11"
+version = "0.2.13"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
@@ -63,4 +63,18 @@ all = "warn"
 opt-level = 3
 
 [profile.test.package.sha2]
+opt-level = 3
+
+# Full-corpus replay tests repeatedly compress retained evidence. Optimize only
+# dependency codecs; first-party debug/coverage code stays unoptimized.
+[profile.dev.package.flate2]
+opt-level = 3
+
+[profile.test.package.flate2]
+opt-level = 3
+
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+
+[profile.test.package.miniz_oxide]
 opt-level = 3

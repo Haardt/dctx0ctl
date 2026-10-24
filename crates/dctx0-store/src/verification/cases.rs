@@ -429,3 +429,72 @@ impl Serialize for StreamingRun<'_> {
         s.end()
     }
 }
+
+impl Store {
+    /// Compare indexed metadata without decompressing native observations. Older
+    /// unprepared stores need explicit query preparation; reads never migrate.
+    pub fn verification_comparison(
+        &self,
+        project: &str,
+        before: &str,
+        after: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<dctx0_verification::comparison::RunComparison> {
+        let tx = self.connection.unchecked_transaction()?;
+        let load = |id: &str| -> Result<VerificationRun> {
+            let summary = self.verification_run_summary(project, id)?;
+            if !prepared(&self.connection, id)? {
+                return Err(invalid(
+                    "QUERY_INDEX_MISSING: prepare verification queries explicitly",
+                ));
+            }
+            let data: String = self.connection.query_row(
+                "SELECT data FROM verification_runs WHERE project=?1 AND id=?2",
+                params![project, id],
+                |r| r.get(0),
+            )?;
+            let mut run: VerificationRun = decode(&data)?;
+            run.cases.clear();
+            run.required_cases = requirements(&self.connection, id)?;
+            let mut statement = self.connection.prepare(
+                "SELECT metadata FROM verification_case_index WHERE run_id=?1 ORDER BY case_id",
+            )?;
+            for row in statement.query_map([id], |r| r.get::<_, String>(0))? {
+                run.cases.push(decode(&row?)?);
+            }
+            if !summary.details_available {
+                run.provenance
+                    .incomplete
+                    .push(dctx0_core::VerificationIssue {
+                        code: "COMPARISON_DETAILS_PRUNED".into(),
+                        message: "Unavailable case bodies cannot establish repair".into(),
+                        span: None,
+                    });
+            }
+            Ok(run)
+        };
+        let previous = load(before)?;
+        let current = load(after)?;
+        let mut report =
+            dctx0_verification::comparison::compare_runs(&previous, &current, offset, limit)
+                .map_err(|e| invalid(&e))?;
+        // Missing before details also prevent an exact repair claim.
+        if previous
+            .provenance
+            .incomplete
+            .iter()
+            .any(|i| i.code == "COMPARISON_DETAILS_PRUNED")
+        {
+            report.unproven += report.resolved;
+            report.resolved = 0;
+            for item in &mut report.issues {
+                if item.change == dctx0_verification::comparison::IssueChange::Resolved {
+                    item.change = dctx0_verification::comparison::IssueChange::Unproven;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(report)
+    }
+}

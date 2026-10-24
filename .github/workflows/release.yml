@@ -381,6 +381,7 @@ jobs:
           tag = os.environ['RELEASE_TAG']
           repo = os.environ['GH_REPO']
           Path('target/release-notes.md').write_text(
+              (Path('docs/release-v0.2.13.md').read_text() + '\n\n' if tag == 'v0.2.13' else '') +
               (Path('docs/release-v0.2.11.md').read_text() + '\n\n' if tag == 'v0.2.11' else '') +
               (Path('docs/release-v0.2.10.md').read_text() + '\n\n' if tag == 'v0.2.10' else '') +
               (Path('docs/release-v0.2.9.md').read_text() + '\n\n' if tag == 'v0.2.9' else '') +

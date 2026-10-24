@@ -73,6 +73,63 @@ def receipt_metrics(receipts, package_ids):
     }
 
 
+ACTIVITIES = frozenset((
+    'spec-work', 'evidence-administration', 'adapter-infrastructure',
+    'product-implementation', 'other-testing-debugging', 'mixed', 'unknown',
+))
+
+
+def usage_values(row):
+    """Preserve unknown counts and explicitly declared provider semantics.
+
+    Legacy cache is a subset of input and legacy output includes reasoning.
+    Reasoning is reported separately, never added to output a second time.
+    """
+    counts = [row.get(key) for key in ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_tokens')]
+    if any(value is not None and (type(value) is not int or value < 0) for value in counts):
+        raise ValueError('Usage requires nonnegative integer counts or null')
+    total, cache, output, reasoning = counts
+    cache_semantics = row.get('cache_semantics', 'included-in-input')
+    reasoning_semantics = row.get('reasoning_semantics', 'included-in-output')
+    if cache_semantics not in ('included-in-input', 'separate-from-input'):
+        raise ValueError('Unknown cache semantics')
+    if reasoning_semantics not in ('included-in-output', 'separate-from-output'):
+        raise ValueError('Unknown reasoning semantics')
+    if cache_semantics == 'included-in-input' and total is not None and cache is not None and cache > total:
+        raise ValueError('Cached input exceeds total input')
+    if reasoning_semantics == 'included-in-output' and reasoning is not None and output is not None and reasoning > output:
+        raise ValueError('Reasoning exceeds output')
+    return dict(fresh_input_tokens=(total if cache_semantics == 'separate-from-input' else
+                                   total - cache if total is not None and cache is not None else None),
+                cached_input_tokens=cache, output_tokens=output, reasoning_tokens=reasoning,
+                reasoning_semantics=reasoning_semantics, responses=1)
+
+
+def add_counts(target, values):
+    for key in target:
+        value = values[key]
+        target[key] = target[key] + value if target[key] is not None and value is not None else None
+
+
+def correlated_usage(usage):
+    """External IDs are caller assertions, never native provenance authority."""
+    rows = []
+    activities = {}
+    for row in usage:
+        activity = row.get('activity', 'unknown')
+        if activity not in ACTIVITIES:
+            raise ValueError('Unknown activity')
+        ids = {key: row.get(key) for key in ('invocation_id', 'execution_id', 'run_id', 'correlation_id')}
+        if any(value is not None and (not isinstance(value, str) or not value) for value in ids.values()):
+            raise ValueError('Correlation IDs must be nonempty strings or null')
+        values = usage_values(row)
+        group = activities.setdefault(activity, dict.fromkeys(
+            ('fresh_input_tokens', 'cached_input_tokens', 'output_tokens', 'responses'), 0))
+        add_counts(group, values)
+        rows.append(dict(response_id=row['response_id'], activity=activity, **ids, **values))
+    return dict(activities=activities, responses=rows)
+
+
 def summarize(progress, packages, usage, receipts=None):
     progress = body(progress)
     before, after = progress['before'], progress['after']
@@ -97,20 +154,15 @@ def summarize(progress, packages, usage, receipts=None):
         seen.add(response)
         if row['package_id'] not in by_id:
             raise ValueError('Usage references an unexported package')
-        counts = [row[key] for key in ('input_tokens', 'cached_input_tokens', 'output_tokens')]
-        if any(type(value) is not int or value < 0 for value in counts) or counts[1] > counts[0]:
-            raise ValueError('Usage requires nonnegative integer counts and cache <= input')
-        values = dict(zip(('fresh_input_tokens', 'cached_input_tokens', 'output_tokens', 'responses'),
-                          (counts[0] - counts[1], counts[1], counts[2], 1)))
-        for key, value in values.items():
-            totals[key] += value
-            rows[row['package_id']][key] += value
+        values = usage_values(row)
+        add_counts(totals, values)
+        add_counts(rows[row['package_id']], values)
     covered = {task['overview']['task_id'] for package in by_id.values() for task in package['tasks']}
     transitions = set(progress['newly_pass']) | set(progress.get('added_pass', []))
     scoped = transitions & covered
     return {
         'schema_version': 1, 'before': before, 'after': after,
-        'usage': totals, 'packages': rows, 'verification': receipt_metrics(receipts or [], by_id),
+        'usage': totals, 'correlation': correlated_usage(usage), 'packages': rows, 'verification': receipt_metrics(receipts or [], by_id),
         'pass_endpoint_transitions_in_package_scope': sorted(scoped),
         'removed_active_pass': progress['lost_pass'],
         'transitions_per_million_fresh_input_tokens': len(scoped) * 1_000_000 / totals['fresh_input_tokens'] if totals['fresh_input_tokens'] else None,

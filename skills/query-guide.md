@@ -53,3 +53,16 @@ Use `storage inspect` for sizes. `storage compact` builds a separate verified co
 it does not install it. Installing a copy requires the successful paired comparison
 report through `storage install-copy --copy ... --evidence ...`. Reads never perform
 migration or recovery. Existing exported JSON files are outside automatic retention.
+
+## Diagnose and compare
+
+Start with `verify show SPEC RUN --summary --json`. New run summaries include
+structured cause counts; absent historical counts are unknown. Drill down with
+`verify show SPEC RUN --cause adapter,environment --limit 20 --json`, then fetch
+an exact `--case` for source positions, attribution and the next check.
+
+Use `verify compare SPEC BEFORE AFTER --limit 20 --json` before full reports.
+`--offset` paginates the immutable comparison. A removed case is unproven, never
+resolved. Resolution requires matching pinned requirements and a newly executed
+native PASS; reused inspection observations cannot establish a repair.
+Comparisons and diagnoses do not grant task publication authority or source freshness.

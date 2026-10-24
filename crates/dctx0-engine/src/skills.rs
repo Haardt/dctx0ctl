@@ -20,7 +20,7 @@ pub fn skill_catalog() -> Vec<SkillDescription> {
         .iter()
         .map(|name| SkillDescription {
             name,
-            version: 1,
+            version: 2,
             files: bundle(name)
                 .expect("embedded catalog")
                 .keys()
@@ -72,6 +72,11 @@ fn bundle(name: &str) -> Result<BTreeMap<&'static str, &'static str>> {
         ],
         _ => return Err(Error::Invalid(format!("Unknown skill: {name}"))),
     };
+    let mut entries = entries;
+    entries.push((
+        "references/workflow-measurement.md",
+        include_str!("../../../skills/workflow-measurement.md"),
+    ));
     Ok(entries.into_iter().collect())
 }
 #[derive(Debug, Clone)]

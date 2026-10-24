@@ -175,13 +175,22 @@ impl NativeWorker {
     {
         match self
             .request(
-                WorkerRequest::Observe { entities },
+                WorkerRequest::Observe {
+                    entities: entities.clone(),
+                },
                 cancel,
                 &mut cases::reject_mock,
             )
             .await?
         {
             WorkerReply::Observed { states } => {
+                if entities.iter().any(|entity| !states.contains_key(entity)) {
+                    self.abort().await?;
+                    return Err(NativeFailure::new(
+                        NativeFailureKind::Adapter,
+                        "State observer omitted a requested entity; an explicit empty list is required for observed empty state",
+                    ));
+                }
                 self.retain_evidence(NativeSessionEvidence::Observed {
                     phase: Some(phase),
                     states: states.clone(),
@@ -203,6 +212,37 @@ impl NativeWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn concrete_observer_keys_distinguish_missing_from_observed_empty() {
+        let python =
+            std::env::var("DCTX0_TEST_PYTHON").expect("Coupled runner supplies Python fixture");
+        for missing in [true, false] {
+            let states = if missing { "{}" } else { "{'W.Member':[]}" };
+            let code = format!(
+                "import json,sys\np=json.loads(sys.stdin.readline())\nprint(json.dumps({{'protocol_version':1,'message':{{'kind':'reply','id':p['id'],'reply':{{'kind':'observed','states':{states}}}}}}}),flush=True)\nsys.stdin.read()\n"
+            );
+            let recipe = ExecutionRecipe {
+                program: python.clone(),
+                arguments: vec!["-u".into(), "-c".into(), code],
+            };
+            let mut worker = NativeWorker::spawn(&recipe, Path::new("."), NativeLimits::default())
+                .await
+                .unwrap();
+            let result = worker
+                .observe_case(
+                    vec!["W.Member".into()],
+                    dctx0_core::StatePhase::After,
+                    &NativeCancellation::default(),
+                )
+                .await;
+            if missing {
+                assert_eq!(result.unwrap_err().kind, NativeFailureKind::Adapter);
+            } else {
+                assert!(result.unwrap()["W.Member"].is_empty());
+            }
+            worker.abort().await.unwrap();
+        }
+    }
     #[test]
     fn legacy_observation_journals_keep_their_unknown_phase() {
         let legacy: NativeSessionEvidence =

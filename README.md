@@ -674,3 +674,17 @@ copy. Compare it with
 before `dctx0 storage install-copy spec --copy compact.sqlite3 --evidence COMPARISON.json`.
 Installation keeps a backup; existing JSON exports remain untouched. See
 [storage and query contracts](docs/site/src/reference/queries.md).
+
+Verification diagnostics support `dctx0 verify show SPEC RUN --cause
+adapter,environment --limit 20 --json`. Compare saved indexed evidence with
+`dctx0 verify compare SPEC BEFORE AFTER --limit 20 --json`; `--offset` pages issues.
+Removed cases and reused inspections never count as repaired native failures.
+New unclassified application exceptions are UNKNOWN; historical results remain
+unchanged. See [workflow diagnostics](docs/site/src/reference/verification-workflow.md)
+for compatibility, attribution and remaining work.
+
+The coupled runner prepares the pinned Cinema Rust harness cache with
+`cargo fetch --manifest-path examples/cinema-rust/.dctx0/testing/rust/Cargo.toml --locked`
+before recording source pins; subsequent native builds stay offline. HTTP mutations
+that throw without a modeled result must produce blocking UNKNOWN with
+`APPLICATION_EXCEPTION`; the other Cinema mutations still require executed contract FAIL.

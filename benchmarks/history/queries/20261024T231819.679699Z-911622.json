@@ -1,0 +1,1484 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261024T231819.679699Z",
+  "status": "complete",
+  "checks": [
+    {
+      "command": [
+        "/usr/bin/cc",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer.c",
+        "-o",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 35.51383799640462,
+      "peak_rss_bytes": 37687296,
+      "memory_scope": "Linux wait4 RUSAGE_CHILDREN high-water RSS; command including compiler/test children",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0001-build-timer.log"
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0002.rss",
+        "/home/held/.local/bin/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 165.506367,
+      "peak_rss_bytes": 59080704,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0002-check.log",
+      "launcher_elapsed_ms": 166.40501999791013
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0003.rss",
+        "/home/held/.local/bin/dctx0",
+        "tasks",
+        "plan",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 241.197468,
+      "peak_rss_bytes": 92241920,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0003-tasks-plan.log",
+      "launcher_elapsed_ms": 242.00084100448294
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0004.rss",
+        "/home/held/.local/bin/dctx0",
+        "--db",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-prepare-0.sqlite3",
+        "query",
+        "prepare",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 108.159138,
+      "peak_rss_bytes": 24256512,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0004-prepare.log",
+      "launcher_elapsed_ms": 109.30342299980111
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0005.rss",
+        "/home/held/.local/bin/dctx0",
+        "--db",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-prepare-1.sqlite3",
+        "query",
+        "prepare",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 106.888854,
+      "peak_rss_bytes": 24502272,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0005-prepare.log",
+      "launcher_elapsed_ms": 107.79546399862738
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0006.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "prepare",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 89.263551,
+      "peak_rss_bytes": 24600576,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0006-prepare.log",
+      "launcher_elapsed_ms": 90.29448799992679
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0007.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 2.142014,
+      "peak_rss_bytes": 11505664,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0007-summary.log",
+      "launcher_elapsed_ms": 2.9430729991872795
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0008.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--outcome",
+        "PASS",
+        "--limit",
+        "5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.259576,
+      "peak_rss_bytes": 13189120,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0008-filtered.log",
+      "launcher_elapsed_ms": 3.9792059978935868
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0009.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00000",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 8.098705,
+      "peak_rss_bytes": 21180416,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0009-large-detail.log",
+      "launcher_elapsed_ms": 8.809186998405494
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0010.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "export",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00000",
+        "--output",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/case.json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 10.145835,
+      "peak_rss_bytes": 19705856,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0010-case-export.log",
+      "launcher_elapsed_ms": 10.792337001475971
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0011.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "schema",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.318513,
+      "peak_rss_bytes": 7278592,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0011-schema.log",
+      "launcher_elapsed_ms": 1.8628390025696717
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0012.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--file",
+        "-",
+        "--param",
+        "work=\"Open\"",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13.972552,
+      "peak_rss_bytes": 16482304,
+      "log": "target/query-acceptance/20261024T231819.679699Z/0012-stdin.log",
+      "launcher_elapsed_ms": 14.612762999604456,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads"
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0013.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "SELECT * FROM verification_runs",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.992974,
+      "peak_rss_bytes": 10162176,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0013-unsafe.log",
+      "launcher_elapsed_ms": 3.693703001772519
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0014.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "SELECT 1; SELECT 2",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.535884,
+      "peak_rss_bytes": 10227712,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0014-unsafe.log",
+      "launcher_elapsed_ms": 3.0381890028365888
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0015.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "ATTACH ':memory:' AS other",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.809178,
+      "peak_rss_bytes": 10047488,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0015-unsafe.log",
+      "launcher_elapsed_ms": 3.4604090033099055
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0016.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "PRAGMA user_version",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 3.111811,
+      "peak_rss_bytes": 10448896,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0016-unsafe.log",
+      "launcher_elapsed_ms": 3.897556998708751
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0017.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.666795,
+      "peak_rss_bytes": 11804672,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0017-cinema-summary-warmup.log",
+      "launcher_elapsed_ms": 2.1638800026266836
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0018.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.687342,
+      "peak_rss_bytes": 11268096,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0018-cinema-summary.log",
+      "launcher_elapsed_ms": 2.3823980009183288
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0019.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "SELECT work,COUNT(*) FROM dctx0_tasks GROUP BY work ORDER BY work",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13.276299,
+      "peak_rss_bytes": 16719872,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0019-cinema-task-aggregate-warmup.log",
+      "launcher_elapsed_ms": 14.0047590030008
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0020.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "SELECT work,COUNT(*) FROM dctx0_tasks GROUP BY work ORDER BY work",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13.745233,
+      "peak_rss_bytes": 16695296,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0020-cinema-task-aggregate.log",
+      "launcher_elapsed_ms": 14.503194004646502
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0021.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--outcome",
+        "FAIL,UNKNOWN",
+        "--limit",
+        "50",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.377439,
+      "peak_rss_bytes": 12812288,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0021-cinema-filtered-cases-warmup.log",
+      "launcher_elapsed_ms": 4.178401002718601
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0022.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--outcome",
+        "FAIL,UNKNOWN",
+        "--limit",
+        "50",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.025562,
+      "peak_rss_bytes": 13262848,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0022-cinema-filtered-cases.log",
+      "launcher_elapsed_ms": 3.7326610035961494
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0023.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00001",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 2.945742,
+      "peak_rss_bytes": 13185024,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0023-cinema-single-case-warmup.log",
+      "launcher_elapsed_ms": 3.558438998879865
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0024.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00001",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.476987,
+      "peak_rss_bytes": 13352960,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0024-cinema-single-case.log",
+      "launcher_elapsed_ms": 4.017926003143657
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0025.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 17.928147,
+      "peak_rss_bytes": 16953344,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0025-cinema-source-join-warmup.log",
+      "launcher_elapsed_ms": 18.593572996906005
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0026.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "--sql",
+        "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 18.684085,
+      "peak_rss_bytes": 16949248,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0026-cinema-source-join.log",
+      "launcher_elapsed_ms": 19.521700000041164
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0027.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "export",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--output",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/full.json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 55.002078,
+      "peak_rss_bytes": 20766720,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0027-cinema-full-export-warmup.log",
+      "launcher_elapsed_ms": 55.841441004304215
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0028.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "export",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--output",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/full.json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 50.929899,
+      "peak_rss_bytes": 20639744,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0028-cinema-full-export.log",
+      "launcher_elapsed_ms": 51.685171005374286
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0029.rss",
+        "/home/held/.local/bin/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 149.745038,
+      "peak_rss_bytes": 58761216,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0029-check.log",
+      "launcher_elapsed_ms": 150.50307899946347
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0030.rss",
+        "/home/held/.local/bin/dctx0",
+        "tasks",
+        "plan",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 234.145104,
+      "peak_rss_bytes": 92299264,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0030-tasks-plan.log",
+      "launcher_elapsed_ms": 234.90755499369698
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0031.rss",
+        "/home/held/.local/bin/dctx0",
+        "--db",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go-prepare-0.sqlite3",
+        "query",
+        "prepare",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 113.19731,
+      "peak_rss_bytes": 24289280,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0031-prepare.log",
+      "launcher_elapsed_ms": 114.13708399777533
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0032.rss",
+        "/home/held/.local/bin/dctx0",
+        "--db",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go-prepare-1.sqlite3",
+        "query",
+        "prepare",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 113.037533,
+      "peak_rss_bytes": 24711168,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0032-prepare.log",
+      "launcher_elapsed_ms": 114.09851500502555
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0033.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "prepare",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 95.541903,
+      "peak_rss_bytes": 24711168,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0033-prepare.log",
+      "launcher_elapsed_ms": 96.43669900106033
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0034.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.847003,
+      "peak_rss_bytes": 11571200,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0034-summary.log",
+      "launcher_elapsed_ms": 2.71765400248114
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0035.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--outcome",
+        "PASS",
+        "--limit",
+        "5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.080113,
+      "peak_rss_bytes": 12865536,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0035-filtered.log",
+      "launcher_elapsed_ms": 3.842001999146305
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0036.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00000",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 7.836324,
+      "peak_rss_bytes": 21647360,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0036-large-detail.log",
+      "launcher_elapsed_ms": 8.449508000921924
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0037.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "export",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00000",
+        "--output",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/case.json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 10.468861,
+      "peak_rss_bytes": 19234816,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0037-case-export.log",
+      "launcher_elapsed_ms": 11.400879004213493
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0038.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "schema",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.282381,
+      "peak_rss_bytes": 7016448,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0038-schema.log",
+      "launcher_elapsed_ms": 2.0058869995409623
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0039.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--file",
+        "-",
+        "--param",
+        "work=\"Open\"",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13.759303,
+      "peak_rss_bytes": 16867328,
+      "log": "target/query-acceptance/20261024T231819.679699Z/0039-stdin.log",
+      "launcher_elapsed_ms": 14.417026002774946,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads"
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0040.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "SELECT * FROM verification_runs",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.502039,
+      "peak_rss_bytes": 10301440,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0040-unsafe.log",
+      "launcher_elapsed_ms": 3.20988900057273
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0041.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "SELECT 1; SELECT 2",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.486272,
+      "peak_rss_bytes": 10088448,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0041-unsafe.log",
+      "launcher_elapsed_ms": 3.155400998366531
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0042.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "ATTACH ':memory:' AS other",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.502608,
+      "peak_rss_bytes": 10125312,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0042-unsafe.log",
+      "launcher_elapsed_ms": 3.06941699818708
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0043.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "PRAGMA user_version",
+        "--json"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 2.767753,
+      "peak_rss_bytes": 10309632,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0043-unsafe.log",
+      "launcher_elapsed_ms": 3.268214000854641
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0044.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.861112,
+      "peak_rss_bytes": 11206656,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0044-cinema-go-summary-warmup.log",
+      "launcher_elapsed_ms": 2.5598749998607673
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0045.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 1.60897,
+      "peak_rss_bytes": 11780096,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0045-cinema-go-summary.log",
+      "launcher_elapsed_ms": 2.2139340071589686
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0046.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "SELECT work,COUNT(*) FROM dctx0_tasks GROUP BY work ORDER BY work",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13.513905,
+      "peak_rss_bytes": 16457728,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0046-cinema-go-task-aggregate-warmup.log",
+      "launcher_elapsed_ms": 14.15672600705875
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0047.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "SELECT work,COUNT(*) FROM dctx0_tasks GROUP BY work ORDER BY work",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 13.155198,
+      "peak_rss_bytes": 16736256,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0047-cinema-go-task-aggregate.log",
+      "launcher_elapsed_ms": 14.025936994585209
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0048.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--outcome",
+        "FAIL,UNKNOWN",
+        "--limit",
+        "50",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.237283,
+      "peak_rss_bytes": 13369344,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0048-cinema-go-filtered-cases-warmup.log",
+      "launcher_elapsed_ms": 3.86027799686417
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0049.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--outcome",
+        "FAIL,UNKNOWN",
+        "--limit",
+        "50",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.234334,
+      "peak_rss_bytes": 13262848,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0049-cinema-go-filtered-cases.log",
+      "launcher_elapsed_ms": 3.8109929955680855
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0050.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00001",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 3.003433,
+      "peak_rss_bytes": 13340672,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0050-cinema-go-single-case-warmup.log",
+      "launcher_elapsed_ms": 3.590423999412451
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0051.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "show",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--case",
+        "C00001",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 2.935146,
+      "peak_rss_bytes": 12959744,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0051-cinema-go-single-case.log",
+      "launcher_elapsed_ms": 3.4814490063581616
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0052.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 19.035482,
+      "peak_rss_bytes": 17018880,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0052-cinema-go-source-join-warmup.log",
+      "launcher_elapsed_ms": 19.861058994138148
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0053.rss",
+        "/home/held/.local/bin/dctx0",
+        "query",
+        "sql",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "--sql",
+        "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject",
+        "--json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 18.314478,
+      "peak_rss_bytes": 16621568,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0053-cinema-go-source-join.log",
+      "launcher_elapsed_ms": 19.172975997207686
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0054.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "export",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--output",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/full.json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 60.131444,
+      "peak_rss_bytes": 20402176,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0054-cinema-go-full-export-warmup.log",
+      "launcher_elapsed_ms": 61.02351900335634
+    },
+    {
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0055.rss",
+        "/home/held/.local/bin/dctx0",
+        "verify",
+        "export",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+        "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+        "--output",
+        "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/full.json"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 52.290146,
+      "peak_rss_bytes": 20492288,
+      "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+      "log": "target/query-acceptance/20261024T231819.679699Z/0055-cinema-go-full-export.log",
+      "launcher_elapsed_ms": 53.313716998673044
+    }
+  ],
+  "measurements": {
+    "cinema/prepare": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0005.rss",
+            "/home/held/.local/bin/dctx0",
+            "--db",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-prepare-1.sqlite3",
+            "query",
+            "prepare",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 106.888854,
+          "peak_rss_bytes": 24502272,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0005-prepare.log",
+          "launcher_elapsed_ms": 107.79546399862738
+        }
+      ],
+      "elapsed_ms": 106.888854,
+      "peak_rss_bytes": 24502272,
+      "workload_version": 1
+    },
+    "cinema/summary": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0018.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "show",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 1.687342,
+          "peak_rss_bytes": 11268096,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0018-cinema-summary.log",
+          "launcher_elapsed_ms": 2.3823980009183288
+        }
+      ],
+      "elapsed_ms": 1.687342,
+      "peak_rss_bytes": 11268096,
+      "workload_version": 1
+    },
+    "cinema/task-aggregate": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0020.rss",
+            "/home/held/.local/bin/dctx0",
+            "query",
+            "sql",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "--sql",
+            "SELECT work,COUNT(*) FROM dctx0_tasks GROUP BY work ORDER BY work",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 13.745233,
+          "peak_rss_bytes": 16695296,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0020-cinema-task-aggregate.log",
+          "launcher_elapsed_ms": 14.503194004646502
+        }
+      ],
+      "elapsed_ms": 13.745233,
+      "peak_rss_bytes": 16695296,
+      "workload_version": 1
+    },
+    "cinema/filtered-cases": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0022.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "show",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--outcome",
+            "FAIL,UNKNOWN",
+            "--limit",
+            "50",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 3.025562,
+          "peak_rss_bytes": 13262848,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0022-cinema-filtered-cases.log",
+          "launcher_elapsed_ms": 3.7326610035961494
+        }
+      ],
+      "elapsed_ms": 3.025562,
+      "peak_rss_bytes": 13262848,
+      "workload_version": 1
+    },
+    "cinema/single-case": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0024.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "show",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--case",
+            "C00001",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 3.476987,
+          "peak_rss_bytes": 13352960,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0024-cinema-single-case.log",
+          "launcher_elapsed_ms": 4.017926003143657
+        }
+      ],
+      "elapsed_ms": 3.476987,
+      "peak_rss_bytes": 13352960,
+      "workload_version": 1
+    },
+    "cinema/source-join": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0026.rss",
+            "/home/held/.local/bin/dctx0",
+            "query",
+            "sql",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "--sql",
+            "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 18.684085,
+          "peak_rss_bytes": 16949248,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0026-cinema-source-join.log",
+          "launcher_elapsed_ms": 19.521700000041164
+        }
+      ],
+      "elapsed_ms": 18.684085,
+      "peak_rss_bytes": 16949248,
+      "workload_version": 1
+    },
+    "cinema/full-export": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0028.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "export",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--output",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/full.json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 50.929899,
+          "peak_rss_bytes": 20639744,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0028-cinema-full-export.log",
+          "launcher_elapsed_ms": 51.685171005374286
+        }
+      ],
+      "elapsed_ms": 50.929899,
+      "peak_rss_bytes": 20639744,
+      "workload_version": 1
+    },
+    "cinema-go/prepare": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0032.rss",
+            "/home/held/.local/bin/dctx0",
+            "--db",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go-prepare-1.sqlite3",
+            "query",
+            "prepare",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 113.037533,
+          "peak_rss_bytes": 24711168,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0032-prepare.log",
+          "launcher_elapsed_ms": 114.09851500502555
+        }
+      ],
+      "elapsed_ms": 113.037533,
+      "peak_rss_bytes": 24711168,
+      "workload_version": 1
+    },
+    "cinema-go/summary": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0045.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "show",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 1.60897,
+          "peak_rss_bytes": 11780096,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0045-cinema-go-summary.log",
+          "launcher_elapsed_ms": 2.2139340071589686
+        }
+      ],
+      "elapsed_ms": 1.60897,
+      "peak_rss_bytes": 11780096,
+      "workload_version": 1
+    },
+    "cinema-go/task-aggregate": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0047.rss",
+            "/home/held/.local/bin/dctx0",
+            "query",
+            "sql",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "--sql",
+            "SELECT work,COUNT(*) FROM dctx0_tasks GROUP BY work ORDER BY work",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 13.155198,
+          "peak_rss_bytes": 16736256,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0047-cinema-go-task-aggregate.log",
+          "launcher_elapsed_ms": 14.025936994585209
+        }
+      ],
+      "elapsed_ms": 13.155198,
+      "peak_rss_bytes": 16736256,
+      "workload_version": 1
+    },
+    "cinema-go/filtered-cases": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0049.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "show",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--outcome",
+            "FAIL,UNKNOWN",
+            "--limit",
+            "50",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 3.234334,
+          "peak_rss_bytes": 13262848,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0049-cinema-go-filtered-cases.log",
+          "launcher_elapsed_ms": 3.8109929955680855
+        }
+      ],
+      "elapsed_ms": 3.234334,
+      "peak_rss_bytes": 13262848,
+      "workload_version": 1
+    },
+    "cinema-go/single-case": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0051.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "show",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--case",
+            "C00001",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 2.935146,
+          "peak_rss_bytes": 12959744,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0051-cinema-go-single-case.log",
+          "launcher_elapsed_ms": 3.4814490063581616
+        }
+      ],
+      "elapsed_ms": 2.935146,
+      "peak_rss_bytes": 12959744,
+      "workload_version": 1
+    },
+    "cinema-go/source-join": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0053.rss",
+            "/home/held/.local/bin/dctx0",
+            "query",
+            "sql",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "--sql",
+            "SELECT t.task_id,s.subject,r.file,r.start_line FROM dctx0_tasks t JOIN dctx0_task_subjects s USING(task_id) JOIN dctx0_source_refs r ON r.subject=s.subject ORDER BY t.task_id,s.subject",
+            "--json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 18.314478,
+          "peak_rss_bytes": 16621568,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0053-cinema-go-source-join.log",
+          "launcher_elapsed_ms": 19.172975997207686
+        }
+      ],
+      "elapsed_ms": 18.314478,
+      "peak_rss_bytes": 16621568,
+      "workload_version": 1
+    },
+    "cinema-go/full-export": {
+      "samples": [
+        {
+          "command": [
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-timer",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/0055.rss",
+            "/home/held/.local/bin/dctx0",
+            "verify",
+            "export",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/cinema-go",
+            "4dff8b8e0f9b87853961330c52d3c11566857e249f8e276543bafb0146e7bcb5",
+            "--output",
+            "/home/held/workspaces/compinion/dctx0ctl/target/query-acceptance/20261024T231819.679699Z/query-fzulocw_/full.json"
+          ],
+          "exit_code": 0,
+          "elapsed_ms": 52.290146,
+          "peak_rss_bytes": 20492288,
+          "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+          "log": "target/query-acceptance/20261024T231819.679699Z/0055-cinema-go-full-export.log",
+          "launcher_elapsed_ms": 53.313716998673044
+        }
+      ],
+      "elapsed_ms": 52.290146,
+      "peak_rss_bytes": 20492288,
+      "workload_version": 1
+    }
+  },
+  "source_hash_before": "c5947fd7b9d03cec0f36e9c118329c4ab016aad6b2ba4a0b2cd7957ca9805a75",
+  "revision": "73341184bf236440fde01a233bfeff8e319ff43f",
+  "dirty_worktree": "M AGENTS.md\n M Cargo.toml\n M README.md\n D benchmarks/history/20261013T195347.552983Z-2148470.json\n D benchmarks/history/queries/20261022T215411.805591Z-22709.json\n D benchmarks/history/release/20261012T114652.549030Z-1130213.json\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-core/src/verification.rs\n M crates/dctx0-engine/src/native/mod.rs\n M crates/dctx0-engine/src/native/operations.rs\n M crates/dctx0-engine/src/native/session.rs\n M crates/dctx0-engine/src/skills.rs\n M crates/dctx0-engine/src/verification_run/execution.rs\n M crates/dctx0-engine/tests/native.rs\n M crates/dctx0-engine/tests/verification_run.rs\n M crates/dctx0-interpreter/src/lib.rs\n M crates/dctx0-interpreter/tests/evaluation.rs\n M crates/dctx0-store/src/verification/cases.rs\n M crates/dctx0-store/src/verification/summaries.rs\n M crates/dctx0-store/src/verification/tests.rs\n M crates/dctx0-target-sdk/src/lib.rs\n M crates/dctx0-verification/src/diagnostics.rs\n M crates/dctx0-verification/src/lib.rs\n M crates/dctx0-verification/src/operation.rs\n M crates/dctx0-verification/src/operation_effects.rs\n M crates/dctx0-verification/src/scenario.rs\n M crates/dctx0-verification/tests/operation.rs\n M crates/dctx0-verification/tests/operation_effects.rs\n M install.sh\n M scripts/go_cinema_acceptance.py\n M scripts/rust_cinema_acceptance.py\n M scripts/tests/test_workflow_metrics.py\n M scripts/validate.py\n M scripts/workflow_metrics.py\n M skills/dctx0-implementation/SKILL.md\n M skills/dctx0-implementation/references/implementation.md\n M skills/dctx0-implementation/references/query.md\n M skills/dctx0-language/SKILL.md\n M skills/dctx0-language/references/language.md\n M skills/dctx0-language/references/query.md\n M skills/dctx0/SKILL.md\n M skills/dctx0/references/query.md\n M skills/query-guide.md\n M targets/go/harness/contract.go\n M targets/go/harness/worker.go\n M targets/typescript/harness/contract.ts\n M targets/typescript/harness/worker.ts\n M targets/typescript/tests/fixtures/adapter.ts\n M targets/typescript/tests/fixtures/transport.test.ts\n?? benchmarks/history/20261024T222441.043906Z-655540.json\n?? benchmarks/history/dependency-resolution/20261024T222436.380973Z-857112.json\n?? benchmarks/history/queries/20261024T222432.418745Z-856923.json\n?? benchmarks/history/release/20261024T114527.546153Z-91296.json\n?? crates/dctx0-verification/src/comparison.rs\n?? crates/dctx0-verification/tests/diagnostics.rs\n?? docs/site/src/reference/verification-workflow.md\n?? docs/verification-workflow-validation.json\n?? skills/dctx0-implementation/references/workflow-measurement.md\n?? skills/dctx0-language/references/workflow-measurement.md\n?? skills/dctx0/references/workflow-measurement.md\n?? skills/workflow-measurement.md",
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "platform": "Linux framelab 7.3.0-4-cachyos #1 SMP PREEMPT_DYNAMIC Fri, 23 Oct 2026 15:03:58 +0000 x86_64 GNU/Linux",
+  "hardware": {
+    "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           46 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  16\nOn-line CPU(s) list:                     0-15\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Core(TM) Ultra X7 358H\nCPU family:                              6\nModel:                                   204\nThread(s) per core:                      1\nCore(s) per socket:                      16\nSocket(s):                               1\nStepping:                                2\nMicrocode version:                       0x11c\nCPU(s) scaling MHz:                      53%\nCPU max MHz:                             4800.0000\nCPU min MHz:                             400.0000\nBogoMIPS:                                7372.80\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdt_a rdseed adx smap clflushopt clwb intel_pt sha_ni xsaveopt xsavec xgetbv1 xsaves split_lock_detect user_shstk avx_vnni lass fred lam wbnoinvd dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req hfi vnmi umip pku ospke waitpkg gfni vaes vpclmulqdq rdpid bus_lock_detect movdiri movdir64b fsrm md_clear serialize arch_lbr ibt flush_l1d arch_capabilities\nVirtualization:                          VT-x\nL1d cache:                               576 KiB (16 instances)\nL1i cache:                               1 MiB (16 instances)\nL2 cache:                                24 MiB (7 instances)\nL3 cache:                                18 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-15\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS Not affected; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected",
+    "cpu_count": 16
+  },
+  "settings": {
+    "samples": 1,
+    "iterations": 1,
+    "warmup": 1,
+    "cache": "warm OS cache",
+    "profile": "release, uninstrumented",
+    "seed": 42
+  },
+  "memory_scope": "Linux wait4 child ru_maxrss from a small native launcher; excludes Python fixture preparation. Wall time includes child fork/exec through reaping; no native compiler/harness in query workloads",
+  "baseline": "unassessed: new workloads; accepted baseline unchanged",
+  "timer_source_sha256": "ef46641ed75aed22074ee816c09d398973dcd4ff2df2ef797fc135ca42b8b8c5",
+  "timer_binary_sha256": "5dc48fa73c119ea33745d1dfdbd4a1bbe5d86c3a40642e2be401a6745b1d439e",
+  "binary_sha256": "a7f3bee51d6838fb617e925d89222cb7ae63d3daac32dac905f2f02629fc7a3a",
+  "binary_path": "/home/held/.local/bin/dctx0",
+  "storage": {
+    "cinema": {
+      "raw_corpus_bytes": 10630152,
+      "legacy_compressed_bytes": 31596,
+      "legacy_compression_ms": 12.18607399641769,
+      "cases": 512,
+      "payload_bytes": 16384,
+      "oversized_case_payload_bytes": 2097152,
+      "database_bytes": 2727936,
+      "case_body_bytes": 146691,
+      "case_raw_bytes": 10624992,
+      "metadata_bytes": 136160,
+      "index_page_bytes": 221184,
+      "export_bytes": 10631649
+    },
+    "cinema-go": {
+      "raw_corpus_bytes": 10630152,
+      "legacy_compressed_bytes": 31596,
+      "legacy_compression_ms": 12.238932999025565,
+      "cases": 512,
+      "payload_bytes": 16384,
+      "oversized_case_payload_bytes": 2097152,
+      "database_bytes": 2727936,
+      "case_body_bytes": 146691,
+      "case_raw_bytes": 10624992,
+      "metadata_bytes": 136160,
+      "index_page_bytes": 221184,
+      "export_bytes": 10631649
+    }
+  },
+  "source_hash_after": "c5947fd7b9d03cec0f36e9c118329c4ab016aad6b2ba4a0b2cd7957ca9805a75"
+}

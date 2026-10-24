@@ -192,6 +192,8 @@ pub enum WorkerMessage {
         request_id: u64,
         invocation: Invocation,
     },
+    /// Explicit `adapter`/`environment` categories attribute testing infrastructure
+    /// failures. Other categories remain unclassified; message text is not a cause.
     TechnicalError {
         id: Option<u64>,
         category: String,

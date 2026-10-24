@@ -37,3 +37,9 @@ continuity; source hashes, semantic fingerprints, check occurrences, task event
 sequences and native implementation hashes have different provenance roles.
 Historical PASS is evidence for its historical requirements and implementation.
 Spec changes create new adaptation/change work rather than rewriting completed tasks.
+
+
+Preserve nested pure requirements when diagnosing execution limits. Inspect the
+exact expression position and called symbol; do not expand or rewrite a contract
+merely to obtain PASS. Native clause continuations may still be unsupported;
+record that limit as UNKNOWN rather than claiming the helper executed.

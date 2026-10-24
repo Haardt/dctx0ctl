@@ -91,10 +91,17 @@ def main():
             file.write_text(original.replace(before, after))
             result = native(binary, changed, subject)
             run = result['evidence']['run']
-            failures = [case for case in run['cases'] if case['result']['status'] == 'FAIL']
-            assert failures, f'{label} produced no executed FAIL: {run["result"]}; {run["provenance"]["incomplete"]}'
+            # A wrong HTTP dispatch here throws instead of returning a modeled
+            # value. Keep that unclassified observation UNKNOWN; other mutations
+            # must still demonstrate actual contract FAIL.
+            expected = 'UNKNOWN' if label == 'http' else 'FAIL'
+            failures = [case for case in run['cases'] if case['result']['status'] == expected
+                        and (label != 'http' or case['result']['issue']['code'] == 'APPLICATION_EXCEPTION')]
+            assert failures, f'{label} produced no executed {expected}: {run["result"]}; {run["provenance"]["incomplete"]}'
             counter = failures[0]
-            row = {'mutation': label, 'subject': PREFIX + subject, 'case_id': counter['id'], 'result': counter['result'], 'mandatory_cases': len(run['required_cases']), 'recorded_cases': len(run['cases'])}
+            if label == 'http':
+                assert any(observation['observation']['kind'] == 'threw' for observation in counter['observations'])
+            row = {'mutation': label, 'expected_status': expected, 'subject': PREFIX + subject, 'case_id': counter['id'], 'result': counter['result'], 'mandatory_cases': len(run['required_cases']), 'recorded_cases': len(run['cases'])}
             if label == 'winner':
                 original_run = result['evidence']['id']
                 replay = invoke(binary, changed, 'verify', 'replay', str(changed / 'dctx0'), original_run, '--case', counter['id'], '--project', str(changed))

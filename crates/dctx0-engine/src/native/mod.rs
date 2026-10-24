@@ -44,6 +44,8 @@ pub enum NativeFailureKind {
     MessageLimit,
     WorkerExit,
     Technical,
+    Environment,
+    Adapter,
     Cleanup,
     Build,
 }
@@ -449,7 +451,12 @@ impl NativeWorker {
                     category, message, ..
                 } => {
                     return Err(NativeFailure::new(
-                        NativeFailureKind::Technical,
+                        match category.as_str() {
+                            "environment" => NativeFailureKind::Environment,
+                            "adapter" => NativeFailureKind::Adapter,
+                            "protocol" => NativeFailureKind::Protocol,
+                            _ => NativeFailureKind::Technical,
+                        },
                         format!("{category}: {message}"),
                     ));
                 }

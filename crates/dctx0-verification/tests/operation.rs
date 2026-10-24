@@ -152,7 +152,7 @@ fn invalid_inputs_unmet_requires_missing_observers_and_native_exceptions_are_dis
         message: "actual exception".into(),
     };
     assert!(
-        matches!(assess_operation(&ir,&plan,&good,&context(),&budgets).result,VerificationResult::Fail{issue} if issue.code=="APPLICATION_EXCEPTION")
+        matches!(assess_operation(&ir,&plan,&good,&context(),&budgets).result,VerificationResult::Unknown{issue} if issue.code=="APPLICATION_EXCEPTION")
     );
     good.observation = Observation::Unavailable {
         reason: "not wired".into(),

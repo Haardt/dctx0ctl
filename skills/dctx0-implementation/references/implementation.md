@@ -50,3 +50,13 @@ eligible open/unreserved tasks with complete native provenance; historical, rese
 running, review and retirement work are protected. `verify complete` additionally
 binds authored inspection notes and checks active-task completeness. An imported
 legacy PASS alone cannot authorize native automatic adoption.
+
+
+Before broad task waves, establish a real service call and observe its persisted
+state in a fresh session. Explicit empty entity lists are observed empty state;
+omitted entity keys are missing observation. Use testing-only `AdapterError` and
+`EnvironmentError` helpers where their causes are actually known. Ordinary
+application exceptions carry no inferred infrastructure cause. Repair actual
+contract FAIL in production; inspect unclassified UNKNOWN before choosing a repair.
+Do not claim external sibling sources are captured unless the current inventory
+actually binds them. A complete application inventory does not imply that scope.

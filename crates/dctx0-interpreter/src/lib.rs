@@ -17,7 +17,7 @@ use num_rational::BigRational;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::BTreeMap;
 
-pub const INTERPRETER_VERSION: &str = "dctx0-interpreter-5";
+pub const INTERPRETER_VERSION: &str = "dctx0-interpreter-6";
 
 /// Exact boundary offsets shared by generators; never native floating arithmetic.
 pub fn numeric_offset(value: &V, offset: i8) -> Option<V> {
@@ -376,7 +376,7 @@ impl Evaluator<'_> {
                             Err(self.issue(e, "OPERATION_UNAVAILABLE", reason))
                         }
                         Observation::Threw { message } => {
-                            Err(Evaluation::ApplicationFailure(VerificationIssue {
+                            Err(Evaluation::Unknown(VerificationIssue {
                                 code: "APPLICATION_EXCEPTION".into(),
                                 message: message.clone(),
                                 span: Some(e.span.clone()),

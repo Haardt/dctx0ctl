@@ -100,7 +100,7 @@ fn assess_call_contract(
                 );
             }
             Observation::Threw { .. } => {
-                return VerificationResult::Fail {
+                return VerificationResult::Unknown {
                     issue: VerificationIssue {
                         code: "CALL_EXCEPTION".into(),
                         message: "Observed collaborator threw an unexpected exception".into(),

@@ -31,3 +31,6 @@ retains its data-contract meaning; it is not universal symbol identity. Never
 edit derived SQLite history to change requirements or outcomes.
 
 For inventory and verification investigations, read [the query guide](references/query.md). Start with filtered lists or SQL aggregates, then fetch individual details.
+
+For external activity and token attribution, load
+[workflow measurement](references/workflow-measurement.md) only when measuring work.

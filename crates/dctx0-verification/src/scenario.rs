@@ -258,7 +258,7 @@ impl<'a> Scenario<'a> {
                 };
                 contract(check_value(self.ir, &ty, value, self.budgets))
             }
-            Observation::Threw { message } => Err(failed("APPLICATION_EXCEPTION", message)),
+            Observation::Threw { message } => Err(unknown("APPLICATION_EXCEPTION", message)),
             Observation::Unavailable { reason } => Err(unknown("OPERATION_UNAVAILABLE", reason)),
         }
     }

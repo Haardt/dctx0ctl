@@ -45,6 +45,12 @@ fn outcome_summary(
     run: &dctx0_core::VerificationRun,
 ) -> Result<(), String> {
     use dctx0_core::VerificationResult;
+    writeln!(
+        output,
+        "Causes: {:?}\n",
+        dctx0_verification::diagnostics::cause_counts(run)
+    )
+    .map_err(crate::error_message)?;
     let mut groups = std::collections::BTreeMap::new();
     let mut subjects = std::collections::BTreeMap::new();
     let (mut pass, mut fail, mut unknown) = (0, 0, 0);
@@ -285,6 +291,9 @@ enum VerifyAction {
         /// Filter case rows; the full run assessment stays visible.
         #[arg(long, value_delimiter = ',', value_parser = ["PASS", "FAIL", "UNKNOWN"])]
         outcome: Vec<String>,
+        /// Filter by structured diagnostic cause. Never changes the saved result.
+        #[arg(long, value_delimiter = ',', value_parser = ["contract-violation", "adapter", "environment", "evaluator-limit", "missing-evidence", "inspection-required", "unclassified"])]
+        cause: Vec<String>,
         #[arg(long)]
         subject: Vec<String>,
         /// Exact case ID, including actual observations and bindings.
@@ -294,6 +303,16 @@ enum VerifyAction {
         limit: Option<usize>,
         #[arg(long)]
         cursor: Option<String>,
+    },
+    /// Compare exact saved case identities; removed cases never count as repaired.
+    Compare {
+        input: PathBuf,
+        before_run: String,
+        after_run: String,
+        #[arg(long, default_value_t = 50)]
+        limit: usize,
+        #[arg(long, default_value_t = 0)]
+        offset: usize,
     },
     /// Explain current adoption eligibility without execution or task changes.
     AdoptionPreview {
@@ -888,11 +907,50 @@ fn run_inner(
                 .map_err(crate::error_message)?;
             return Ok(true);
         }
+        VerifyAction::Compare {
+            input,
+            before_run,
+            after_run,
+            limit,
+            offset,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let report = project
+                .store(dctx0_store::AccessMode::ReadOnly)
+                .map_err(crate::error_message)?
+                .verification_comparison(
+                    &project.root.display().to_string(),
+                    &before_run,
+                    &after_run,
+                    offset,
+                    limit,
+                )
+                .map_err(crate::error_message)?;
+            if json {
+                crate::render::bounded_json(output, &report, max_output_bytes)?;
+            } else {
+                writeln!(output, "New: {}; persisting: {}; changed: {}; resolved: {}; unproven: {}. Added cases: {}; removed cases: {}.\nSaved evidence comparison; no current-source or task-delivery claim.", report.new, report.persisting, report.changed, report.resolved, report.unproven, report.added_cases.len(), report.removed_cases.len()).map_err(crate::error_message)?;
+                for item in &report.issues {
+                    writeln!(
+                        output,
+                        "- {} / {}: {:?}",
+                        item.case_id, item.subject, item.change
+                    )
+                    .map_err(crate::error_message)?;
+                }
+                if let Some(next) = report.next_offset {
+                    writeln!(output, "More issues: --offset {next} --limit {limit}")
+                        .map_err(crate::error_message)?;
+                }
+            }
+            return Ok(true);
+        }
         VerifyAction::Show {
             input,
             run_id,
             summary: summary_only,
             outcome,
+            cause,
             subject,
             case,
             limit,
@@ -912,6 +970,7 @@ fn run_inner(
             }
             if !full
                 && outcome.is_empty()
+                && cause.is_empty()
                 && subject.is_empty()
                 && case.is_none()
                 && limit.is_none()
@@ -925,11 +984,18 @@ fn run_inner(
                     )?;
                 } else {
                     writeln!(output,"# Stored verification summary\n\nRun: `{}`\nSnapshot: `{}`; check occurrence: {}\nResult: {:?}\nMandatory: {}; recorded: {}; missing: {}\nOutcomes (PASS/FAIL/UNKNOWN): {:?}\nOpen obligations: {}\nDetails available: {}\nSaved evidence; no working-tree freshness.\n",summary.id,summary.snapshot,summary.check_occurrence,summary.result,summary.required_case_count,summary.case_count,summary.missing_case_count,summary.outcomes,summary.open_obligation_count,summary.details_available).map_err(crate::error_message)?;
+                    writeln!(
+                        output,
+                        "Causes: {:?} (absent historical counts are unmeasured).",
+                        summary.causes
+                    )
+                    .map_err(crate::error_message)?;
                 }
                 return Ok(true);
             }
             if summary_only
                 || !outcome.is_empty()
+                || !cause.is_empty()
                 || !subject.is_empty()
                 || case.is_some()
                 || limit.is_some()
@@ -942,6 +1008,11 @@ fn run_inner(
                     .transpose()
                     .map_err(crate::error_message)?;
                 let filter = DiagnosticFilter {
+                    causes: cause
+                        .into_iter()
+                        .map(|c| serde_json::from_value(serde_json::Value::String(c)))
+                        .collect::<Result<_, _>>()
+                        .map_err(crate::error_message)?,
                     outcomes: outcome.into_iter().collect(),
                     subjects: subject.into_iter().collect(),
                     case,
@@ -962,6 +1033,8 @@ fn run_inner(
                     crate::render::bounded_json(output, &page, max_output_bytes)?;
                 } else {
                     writeln!(output, "# Stored verification diagnostics\n\nRun: {}\nResult: {:?}\nMandatory: {}; recorded: {}; matching: {}\nOutcomes: {:?}\n\nSaved evidence; no current-source or adoption claim.\n", page.run_id, page.summary.result, page.summary.mandatory_cases, page.summary.recorded_cases, page.matching_cases, page.summary.outcomes).map_err(crate::error_message)?;
+                    writeln!(output, "Causes: {:?}", page.summary.causes)
+                        .map_err(crate::error_message)?;
                     for case in &page.cases {
                         writeln!(
                             output,

@@ -4,6 +4,7 @@ import { createInterface } from 'node:readline';
 import { inspect } from 'node:util';
 import {resolve,dirname} from 'node:path';
 import {createRequire,isBuiltin} from 'node:module';
+import {AdapterError,EnvironmentError} from './contract.ts';
 import type { ProjectAdapter,TestSession,Observation,Value } from './contract.ts';
 const adapterModule = __ADAPTER_IMPORT__;
 const subjects = new Set<string>(__SUBJECTS__);
@@ -112,7 +113,7 @@ async function execute(id:number,request:any){
   }
   case 'observe':{
    keys(request,['kind','entities']);const active=requireSession();
-   if(!active.observe)throw new Error('No actual state observer');
+   if(!active.observe)throw new AdapterError('No actual state observer');
    if(!Array.isArray(request.entities)||request.entities.some((s:unknown)=>typeof s!=='string'||!subjects.has(s)))throw new Error('Observation outside selected subjects');
    reply({kind:'observed',states:await active.observe(request.entities)});break;
   }
@@ -140,7 +141,7 @@ input.on('line',(line:string)=>{
   chain=chain.then(async()=>{
    try{await execute(envelope.id,request);}catch(error){
     let cleanupError:{value:unknown}|undefined;try{await end();}catch(cleanup){cleanupError={value:cleanup};}
-    technical(envelope.id,'adapter-or-request',error);if(cleanupError)technical(envelope.id,'cleanup',cleanupError.value);
+    technical(envelope.id,error instanceof EnvironmentError?'environment':error instanceof AdapterError?'adapter':'unclassified',error);if(cleanupError)technical(envelope.id,'cleanup',cleanupError.value);
    }
   });
  }catch(error){

@@ -36,5 +36,9 @@ export type ProjectAdapter = {
 export async function invokeApplication<T>(operation:()=>T|Promise<T>,encode:(value:T)=>Value):Promise<Observation>{
  let value:T;
  try{value=await operation();}catch(error){return {kind:'threw',message:error instanceof Error?error.message:String(error)};}
- return {kind:'returned',value:encode(value)};
+ try{return {kind:'returned',value:encode(value)};}catch(error){throw new AdapterError(error instanceof Error?error.message:String(error));}
 }
+
+/** Testing adapters may explicitly identify a technical cause. Production stays independent. */
+export class AdapterError extends Error {}
+export class EnvironmentError extends Error {}

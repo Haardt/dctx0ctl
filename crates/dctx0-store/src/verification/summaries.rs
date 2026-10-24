@@ -1,9 +1,13 @@
 use super::*;
 use dctx0_core::VerificationRunOrigin;
+use std::collections::BTreeMap;
 
 /// Historical outcome, never a replacement for full execution evidence.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerificationRunSummary {
+    /// Absent historical aggregate is unknown, never an empty measured count.
+    #[serde(default)]
+    pub causes: Option<BTreeMap<dctx0_core::VerificationCause, usize>>,
     #[serde(default = "summary_version")]
     pub schema_version: u32,
     #[serde(default)]
@@ -43,6 +47,7 @@ impl VerificationRunSummary {
             }] += 1;
         }
         Ok(Self {
+            causes: Some(dctx0_verification::diagnostics::cause_counts(run)),
             schema_version: 1,
             open_obligation_count: run.open_obligations.len(),
             open_obligation_count_available: true,
@@ -195,6 +200,7 @@ impl LegacySummary {
             }] += 1;
         }
         Ok(VerificationRunSummary {
+            causes: None,
             schema_version: 1,
             open_obligation_count: self.open_obligations.len(),
             open_obligation_count_available: true,

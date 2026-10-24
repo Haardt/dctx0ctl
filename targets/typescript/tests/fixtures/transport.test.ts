@@ -174,3 +174,24 @@ test('adapter and protocol faults are reported only after asynchronous session c
   }finally{await c.stop();}
  }
 },{timeout:10000});
+
+
+test('explicit infrastructure causes remain distinct from unclassified errors',async()=>{
+ for(const [case_id,category] of [['database-unavailable','environment'],['observer-missing','adapter'],['init-error','unclassified']]){
+  const c=new Client();try{
+   const response=await c.request({kind:'begin',case_id});
+   expect(response.kind).toBe('technical-error');
+   expect(response.category).toBe(category);
+  }finally{await c.stop();}
+ }
+});
+
+
+test('result conversion failures have adapter provenance',async()=>{
+ const c=new Client();try{
+  await c.request({kind:'begin',case_id:'normal'});
+  const response=await c.request(call({kind:'string',value:'encode-error'}));
+  expect(response.kind).toBe('technical-error');
+  expect(response.category).toBe('adapter');
+ }finally{await c.stop();}
+});

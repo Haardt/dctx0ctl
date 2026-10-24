@@ -1326,3 +1326,26 @@ summary/list/detail/source/preparation/export measurements. Synthetic storage is
 not native evidence. The exact measured CLI is installed locally and all three
 Company Manager skills use the shared query guide. See
 `docs/storage-compaction-validation.json` for reports, hashes, scope and backups.
+
+Workflow diagnostic checkpoint (2026-10-25, coupled validation passed): new assessments
+classify ordinary untyped application exceptions as UNKNOWN; historical FAIL is
+unchanged. Structured issue-code causes, strict requested entity observation keys,
+metadata-only `verify compare`, `verify show --cause`, additive retained cause
+summaries and external activity/token attribution are implemented. Assessment
+version is 17; SQLite schema, transport wire format and accepted baseline stay
+unchanged. Bundled skills are version 2 and document available procedures only.
+The larger eight-part proposal remains incomplete: native clause continuations,
+preflight, external evidence dependencies, closure preview, CLI correlation/phase
+telemetry and isolated Identity/Access acceptance are still pending. See
+`docs/site/src/reference/verification-workflow.md`; no complete acceptance claim.
+
+The checkpoint passes 627 all-feature Rust test functions and 40 Python tests,
+plus the supported CLI feature matrix and native Cinema mutation/replay checks.
+Merged source lines are 38,344/39,492 (97.09%); raw LLVM functions are
+3,139/3,234 (97.06%). Raw LLVM lines and regions remain separately recorded;
+these measurements do not establish branch completeness. All 81 release speed/RSS
+workloads completed with one measured sample/iteration and one warmup. Baseline
+comparisons remain unassessed; the accepted baseline was not promoted. The exact
+source hashes, complete samples and explicit outstanding work are retained in
+`docs/verification-workflow-validation.json`. This validates the checkpoint,
+not completion of the eight-part objective.

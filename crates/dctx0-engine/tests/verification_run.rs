@@ -2752,7 +2752,7 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
         .unwrap();
     assert!(matches!(
         mutated.case_result,
-        Some(VerificationResult::Fail { .. })
+        Some(VerificationResult::Unknown { ref issue }) if issue.code == "APPLICATION_EXCEPTION"
     ));
     assert!(mutated.evidence.evidence.run.cases.iter().flat_map(|case| &case.observations).any(|observation| {
         observation.invocation.subject == http_case.subject && matches!(&observation.observation, Observation::Threw { message } if message.contains("HTTP response 404"))

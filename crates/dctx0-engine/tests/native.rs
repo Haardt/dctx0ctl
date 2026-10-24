@@ -761,7 +761,7 @@ async fn all_cinema_examples_invoke_real_services_with_central_mocks_and_observe
             .await;
         assert!(
             matches!(
-                result,
+                &result,
                 Ok(ScenarioEvidence {
                     result: VerificationResult::Fail { .. },
                     ..
@@ -769,7 +769,8 @@ async fn all_cinema_examples_invoke_real_services_with_central_mocks_and_observe
                     kind: NativeFailureKind::Technical,
                     ..
                 })
-            ),
+            ) || matches!(&result, Ok(ScenarioEvidence { result: VerificationResult::Unknown { issue }, .. })
+                    if issue.code == "APPLICATION_EXCEPTION"),
             "{result:?}"
         );
         worker.abort().await.unwrap();
@@ -2456,7 +2457,10 @@ async fn pure_operation_cases_validate_real_returns_effects_arguments_and_whole_
         }
         match mode {
             "ok" => assert_eq!(result.unwrap(), VerificationResult::Pass),
-            "bad-return" | "events" | "exception" => {
+            "exception" => assert!(
+                matches!(result.unwrap(), VerificationResult::Unknown { issue } if issue.code == "APPLICATION_EXCEPTION")
+            ),
+            "bad-return" | "events" => {
                 assert!(matches!(result.unwrap(), VerificationResult::Fail { .. }))
             }
             _ => assert!(matches!(
@@ -2749,7 +2753,10 @@ async fn central_cases_distinguish_contract_failures_unknowns_exceptions_and_pro
         let result = result.unwrap();
         match mode {
             "ok" => assert_eq!(result.assessment.result, VerificationResult::Pass),
-            "bad-return" | "events" | "exception" => assert!(matches!(
+            "exception" => assert!(
+                matches!(result.assessment.result, VerificationResult::Unknown { issue } if issue.code == "APPLICATION_EXCEPTION")
+            ),
+            "bad-return" | "events" => assert!(matches!(
                 result.assessment.result,
                 VerificationResult::Fail { .. }
             )),
@@ -3282,4 +3289,32 @@ export const adapter = {{
         serde_json::to_vec_pretty(&serde_json::json!({"scope":"native example call observation", "measurements":measurements})).unwrap(),
     )
     .unwrap();
+}
+
+#[tokio::test]
+async fn technical_categories_preserve_explicit_causes_without_message_guessing() {
+    let temporary = Temp::new();
+    for (category, expected) in [
+        ("environment", NativeFailureKind::Environment),
+        ("adapter", NativeFailureKind::Adapter),
+        ("protocol", NativeFailureKind::Protocol),
+        ("unclassified", NativeFailureKind::Technical),
+    ] {
+        let code = format!(
+            "import json,sys\np=json.loads(sys.stdin.readline())\nprint(json.dumps({{'protocol_version':1,'message':{{'kind':'technical-error','id':p['id'],'category':'{category}','message':'database adapter timeout'}}}}),flush=True)\nsys.stdin.read()\n"
+        );
+        let mut worker = NativeWorker::spawn(&recipe(&code), &temporary.0, limits())
+            .await
+            .unwrap();
+        let error = worker
+            .request(
+                WorkerRequest::Describe,
+                &NativeCancellation::default(),
+                &mut no_mock,
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind, expected);
+        worker.abort().await.unwrap();
+    }
 }

@@ -58,3 +58,29 @@ class WorkflowMetricsTests(unittest.TestCase):
         repair = dict(early_pass, run_id='repaired', finished_at='2026-10-21T10:04:00Z')
         report = metrics.receipt_metrics([repair, failed, early_pass], {'package'})
         self.assertEqual(report['fail_to_current_pass_seconds'], [60])
+
+    def test_unknown_counts_remain_unknown_and_external_ids_keep_activity(self):
+        row = dict(self.usage[0], input_tokens=None, cached_input_tokens=None,
+                   output_tokens=None, activity='product-implementation',
+                   invocation_id='invoke-1', execution_id='exec-1', run_id='run-1')
+        report = metrics.summarize(self.progress, [self.package], [row])
+        self.assertIsNone(report['usage']['fresh_input_tokens'])
+        self.assertIsNone(report['usage']['output_tokens'])
+        self.assertIsNone(report['transitions_per_million_fresh_input_tokens'])
+        correlated = report['correlation']['responses'][0]
+        self.assertEqual(correlated['execution_id'], 'exec-1')
+        self.assertEqual(correlated['activity'], 'product-implementation')
+        self.assertEqual(report['usage']['responses'], 1)
+
+    def test_provider_semantics_do_not_double_count_reasoning_or_cache(self):
+        row = dict(self.usage[0], input_tokens=20, cached_input_tokens=80,
+                   cache_semantics='separate-from-input', output_tokens=7,
+                   reasoning_tokens=5, reasoning_semantics='included-in-output')
+        report = metrics.summarize(self.progress, [self.package], [row])
+        self.assertEqual(report['usage']['fresh_input_tokens'], 20)
+        self.assertEqual(report['usage']['output_tokens'], 7)
+        self.assertEqual(report['correlation']['responses'][0]['reasoning_tokens'], 5)
+        for update in [dict(reasoning_tokens=8), dict(cache_semantics='guess'),
+                       dict(activity='guess'), dict(invocation_id='')]:
+            with self.assertRaises(ValueError):
+                metrics.summarize(self.progress, [self.package], [dict(row, **update)])

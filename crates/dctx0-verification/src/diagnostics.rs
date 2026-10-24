@@ -5,12 +5,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DiagnosticFilter {
+    #[serde(default)]
+    pub causes: BTreeSet<dctx0_core::VerificationCause>,
     pub outcomes: BTreeSet<String>,
     pub subjects: BTreeSet<String>,
     pub case: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticSummary {
+    #[serde(default)]
+    pub causes: BTreeMap<dctx0_core::VerificationCause, usize>,
     pub result: VerificationResult,
     pub mandatory_cases: usize,
     pub recorded_cases: usize,
@@ -28,6 +32,8 @@ pub struct DiagnosticCursor {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaseDiagnostic {
+    #[serde(default)]
+    pub diagnosis: Option<IssueDiagnosis>,
     pub id: String,
     pub subject: String,
     pub result: VerificationResult,
@@ -104,6 +110,9 @@ pub fn diagnostic_page(
             .iter()
             .filter(|case| {
                 (filter.outcomes.is_empty() || filter.outcomes.contains(outcome(&case.result)))
+                    && (filter.causes.is_empty()
+                        || diagnose_result(&case.subject, &case.result)
+                            .is_some_and(|d| filter.causes.contains(&d.cause)))
                     && (filter.subjects.is_empty()
                         || filter.subjects.iter().any(|s| {
                             case.subject == *s || case.subject.starts_with(&format!("{s}."))
@@ -129,6 +138,7 @@ pub fn diagnostic_page(
         snapshot: run.provenance.snapshot.clone(),
         check_occurrence: run.provenance.check_occurrence,
         summary: DiagnosticSummary {
+            causes: cause_counts(run),
             result: run.result.clone(),
             mandatory_cases: run.required_cases.len(),
             recorded_cases: run.cases.len(),
@@ -145,6 +155,7 @@ pub fn diagnostic_page(
             selected[offset..end]
                 .iter()
                 .map(|case| CaseDiagnostic {
+                    diagnosis: diagnose_result(&case.subject, &case.result),
                     id: case.id.clone(),
                     subject: case.subject.clone(),
                     result: case.result.clone(),
@@ -173,4 +184,98 @@ pub fn diagnostic_page(
 
 fn details_available() -> bool {
     true
+}
+
+/// Stable structured classification. Unknown codes remain unclassified even if
+/// their message happens to contain words such as database, timeout or adapter.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IssueDiagnosis {
+    pub issue: VerificationIssue,
+    pub cause: dctx0_core::VerificationCause,
+    pub subject: String,
+    pub attribution: String,
+    pub next_step: String,
+}
+pub fn diagnose_result(subject: &str, result: &VerificationResult) -> Option<IssueDiagnosis> {
+    let issue = match result {
+        VerificationResult::Pass => return None,
+        VerificationResult::Fail { issue } | VerificationResult::Unknown { issue } => issue,
+    };
+    use dctx0_core::VerificationCause::*;
+    let cause = match issue.code.as_str() {
+        "ASSERTION_FAILED"
+        | "NATIVE_RETURN_CONTRACT"
+        | "INVALID_RETURN_TYPE"
+        | "OPERATION_CLAUSE_VIOLATED"
+        | "OPERATION_RESULT_CONTRACT"
+        | "CALL_CONTRACT_VIOLATED"
+        | "EVENT_CONTRACT_VIOLATED"
+        | "EVENT_EFFECT_VIOLATED"
+        | "STATE_EFFECT_VIOLATED"
+        | "STATE_RESULT_VIOLATED"
+        | "PURE_OPERATION_EMITTED"
+        | "UNDECLARED_OPERATION_EFFECT" => ContractViolation,
+        "NATIVE_ENVIRONMENT_UNAVAILABLE" => Environment,
+        "NATIVE_ADAPTER_ERROR"
+        | "NATIVE_PROTOCOL_ERROR"
+        | "MISSING_OBSERVER"
+        | "STATE_OBSERVER_REQUIRED"
+        | "CALL_OBSERVER_REQUIRED"
+        | "EVENT_OBSERVER_REQUIRED"
+        | "INVALID_OBSERVED_STATE"
+        | "OBSERVATION_MISMATCH" => Adapter,
+        "EVALUATION_BUDGET"
+        | "RECURSION_BUDGET"
+        | "VALUE_DEPTH"
+        | "VALUE_SIZE"
+        | "CLAUSE_NOT_EXECUTABLE"
+        | "UNSUPPORTED_EXPRESSION"
+        | "UNSUPPORTED_LITERAL"
+        | "UNSUPPORTED_OPERATOR"
+        | "UNSUPPORTED_BUILTIN"
+        | "UNSUPPORTED_COLLECTION"
+        | "NONTERMINATING_DECIMAL" => EvaluatorLimit,
+        "MISSING_CASE"
+        | "MISSING_OBLIGATION"
+        | "INCOMPLETE_OBSERVATIONS"
+        | "CLAUSE_OBSERVATION_REQUIRED"
+        | "STATE_SOURCE_INCOMPLETE" => MissingEvidence,
+        "MANUAL_REQUIREMENT" | "SUITE_INSPECTION_REQUIRED" => InspectionRequired,
+        _ => Unclassified,
+    };
+    let next_step = match cause {
+        ContractViolation => {
+            "Inspect the actual return/state against the pinned contract and repair the implementation"
+        }
+        Adapter => {
+            "Check bindings, representation conversion and actual observers; rerun the affected case"
+        }
+        Environment => "Restore the explicitly reported external dependency and rerun",
+        EvaluatorLimit => {
+            "Inspect the expression at its source position and supported evaluation budgets"
+        }
+        MissingEvidence => {
+            "Execute the missing required case or supply the required actual observation"
+        }
+        InspectionRequired => "Publish a source-bound inspection with reviewer and explicit limits",
+        Unclassified => {
+            "Investigate the original evidence; do not infer a cause from the error message"
+        }
+    };
+    Some(IssueDiagnosis {
+        issue: issue.clone(),
+        cause,
+        subject: subject.into(),
+        attribution: "structured-issue-code-v1".into(),
+        next_step: next_step.into(),
+    })
+}
+pub fn cause_counts(run: &VerificationRun) -> BTreeMap<dctx0_core::VerificationCause, usize> {
+    let mut counts = BTreeMap::new();
+    for case in &run.cases {
+        if let Some(diagnosis) = diagnose_result(&case.subject, &case.result) {
+            *counts.entry(diagnosis.cause).or_default() += 1;
+        }
+    }
+    counts
 }

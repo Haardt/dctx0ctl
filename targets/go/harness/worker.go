@@ -841,7 +841,10 @@ func runExecutor() {
 		if err := execute(item); err != nil {
 			id := item.id
 			cleanup := end()
-			technical(&id, "adapter-or-request", err)
+			category := "adapter-or-request"
+            var attributed *TechnicalError
+            if errors.As(err, &attributed) && (attributed.Category == "adapter" || attributed.Category == "environment") { category = attributed.Category }
+            technical(&id, category, err)
 			if cleanup != nil {
 				technical(&id, "cleanup", cleanup)
 			}

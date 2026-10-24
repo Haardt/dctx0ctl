@@ -1572,3 +1572,68 @@ fn indexed_headers_cannot_hide_a_second_case_corpus_during_full_read_or_export()
     );
     assert_eq!(fs::read(&destination).unwrap(), b"existing");
 }
+
+#[test]
+fn comparison_keeps_removed_and_reused_cases_unproven_and_pages_metadata() {
+    use dctx0_verification::comparison::{IssueChange, compare_runs};
+    let temp = Temp::new();
+    let mut store = Store::open(&temp.db(), AccessMode::ReadWrite).unwrap();
+    let (mut before, mut artifacts) = setup(&mut store, "p");
+    let assessment = VerificationArtifact::new(
+        "application/vnd.dctx0.assessment-version+json",
+        b"{\"schema_version\":1,\"version\":\"test\"}".to_vec(),
+    );
+    before.artifacts.push(assessment.reference.clone());
+    artifacts.push(assessment);
+    before.cases[0].result = VerificationResult::Unknown {
+        issue: VerificationIssue {
+            code: "STATE_OBSERVER_REQUIRED".into(),
+            message: "No observer".into(),
+            span: None,
+        },
+    };
+    before.result = before.cases[0].result.clone();
+    let saved = store
+        .record_verification_run("p", &before, &artifacts)
+        .unwrap();
+    let mut after = before.clone();
+    after.origin = VerificationRunOrigin::Native;
+    after.started_at_unix_ns = "2".into();
+    after.cases[0].result = VerificationResult::Pass;
+    after.result = VerificationResult::Pass;
+    let repaired = compare_runs(&before, &after, 0, 1).unwrap();
+    assert_eq!(repaired.resolved, 1);
+    assert_eq!(repaired.issues[0].change, IssueChange::Resolved);
+    let persisted = store
+        .record_verification_run("p", &after, &artifacts)
+        .unwrap();
+    let indexed = store
+        .verification_comparison("p", &saved.id, &persisted.id, 0, 1)
+        .unwrap();
+    assert_eq!(indexed.resolved, 1);
+    // Metadata comparison never needs the compressed case payload.
+    store
+        .connection
+        .execute("UPDATE verification_case_bodies SET bytes=x'00'", [])
+        .unwrap();
+    assert_eq!(
+        store
+            .verification_comparison("p", &saved.id, &persisted.id, 0, 1)
+            .unwrap()
+            .resolved,
+        1
+    );
+    after.started_at_unix_ns = before.started_at_unix_ns.clone();
+    assert_eq!(compare_runs(&before, &after, 0, 1).unwrap().unproven, 1);
+    after.started_at_unix_ns = "2".into();
+    after.provenance.plan_hash = "different-requirements".into();
+    assert_eq!(compare_runs(&before, &after, 0, 1).unwrap().unproven, 1);
+    after.cases.clear();
+    after.required_cases.clear();
+    let removed = compare_runs(&before, &after, 0, 1).unwrap();
+    assert_eq!(removed.resolved, 0);
+    assert!(removed.removed_cases.contains("C"));
+    assert_eq!(removed.unproven, 1);
+    assert!(compare_runs(&before, &after, 0, 0).is_err());
+    assert!(compare_runs(&before, &after, 2, 1).is_err());
+}

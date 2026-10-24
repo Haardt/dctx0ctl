@@ -120,7 +120,7 @@ impl NativeWorker {
                             }
                         }
                     }
-                    Observation::Threw { message } => VerificationResult::Fail {
+                    Observation::Threw { message } => VerificationResult::Unknown {
                         issue: issue("APPLICATION_EXCEPTION", message),
                     },
                     Observation::Unavailable { reason } => VerificationResult::Unknown {

@@ -131,3 +131,17 @@ func CallApplication[T any](operation func() (T, error)) (result T, err error) {
 	}()
 	return operation()
 }
+
+// TechnicalError is an explicit testing-adapter attribution, not an application
+// exception inferred from an error message. Category is adapter or environment.
+type TechnicalError struct {
+	Category string
+	Cause    error
+}
+
+func (e *TechnicalError) Error() string { return e.Cause.Error() }
+func (e *TechnicalError) Unwrap() error { return e.Cause }
+func AdapterError(cause error) error    { return &TechnicalError{Category: "adapter", Cause: cause} }
+func EnvironmentError(cause error) error {
+	return &TechnicalError{Category: "environment", Cause: cause}
+}

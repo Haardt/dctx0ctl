@@ -268,7 +268,7 @@ fn emission_alias_uses_a_real_unique_collaborator_result_and_checks_its_contract
         message: "actual exception".into(),
     };
     assert!(
-        matches!(assess(Some(vec![thrown])), VerificationResult::Fail { issue } if issue.code == "CALL_EXCEPTION")
+        matches!(assess(Some(vec![thrown])), VerificationResult::Unknown { issue } if issue.code == "CALL_EXCEPTION")
     );
 }
 

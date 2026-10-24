@@ -55,3 +55,11 @@ TypeScript/Bun, Go and Rust supply executable native targets. Respect project
 AGENTS.md and editable profiles without presenting their prose as automatic proof.
 
 For inventory and verification investigations, read [the query guide](references/query.md). Start with filtered lists or SQL aggregates, then fetch individual details.
+
+For external activity and token attribution, load
+[workflow measurement](references/workflow-measurement.md) only when measuring work.
+
+Diagnose causes before choosing repairs. A contract violation needs an implementation
+repair; missing observers need adapter work; explicit dependency outages need
+an environment repair. Unclassified exceptions remain UNKNOWN in new assessments.
+Historical FAIL stays historical FAIL. Inspection cannot override either outcome.

@@ -2,12 +2,14 @@ import {candidateOrderWinner} from './src/domain/candidate-order-winner.ts';
 import {filmId} from './src/domain/film-id.ts';
 import {Counter,decodeIncrement} from './counter.ts';
 import type {ProjectAdapter,Value} from './contract.ts';
-import {invokeApplication} from './contract.ts';
+import {invokeApplication,AdapterError,EnvironmentError} from './contract.ts';
 const number=(v:Value)=>{if(v.kind!=='integer'||!Number.isSafeInteger(Number(v.value)))throw new Error('Unrepresentable integer');return Number(v.value);};
 const integer=(value:number):Value=>({kind:'integer',value:String(value)});
 export const adapter:ProjectAdapter={
  async describe(){return {protocol_version:1,subjects:[{subject:'operation',role:'operation',artifact:'counter.ts',entry_point:'Counter.increment'},{subject:'HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner',role:'operation',artifact:'src/domain/candidate-order-winner.ts',entry_point:'candidateOrderWinner'}],artifacts:['counter.ts','src/domain/candidate-order-winner.ts','src/domain/film-id.ts','src/domain/voting-rules.ts'],capabilities:['sessions','invocation','state','events','mock-injection','resource-observation'],representations:{Int:'safe JavaScript integers'}};},
  async begin(caseId,context){
+  if(caseId==='database-unavailable')throw new EnvironmentError('Database unavailable');
+  if(caseId==='observer-missing')throw new AdapterError('Membership observer missing');
   if(caseId==='init-error')throw new Error('Initialization unavailable');
   const counter=new Counter(async()=>{const response=await context.collaborator({subject:'port',arguments:[integer(counter.value)]});if(response.kind!=='returned')throw new Error(response.kind==='threw'?response.message:response.reason);return number(response.value);},value=>context.emit('CounterChanged',integer(value)));
   return {
@@ -15,6 +17,7 @@ export const adapter:ProjectAdapter={
     console.log('actual application output');
     const command=invocation.arguments[0];
     if(command?.kind==='string'&&command.value==='exception')return invokeApplication(()=>counter.crash(),integer);
+    if(command?.kind==='string'&&command.value==='encode-error')return invokeApplication(()=>counter.increment(1),()=>{throw new Error('Cannot encode actual result');});
     if(command?.kind==='string'&&command.value==='adapter-error')throw new Error('Invalid adapter translation');
     if(command?.kind==='string'&&command.value==='caught-observation-limit'){
      try{for(let index=0;index<10001;index++)context.recordResource({resource:'Counter',access:'read'});}catch{}

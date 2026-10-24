@@ -25,7 +25,15 @@ impl Pending {
     }
 }
 fn failure(error: &NativeFailure) -> VerificationResult {
-    unknown("NATIVE_EXECUTION_INCOMPLETE", error.to_string())
+    unknown(
+        match error.kind {
+            crate::native::NativeFailureKind::Environment => "NATIVE_ENVIRONMENT_UNAVAILABLE",
+            crate::native::NativeFailureKind::Adapter => "NATIVE_ADAPTER_ERROR",
+            crate::native::NativeFailureKind::Protocol => "NATIVE_PROTOCOL_ERROR",
+            _ => "NATIVE_EXECUTION_INCOMPLETE",
+        },
+        error.to_string(),
+    )
 }
 fn record(
     run: &mut VerificationRun,

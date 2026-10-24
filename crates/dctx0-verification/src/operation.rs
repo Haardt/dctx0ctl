@@ -171,7 +171,7 @@ pub fn assess_operation(
     let value = match &observed.observation {
         Observation::Returned { value } => value,
         Observation::Threw { message } => {
-            report.result = VerificationResult::Fail {
+            report.result = VerificationResult::Unknown {
                 issue: issue(plan, "APPLICATION_EXCEPTION", message, None),
             };
             return report;
