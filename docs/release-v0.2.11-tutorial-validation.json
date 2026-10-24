@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "revision": "3901450670bcad1a0e9a14e1e5298a9627af4e76",
+  "dirty": true,
+  "platform": "Linux-6.6.143-09589-gf9e106250941-aarch64-with-glibc2.43",
+  "scope": "Tutorial feature consumer reads formatted parser JSON one source at a time; all sixteen steps and 159 language features",
+  "baseline": "unassessed; baseline unchanged",
+  "checks": [
+    {
+      "command": [
+        "bun",
+        "test",
+        "examples/tutorial/check-features.test.ts"
+      ],
+      "elapsed_ms": 424.8468469886575,
+      "peak_rss_bytes": 42467328,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+      "output": "bun test v1.4.2 (744846f84)\n\nexamples/tutorial/check-features.test.ts:\n(pass) narrative words and generated values do not count as executable language coverage [0.85ms]\n(pass) typed expressions and actual type syntax provide independent feature witnesses [0.18ms]\n(pass) failure and emitted keywords require actual typed expectations [0.43ms]\n(pass) normalized assertion nodes still require the actual assert source spelling [0.39ms]\n(pass) new or removed registry features cannot silently pass the committed inventory [17.47ms]\n\n 5 pass\n 0 fail\n 14 expect() calls\nRan 5 tests across 1 file. [410.00ms]\n"
+    },
+    {
+      "command": [
+        "bun",
+        "examples/tutorial/check-features.ts"
+      ],
+      "elapsed_ms": 2714.2594609758817,
+      "peak_rss_bytes": 107593728,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS",
+      "output": "{\n  \"status\": \"PASS\",\n  \"features\": 159,\n  \"missing\": []\n}\n"
+    }
+  ],
+  "measurements": [
+    {
+      "sample": 0,
+      "elapsed_ms": 2728.699769009836,
+      "peak_rss_bytes": 108044288,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "sample": 1,
+      "elapsed_ms": 3192.474231007509,
+      "peak_rss_bytes": 113008640,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "sample": 2,
+      "elapsed_ms": 3203.509307000786,
+      "peak_rss_bytes": 105000960,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ],
+  "complete": true
+}

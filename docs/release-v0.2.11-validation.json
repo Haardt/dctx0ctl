@@ -26,9 +26,16 @@
     {
       "run_id": 40023236657,
       "revision": "e53c6dbec11cf2af410a486cb726bc0cec94e579",
-      "status": "retrying-validation",
-      "reason": "Browser startup did not become ready within the CI startup window; failed jobs rerun without changes to product or gates.",
-      "platform_verification": "success"
+      "status": "failed",
+      "reason": "Tutorial feature consumer split formatted parse JSON at newline boundaries; reproducible locally. Runner also reported temporary disk exhaustion.",
+      "platform_verification": "success",
+      "coverage": {
+        "lines_hit": 38067,
+        "lines_total": 39146,
+        "lines_percent": 97.24,
+        "llvm_functions_percent": 97.17
+      },
+      "correction": "Parse each discovered source as one JSON document; omit unused development/test debug information in hosted CI. Keep all checks, instrumentation and thresholds."
     }
   ],
   "source_capture_regression": {
@@ -45,5 +52,6 @@
     "evidence_mutation_failures": 1,
     "replay": "pass",
     "release_speed_and_rss": "complete"
-  }
+  },
+  "tutorial_consumer_regression": "docs/release-v0.2.11-tutorial-validation.json"
 }

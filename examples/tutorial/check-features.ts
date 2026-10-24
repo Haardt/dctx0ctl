@@ -80,7 +80,10 @@ if(import.meta.main){
   const introductions=emptyFeatures(),steps=[];
   for(const step of inventory.steps){
     const spec='examples/'+step.directory+'/dctx0';
-    const ast=(await command(['parse',spec,'--json'])).trim().split('\n').map(line=>JSON.parse(line));
+    // Parse each source separately: CLI JSON is formatted across multiple lines.
+    const paths=await Array.fromAsync(new Bun.Glob('**/*.dctx0').scan({cwd:resolve(root,spec),onlyFiles:true}));
+    const ast=[];
+    for(const path of paths.sort())ast.push(JSON.parse(await command(['parse',spec+'/'+path,'--json'])));
     const plan=JSON.parse(await command(['verify','plan',spec,'--project','examples/'+step.directory,'--json']));
     const sources=Object.fromEntries(await Promise.all(ast.map(async file=>[file.file,await Bun.file(resolve(root,file.file)).text()])));
     const seen=collectFeatures(ast,plan,sources);
