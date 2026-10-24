@@ -22,11 +22,28 @@
       "step": "Rust product self-verification and production mutations",
       "reason": "Self-verification correctly rejected symlinks in three bundled skill query references.",
       "correction": "Use regular source reference files matching the canonical shared guide; retain strict symlink rejection and test actual repository inventory."
+    },
+    {
+      "run_id": 40023236657,
+      "revision": "e53c6dbec11cf2af410a486cb726bc0cec94e579",
+      "status": "retrying-validation",
+      "reason": "Browser startup did not become ready within the CI startup window; failed jobs rerun without changes to product or gates.",
+      "platform_verification": "success"
     }
   ],
   "source_capture_regression": {
     "command": "cargo test -p dctx0-engine --lib --all-features --locked repository_skill_references",
     "status": "pass",
     "scope": "All three source references are regular files; complete repository inventory contains their canonical hashes."
+  },
+  "release_revision": "e53c6dbec11cf2af410a486cb726bc0cec94e579",
+  "release_workflow": "https://github.com/Haardt/dctx0ctl/actions/runs/40023236657",
+  "self_verification_acceptance": {
+    "report": "benchmarks/history/self-verification/20261023T211643.220046Z-21545.json",
+    "status": "complete",
+    "compiler_mutation_failures": 3,
+    "evidence_mutation_failures": 1,
+    "replay": "pass",
+    "release_speed_and_rss": "complete"
   }
 }
