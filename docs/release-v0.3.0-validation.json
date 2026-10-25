@@ -362,5 +362,20 @@
     "scope": "Local version and CLI update only; normal CI and five-host release gates remain required for publication."
   },
   "larger_workflow_plan_complete": false,
-  "preserved": "Existing user edits, specs, original consumer histories and the accepted benchmark baseline remain preserved."
+  "preserved": "Existing user edits, specs, original consumer histories and the accepted benchmark baseline remain preserved.",
+  "github_release_attempt": {
+    "initial_commit": "f863ac024efd6f1f8a88f70b2051ae2eef640fc8",
+    "initial_workflow": "https://github.com/Haardt/dctx0ctl/actions/runs/40198425915",
+    "validation": "failed at mandatory self-verification, Dctx0.ApiInt:rejection:6",
+    "cause": "Self-adapter decoder did not translate float values, correctly producing adapter UNKNOWN instead of falsely claiming validator rejection.",
+    "correction": "Lossless serde_json Number translation now passes the numeric token to the actual serde validator; converter failures remain errors.",
+    "focused_tests": {
+      "passed": 2,
+      "elapsed_ms": 92777.742,
+      "peak_process_tree_rss_bytes": 723968000,
+      "memory_method": "Linux sampled process-tree RSS sum at 50ms; shared pages counted per process"
+    },
+    "full_self_verification_retry": "running with mutations; an earlier local attempt lacked offline arbitrary v1.5.0; dependency now fetched",
+    "publication": "blocked until all normal release gates pass"
+  }
 }

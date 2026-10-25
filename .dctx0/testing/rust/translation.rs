@@ -13,6 +13,12 @@ pub fn decode(wire: &Value) -> Result<Value, String> {
                     .map_err(|_| "Integer does not fit the Rust i64 API")?
             ),
             VerificationValue::Boolean(value) => json!(value),
+            // Preserve the numeric token so the actual serde validator receives
+            // negative float cases; decoder failure is not validator rejection.
+            VerificationValue::Float(text) => Value::Number(
+                text.parse::<serde_json::Number>()
+                    .map_err(|e| e.to_string())?,
+            ),
             VerificationValue::String(value) => json!(value),
             VerificationValue::List(values) => {
                 Value::Array(values.into_iter().map(inner).collect::<Result<_, _>>()?)
@@ -37,6 +43,7 @@ pub fn decode(wire: &Value) -> Result<Value, String> {
     }
     inner(value)
 }
+
 pub fn model() -> Result<Value, String> {
     serde_json::from_slice(&std::fs::read("model.json").map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())
@@ -103,4 +110,26 @@ pub fn encode(model: &Value, value: &Value, ty: &Value) -> Result<Value, String>
         _ => return Err("Unsupported output type".into()),
     };
     Ok(json!({"kind":kind,"value":encoded}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn negative_float_reaches_the_actual_integer_validator() {
+        let native = decode(&json!({"kind":"float","value":"1.5"})).unwrap();
+        assert_eq!(native.to_string(), "1.5");
+        assert!(crate::validation::validate("Dctx0.ApiInt", native).is_err());
+        assert!(crate::validation::validate("Dctx0.ApiInt", json!(1)).is_ok());
+    }
+
+    #[test]
+    fn float_translation_is_exact_and_rejects_invalid_numeric_tokens() {
+        let text = "1.2345678901234567890123456789";
+        let native = decode(&json!({"kind":"float","value":text})).unwrap();
+        assert_eq!(native.to_string(), text);
+        assert!(decode(&json!({"kind":"float","value":"NaN"})).is_err());
+        assert!(decode(&json!({"kind":"float","value":"Infinity"})).is_err());
+    }
 }
