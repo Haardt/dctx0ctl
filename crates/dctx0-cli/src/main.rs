@@ -16,6 +16,7 @@ mod storage;
 mod tasks;
 mod verification;
 mod verification_benchmark;
+mod verification_bindings;
 #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
 mod verification_complete;
 mod verification_discovery_benchmark;

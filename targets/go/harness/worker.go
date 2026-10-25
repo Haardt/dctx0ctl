@@ -716,7 +716,7 @@ func runRequest(id uint64, raw json.RawMessage) error {
 		}
 		observer, ok := active.(StateObserver)
 		if !ok {
-			return errors.New("No actual state observer")
+			return AdapterError(errors.New("No actual state observer"))
 		}
 		for _, entity := range request.Entities {
 			if !subjects[entity] {
@@ -841,7 +841,7 @@ func runExecutor() {
 		if err := execute(item); err != nil {
 			id := item.id
 			cleanup := end()
-			category := "adapter-or-request"
+			category := "unclassified"
             var attributed *TechnicalError
             if errors.As(err, &attributed) && (attributed.Category == "adapter" || attributed.Category == "environment") { category = attributed.Category }
             technical(&id, category, err)

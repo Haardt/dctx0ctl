@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "version": "0.3.0",
+  "status": "locally-installed-and-focused-checks-passed",
+  "recorded_at_utc": "2026-10-25T13:34:55.719427+00:00",
+  "base_revision": "bcf20957cc09451b4e3d2ff837d7bd0a7994dd20",
+  "version_changes": {
+    "workspace_packages": 16,
+    "self_verification_lock_packages": 11,
+    "third_party_dependencies_changed": false,
+    "independent_adapter_editor_versions_changed": false,
+    "release_notes": "docs/release-v0.3.0.md"
+  },
+  "installation": {
+    "schema_version": 1,
+    "version": "0.3.0",
+    "installed_at_utc": "2026-10-25T13:28:24.171914+00:00",
+    "path": "/home/held/.local/bin/dctx0",
+    "binary_sha256": "02695e8c5c1eec07c23c2e78f74086211bd063defc2ab50a3e5d0fda0a5d1b19",
+    "previous_version": "dctx0 0.2.13",
+    "previous_binary_sha256": "2709c8dfb7055edebaccf49e3a7328a1e7da7a9cb74ba160e400f1e57b7c7f7a",
+    "backup": "/home/held/.local/state/dctx0/backups/dctx0-before-v0.3.0-20261025T132824.036340Z",
+    "backup_sha256": "2709c8dfb7055edebaccf49e3a7328a1e7da7a9cb74ba160e400f1e57b7c7f7a",
+    "install_method": "Synced staged file, verified version/hash, atomic replacement under a local installation lock; original binary retained."
+  },
+  "installed_binary": {
+    "path": "/home/held/.local/bin/dctx0",
+    "sha256": "02695e8c5c1eec07c23c2e78f74086211bd063defc2ab50a3e5d0fda0a5d1b19",
+    "bytes": 37175304
+  },
+  "compilation_input_hash": "8d7a45a6397f30b912e249398ed76ac9410a8d20d9a175a8fe2cdd779a2bf412",
+  "checks": {
+    "workspace_all_targets_all_features_locked": "pass",
+    "format_check": "pass",
+    "semver_tag_v0_3_0": "pass",
+    "release_build_all_features": "pass",
+    "workspace_check_metrics": {
+      "elapsed_ms": 16916.847,
+      "peak_process_tree_rss_bytes": 536285184,
+      "method": "sampled Linux process-tree RSS sum, 50ms, shared pages counted per process",
+      "log": {
+        "path": "target/v0.3.0-check.log",
+        "sha256": "8654ad562e9eea271caad91e2986ca4a274bee40794857102ae41325069dff41",
+        "bytes": 1892
+      }
+    },
+    "release_build_metrics": {
+      "elapsed_ms": 172823.32,
+      "peak_process_tree_rss_bytes": 834625536,
+      "method": "sampled Linux process-tree RSS sum, 50ms, shared pages counted per process",
+      "log": {
+        "path": "target/v0.3.0-build.log",
+        "sha256": "c0878bcef758744d9128653e7888ad95dd2a02c6af03e66c48efe6097113b0cf",
+        "bytes": 1897
+      }
+    },
+    "installed_smoke": {
+      "schema_version": 1,
+      "version": "0.3.0",
+      "binary": "/home/held/.local/bin/dctx0",
+      "binary_sha256": "02695e8c5c1eec07c23c2e78f74086211bd063defc2ab50a3e5d0fda0a5d1b19",
+      "timestamp": "2026-10-25T13:31:44.653916+00:00",
+      "status": "pass",
+      "scope": "Installed CLI on an isolated tiny specification; no native application execution or full coverage rerun.",
+      "measurements": [
+        {
+          "label": "version",
+          "arguments": [
+            "--version"
+          ],
+          "sample": {
+            "elapsed_ms": 10.876872009248473,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "root-help",
+          "arguments": [
+            "--help"
+          ],
+          "sample": {
+            "elapsed_ms": 10.618817002978176,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "bindings-help",
+          "arguments": [
+            "verify",
+            "bindings",
+            "plan",
+            "--help"
+          ],
+          "sample": {
+            "elapsed_ms": 10.442683997098356,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "parse",
+          "arguments": [
+            "parse",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec/smoke.dctx0",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 10.582047994830646,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "check",
+          "arguments": [
+            "check",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 51.14345699257683,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "bindings-without-implementation",
+          "arguments": [
+            "verify",
+            "bindings",
+            "plan",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--subject",
+            "Smoke.Api.next",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 10.64028100518044,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "static-init",
+          "arguments": [
+            "verify",
+            "init",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--project",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/app",
+            "--target",
+            "typescript",
+            "--subject",
+            "Smoke.Api.next",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 40.915322009823285,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "configured-bindings",
+          "arguments": [
+            "verify",
+            "bindings",
+            "plan",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--project",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/app",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 10.357753999414854,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "reject-irrelevant-option",
+          "arguments": [
+            "verify",
+            "bindings",
+            "plan",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--subject",
+            "Smoke.Api.next",
+            "--dry-run"
+          ],
+          "sample": {
+            "elapsed_ms": 10.40683500468731,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 1,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 1
+        },
+        {
+          "label": "reject-zero-task",
+          "arguments": [
+            "verify",
+            "bindings",
+            "plan",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--task",
+            "0"
+          ],
+          "sample": {
+            "elapsed_ms": 10.575421998510137,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 1,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 1
+        },
+        {
+          "label": "reject-invalid-spec",
+          "arguments": [
+            "check",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 20.519723009783775,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 1,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 1
+        },
+        {
+          "label": "history",
+          "arguments": [
+            "history",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 10.466748004546389,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        },
+        {
+          "label": "last-valid-head",
+          "arguments": [
+            "verify",
+            "bindings",
+            "plan",
+            "/home/held/workspaces/compinion/dctx0ctl/target/dctx0-v0.3.0-smoke-pktho7ru/spec",
+            "--subject",
+            "Smoke.Api.next",
+            "--json"
+          ],
+          "sample": {
+            "elapsed_ms": 10.406365996459499,
+            "peak_rss_bytes": 57245696,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          },
+          "expected_exit_code": 0
+        }
+      ],
+      "checks": [
+        "Installed version is 0.3.0",
+        "Root and bindings help available",
+        "Tiny specification parses as JSON",
+        "Valid check publishes a snapshot",
+        "Binding plan includes type closure, excludes sibling work, preserves SQLite",
+        "Static setup/configured planning execute no application or SQLite changes",
+        "Invalid options and task IDs rejected during parsing",
+        "Failed check retains valid head; restoring sources needs no implicit new check"
+      ],
+      "baseline_assessment": "unassessed; accepted baseline unchanged",
+      "previous_attempt": {
+        "report": "target/v0.3.0-smoke-first-attempt.json",
+        "reason": "Smoke harness incorrectly expected clap exit 2. Existing CLI main maps parse errors to ExitCode::FAILURE (1); product rejected the option correctly. Production code was not changed."
+      },
+      "scenario_count": 8
+    },
+    "distribution_status": "complete",
+    "distribution_report": {
+      "path": "benchmarks/history/release/20261025T133056.182393Z-1790763.json",
+      "sha256": "e8ea33750980aab844043d5402e0bbfefba5a875e8ec7985ec4a9a2acae5911e",
+      "bytes": 6623
+    },
+    "installer_test_summary": "14 tests: 13 passed, 1 skipped because pwsh is unavailable on this Linux host",
+    "distribution_test_output": "test_archive_paths_are_never_unpacked (test_distribution.InstallerTests.test_archive_paths_are_never_unpacked) ... ok\ntest_bad_checksums_and_duplicates_preserve_the_existing_installation (test_distribution.InstallerTests.test_bad_checksums_and_duplicates_preserve_the_existing_installation) ... ok\ntest_failed_download_and_unexpected_redirect_preserve_the_installation (test_distribution.InstallerTests.test_failed_download_and_unexpected_redirect_preserve_the_installation) ... ok\ntest_invalid_arguments_and_truncated_script_do_not_install (test_distribution.InstallerTests.test_invalid_arguments_and_truncated_script_do_not_install) ... ok\ntest_pinned_version_skips_latest_resolution_and_upgrades_atomically (test_distribution.InstallerTests.test_pinned_version_skips_latest_resolution_and_upgrades_atomically) ... ok\ntest_piped_latest_install_works_without_checkout_assets (test_distribution.InstallerTests.test_piped_latest_install_works_without_checkout_assets) ... ok\ntest_platform_minimum_versions_are_checked_before_download (test_distribution.InstallerTests.test_platform_minimum_versions_are_checked_before_download) ... ok\ntest_symlinks_and_non_regular_destinations_are_not_replaced (test_distribution.InstallerTests.test_symlinks_and_non_regular_destinations_are_not_replaced) ... ok\ntest_unsupported_platform_architecture_and_libc_do_not_fetch_assets (test_distribution.InstallerTests.test_unsupported_platform_architecture_and_libc_do_not_fetch_assets) ... ok\ntest_version_mismatch_and_missing_binary_member_preserve_the_installation (test_distribution.InstallerTests.test_version_mismatch_and_missing_binary_member_preserve_the_installation) ... ok\ntest_archives_are_reproducible_and_bind_the_architecture_and_binary (test_distribution.VersionAndArchiveTests.test_archives_are_reproducible_and_bind_the_architecture_and_binary) ... ok\ntest_checksums_require_the_complete_exact_asset_set (test_distribution.VersionAndArchiveTests.test_checksums_require_the_complete_exact_asset_set) ... ok\ntest_release_tags_match_the_workspace_and_distinguish_prereleases (test_distribution.VersionAndArchiveTests.test_release_tags_match_the_workspace_and_distinguish_prereleases) ... ok\ntest_real_powershell_installer_control_flow_with_a_unix_execution_fixture (test_powershell_logic.PowerShellLogicTests.test_real_powershell_installer_control_flow_with_a_unix_execution_fixture) ... skipped 'Unix PowerShell logic fixture needs pwsh; Windows has native acceptance'\n\n----------------------------------------------------------------------\nRan 14 tests in 3.682s\n\nOK (skipped=1)\n"
+  },
+  "performance": {
+    "distribution_summary": {
+      "package-release": {
+        "samples": 1,
+        "median_elapsed_ms": 1079.5680649898713,
+        "peak_rss_bytes": 62218240
+      },
+      "startup-release": {
+        "samples": 1,
+        "median_elapsed_ms": 10.466934996657073,
+        "peak_rss_bytes": 62218240
+      }
+    },
+    "scope": "Linux/macOS wait4 peak child/reaped descendants; Windows polled child PeakWorkingSetSize; unsupported OS queries are null. See per-command scope; not collective simultaneous RSS",
+    "cache": "prebuilt uninstrumented release CLI, one warm-up per phase, fresh process per sample, warm filesystem cache",
+    "baseline_assessment": {
+      "status": "unassessed",
+      "reason": "No accepted distribution baseline; existing core baseline unchanged"
+    },
+    "smoke_measurements": "Per-command elapsed time and wait4 peak RSS retained above; includes inherited pre-exec high-water marks, not incremental allocation",
+    "baseline_sha256": "85c6efc7052fd3bef04e582a828b417c3488c86841e7a64b2f638ef236a09444",
+    "baseline_promoted": false,
+    "release_history_entries": 20
+  },
+  "previous_attempt": {
+    "report": {
+      "path": "target/v0.3.0-smoke-first-attempt.json",
+      "sha256": "dd83008a39e87e840830afc58a52bc64519515ee0d1b748942bd357c3749f233",
+      "bytes": 6101
+    },
+    "scope": "Harness expected exit 2 for invalid options; the existing CLI correctly returns failure code 1. The harness was corrected, with no product-code change."
+  },
+  "full_feature_validation": {
+    "report": "docs/verification-bindings-validation.json",
+    "scope": "Complete checkpoint validation before this package-version/lockfile bump; retained as historical evidence. No new full workspace test/coverage run is claimed for 0.3.0."
+  },
+  "publication": {
+    "performed": false,
+    "scope": "Local version and CLI update only; normal CI and five-host release gates remain required for publication."
+  },
+  "larger_workflow_plan_complete": false,
+  "preserved": "Existing user edits, specs, original consumer histories and the accepted benchmark baseline remain preserved."
+}

@@ -160,7 +160,7 @@ def benchmark(args):
                 'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
         # Phase timings exclude setup; RSS includes the standalone process and
         # its prepared inputs. SQLite runs use disposable databases only.
-        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-package-apply', 'tasks-review-changes', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-codecs', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
+        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-package-apply', 'tasks-review-changes', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-codecs', 'verification-bindings-plan', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
         phase_iterations = min(args.iterations, 3)
         for name, path in workloads.items():
             for phase in phases:
@@ -334,6 +334,12 @@ def validation_step(command, returncode):
 
 def main():
     os.environ.setdefault("DCTX0_TEST_PYTHON", sys.executable)
+    # Match CI's bounded QA images. Large symbol-heavy debug executables can
+    # exceed native identity capture limits; assertions/overflow checks retain
+    # the ordinary dev/test defaults. Explicit caller settings take precedence.
+    os.environ.setdefault('CARGO_PROFILE_DEV_DEBUG', '0')
+    os.environ.setdefault('CARGO_PROFILE_TEST_DEBUG', '0')
+    os.environ.setdefault('CARGO_INCREMENTAL', '0')
     os.chdir(ROOT)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--accept-baseline', metavar='RUN', help='latest or a history filename; performs no tests')
@@ -341,7 +347,7 @@ def main():
     parser.add_argument('--coverage', action='store_true', help='enforce 97%% line/function coverage')
     parser.add_argument('--tutorial', action='store_true', help='validate all 16 TypeScript steps, feature coverage, mutations and replay; measure representative tutorial Rust phases last')
     parser.add_argument('--skip-performance', action='store_true', help='defer release measurements; save check results separately from benchmark history')
-    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification', 'editors', 'conformance-reviews', 'workflow-tools'), default='workspace', help='native-transport is a partial development check; release measurements still run')
+    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification', 'editors', 'conformance-reviews', 'workflow-tools', 'bindings'), default='workspace', help='non-workspace focuses are partial development checks; release measurements still run')
     parser.add_argument('--samples', type=int, default=5)
     parser.add_argument('--iterations', type=int, default=20)
     parser.add_argument('--speed-tolerance', type=float, default=20)
@@ -383,6 +389,15 @@ def main():
             ['cargo', 'test', '-p', 'dctx0-engine', '--lib', 'source_bound_reviews_validate_current_requirements_and_keep_latest_judgements', '--all-features', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'workflow_tools', '--all-features', '--locked'],
         ]
+    if args.focus == 'bindings':
+        if args.coverage:
+            parser.error('Coverage acceptance requires workspace focus')
+        commands = commands[:5] + [
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-verification', '--test', 'bindings', '--locked'],
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-engine', '--test', 'verification_bindings', '--test', 'verification_rust', '--locked'],
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--test', 'verification_bindings', '--test', 'self_verification', '--all-features', '--locked'],
+            ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-target-sdk', '-p', 'dctx0-target-typescript', '-p', 'dctx0-target-go', '-p', 'dctx0-target-rust', '--locked'],
+        ]
     if args.focus == 'editors':
         commands = commands[:5] + [['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-lsp', '-p', 'dctx0-engine', '-p', 'dctx0-cli', '--lib', '--test', 'analysis', '--test', 'lsp', '--test', 'editors', '--test', 'skills', '--all-features', '--locked']]
     if args.focus == 'conformance-reviews':
@@ -396,7 +411,7 @@ def main():
     for command in commands:
         if command[:2] == ['cargo', 'test']:
             command.extend(['--', '--skip', 'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'])
-    if args.focus not in ('editors', 'conformance-reviews', 'workflow-tools'):
+    if args.focus not in ('editors', 'conformance-reviews', 'workflow-tools', 'bindings'):
         commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
         commands.insert(1, ['bun', 'run', '--cwd', 'examples/cinema', 'typecheck'])
         commands.insert(2, ['bun', 'test', 'examples/cinema/src', './examples/cinema/.dctx0/testing/typescript/http-integration.test.ts', './examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts'])
@@ -423,7 +438,7 @@ def main():
             ['bun', 'examples/tutorial/mutation-acceptance.ts'],
             ['bun', 'examples/tutorial/verify-variants.ts', '--skip-performance'],
         ])
-    if args.focus not in ('conformance-reviews', 'workflow-tools'):
+    if args.focus not in ('conformance-reviews', 'workflow-tools', 'bindings'):
         commands.append([sys.executable, 'scripts/editor_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--functional-only'])
     if args.coverage:
         commands.append([sys.executable, 'scripts/coverage.py'] + (['--skip-performance'] if args.skip_performance else []))
@@ -503,6 +518,13 @@ def main():
         passed = False
         print('Measured release inputs differ from the checked source tree', flush=True)
     record['validation_scope'] = args.focus
+    record['validation_build_environment'] = {
+        name: os.environ.get(name) for name in (
+            'CARGO_PROFILE_DEV_DEBUG', 'CARGO_PROFILE_TEST_DEBUG', 'CARGO_INCREMENTAL',
+            'CARGO_PROFILE_DEV_OPT_LEVEL', 'CARGO_PROFILE_TEST_OPT_LEVEL',
+            'CARGO_PROFILE_DEV_DEBUG_ASSERTIONS', 'CARGO_PROFILE_TEST_DEBUG_ASSERTIONS',
+            'CARGO_PROFILE_DEV_OVERFLOW_CHECKS', 'CARGO_PROFILE_TEST_OVERFLOW_CHECKS',
+            'CARGO_BUILD_JOBS', 'RUST_TEST_THREADS')}
     record['validation_steps'] = validation_steps
     adaptive_reports = sorted((p for p in (ROOT / 'target/adaptive-conformance').glob('*.json') if p.stat().st_mtime_ns >= validation_started_ns), key=lambda p: p.stat().st_mtime_ns)
     record['adaptive_conformance'] = json.loads(adaptive_reports[-1].read_text()) if passed and adaptive_reports else {'status': 'unavailable', 'reason': 'No fresh successful adaptive report from this validation'}

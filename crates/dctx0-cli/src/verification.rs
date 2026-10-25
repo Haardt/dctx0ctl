@@ -156,6 +156,8 @@ pub(crate) struct VerifyArgs {
 }
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Plan reviewed native connections from the selected published requirements.
+    Bindings(crate::verification_bindings::BindingArgs),
     /// Generate editable testing codecs from published IR and explicit representations.
     ScaffoldCodecs(crate::codec_scaffold::CodecScaffoldArgs),
     /// Compare the latest task review to current sources; no renewal or approval.
@@ -393,6 +395,9 @@ fn run_inner(
     let full = args.full;
     let max_output_bytes = args.max_output_bytes;
     let (input, application, subject, task, historical_check, fixtures) = match args.action {
+        VerifyAction::Bindings(args) => {
+            return crate::verification_bindings::run(args, database, json, output);
+        }
         VerifyAction::ScaffoldCodecs(args) => {
             return crate::codec_scaffold::run(args, database, json, output);
         }

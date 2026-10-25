@@ -134,6 +134,10 @@ func (session *counterSession) Invoke(invocation Invocation) (Observation, error
 		}, integer)
 	case command.Kind == "string" && textOf(command) == "adapter-error":
 		return Observation{}, errors.New("Invalid adapter translation")
+	case command.Kind == "string" && textOf(command) == "attributed-adapter-error":
+		return Observation{}, AdapterError(errors.New("Explicit conversion failure"))
+	case command.Kind == "string" && textOf(command) == "environment-error":
+		return Observation{}, EnvironmentError(errors.New("Explicit database outage"))
 	case command.Kind == "string" && textOf(command) == "caught-observation-limit":
 		for index := 0; index < 10001; index++ {
 			if err := session.context.RecordResource(ResourceObservation{Resource: "Counter", Access: "read"}); err != nil {

@@ -112,6 +112,9 @@ The CLI is written in Rust and runs independently. It does not invoke an LLM; an
 
 ### Native targets
 
+Version 0.3.0 introduces native SDK interface 2 and typed Rust adapter errors.
+See the [0.3.0 migration notes](docs/release-v0.3.0.md) before updating custom adapters.
+
 | Target | Editable implementation profiles | Native verification | Complete Cinema example |
 | --- | --- | --- | --- |
 | TypeScript / Bun | Yes | Yes | [Cinema](examples/cinema/dctx0) |
@@ -298,6 +301,19 @@ dctx0 verify init /path/to/app/dctx0 --project /path/to/app --target typescript
 ```
 
 `discover` reports unconfirmed structural candidates. `init` preserves existing files and creates an explicitly unavailable adapter scaffold. Implement the adapter against real application entry points and supply the observations required by your contracts.
+
+Before implementing application code, inspect its native binding requirements:
+
+```sh
+dctx0 verify bindings plan /path/to/app/dctx0 --subject YourWorkspace.YourSurface
+dctx0 verify bindings plan /path/to/app/dctx0 --task T42 --json
+```
+
+This read-only command uses the published selection, resolved helper/preparation calls,
+entity observers and complete required type closure. It needs no application or runtime.
+`--project` optionally reads configured scope, fixtures and budgets. It does not confirm
+native signatures or execution readiness. See [binding foundations](docs/site/src/reference/verification-bindings.md)
+for the strict description API, SDK 2 Rust error migration and outstanding generation work.
 
 Technical configuration lives in `.dctx0/testing/verification.json`: target, runtime, adapter, fixtures, explicit scope, seed, and budgets. An empty scope does not select the entire application. The default generated-case budget is 100 per obligation; explicit examples remain mandatory. Changed specification sources require a successful `check` before ordinary verification.
 

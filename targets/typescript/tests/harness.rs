@@ -15,7 +15,7 @@ fn generated_worker_is_deterministic_scaffolds_are_unavailable_and_imports_canno
     let bundle = BunHarness.generate(&request).unwrap();
     assert_eq!(bundle, BunHarness.generate(&request).unwrap());
     assert_eq!(bundle.recipe.program, "bun");
-    assert_eq!(bundle.sdk_version, 1);
+    assert_eq!(bundle.sdk_version, SDK_VERSION);
     assert_eq!(bundle.artifacts.len(), 3);
     assert!(!bundle.artifacts[1].contents.contains("__ADAPTER_IMPORT__"));
     let scaffold = BunHarness.scaffold();

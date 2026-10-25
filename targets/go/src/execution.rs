@@ -31,7 +31,7 @@ impl HarnessGenerator for GoHarness {
         let worker = include_str!("../harness/worker.go").replace(SUBJECT_SLOT, &subjects);
         Ok(HarnessBundle {
             sdk_version: SDK_VERSION,
-            generator_version: "dctx0-go-harness-2".into(),
+            generator_version: "dctx0-go-harness-3".into(),
             target: "go".into(),
             build: Some(ExecutionRecipe {
                 program: "go".into(),

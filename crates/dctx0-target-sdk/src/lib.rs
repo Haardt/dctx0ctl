@@ -6,7 +6,9 @@ pub use dependencies::*;
 pub use inspection::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-pub const SDK_VERSION: u32 = 1;
+pub const SDK_VERSION: u32 = 2;
+/// SDK interface revisions and transport framing are versioned independently.
+pub const PROTOCOL_VERSION: u32 = dctx0_core::VERIFICATION_PROTOCOL_VERSION;
 /// Default transport budget; applications may explicitly opt into larger bounded frames.
 pub const DEFAULT_MESSAGE_BYTES: usize = 1_048_576;
 /// Absolute SDK frame ceiling, independent of an application's lower configured budget.
@@ -228,7 +230,7 @@ pub fn decode_message(bytes: &[u8], limit: usize) -> Result<MessageEnvelope, Err
     if serde_json::to_value(&message).expect("typed messages serialize") != raw {
         return Err(Error::Protocol("Unexpected or omitted wire fields".into()));
     }
-    if message.protocol_version != SDK_VERSION {
+    if message.protocol_version != PROTOCOL_VERSION {
         return Err(Error::Protocol("Unsupported protocol version".into()));
     }
     let id = match &message.message {
@@ -243,7 +245,10 @@ pub fn decode_message(bytes: &[u8], limit: usize) -> Result<MessageEnvelope, Err
 }
 
 pub fn encode_request(request: &RequestEnvelope, limit: usize) -> Result<Vec<u8>, Error> {
-    if request.protocol_version != SDK_VERSION || request.id == 0 || request.id > MAX_REQUEST_ID {
+    if request.protocol_version != PROTOCOL_VERSION
+        || request.id == 0
+        || request.id > MAX_REQUEST_ID
+    {
         return Err(Error::Protocol("Invalid request version or ID".into()));
     }
     let mut bytes = serde_json::to_vec(request).expect("typed wire requests serialize");

@@ -8,15 +8,70 @@ use std::{
 pub const PROTOCOL_VERSION: u64 = 1;
 pub const MAX_MESSAGE_BYTES: usize = 1_048_576;
 pub const MAX_REQUEST_ID: u64 = 9_007_199_254_740_991;
+/// Explicit testing infrastructure attribution. Ordinary errors retain unknown
+/// cause; message text must never decide whether production or an adapter failed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TechnicalCause {
+    Adapter,
+    Environment,
+    Unclassified,
+}
+impl TechnicalCause {
+    pub fn category(self) -> &'static str {
+        match self {
+            Self::Adapter => "adapter",
+            Self::Environment => "environment",
+            Self::Unclassified => "unclassified",
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct TechnicalError {
+    pub cause: TechnicalCause,
+    pub message: String,
+}
+impl TechnicalError {
+    pub fn adapter(message: impl std::fmt::Display) -> Self {
+        Self {
+            cause: TechnicalCause::Adapter,
+            message: message.to_string(),
+        }
+    }
+    pub fn environment(message: impl std::fmt::Display) -> Self {
+        Self {
+            cause: TechnicalCause::Environment,
+            message: message.to_string(),
+        }
+    }
+}
+impl std::fmt::Display for TechnicalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.message.fmt(f)
+    }
+}
+impl std::error::Error for TechnicalError {}
+impl From<String> for TechnicalError {
+    fn from(message: String) -> Self {
+        Self {
+            cause: TechnicalCause::Unclassified,
+            message,
+        }
+    }
+}
+impl From<&str> for TechnicalError {
+    fn from(message: &str) -> Self {
+        message.to_owned().into()
+    }
+}
 pub trait Session {
-    fn invoke(&mut self, invocation: Value) -> Result<Value, String>;
-    fn validate(&mut self, _subject: &str, _value: Value) -> Result<Value, String> {
+    fn invoke(&mut self, invocation: Value) -> Result<Value, TechnicalError>;
+    fn validate(&mut self, _subject: &str, _value: Value) -> Result<Value, TechnicalError> {
         Ok(json!({"kind":"unavailable","reason":"No production validator"}))
     }
-    fn observe(&mut self, _entities: &[String]) -> Result<Value, String> {
-        Err("No actual state observer".into())
+    fn observe(&mut self, _entities: &[String]) -> Result<Value, TechnicalError> {
+        Err(TechnicalError::adapter("No actual state observer"))
     }
-    fn close(&mut self) -> Result<(), String>;
+    fn close(&mut self) -> Result<(), TechnicalError>;
 }
 #[derive(Default)]
 struct Trace {

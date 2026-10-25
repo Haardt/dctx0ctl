@@ -10,7 +10,7 @@ func (unimplementedAdapter) Describe() (AdapterDescription, error) {
 }
 
 func (unimplementedAdapter) Begin(string, TestContext) (TestSession, error) {
-	return nil, errors.New("Project testing adapter is not implemented")
+	return nil, AdapterError(errors.New("Project testing adapter is not implemented"))
 }
 
 // adapter is the testing-only project adapter consumed by the generated worker.

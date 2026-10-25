@@ -184,7 +184,7 @@ fn dependency_resolution_requests_preserve_the_resolution_mode() {
 #[test]
 fn explicitly_budgeted_large_frames_preserve_lower_caller_limits() {
     let request = RequestEnvelope {
-        protocol_version: SDK_VERSION,
+        protocol_version: PROTOCOL_VERSION,
         id: 1,
         request: WorkerRequest::Validate {
             subject: "W.Body".into(),
@@ -196,7 +196,7 @@ fn explicitly_budgeted_large_frames_preserve_lower_caller_limits() {
     assert!(encoded.len() > 2 * DEFAULT_MESSAGE_BYTES);
     assert!(encoded.len() < 4 * DEFAULT_MESSAGE_BYTES);
     let reply = MessageEnvelope {
-        protocol_version: SDK_VERSION,
+        protocol_version: PROTOCOL_VERSION,
         message: WorkerMessage::Reply {
             id: 1,
             reply: WorkerReply::ValueChecked {

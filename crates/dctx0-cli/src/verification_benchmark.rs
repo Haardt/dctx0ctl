@@ -11,6 +11,24 @@ pub(crate) fn benchmark(
     files: usize,
     output: &mut dyn Write,
 ) -> Result<bool, String> {
+    if matches!(phase, Phase::VerificationBindingsPlan) {
+        let plan = dctx0_verification::project_program(
+            ir,
+            "benchmark-only",
+            1,
+            VerificationScope {
+                subjects: [ir.workspace.clone()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let start = std::time::Instant::now();
+        for _ in 0..iterations {
+            std::hint::black_box(dctx0_verification::binding_requirements(ir, &plan));
+        }
+        return benchmark_report(output, start, iterations, files);
+    }
     let mut subjects = std::collections::BTreeSet::new();
     let obligations = ir
         .nodes

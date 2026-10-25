@@ -143,7 +143,7 @@ impl Worker {
         self.id += 1;
         let bytes = encode_request(
             &RequestEnvelope {
-                protocol_version: SDK_VERSION,
+                protocol_version: PROTOCOL_VERSION,
                 id: self.id,
                 request,
             },
@@ -244,8 +244,8 @@ fn generated_worker_is_deterministic_scaffolds_are_unavailable_and_adapters_cann
     let bundle = GoHarness.generate(&request).unwrap();
     assert_eq!(bundle, GoHarness.generate(&request).unwrap());
     assert_eq!(bundle.target, "go");
-    assert_eq!(bundle.generator_version, "dctx0-go-harness-2");
-    assert_eq!(bundle.sdk_version, 1);
+    assert_eq!(bundle.generator_version, "dctx0-go-harness-3");
+    assert_eq!(bundle.sdk_version, SDK_VERSION);
     assert_eq!(bundle.recipe.program, "./.bin/worker");
     assert!(bundle.recipe.arguments.is_empty());
     assert_eq!(bundle.build.as_ref().unwrap().program, "go");
@@ -596,7 +596,7 @@ fn adapter_failures_and_missing_capabilities_are_technical_never_success() {
         }
         match last {
             Some(WorkerMessage::TechnicalError { category, .. }) => {
-                assert_eq!(category, "adapter-or-request")
+                assert_eq!(category, "unclassified")
             }
             other => panic!("expected technical failure, got {other:?}"),
         }
@@ -671,7 +671,7 @@ fn adapter_failures_and_missing_capabilities_are_technical_never_success() {
             subject: "operation".into(),
             arguments: vec![text("record")],
         }),
-        "adapter-or-request",
+        "unclassified",
     );
     assert!(message.contains("No active resource observer"));
     assert!(matches!(
@@ -682,7 +682,7 @@ fn adapter_failures_and_missing_capabilities_are_technical_never_success() {
         WorkerRequest::Observe {
             entities: vec!["Entity".into()],
         },
-        "adapter-or-request",
+        "adapter",
     );
     assert!(message.contains("No actual state observer"));
     worker.stdin = None;
@@ -702,7 +702,7 @@ fn adapter_failures_and_missing_capabilities_are_technical_never_success() {
         }
         other => panic!("expected scaffold description, got {other:?}"),
     }
-    let message = worker.expect_technical(begin("unimplemented"), "adapter-or-request");
+    let message = worker.expect_technical(begin("unimplemented"), "adapter");
     assert!(message.contains("not implemented"));
     worker.stdin = None;
     let (success, stderr) = worker.wait_exit();
@@ -722,7 +722,7 @@ fn protocol_violations_release_pending_collaborators_and_never_report_success() 
         ),
         (
             r#"{"protocol_version":1,"id":1,"request":{"kind":"describe","PASS":true}}"#,
-            "adapter-or-request",
+            "unclassified",
         ),
         (
             r#"{"protocol_version":1,"id":1,"request":{"kind":"mock-reply","request_id":99,"observation":{"kind":"returned","value":{"kind":"unit"}}}}"#,
@@ -859,7 +859,7 @@ fn observation_overflow_is_explicit_and_new_sessions_start_with_a_fresh_budget()
             subject: "operation".into(),
             arguments: vec![text("observation-limit")],
         }),
-        "adapter-or-request",
+        "unclassified",
     );
     assert!(message.contains("Observation budget exceeded"));
     assert!(matches!(
@@ -871,7 +871,7 @@ fn observation_overflow_is_explicit_and_new_sessions_start_with_a_fresh_budget()
             subject: "operation".into(),
             arguments: vec![text("caught-observation-limit")],
         }),
-        "adapter-or-request",
+        "unclassified",
     );
     assert!(
         message.contains("Observation budget exceeded"),
@@ -929,7 +929,7 @@ fn go_dependency_resolution_uses_the_module_aware_toolchain() {
         importer: importer.clone(),
     }) {
         WorkerMessage::TechnicalError { category, .. } => {
-            assert_eq!(category, "adapter-or-request")
+            assert_eq!(category, "unclassified")
         }
         other => panic!("expected require-mode rejection, got {other:?}"),
     }
@@ -939,7 +939,7 @@ fn go_dependency_resolution_uses_the_module_aware_toolchain() {
             specifier: "./missing-local".into(),
             importer: importer.clone(),
         },
-        "adapter-or-request",
+        "unclassified",
     );
     assert!(message.contains("Dependency resolution failed"));
     let message = worker.expect_technical(
@@ -948,7 +948,7 @@ fn go_dependency_resolution_uses_the_module_aware_toolchain() {
             specifier: "".into(),
             importer,
         },
-        "adapter-or-request",
+        "unclassified",
     );
     assert!(message.contains("Invalid dependency resolution request"));
     assert!(matches!(
@@ -991,4 +991,35 @@ fn adapter_and_protocol_faults_wait_for_session_resource_release() {
         assert!(success, "{stderr}");
         fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[test]
+fn explicit_causes_cross_the_real_go_transport_without_classifying_plain_errors() {
+    let (root, bundle) = counter_root("technical-causes");
+    let mut worker = Worker::spawn(&root, &bundle);
+    for (command, category) in [
+        ("adapter-error", "unclassified"),
+        ("attributed-adapter-error", "adapter"),
+        ("environment-error", "environment"),
+    ] {
+        assert!(matches!(
+            worker.request(begin(command)),
+            WorkerReply::Begun { .. }
+        ));
+        let message = worker.expect_technical(
+            invoke(Invocation {
+                subject: "operation".into(),
+                arguments: vec![text(command)],
+            }),
+            category,
+        );
+        assert!(!message.is_empty());
+    }
+    assert!(matches!(
+        worker.request(WorkerRequest::Shutdown),
+        WorkerReply::Bye
+    ));
+    let (success, stderr) = worker.wait_exit();
+    assert!(success, "{stderr}");
+    fs::remove_dir_all(root).unwrap();
 }

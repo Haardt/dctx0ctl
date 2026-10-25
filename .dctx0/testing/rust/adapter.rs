@@ -1,9 +1,9 @@
 //! Version 1 testing-only adapter. Product behavior is called, never reconstructed.
 mod cli;
-mod site;
 pub mod contract;
 mod native;
 mod sessions;
+mod site;
 mod translation;
 mod validation;
 use contract::*;
@@ -24,7 +24,7 @@ const SPEC: &str = "workspace Sample { value Id = Int { range 1..10 } surface Ap
 fn error(error: impl std::fmt::Display) -> String {
     error.to_string()
 }
-pub fn describe() -> Result<Value, String> {
+pub fn describe() -> Result<Value, TechnicalError> {
     let model = model()?;
     let subjects=model["operations"].as_object().ok_or("Missing operations")?.keys().map(|subject|{
         let artifact=if subject.contains("Site."){ "crates/dctx0-engine/src/site.rs" }else if subject.contains("Compiler."){"crates/dctx0-language/src/compiler.rs"}else if subject.contains("Evidence."){"crates/dctx0-tasks/src/adoption.rs"}else if subject.contains("Tasks."){"crates/dctx0-engine/src/tasks.rs"}else if subject.contains("History."){"crates/dctx0-engine/src/lib.rs"}else if subject.contains("Profiles."){"crates/dctx0-engine/src/profiles.rs"}else if subject.contains("Editors."){"crates/dctx0-lsp/src/lib.rs"}else{"crates/dctx0-cli/src/verification.rs"};
@@ -34,7 +34,7 @@ pub fn describe() -> Result<Value, String> {
         json!({"protocol_version":1,"subjects":subjects,"artifacts":["crates/dctx0-engine/src/site.rs","crates/dctx0-language/src/compiler.rs","crates/dctx0-tasks/src/adoption.rs","crates/dctx0-engine/src/tasks.rs","crates/dctx0-engine/src/lib.rs","crates/dctx0-engine/src/profiles.rs","crates/dctx0-cli/src/verification.rs","crates/dctx0-lsp/src/lib.rs",".dctx0/testing/rust/validation.rs"],"capabilities":["sessions","invocation","events","values"],"representations":{"Int":"checked i64 Rust API conversion","List":"ordered Vec; coverage sets/maps normalized by BTreeSet/BTreeMap","Option":"Option"}}),
     )
 }
-pub fn begin(_: &str, _: Context) -> Result<Box<dyn Session>, String> {
+pub fn begin(_: &str, _: Context) -> Result<Box<dyn Session>, TechnicalError> {
     let root = std::env::current_dir()
         .map_err(error)?
         .join(".bin/sessions")
@@ -130,14 +130,15 @@ impl Actual {
     }
 }
 impl Session for Actual {
-    fn invoke(&mut self, invocation: Value) -> Result<Value, String> {
+    fn invoke(&mut self, invocation: Value) -> Result<Value, TechnicalError> {
         let subject = invocation["subject"].as_str().ok_or("Missing subject")?;
         let args = invocation["arguments"]
             .as_array()
             .ok_or("Missing arguments")?
             .iter()
             .map(decode)
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(TechnicalError::adapter)?;
         let ty = self.model["operations"][subject]["result"].clone();
         let result = call_application(|| self.dispatch(subject, &args));
         match result {
@@ -173,19 +174,18 @@ impl Session for Actual {
             Err(message) => Ok(json!({"kind":"threw","message":message})),
         }
     }
-    fn validate(&mut self, subject: &str, value: Value) -> Result<Value, String> {
-        Ok(
-            match decode(&value).and_then(|v| validation::validate(subject, v)) {
-                Ok(()) => json!({"kind":"accepted","value":value}),
-                Err(reason) => json!({"kind":"rejected","reason":reason}),
-            },
-        )
+    fn validate(&mut self, subject: &str, value: Value) -> Result<Value, TechnicalError> {
+        let native = decode(&value).map_err(TechnicalError::adapter)?;
+        Ok(match validation::validate(subject, native) {
+            Ok(()) => json!({"kind":"accepted","value":value}),
+            Err(reason) => json!({"kind":"rejected","reason":reason}),
+        })
     }
-    fn close(&mut self) -> Result<(), String> {
+    fn close(&mut self) -> Result<(), TechnicalError> {
         if let Some(mut lsp) = self.lsp.take() {
             lsp.close()?;
         }
-        fs::remove_dir_all(&self.root).map_err(error)
+        fs::remove_dir_all(&self.root).map_err(TechnicalError::adapter)
     }
 }
 impl Drop for Actual {

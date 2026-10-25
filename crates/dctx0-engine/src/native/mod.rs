@@ -376,7 +376,7 @@ impl NativeWorker {
     async fn send(&mut self, id: u64, request: WorkerRequest) -> Result<(), NativeFailure> {
         let bytes = encode_request(
             &RequestEnvelope {
-                protocol_version: SDK_VERSION,
+                protocol_version: PROTOCOL_VERSION,
                 id,
                 request,
             },

@@ -197,7 +197,7 @@ pub(super) async fn execute(
         .await;
     let description = match described {
         Ok(WorkerReply::Described { description })
-            if description.protocol_version == SDK_VERSION =>
+            if description.protocol_version == PROTOCOL_VERSION =>
         {
             description
         }

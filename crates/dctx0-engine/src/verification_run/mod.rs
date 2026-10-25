@@ -20,8 +20,8 @@ use capture::Capture;
 use dctx0_core::*;
 use dctx0_store::{StoredVerificationRun, VerificationArtifact};
 use dctx0_target_sdk::{
-    ExecutionRecipe, HarnessGenerator, HarnessRequest, SDK_VERSION, ValueCheck, WorkerReply,
-    WorkerRequest,
+    ExecutionRecipe, HarnessGenerator, HarnessRequest, PROTOCOL_VERSION, SDK_VERSION, ValueCheck,
+    WorkerReply, WorkerRequest,
 };
 use dctx0_verification::{LifecycleCaseInput, ProgramPlan, ProjectionFixtures};
 pub use program_inspection::InspectedVerificationReport;
@@ -500,7 +500,7 @@ impl Project {
             )?),
             interpreter_version: dctx0_interpreter::INTERPRETER_VERSION.into(),
             generator_version: plan.generator_version.clone(),
-            protocol_version: SDK_VERSION,
+            protocol_version: PROTOCOL_VERSION,
             target: bundle.target.clone(),
             runtime_version: String::new(),
             build_configuration: capture

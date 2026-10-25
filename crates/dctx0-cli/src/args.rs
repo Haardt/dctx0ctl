@@ -94,6 +94,7 @@ pub(crate) enum Phase {
     SiteSnapshot,
     VerificationHarness,
     VerificationCodecs,
+    VerificationBindingsPlan,
     VerificationDiscover,
     VerificationInit,
     VerificationHistoryPublish,

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "target": "test-native",
+  "session": {
+    "factory": {"source_root": null, "source": "testing/hooks/session.native", "symbol": "create"},
+    "cleanup": {"source_root": null, "source": "testing/hooks/session.native", "symbol": "close"},
+    "native_type": "Session"
+  },
+  "operations": [
+    {
+      "subject": "W.Api.apply",
+      "invoke": {"kind": "function", "entry": {"source_root": null, "source": "src/api.native", "symbol": "apply"}},
+      "arguments": [{"parameter": "item", "fields": ["id"]}],
+      "result_hook": {"source_root": null, "source": "testing/hooks/results.native", "symbol": "encode"},
+      "failures": [{"subject": "W.Broken", "mapper": {"source_root": null, "source": "testing/hooks/results.native", "symbol": "mapFailure"}}]
+    }
+  ],
+  "validators": [{"subject": "W.Id", "entry": {"source_root": null, "source": "src/types.native", "symbol": "parseId"}, "input": "json"}],
+  "entities": [{"subject": "W.Item", "entry": {"source_root": "host", "source": "src/store.native", "symbol": "items"}}],
+  "effects": {
+    "events": {"source_root": null, "source": "testing/hooks/effects.native", "symbol": "events"},
+    "calls": {"source_root": null, "source": "testing/hooks/effects.native", "symbol": "calls"},
+    "resources": {"source_root": null, "source": "testing/hooks/effects.native", "symbol": "resources"}
+  },
+  "types": [{"subject": "W.Id", "native_type": "Id", "decode": {"source_root": null, "source": "testing/hooks/types.native", "symbol": "decodeId"}, "encode": {"source_root": null, "source": "testing/hooks/types.native", "symbol": "encodeId"}}]
+}

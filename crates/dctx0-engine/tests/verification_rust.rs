@@ -38,12 +38,12 @@ async fn rust_builds_actual_code_detects_mutations_and_preserves_failed_build_ca
     fs::write(adapter_dir.join("adapter.rs"),r#"
 pub mod contract;
 use contract::*;use serde_json::json;
-pub fn describe()->Result<Value,String>{Ok(json!({"protocol_version":1,"subjects":[{"subject":"W.Api.next","role":"operation","artifact":"src/lib.rs","entry_point":"fixture::next"}],"artifacts":["src/lib.rs"],"capabilities":["sessions","invocation","events"],"representations":{"Int":"num_bigint::BigInt"}}))}
-pub fn begin(case_id: &str,_:Context)->Result<Box<dyn Session>,String>{Ok(Box::new(Actual{case_id:case_id.into()}))}
+pub fn describe()->Result<Value, TechnicalError>{Ok(json!({"protocol_version":1,"subjects":[{"subject":"W.Api.next","role":"operation","artifact":"src/lib.rs","entry_point":"fixture::next"}],"artifacts":["src/lib.rs"],"capabilities":["sessions","invocation","events"],"representations":{"Int":"num_bigint::BigInt"}}))}
+pub fn begin(case_id: &str,_:Context)->Result<Box<dyn Session>, TechnicalError>{Ok(Box::new(Actual{case_id:case_id.into()}))}
 struct Actual{case_id:String}
 impl Session for Actual {
-fn invoke(&mut self,invocation:Value)->Result<Value,String>{if self.case_id=="adapter-error"{return Err("Fixture adapter error".into())}if self.case_id=="adapter-panic"{panic!("Fixture adapter panic")}let input=invocation["arguments"][0]["value"].as_str().ok_or("Missing input")?.parse::<num_bigint::BigInt>().map_err(|e|e.to_string())?;let result=fixture::next(input);Ok(json!({"kind":"returned","value":{"kind":"integer","value":result.to_string()}}))}
-fn close(&mut self)->Result<(),String>{
+fn invoke(&mut self,invocation:Value)->Result<Value, TechnicalError>{if self.case_id=="adapter-error"{return Err(TechnicalError::adapter("Fixture adapter error"))}if self.case_id=="environment-error"{return Err(TechnicalError::environment("Fixture database unavailable"))}if self.case_id=="unclassified-error"{return Err("ordinary untyped error".into())}if self.case_id=="adapter-panic"{panic!("Fixture adapter panic")}let input=invocation["arguments"][0]["value"].as_str().ok_or("Missing input")?.parse::<num_bigint::BigInt>().map_err(|e|e.to_string())?;let result=fixture::next(input);Ok(json!({"kind":"returned","value":{"kind":"integer","value":result.to_string()}}))}
+fn close(&mut self)->Result<(), TechnicalError>{
 if std::path::Path::new("cleanup.probe").exists(){use std::io::Write;let mut file=std::fs::OpenOptions::new().create(true).append(true).open("closed.sessions").map_err(|e|e.to_string())?;writeln!(file,"{}",self.case_id).map_err(|e|e.to_string())?;}
 if self.case_id=="cleanup-error"{return Err("Fixture cleanup error".into())}
 if self.case_id=="cleanup-panic"{panic!("Fixture cleanup panic")}
@@ -212,6 +212,24 @@ async fn assert_rust_transport_closes_sessions(root: &std::path::Path, app: &std
             vec!["adapter-error", "after-error"],
         ),
         (
+            "environment-error",
+            begin(1, "environment-error")
+                + &invoke(2)
+                + &begin(3, "after-environment")
+                + &shutdown(4),
+            true,
+            vec!["environment-error", "after-environment"],
+        ),
+        (
+            "unclassified-error",
+            begin(1, "unclassified-error")
+                + &invoke(2)
+                + &begin(3, "after-unclassified")
+                + &shutdown(4),
+            true,
+            vec!["unclassified-error", "after-unclassified"],
+        ),
+        (
             "adapter-panic",
             begin(1, "adapter-panic") + &invoke(2) + &begin(3, "after-panic") + &shutdown(4),
             true,
@@ -275,6 +293,22 @@ async fn assert_rust_transport_closes_sessions(root: &std::path::Path, app: &std
             assert!(
                 replies.iter().any(|reply| reply["message"]["id"] == 3
                     && reply["message"]["reply"]["kind"] == "begun"),
+                "{name}: {}",
+                audit.stdout
+            );
+        }
+        if let Some(category) = match name {
+            "adapter-error" | "adapter-panic" => Some("adapter"),
+            "environment-error" => Some("environment"),
+            "unclassified-error" => Some("unclassified"),
+            _ => None,
+        } {
+            assert!(
+                replies
+                    .iter()
+                    .any(|reply| reply["message"]["kind"] == "technical-error"
+                        && reply["message"]["id"] == 2
+                        && reply["message"]["category"] == category),
                 "{name}: {}",
                 audit.stdout
             );

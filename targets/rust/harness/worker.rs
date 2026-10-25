@@ -1,10 +1,10 @@
 //! Generated Rust transport. Observations are assessed by the central verifier.
 use dctx0_project_adapter::{self as adapter, contract::*};
 use serde_json::json;
-fn field<'a>(value: &'a Value, name: &str) -> Result<&'a str, String> {
+fn field<'a>(value: &'a Value, name: &str) -> Result<&'a str, TechnicalError> {
     value[name]
         .as_str()
-        .ok_or_else(|| format!("Missing {name}"))
+        .ok_or_else(|| TechnicalError::adapter(format!("Missing {name}")))
 }
 fn metrics() -> Value {
     let peak = std::fs::read_to_string("/proc/self/status")
@@ -19,33 +19,39 @@ fn metrics() -> Value {
         });
     json!({"kind":"measured","peak_rss_bytes":peak,"runtime_version":include_str!("build-version.txt").trim(),"platform":std::env::consts::OS})
 }
-fn run() -> Result<(), String> {
+fn run() -> Result<(), TechnicalError> {
     let subjects: Vec<String> = serde_json::from_str(__SUBJECTS__).map_err(|e| e.to_string())?;
     let mut session: Option<Box<dyn Session>> = None;
     let mut context = Context::default();
     let result = run_requests(&subjects, &mut session, &mut context);
     let cleanup = close_session(&mut session, &context);
     match (result, cleanup) {
-        (Err(error), Err(cleanup)) => Err(format!("{error}; cleanup: {cleanup}")),
+        (Err(mut error), Err(cleanup)) => {
+            error.message = format!("{}; cleanup: {cleanup}", error.message);
+            Err(error)
+        }
         (Err(error), Ok(())) | (Ok(()), Err(error)) => Err(error),
         (Ok(()), Ok(())) => Ok(()),
     }
 }
-fn close_session(session: &mut Option<Box<dyn Session>>, context: &Context) -> Result<(), String> {
+fn close_session(
+    session: &mut Option<Box<dyn Session>>,
+    context: &Context,
+) -> Result<(), TechnicalError> {
     let Some(mut current) = session.take() else {
         return Ok(());
     };
     let closed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| current.close()))
-        .map_err(|_| "Adapter panicked during cleanup".to_owned())
+        .map_err(|_| TechnicalError::adapter("Adapter panicked during cleanup"))
         .and_then(|result| result);
-    let finished = context.finish();
+    let finished = context.finish().map_err(TechnicalError::adapter);
     closed.and(finished)
 }
 fn run_requests(
     subjects: &[String],
     session: &mut Option<Box<dyn Session>>,
     context: &mut Context,
-) -> Result<(), String> {
+) -> Result<(), TechnicalError> {
     let mut last_id = 0;
     loop {
         let Some(envelope) = read()? else {
@@ -62,7 +68,7 @@ fn run_requests(
         let request = &envelope["request"];
         let kind = field(request, "kind")?;
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
-            || -> Result<Value, String> {
+            || -> Result<Value, TechnicalError> {
                 match kind {
                     "metrics" => Ok(metrics()),
                     "describe" => {
@@ -140,24 +146,24 @@ fn run_requests(
                     "resolve-dependency" => Ok(
                         json!({"kind":"dependency-unresolved","reason":"Cargo dependency closure is recorded at build time"}),
                     ),
-                    _ => Err("Unsupported request".into()),
+                    _ => Err(TechnicalError::adapter("Unsupported request")),
                 }
             },
         ));
         match result {
             Ok(Ok(reply)) => send(json!({"kind":"reply","id":id,"reply":reply}))?,
             error => {
-                let message = match error {
-                    Ok(Err(message)) => message,
-                    _ => "Adapter panicked outside application boundary".into(),
+                let error = match error {
+                    Ok(Err(error)) => error,
+                    _ => TechnicalError::adapter("Adapter panicked outside application boundary"),
                 };
                 let cleanup = close_session(session, context);
                 send(
-                    json!({"kind":"technical-error","id":id,"category":"adapter","message":message.chars().take(4096).collect::<String>()}),
+                    json!({"kind":"technical-error","id":id,"category":error.cause.category(),"message":error.message.chars().take(4096).collect::<String>()}),
                 )?;
                 if let Err(cleanup) = cleanup {
                     send(
-                        json!({"kind":"technical-error","id":id,"category":"cleanup","message":cleanup.chars().take(4096).collect::<String>()}),
+                        json!({"kind":"technical-error","id":id,"category":"cleanup","message":cleanup.message.chars().take(4096).collect::<String>()}),
                     )?;
                 }
             }

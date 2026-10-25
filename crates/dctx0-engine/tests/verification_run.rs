@@ -1771,7 +1771,7 @@ impl dctx0_target_sdk::HarnessGenerator for MutatedGenerator {
     ) -> std::result::Result<dctx0_target_sdk::HarnessBundle, dctx0_target_sdk::Error> {
         let mut bundle = dctx0_target_sdk::HarnessGenerator::generate(&BunHarness, request)?;
         match self.mode {
-            "version" => bundle.sdk_version = 2,
+            "version" => bundle.sdk_version = dctx0_target_sdk::SDK_VERSION + 1,
             "duplicate" => bundle.artifacts.push(bundle.artifacts[0].clone()),
             "adapter" => bundle.artifacts[0].path = "adapter.ts".into(),
             "missing-runtime" => bundle.recipe.program = "/dctx0-missing-bun-runtime".into(),

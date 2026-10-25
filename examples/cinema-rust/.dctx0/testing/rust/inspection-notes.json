@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "actor": "codex-rust-cinema-review",
-  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. Explicit transport delta inspected on 2026-10-15: accepted connections are normalized to blocking mode with the existing five-second timeouts, and delayed HTTP header/body fragments are covered by the real application test. See docs/native-portability-rust-http-review.md for the source inspection and old/new hashes; requirement judgements are unchanged.",
+  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. Explicit transport delta inspected on 2026-10-15: accepted connections are normalized to blocking mode with the existing five-second timeouts, and delayed HTTP header/body fragments are covered by the real application test. See docs/native-portability-rust-http-review.md for the source inspection and old/new hashes; requirement judgements are unchanged. SDK-2 testing-boundary delta inspected on 2026-10-25 by the implementing Codex session (self-inspection, no independent-review claim). Only adapter.rs and contract.rs source bindings were renewed; see docs/rust-sdk2-boundary-review.md. Production and spec requirements remain unchanged; native tests are separate evidence.",
   "reviewed_hashes": {
     ".dctx0/testing/rust/Cargo.lock": "4d21819855e28d9fe77d93a357790da9b68655d77c6189e96b5015d4b7e655fb",
     ".dctx0/testing/rust/Cargo.toml": "42afbdc3cee33145bcb0049ece5aea11da78b2c79b7ace85b8f04ef29508bf1b",
-    ".dctx0/testing/rust/adapter.rs": "e32b3711d6f511dd2830d7ff9a3dc614e25fbb70a62e95d7ed493d812960ced3",
+    ".dctx0/testing/rust/adapter.rs": "567552d9d95622ac642fce117fc5f80f6968dfec7713e8257dbdd10ceb767299",
     ".dctx0/testing/rust/config.json": "2b882a80a014ec95b4ef71e4e52623d4a84697f3758ef4afabbc551a48e5eca5",
-    ".dctx0/testing/rust/contract.rs": "84e89050e3878c8dc85b889132e58c65a35636b9851b2934283921bb8ca671da",
+    ".dctx0/testing/rust/contract.rs": "d5802b4227dd93f575fb8ed88cb996dbbf73de3d60f8f7a071505d45a7f9af2a",
     ".dctx0/testing/rust/examples.json": "0584c7525cdb2f6721447270b107d195caa150d83c1516f588388083ae3be079",
     ".dctx0/testing/rust/http.rs": "5349e192824332f5b4bff6d7f2e026ccaf157ff6691be5984987b0bf0595949c",
     ".dctx0/testing/rust/lifecycles.json": "1652e70cd8c7d0aec4f40210855aee9a165fae6a891d82523a935c13a007039a",
@@ -144,9 +144,10 @@
       }
     },
     "HomeCinema.MovieNight.TypeConformance": {
-      "report": "Application-owned descriptors cover every Cinema data declaration, preserve exact integer JSON with arbitrary_precision/BigInt, use closed variants and explicit ranges/trim/UUID/RFC3339 validation. The external adapter translates using type metadata; production does not import the spec.",
+      "report": "Application-owned descriptors cover every Cinema data declaration, preserve exact integer JSON with arbitrary_precision/BigInt, use closed variants and explicit ranges/trim/UUID/RFC3339 validation. The external adapter translates using type metadata; production does not import the spec. The inspected SDK-2 delta returns typed testing errors, preserves explicit adapter/environment attribution and leaves ordinary errors unclassified. Strict conversion errors stay outside production rejection, while production validator outcomes retain the actual result.",
       "limitations": [
-        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof."
+        "Authored source inspection with selected finite native evidence; no exhaustive input, branch or architecture proof.",
+        "SDK-2 delta self-inspected by its implementing agent; no independent review or new native PASS is asserted by this note."
       ]
     },
     "HomeCinema.MovieNight.SurfaceConformance": {
@@ -174,9 +175,10 @@
       ]
     },
     "HomeCinema.MovieNight.AdapterConformance": {
-      "report": "src/axumapi.rs composes the additional Axum router over the existing application service. The external adapter selects the explicit HTTP variant, delegates real calls, keeps domain translation separate and validates its middleware header. Config, dependencies and both routers are source-bound. Consumer mocks do not establish production port conformance.",
+      "report": "src/axumapi.rs composes the additional Axum router over the existing application service. The external adapter selects the explicit HTTP variant, delegates real calls, keeps domain translation separate and validates its middleware header. Config, dependencies and both routers are source-bound. Consumer mocks do not establish production port conformance. The inspected SDK-2 delta returns typed testing errors, preserves explicit adapter/environment attribution and leaves ordinary errors unclassified. Strict conversion errors stay outside production rejection, while production validator outcomes retain the actual result.",
       "limitations": [
-        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof."
+        "Authored current-source inspection; executed native/HTTP checks are separate evidence. No exhaustive input, concurrency or architecture proof.",
+        "SDK-2 delta self-inspected by its implementing agent; no independent review or new native PASS is asserted by this note."
       ]
     },
     "HomeCinema.MovieNight.ExternalConformance": {

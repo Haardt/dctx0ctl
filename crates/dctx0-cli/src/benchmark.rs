@@ -41,6 +41,7 @@ pub(crate) fn benchmark(
     if matches!(
         phase,
         Phase::VerificationProject
+            | Phase::VerificationBindingsPlan
             | Phase::VerificationGenerate
             | Phase::VerificationEvaluateUnbound
             | Phase::VerificationAssessUnbound

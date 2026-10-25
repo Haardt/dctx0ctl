@@ -160,7 +160,7 @@ struct CinemaSession {
     service: Service<ObservedPorts, EventPublisher>,
     server: Option<HttpServer>,
 }
-pub fn describe() -> Result<Value, String> {
+pub fn describe() -> Result<Value, TechnicalError> {
     let mut subjects=domain::contract_names().iter().map(|name|json!({"subject":format!("{ROOT}{name}"),"role":"contract","artifact":"src/domain.rs","entry_point":"domain::validate"})).collect::<Vec<_>>();
     for (subject, name) in SURFACES {
         subjects.push(json!({"subject":format!("{ROOT}{subject}"),"role":"operation","artifact":"src/application.rs","entry_point":format!("Service::invoke({name})")}));
@@ -179,7 +179,7 @@ fn includes(config: &Value, key: &str, value: &str) -> bool {
         .as_array()
         .is_some_and(|items| items.iter().any(|v| v.as_str() == Some(value)))
 }
-pub fn begin(case: &str, context: Context) -> Result<Box<dyn Session>, String> {
+pub fn begin(case: &str, context: Context) -> Result<Box<dyn Session>, TechnicalError> {
     let schema = Arc::new(model()?);
     let config: Value =
         serde_json::from_slice(&std::fs::read("config.json").map_err(|e| e.to_string())?)
@@ -263,7 +263,7 @@ pub fn begin(case: &str, context: Context) -> Result<Box<dyn Session>, String> {
     }))
 }
 impl Session for CinemaSession {
-    fn invoke(&mut self, invocation: Value) -> Result<Value, String> {
+    fn invoke(&mut self, invocation: Value) -> Result<Value, TechnicalError> {
         let full = invocation["subject"].as_str().ok_or("Missing subject")?;
         let subject = full.strip_prefix(ROOT).ok_or("Subject outside Cinema")?;
         let descriptor = self.schema["operations"]
@@ -274,7 +274,8 @@ impl Session for CinemaSession {
             .ok_or("Missing arguments")?
             .iter()
             .map(decode)
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(TechnicalError::adapter)?;
         let result = if subject == "ScreeningPlanning.VotingRules.candidateOrderWinner" {
             if args.len() != 2 {
                 return Err("Incorrect pure operation arity".into());
@@ -307,28 +308,28 @@ impl Session for CinemaSession {
         } else {
             return Ok(json!({"kind":"unavailable","reason":"No actual entry point"}));
         };
-        outcome(&self.schema, result, &descriptor["result"])
+        outcome(&self.schema, result, &descriptor["result"]).map_err(TechnicalError::adapter)
     }
-    fn validate(&mut self, subject: &str, wire: Value) -> Result<Value, String> {
+    fn validate(&mut self, subject: &str, wire: Value) -> Result<Value, TechnicalError> {
         let name = subject
             .strip_prefix(ROOT)
             .ok_or("Unknown contract namespace")?;
         if !domain::contract_names().contains(&name) {
             return Ok(json!({"kind":"unavailable","reason":"No actual validator"}));
         }
-        let value = decode(&wire)?;
+        let value = decode(&wire).map_err(TechnicalError::adapter)?;
         Ok(match domain::validate(name, &value) {
             Ok(()) => json!({"kind":"accepted","value":wire}),
             Err(error) => json!({"kind":"rejected","reason":error.to_string()}),
         })
     }
-    fn observe(&mut self, entities: &[String]) -> Result<Value, String> {
+    fn observe(&mut self, entities: &[String]) -> Result<Value, TechnicalError> {
         let actual = self
             .store
             .lock()
             .map_err(|_| "Store lock poisoned")?
             .as_mut()
-            .ok_or("No actual state observer")?
+            .ok_or_else(|| TechnicalError::adapter("No actual state observer"))?
             .observe()
             .map_err(|e| e.to_string())?;
         let mut out = serde_json::Map::new();
@@ -341,12 +342,13 @@ impl Session for CinemaSession {
                 .ok_or("Unknown entity")?
                 .iter()
                 .map(|row| encode(&self.schema, row, &named(name)))
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(TechnicalError::adapter)?;
             out.insert(entity.clone(), json!(values));
         }
         Ok(Value::Object(out))
     }
-    fn close(&mut self) -> Result<(), String> {
+    fn close(&mut self) -> Result<(), TechnicalError> {
         if let Some(mut server) = self.server.take() {
             server.shutdown().map_err(|e| e.to_string())?;
         }

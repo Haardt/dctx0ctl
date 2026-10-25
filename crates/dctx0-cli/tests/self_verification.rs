@@ -83,11 +83,11 @@ fn self_command_builds_captured_sources_keeps_development_history_untouched_and_
         ".dctx0/testing/rust/adapter.rs",
         r#"
 pub mod contract; use contract::*; use serde_json::json;
-pub fn describe()->Result<Value,String>{Ok(json!({"protocol_version":1,"subjects":[{"subject":"W.Api.answer","role":"operation","artifact":"crates/dctx0-cli/src/lib.rs","entry_point":"answer"}],"artifacts":["crates/dctx0-cli/src/lib.rs"],"capabilities":["sessions","invocation","events"],"representations":{"Int":"i64"}}))}
-pub fn begin(_: &str,_:Context)->Result<Box<dyn Session>,String>{Ok(Box::new(Actual))}
+pub fn describe()->Result<Value, TechnicalError>{Ok(json!({"protocol_version":1,"subjects":[{"subject":"W.Api.answer","role":"operation","artifact":"crates/dctx0-cli/src/lib.rs","entry_point":"answer"}],"artifacts":["crates/dctx0-cli/src/lib.rs"],"capabilities":["sessions","invocation","events"],"representations":{"Int":"i64"}}))}
+pub fn begin(_: &str,_:Context)->Result<Box<dyn Session>, TechnicalError>{Ok(Box::new(Actual))}
 struct Actual; impl Session for Actual {
-fn invoke(&mut self,_:Value)->Result<Value,String>{Ok(json!({"kind":"returned","value":{"kind":"integer","value":fixture::answer().to_string()}}))}
-fn close(&mut self)->Result<(),String>{Ok(())}}
+fn invoke(&mut self,_:Value)->Result<Value, TechnicalError>{Ok(json!({"kind":"returned","value":{"kind":"integer","value":fixture::answer().to_string()}}))}
+fn close(&mut self)->Result<(), TechnicalError>{Ok(())}}
 "#,
     );
     write(

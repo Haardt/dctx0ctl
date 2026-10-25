@@ -1,0 +1,1308 @@
+{
+  "schema_version": 1,
+  "checkpoint": "binding-requirements-and-native-error-boundaries-1",
+  "recorded_at_utc": "2026-10-25T13:15:58.436753+00:00",
+  "overall_user_plan_complete": false,
+  "scope": "Initial binding foundation and read-only requirements CLI, plus typed Rust error boundaries. Full generated-adapter workflow and consumer migration remain incomplete.",
+  "base_revision": "bcf20957cc09451b4e3d2ff837d7bd0a7994dd20",
+  "interfaces": {
+    "cli": [
+      "verify bindings plan SPEC --subject SUBJECT",
+      "verify bindings plan SPEC --task T42 --json",
+      "verify bindings plan SPEC --project APP"
+    ],
+    "engine": [
+      "Project::verification_binding_requirements",
+      "read_verification_bindings"
+    ],
+    "core": [
+      "BindingRequirements",
+      "BindingDescription",
+      "NativeInvocation",
+      "ValidatorInput"
+    ],
+    "description_schema": 1,
+    "requirements_schema": 1,
+    "sdk_interface": 2,
+    "transport_protocol": 1,
+    "sqlite_schema": 7,
+    "query_views_version": 2,
+    "compiler_ir_version": 1
+  },
+  "validation": {
+    "status": "pass",
+    "runner_exit_code": 0,
+    "report": {
+      "path": "benchmarks/history/20261025T130947.471739Z-1519287.json",
+      "sha256": "ae740f9a676a2a00baf0e30c9cdcc582598cb619e6364061265a030e248c4ec7",
+      "bytes": 1234115
+    },
+    "log": {
+      "path": "target/bindings-workspace-opt1-validation.log",
+      "sha256": "be7f1811f2f661ce990c54741f75d871ca52a6efba8260d0000dbb3f213d0306",
+      "bytes": 414094
+    },
+    "source_hash_before": "0b4a8c642d79db567e1f9e4f4f32c7abcb285667d6dd03a8ea5c22340ba61190",
+    "source_hash_after": "0b4a8c642d79db567e1f9e4f4f32c7abcb285667d6dd03a8ea5c22340ba61190",
+    "measured_source_hash": "0b4a8c642d79db567e1f9e4f4f32c7abcb285667d6dd03a8ea5c22340ba61190",
+    "binary": {
+      "path": "target/release/dctx0",
+      "sha256": "f514efaf3c66221166be8580bd48bfc925a3f1a4aa06217df2386dd8cd9fc338",
+      "bytes": 37176072
+    },
+    "command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:$PATH CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true python3 scripts/validate.py --coverage --samples 1 --iterations 1",
+    "build_environment": {
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "CARGO_BUILD_JOBS": "1",
+      "RUST_TEST_THREADS": "1"
+    },
+    "regular_workspace_rust_executions": 634,
+    "instrumented_workspace_rust_executions": 635,
+    "python_tests": 40,
+    "steps": [
+      {
+        "command": [
+          "bun",
+          "install",
+          "--frozen-lockfile",
+          "--cwd",
+          "examples/cinema"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "install",
+          "--frozen-lockfile",
+          "--cwd",
+          "fixtures/conformance/adaptive-typescript/direct"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "install",
+          "--frozen-lockfile",
+          "--cwd",
+          "fixtures/conformance/adaptive-typescript/service"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "fetch",
+          "--manifest-path",
+          "examples/cinema-rust/.dctx0/testing/rust/Cargo.toml",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "run",
+          "--cwd",
+          "examples/cinema",
+          "typecheck"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "bun",
+          "test",
+          "examples/cinema/src",
+          "./examples/cinema/.dctx0/testing/typescript/http-integration.test.ts",
+          "./examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--workspace",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--workspace",
+          "--all-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--features",
+          "rust",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--features",
+          "go",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "go",
+          "mod",
+          "download",
+          "-C",
+          "examples/cinema-go"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "go",
+          "test",
+          "-C",
+          "examples/cinema-go",
+          "-coverprofile=/home/held/workspaces/compinion/dctx0ctl/target/go-cinema.coverage",
+          "./..."
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "go",
+          "vet",
+          "-C",
+          "examples/cinema-go",
+          "./..."
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/go_race.py"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "-p",
+          "dctx0-cli",
+          "--all-features",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/go_cinema_acceptance.py",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/debug/dctx0"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--manifest-path",
+          "examples/cinema-rust/Cargo.toml",
+          "--locked",
+          "--offline",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--manifest-path",
+          "examples/cinema-rust/Cargo.toml",
+          "--all-targets",
+          "--locked",
+          "--offline",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/rust_cinema_acceptance.py",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/debug/dctx0"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--manifest-path",
+          "examples/cinema-rust/Cargo.toml",
+          "--all-features",
+          "--offline",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "--manifest-path",
+          "examples/cinema-rust/.dctx0/testing/rust/Cargo.toml",
+          "--lib",
+          "--offline",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/editor_acceptance.py",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/debug/dctx0",
+          "--functional-only"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/coverage.py"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--all-features",
+          "--locked",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/query_acceptance.py",
+          "--measure-only",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+          "--samples",
+          "1"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/dependency_resolution_acceptance.py",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0"
+        ],
+        "returncode": 0
+      }
+    ]
+  },
+  "coverage": {
+    "thresholds": {
+      "merged_source_lines_percent": 97,
+      "llvm_functions_percent": 97
+    },
+    "merged_source": {
+      "covered": 38690,
+      "total": 39846,
+      "percent": 97.09883049741505
+    },
+    "raw_llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3275,
+        "covered": 3178,
+        "percent": 97.0381679389313
+      },
+      "instantiations": {
+        "count": 8093,
+        "covered": 4920,
+        "percent": 60.79327814160386
+      },
+      "lines": {
+        "count": 42083,
+        "covered": 40546,
+        "percent": 96.34769384311956
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 64648,
+        "covered": 60432,
+        "notcovered": 4216,
+        "percent": 93.47852988491523
+      }
+    },
+    "source_hash_before": "9e20c7bc3493ff4f8b7a89e7c4671f9c17714f57c5e9e147823f429c0bc29433",
+    "source_hash_after": "9e20c7bc3493ff4f8b7a89e7c4671f9c17714f57c5e9e147823f429c0bc29433",
+    "source_summary": {
+      "path": "target/coverage/source-summary.json",
+      "sha256": "f16b0193875b4f14337245b2b9bbf98af809c5f95d0e374e27e6f685d73bb081",
+      "bytes": 155328
+    },
+    "raw_llvm_export": {
+      "path": "target/coverage/llvm.json",
+      "sha256": "84694fe35a9311c00afc4f2fa75ee0db15a30b61285dc74437041e0f3e062811",
+      "bytes": 11431718
+    },
+    "lcov_export": {
+      "path": "target/coverage/workspace.lcov",
+      "sha256": "219911a28d5d7f6375f225bf9f48c9a577965544993202a384c5540355492266",
+      "bytes": 2060772
+    },
+    "new_exclusions": [],
+    "branch_completeness_claimed": false,
+    "non_rust_helper_coverage": "No new aggregate helper-coverage claim. Native conformance/behavior execution is separate from the Rust coverage gate."
+  },
+  "performance": {
+    "status": "complete",
+    "assessment": "unassessed",
+    "workloads": 82,
+    "settings": {
+      "iterations": 1,
+      "samples": 1,
+      "warmup_runs": 1,
+      "profile": "release",
+      "features": "all",
+      "cache": "warm filesystem; fresh process per sample"
+    },
+    "speed_tolerance_percent": 20,
+    "ram_tolerance_percent": 10,
+    "baseline": {
+      "path": "benchmarks/baseline.json",
+      "sha256": "85c6efc7052fd3bef04e582a828b417c3488c86841e7a64b2f638ef236a09444",
+      "bytes": 37026
+    },
+    "baseline_promoted": false,
+    "history_entries": 20,
+    "binding_requirements_from_prepared_plan": {
+      "samples": [
+        {
+          "elapsed_ms": 0.506891,
+          "process_wall_ms": 102.4817410070682,
+          "peak_rss_bytes": 23236608
+        }
+      ],
+      "iterations": 1,
+      "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+      "elapsed_ms": 0.506891,
+      "peak_rss_bytes": 23236608,
+      "recent_comparable_runs": 0
+    },
+    "binding_phase_scope": "Pure requirements projection from a prepared program plan; elapsed_ms excludes parsing and initial plan preparation. Process VmHWM includes those prepared inputs, not incremental allocation. This phase performs no SQLite/native access; the runner uses a generic memory-scope label for its shared phase table.",
+    "qa_process_measurement": {
+      "elapsed_ms": 4039113.064,
+      "peak_process_tree_rss_bytes": 1041502208,
+      "method": "sampled Linux process-tree RSS sum, 50ms, shared pages counted per process",
+      "startup_rss_budget_bytes": 5949927424,
+      "scope": "Whole QA runner and descendants, separate from release measurements"
+    }
+  },
+  "native_acceptance": {
+    "go": {
+      "artifact": {
+        "path": "target/go-cinema/acceptance.json",
+        "sha256": "18a54eb48a164ea5ead86a33692e22bee474f50b522b3bedf6171128be1a2897",
+        "bytes": 11810
+      },
+      "status": "PASS",
+      "scope": "Complete unchanged Go Cinema; authored review kept separate; targeted production mutations and replay",
+      "complete": {
+        "adopted_tasks": [],
+        "basis": "deterministic native cases plus explicitly source-bound agent inspection",
+        "inspected_run": "1f1d25c9d35d477a25470f5fb467d7257cc6e3d18f1e97b1a410733aa3e16a60",
+        "inspected_tasks": [],
+        "mandatory_cases": 5674,
+        "native_result": {
+          "issue": {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+            "span": null
+          },
+          "status": "UNKNOWN"
+        },
+        "native_run": "0ada256d6f7d098dba28f641202826bf3cb768a65f542a2d770f19558163eecc",
+        "non_pass_tasks": 4,
+        "open_tasks": 0,
+        "result": {
+          "status": "PASS"
+        },
+        "reviewed_tasks": [
+          1,
+          103,
+          104,
+          105
+        ],
+        "schema_version": 1,
+        "summary": {
+          "case_count": 5674,
+          "case_inventory_complete": true,
+          "case_subjects": [
+            "HomeCinema.MovieNight.AddComment",
+            "HomeCinema.MovieNight.CastVote",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.changeFilmAvailability",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.searchFilms",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.changeAvailability",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.find",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.search",
+            "HomeCinema.MovieNight.Catalog.change film availability",
+            "HomeCinema.MovieNight.Catalog.save a film in the collection",
+            "HomeCinema.MovieNight.Catalog.search and filter the film overview",
+            "HomeCinema.MovieNight.Catalog.unknown film details",
+            "HomeCinema.MovieNight.ChangeAvailability",
+            "HomeCinema.MovieNight.Comment",
+            "HomeCinema.MovieNight.CommentAdded",
+            "HomeCinema.MovieNight.CommentId",
+            "HomeCinema.MovieNight.CommentNotFound",
+            "HomeCinema.MovieNight.CommentOverview",
+            "HomeCinema.MovieNight.CommentText",
+            "HomeCinema.MovieNight.CommentView",
+            "HomeCinema.MovieNight.Community.CommentStore.append",
+            "HomeCinema.MovieNight.Community.CommentStore.listByFilm",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.addComment",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.getFilmRating",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.listComments",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.rateFilm",
+            "HomeCinema.MovieNight.Community.FilmPresence.exists",
+            "HomeCinema.MovieNight.Community.RatingStore.summary",
+            "HomeCinema.MovieNight.Community.RatingStore.upsert",
+            "HomeCinema.MovieNight.Community.add a comment",
+            "HomeCinema.MovieNight.Community.list comments for a film",
+            "HomeCinema.MovieNight.Community.replace a rating with five stars",
+            "HomeCinema.MovieNight.Community.show the member rating",
+            "HomeCinema.MovieNight.Film",
+            "HomeCinema.MovieNight.FilmAvailability",
+            "HomeCinema.MovieNight.FilmAvailabilityChanged",
+            "HomeCinema.MovieNight.FilmDetails",
+            "HomeCinema.MovieNight.FilmId",
+            "HomeCinema.MovieNight.FilmNotFound",
+            "HomeCinema.MovieNight.FilmOverview",
+            "HomeCinema.MovieNight.FilmRated",
+            "HomeCinema.MovieNight.FilmSaved",
+            "HomeCinema.MovieNight.FilmSearch",
+            "HomeCinema.MovieNight.FilmSort",
+            "HomeCinema.MovieNight.FilmSummary",
+            "HomeCinema.MovieNight.FilmVote",
+            "HomeCinema.MovieNight.FilmVoteResult",
+            "HomeCinema.MovieNight.Genre",
+            "HomeCinema.MovieNight.MemberId",
+            "HomeCinema.MovieNight.OpenVoting",
+            "HomeCinema.MovieNight.PageLimit",
+            "HomeCinema.MovieNight.PageOffset",
+            "HomeCinema.MovieNight.PersistenceUnavailable",
+            "HomeCinema.MovieNight.PollId",
+            "HomeCinema.MovieNight.PollNotFound",
+            "HomeCinema.MovieNight.PollStatus",
+            "HomeCinema.MovieNight.RateFilm",
+            "HomeCinema.MovieNight.Rating",
+            "HomeCinema.MovieNight.RatingSummary",
+            "HomeCinema.MovieNight.ReleaseYear",
+            "HomeCinema.MovieNight.RuntimeMinutes",
+            "HomeCinema.MovieNight.SaveFilm",
+            "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.closeVoting",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.getCurrentVoting",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.cast",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.current",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.open",
+            "HomeCinema.MovieNight.ScreeningPlanning.cast or replace a film vote",
+            "HomeCinema.MovieNight.ScreeningPlanning.close voting with a deterministic winner",
+            "HomeCinema.MovieNight.ScreeningPlanning.open voting for the next appointment",
+            "HomeCinema.MovieNight.ScreeningPlanning.show the current voting",
+            "HomeCinema.MovieNight.ScreeningPoll",
+            "HomeCinema.MovieNight.ScreeningPollLifecycle",
+            "HomeCinema.MovieNight.StarRating",
+            "HomeCinema.MovieNight.VoteCast",
+            "HomeCinema.MovieNight.VotingClosed",
+            "HomeCinema.MovieNight.VotingCompleted",
+            "HomeCinema.MovieNight.VotingOpened",
+            "HomeCinema.MovieNight.VotingOverview"
+          ],
+          "causes": {},
+          "check_occurrence": 3,
+          "created_at": "2026-10-25T12:28:33.613Z",
+          "details_available": true,
+          "id": "1f1d25c9d35d477a25470f5fb467d7257cc6e3d18f1e97b1a410733aa3e16a60",
+          "missing_case_count": 0,
+          "open_obligation_count": 0,
+          "open_obligation_count_available": true,
+          "origin": "imported",
+          "outcomes": [
+            5674,
+            0,
+            0
+          ],
+          "provenance_hash": "312a887cf16797382be6643a4e5a57e83c004e5d7f79650cae2913a2cfda0e0a",
+          "pruned_at": null,
+          "required_case_count": 5674,
+          "required_subject_count": 117,
+          "result": {
+            "status": "PASS"
+          },
+          "schema_version": 1,
+          "selected_subjects": [
+            "HomeCinema.MovieNight"
+          ],
+          "snapshot": "00cf2ec6cf8a512fb392a45ffdc0e9ff153f319480edf51e7636d978fbe6cc49",
+          "started_at_unix_ns": "1792931269470185718",
+          "target": "go"
+        },
+        "tasks": 105
+      },
+      "semantic_plan_equal": true,
+      "mutation_count": 5,
+      "mutations": [
+        {
+          "mutation": "winner",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "ASSERTION_FAILED",
+              "message": "Observed implementation violates the modeled assertion",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 37138,
+                  "line": 966,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 37436,
+                  "line": 972,
+                  "column": 56
+                }
+              }
+            }
+          },
+          "replay": {
+            "broken": {
+              "status": "FAIL",
+              "issue": {
+                "code": "ASSERTION_FAILED",
+                "message": "Observed implementation violates the modeled assertion",
+                "span": {
+                  "file": "movie-night.dctx0",
+                  "start": {
+                    "offset": 37138,
+                    "line": 966,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 37436,
+                    "line": 972,
+                    "column": 56
+                  }
+                }
+              }
+            },
+            "repaired": {
+              "status": "PASS"
+            },
+            "provenance_changes": 3
+          }
+        },
+        {
+          "mutation": "persistence",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 14750,
+                  "line": 356,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 14782,
+                  "line": 357,
+                  "column": 1
+                }
+              }
+            }
+          }
+        },
+        {
+          "mutation": "lifecycle",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 32981,
+                  "line": 861,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 33241,
+                  "line": 867,
+                  "column": 1
+                }
+              }
+            }
+          }
+        },
+        {
+          "mutation": "http",
+          "result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "APPLICATION_EXCEPTION",
+              "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400",
+              "span": null
+            }
+          }
+        },
+        {
+          "mutation": "collaborator-calls",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "OPERATION_CLAUSE_VIOLATED",
+              "message": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote: Ensures",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 35693,
+                  "line": 924,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 35734,
+                  "line": 924,
+                  "column": 58
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "rust": {
+      "artifact": {
+        "path": "target/rust-cinema/acceptance.json",
+        "sha256": "249b07b5a065b17ea0b451695098a36e36ff027de35a6c12fc62066b2ea49b06",
+        "bytes": 11857
+      },
+      "status": "PASS",
+      "scope": "Complete unchanged Rust Cinema; authored review kept separate; targeted production mutations and replay",
+      "complete": {
+        "adopted_tasks": [],
+        "basis": "deterministic native cases plus explicitly source-bound agent inspection",
+        "inspected_run": "89d35e54b2b51bdb90a8e053d8ba9b481a97719cd2664be7be959359f1b01a33",
+        "inspected_tasks": [],
+        "mandatory_cases": 5674,
+        "native_result": {
+          "issue": {
+            "code": "MANUAL_REQUIREMENT",
+            "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+            "span": null
+          },
+          "status": "UNKNOWN"
+        },
+        "native_run": "23db6aff3057ddad39b8a4114f8125b93593ee57f4380557c6b923aeeb265ddc",
+        "non_pass_tasks": 4,
+        "open_tasks": 0,
+        "result": {
+          "status": "PASS"
+        },
+        "reviewed_tasks": [
+          1,
+          103,
+          104,
+          105
+        ],
+        "schema_version": 1,
+        "summary": {
+          "case_count": 5674,
+          "case_inventory_complete": true,
+          "case_subjects": [
+            "HomeCinema.MovieNight.AddComment",
+            "HomeCinema.MovieNight.CastVote",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.changeFilmAvailability",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogApi.searchFilms",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.changeAvailability",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.find",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save",
+            "HomeCinema.MovieNight.Catalog.FilmCatalogStore.search",
+            "HomeCinema.MovieNight.Catalog.change film availability",
+            "HomeCinema.MovieNight.Catalog.save a film in the collection",
+            "HomeCinema.MovieNight.Catalog.search and filter the film overview",
+            "HomeCinema.MovieNight.Catalog.unknown film details",
+            "HomeCinema.MovieNight.ChangeAvailability",
+            "HomeCinema.MovieNight.Comment",
+            "HomeCinema.MovieNight.CommentAdded",
+            "HomeCinema.MovieNight.CommentId",
+            "HomeCinema.MovieNight.CommentNotFound",
+            "HomeCinema.MovieNight.CommentOverview",
+            "HomeCinema.MovieNight.CommentText",
+            "HomeCinema.MovieNight.CommentView",
+            "HomeCinema.MovieNight.Community.CommentStore.append",
+            "HomeCinema.MovieNight.Community.CommentStore.listByFilm",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.addComment",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.getFilmRating",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.listComments",
+            "HomeCinema.MovieNight.Community.FilmCommunityApi.rateFilm",
+            "HomeCinema.MovieNight.Community.FilmPresence.exists",
+            "HomeCinema.MovieNight.Community.RatingStore.summary",
+            "HomeCinema.MovieNight.Community.RatingStore.upsert",
+            "HomeCinema.MovieNight.Community.add a comment",
+            "HomeCinema.MovieNight.Community.list comments for a film",
+            "HomeCinema.MovieNight.Community.replace a rating with five stars",
+            "HomeCinema.MovieNight.Community.show the member rating",
+            "HomeCinema.MovieNight.Film",
+            "HomeCinema.MovieNight.FilmAvailability",
+            "HomeCinema.MovieNight.FilmAvailabilityChanged",
+            "HomeCinema.MovieNight.FilmDetails",
+            "HomeCinema.MovieNight.FilmId",
+            "HomeCinema.MovieNight.FilmNotFound",
+            "HomeCinema.MovieNight.FilmOverview",
+            "HomeCinema.MovieNight.FilmRated",
+            "HomeCinema.MovieNight.FilmSaved",
+            "HomeCinema.MovieNight.FilmSearch",
+            "HomeCinema.MovieNight.FilmSort",
+            "HomeCinema.MovieNight.FilmSummary",
+            "HomeCinema.MovieNight.FilmVote",
+            "HomeCinema.MovieNight.FilmVoteResult",
+            "HomeCinema.MovieNight.Genre",
+            "HomeCinema.MovieNight.MemberId",
+            "HomeCinema.MovieNight.OpenVoting",
+            "HomeCinema.MovieNight.PageLimit",
+            "HomeCinema.MovieNight.PageOffset",
+            "HomeCinema.MovieNight.PersistenceUnavailable",
+            "HomeCinema.MovieNight.PollId",
+            "HomeCinema.MovieNight.PollNotFound",
+            "HomeCinema.MovieNight.PollStatus",
+            "HomeCinema.MovieNight.RateFilm",
+            "HomeCinema.MovieNight.Rating",
+            "HomeCinema.MovieNight.RatingSummary",
+            "HomeCinema.MovieNight.ReleaseYear",
+            "HomeCinema.MovieNight.RuntimeMinutes",
+            "HomeCinema.MovieNight.SaveFilm",
+            "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.closeVoting",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.getCurrentVoting",
+            "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.cast",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.current",
+            "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.open",
+            "HomeCinema.MovieNight.ScreeningPlanning.cast or replace a film vote",
+            "HomeCinema.MovieNight.ScreeningPlanning.close voting with a deterministic winner",
+            "HomeCinema.MovieNight.ScreeningPlanning.open voting for the next appointment",
+            "HomeCinema.MovieNight.ScreeningPlanning.show the current voting",
+            "HomeCinema.MovieNight.ScreeningPoll",
+            "HomeCinema.MovieNight.ScreeningPollLifecycle",
+            "HomeCinema.MovieNight.StarRating",
+            "HomeCinema.MovieNight.VoteCast",
+            "HomeCinema.MovieNight.VotingClosed",
+            "HomeCinema.MovieNight.VotingCompleted",
+            "HomeCinema.MovieNight.VotingOpened",
+            "HomeCinema.MovieNight.VotingOverview"
+          ],
+          "causes": {},
+          "check_occurrence": 3,
+          "created_at": "2026-10-25T12:32:17.566Z",
+          "details_available": true,
+          "id": "89d35e54b2b51bdb90a8e053d8ba9b481a97719cd2664be7be959359f1b01a33",
+          "missing_case_count": 0,
+          "open_obligation_count": 0,
+          "open_obligation_count_available": true,
+          "origin": "imported",
+          "outcomes": [
+            5674,
+            0,
+            0
+          ],
+          "provenance_hash": "0eb7dcfa1e3c467da1de41c19ac390ed0d53c24a7e6a62f8314cac416119a54b",
+          "pruned_at": null,
+          "required_case_count": 5674,
+          "required_subject_count": 117,
+          "result": {
+            "status": "PASS"
+          },
+          "schema_version": 1,
+          "selected_subjects": [
+            "HomeCinema.MovieNight"
+          ],
+          "snapshot": "00cf2ec6cf8a512fb392a45ffdc0e9ff153f319480edf51e7636d978fbe6cc49",
+          "started_at_unix_ns": "1792931499872859427",
+          "target": "rust"
+        },
+        "tasks": 105
+      },
+      "semantic_plan_equal": true,
+      "mutation_count": 5,
+      "mutations": [
+        {
+          "mutation": "winner",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "ASSERTION_FAILED",
+              "message": "Observed implementation violates the modeled assertion",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 37138,
+                  "line": 966,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 37436,
+                  "line": 972,
+                  "column": 56
+                }
+              }
+            }
+          },
+          "replay": {
+            "broken": {
+              "status": "FAIL",
+              "issue": {
+                "code": "ASSERTION_FAILED",
+                "message": "Observed implementation violates the modeled assertion",
+                "span": {
+                  "file": "movie-night.dctx0",
+                  "start": {
+                    "offset": 37138,
+                    "line": 966,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 37436,
+                    "line": 972,
+                    "column": 56
+                  }
+                }
+              }
+            },
+            "repaired": {
+              "status": "PASS"
+            },
+            "provenance_changes": 3
+          }
+        },
+        {
+          "mutation": "persistence",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 14750,
+                  "line": 356,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 14782,
+                  "line": 357,
+                  "column": 1
+                }
+              }
+            }
+          }
+        },
+        {
+          "mutation": "lifecycle",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "STATE_EFFECT_VIOLATED",
+              "message": "Actual state differs from the complete modeled state effect",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 32981,
+                  "line": 861,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 33241,
+                  "line": 867,
+                  "column": 1
+                }
+              }
+            }
+          }
+        },
+        {
+          "mutation": "http",
+          "result": {
+            "status": "UNKNOWN",
+            "issue": {
+              "code": "APPLICATION_EXCEPTION",
+              "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400: {\"error\":\"Incorrect operation arity\"}",
+              "span": null
+            }
+          }
+        },
+        {
+          "mutation": "collaborator-calls",
+          "result": {
+            "status": "FAIL",
+            "issue": {
+              "code": "OPERATION_CLAUSE_VIOLATED",
+              "message": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote: Ensures",
+              "span": {
+                "file": "movie-night.dctx0",
+                "start": {
+                  "offset": 35693,
+                  "line": 924,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 35734,
+                  "line": 924,
+                  "column": 58
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "qualified_go_race": {
+    "artifact": {
+      "path": "target/go-cinema/race.json",
+      "sha256": "6a7aec794659e4254428d1b2323c3f23cbe0be29ae5a82f9404e7246e2f4f07a",
+      "bytes": 5564
+    },
+    "status": "pass"
+  },
+  "inspection": {
+    "kind": "Implementing-agent self-inspection of the Rust testing-boundary delta; no independent-review claim.",
+    "note": "docs/rust-sdk2-boundary-review.md",
+    "historical_native_outcomes_reclassified": false,
+    "production_and_spec_sources_changed": false
+  },
+  "consumer_inventory": {
+    "scope": "Preliminary read-only inventory and consistent SQLite backups; no migration/installation.",
+    "artifact": {
+      "path": "target/consumer-inventory/20261025T114638Z/inventory.json",
+      "sha256": "0e9d43d831f962052cd219c1d79ee695de68e6b387917b9616853e8564df6930",
+      "bytes": 18836
+    },
+    "captured_at_utc": "2026-10-25T11:46:38.346943+00:00",
+    "captured_source_files": 81,
+    "sources_stable_at_capture": true,
+    "known_source_changes_since_capture": [
+      "packages/identity-access/.dctx0/testing/host-sources.json",
+      "packages/identity-access/.dctx0/testing/typescript/inspection-notes.json",
+      "packages/identity-access/.dctx0/testing/typescript/wire-codecs.ts",
+      "spec/identity-access/README.md",
+      "spec/identity-access/boundaries.dctx0"
+    ],
+    "histories": {
+      "identity-access": {
+        "schema_version": 7,
+        "backup": "identity-access.sqlite3",
+        "tables": {
+          "check_renames": 0,
+          "checks": 68,
+          "edges": 0,
+          "execution_bundles": 67,
+          "nodes": 0,
+          "projects": 1,
+          "query_snapshots": 12,
+          "query_spec_rows": 0,
+          "renames": 0,
+          "snapshots": 12,
+          "sqlite_sequence": 4,
+          "storage_chunk_refs": 19,
+          "storage_chunks": 18,
+          "storage_conversion": 0,
+          "storage_edges": 4566,
+          "storage_evidence_metadata": 187,
+          "storage_objects": 3529,
+          "storage_relation_members": 19266,
+          "storage_snapshot_keys": 12,
+          "storage_spec_members": 7708,
+          "storage_spec_nodes": 1753,
+          "storage_spec_relations": 1696,
+          "storage_spec_sources": 23,
+          "storage_spec_texts": 582,
+          "storage_state_metadata": 1370,
+          "task_dependencies": 0,
+          "task_events": 1439,
+          "task_groups": 1,
+          "task_heads": 1,
+          "task_links": 384,
+          "task_members": 4112,
+          "task_plans": 68,
+          "task_profile_bindings": 365,
+          "task_profile_updates": 0,
+          "task_states": 446,
+          "tasks": 446,
+          "verification_adoptions": 0,
+          "verification_artifacts": 2697,
+          "verification_case_bodies": 3023,
+          "verification_case_index": 152882,
+          "verification_case_projections": 54,
+          "verification_corpora": 0,
+          "verification_requirements": 155467,
+          "verification_revisions": 1,
+          "verification_run_artifacts": 4473,
+          "verification_run_parents": 17,
+          "verification_runs": 54,
+          "verification_task_links": 0
+        },
+        "quick_check": "ok",
+        "backup_sha256": "1b945ff124c86fc6d6c2668adf595ed66527d13c2c6a983db9386fec43075683"
+      },
+      "plugin-infrastructure": {
+        "schema_version": 7,
+        "backup": "plugin-infrastructure.sqlite3",
+        "tables": {
+          "check_renames": 0,
+          "checks": 57,
+          "edges": 0,
+          "execution_bundles": 24,
+          "nodes": 0,
+          "projects": 1,
+          "query_snapshots": 1,
+          "query_spec_rows": 0,
+          "renames": 0,
+          "snapshots": 1,
+          "sqlite_sequence": 3,
+          "storage_chunk_refs": 0,
+          "storage_chunks": 0,
+          "storage_conversion": 0,
+          "storage_edges": 101,
+          "storage_evidence_metadata": 24,
+          "storage_objects": 241,
+          "storage_relation_members": 54,
+          "storage_snapshot_keys": 1,
+          "storage_spec_members": 38,
+          "storage_spec_nodes": 38,
+          "storage_spec_relations": 54,
+          "storage_spec_sources": 1,
+          "storage_spec_texts": 34,
+          "storage_state_metadata": 96,
+          "task_dependencies": 0,
+          "task_events": 127,
+          "task_groups": 0,
+          "task_heads": 1,
+          "task_links": 18,
+          "task_members": 186,
+          "task_plans": 31,
+          "task_profile_bindings": 24,
+          "task_profile_updates": 3,
+          "task_states": 24,
+          "tasks": 24,
+          "verification_adoptions": 1,
+          "verification_artifacts": 183,
+          "verification_case_bodies": 431,
+          "verification_case_index": 24136,
+          "verification_case_projections": 56,
+          "verification_corpora": 0,
+          "verification_requirements": 24136,
+          "verification_revisions": 1,
+          "verification_run_artifacts": 1254,
+          "verification_run_parents": 26,
+          "verification_runs": 56,
+          "verification_task_links": 6
+        },
+        "quick_check": "ok",
+        "backup_sha256": "a2d27279d8d5922c0db2aa40c00e5eeccde65a4976df2a77577fae0969acd81a"
+      }
+    },
+    "original_files_modified_by_this_task": false
+  },
+  "previous_attempts": [
+    {
+      "report": "benchmarks/history/20261025T114031.044010Z-1442861.json",
+      "status": "failed/incomplete; 66 measured workloads",
+      "reasons": [
+        "Go tests expected the previous unclassified-category label",
+        "symbol-heavy debug verifier exceeded unchanged native identity capture limit",
+        "Rust Cinema rejected outdated source-inspection bindings"
+      ],
+      "source_guard": "unchanged during that attempt"
+    },
+    {
+      "report": "docs/verification-bindings-interrupted-validation.json",
+      "status": "interrupted/incomplete",
+      "reason": "Restarted full QA at documented local opt-level 1 with assertions/overflow checks enabled; no interrupted result promoted to PASS."
+    }
+  ],
+  "remaining_required_work": [
+    "Target-owned build contract and removal of engine-specific Go/Rust build decisions",
+    "Standard adapter/codec generation for TypeScript, Go and Rust; atomic generated-file publication",
+    "Configuration 2; shared preparation, preflight and exact case probes",
+    "Clause/scenario/lifecycle continuations with cumulative budgets and helper evidence roles",
+    "Registered external evidence roots and shared freshness guards",
+    "Closure preview and existing-run completion with guarded idempotent publication pins",
+    "Schema 8, query views 3, evidence aggregates and exact case-requirement comparisons",
+    "CLI reorganization, correlation/phases and all caller/skill migrations",
+    "Generated-path neutral references, Cinema and isolated Identity/Access acceptance",
+    "Actual migration and full validation of both runatron-business integrations, histories, tooling and customized skills"
+  ],
+  "platform_scope": "Local Linux x86_64 only. No new macOS, Windows or Linux ARM64 release-host acceptance.",
+  "preserved_initial_user_changes": [
+    "install.sh executable-mode change",
+    "Deleted benchmarks/history/release/20261012T114652.549030Z-1130213.json",
+    "Untracked benchmarks/history/release/20261024T114527.546153Z-91296.json"
+  ],
+  "retention_note": "The locked latest-20 runners pruned only their oldest root/query measurement records; initial release-directory user changes remain untouched."
+}

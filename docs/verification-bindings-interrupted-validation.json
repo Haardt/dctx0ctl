@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "incomplete",
+  "validation_status": "interrupted",
+  "interrupted_at_utc": "2026-10-25T12:02:22.095368+00:00",
+  "reason": "Local QA launched at opt-level 0; stopped during the complete Cinema native-history test and superseded by a full run at documented local QA opt-level 1. No failed test is relabeled as passing.",
+  "command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:$PATH python3 scripts/validate.py --coverage --samples 1 --iterations 1",
+  "validation_build_environment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": null,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": null
+  },
+  "completed_rust_executions": 228,
+  "failing_rust_summaries": [],
+  "coverage_status": "not reached",
+  "performance_status": "not reached; incomplete validation, no baseline authority",
+  "log": "target/bindings-workspace-validation.log",
+  "log_sha256": "328658a0128f3271df4f59d03750d77061dd3d8ba28fabff2fd07014ffdda078",
+  "qa_process_measurement": {
+    "elapsed_ms": 1085960.05,
+    "peak_process_tree_rss_bytes": 986025984,
+    "method": "sampled Linux process-tree RSS sum, 50ms, shared pages counted per process",
+    "profile": "unoptimized QA, not release performance"
+  }
+}

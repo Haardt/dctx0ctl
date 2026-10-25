@@ -272,3 +272,6 @@ pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-17";
 pub mod diagnostics;
 
 pub mod comparison;
+
+mod bindings;
+pub use bindings::binding_requirements;

@@ -24,7 +24,7 @@ impl HarnessGenerator for RustHarness {
             serde_json::to_string(&request.subjects).map_err(|e| Error::Invalid(e.to_string()))?;
         Ok(HarnessBundle {
             sdk_version: SDK_VERSION,
-            generator_version: "dctx0-rust-harness-1".into(),
+            generator_version: "dctx0-rust-harness-2".into(),
             target: "rust".into(),
             artifacts: vec![
                 Artifact {

@@ -1349,3 +1349,52 @@ comparisons remain unassessed; the accepted baseline was not promoted. The exact
 source hashes, complete samples and explicit outstanding work are retained in
 `docs/verification-workflow-validation.json`. This validates the checkpoint,
 not completion of the eight-part objective.
+
+## Binding requirements foundation (2026-10-25)
+
+`verify bindings plan` reads published requirements without implementation code,
+derives exact operation/validator/entity-observer roles and the required type
+closure, and retains spec positions. Core owns version-1 description models;
+the engine provides bounded, strict, read-only description loading. Discovery
+candidates are not confirmed bindings. SDK interface 2 separates its version
+from unchanged transport protocol 1. Rust adapter/session boundaries now return
+typed technical errors; explicit adapter/environment causes are retained and
+ordinary strings remain unclassified. Go explicitly attributes a missing actual
+state observer to the adapter. Converter errors do not establish production
+rejection. Historical outcomes, compiler IR, SQLite schema 7 and query views 2
+remain unchanged.
+
+The coupled local Linux x86_64 validation passes 634 regular workspace Rust
+executions, 635 instrumented executions, 40 Python tests, the CLI feature matrix,
+qualified Go Race and Go/Rust Cinema acceptance with 5,674 cases per application,
+five actual mutations and replay. Fresh coverage is 38,690/39,846 merged source
+lines (97.10%) and 3,178/3,275 raw LLVM functions (97.04%). Raw LLVM lines are
+40,546/42,083 (96.35%) and regions 60,432/64,648 (93.48%); no branch-completeness
+claim or new exclusion is introduced. QA uses opt-level 1, no debug symbols or
+incremental compilation, and explicit debug assertions/overflow checks. The
+sampled process tree peaks at 1,041,502,208 bytes. All 82 release speed/RSS
+workloads complete on unchanged inputs with one sample/iteration and one warmup;
+baseline assessment remains unassessed and the accepted baseline is unchanged.
+The earlier failed and interrupted attempts are retained separately.
+
+This is an initial checkpoint, not completion of the generated-adapter plan.
+Target-owned builds, standard generation in all three targets, configuration 2,
+preflight, continuations, external sources, closure/existing-run completion,
+schema 8/views 3, CLI/skill migration and full generated-path acceptance remain
+required. Both runatron-business histories were backed up read-only, but neither
+integration was migrated. Its captured sources have since drifted; a fresh
+capture is required before any later installation. See
+`docs/verification-bindings-validation.json` and
+`docs/site/src/reference/verification-bindings.md` for exact scope and provenance.
+
+Local 0.3.0 version checkpoint (2026-10-25): workspace versions and their lockfile
+entries are updated for the breaking SDK-2 Rust adapter interface. The verified
+all-feature release binary is installed at `~/.local/bin/dctx0`, with the previous
+0.2.13 binary backed up. Workspace check, formatting and tag guards pass. Eight
+isolated installed-CLI smoke scenarios and 13 installer/distribution tests pass;
+one PowerShell fixture is skipped because local `pwsh` is unavailable. Focused
+checks retain command speed/RSS and one-sample release packaging/startup evidence;
+baseline comparisons remain unassessed and the accepted baseline is unchanged.
+The full coverage above precedes this version-only bump. No publication or
+completion of the larger workflow plan is claimed. See
+`docs/release-v0.3.0-validation.json` and `docs/release-v0.3.0.md`.
