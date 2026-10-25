@@ -3,11 +3,21 @@ use crate::contract::Value;
 use dctx0_core::VerificationValue;
 use serde_json::json;
 pub fn decode(wire: &Value) -> Result<Value, String> {
+    decode_input(wire, false)
+}
+pub fn decode_validation(wire: &Value) -> Result<Value, String> {
+    decode_input(wire, true)
+}
+fn decode_input(wire: &Value, validation: bool) -> Result<Value, String> {
     let value: VerificationValue =
         serde_json::from_value(wire.clone()).map_err(|e| e.to_string())?;
-    fn inner(value: VerificationValue) -> Result<Value, String> {
+    fn inner(value: VerificationValue, validation: bool) -> Result<Value, String> {
         Ok(match value {
             VerificationValue::Unit => Value::Null,
+            VerificationValue::Integer(text) if validation => Value::Number(
+                text.parse::<serde_json::Number>()
+                    .map_err(|e| e.to_string())?,
+            ),
             VerificationValue::Integer(text) => json!(
                 text.parse::<i64>()
                     .map_err(|_| "Integer does not fit the Rust i64 API")?
@@ -20,18 +30,21 @@ pub fn decode(wire: &Value) -> Result<Value, String> {
                     .map_err(|e| e.to_string())?,
             ),
             VerificationValue::String(value) => json!(value),
-            VerificationValue::List(values) => {
-                Value::Array(values.into_iter().map(inner).collect::<Result<_, _>>()?)
-            }
+            VerificationValue::List(values) => Value::Array(
+                values
+                    .into_iter()
+                    .map(|v| inner(v, validation))
+                    .collect::<Result<_, _>>()?,
+            ),
             VerificationValue::Record(values) => Value::Object(
                 values
                     .into_iter()
-                    .map(|(key, value)| Ok((key, inner(value)?)))
+                    .map(|(key, value)| Ok((key, inner(value, validation)?)))
                     .collect::<Result<_, String>>()?,
             ),
             VerificationValue::Option(value) => match value {
                 None => Value::Null,
-                Some(value) => inner(*value)?,
+                Some(value) => inner(*value, validation)?,
             },
             VerificationValue::Variant {
                 name,
@@ -41,7 +54,7 @@ pub fn decode(wire: &Value) -> Result<Value, String> {
             _ => return Err("Unsupported Rust API representation".into()),
         })
     }
-    inner(value)
+    inner(value, validation)
 }
 
 pub fn model() -> Result<Value, String> {
@@ -118,10 +131,21 @@ mod tests {
 
     #[test]
     fn negative_float_reaches_the_actual_integer_validator() {
-        let native = decode(&json!({"kind":"float","value":"1.5"})).unwrap();
+        let native = decode_validation(&json!({"kind":"float","value":"1.5"})).unwrap();
         assert_eq!(native.to_string(), "1.5");
         assert!(crate::validation::validate("Dctx0.ApiInt", native).is_err());
         assert!(crate::validation::validate("Dctx0.ApiInt", json!(1)).is_ok());
+    }
+
+    #[test]
+    fn out_of_range_integers_reach_validation_without_relaxing_invocation_conversion() {
+        for text in ["-9223372036854775809", "9223372036854775808"] {
+            let wire = json!({"kind":"integer","value":text});
+            assert!(decode(&wire).is_err());
+            let native = decode_validation(&wire).unwrap();
+            assert_eq!(native.to_string(), text);
+            assert!(crate::validation::validate("Dctx0.ApiInt", native).is_err());
+        }
     }
 
     #[test]

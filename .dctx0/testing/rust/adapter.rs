@@ -175,7 +175,7 @@ impl Session for Actual {
         }
     }
     fn validate(&mut self, subject: &str, value: Value) -> Result<Value, TechnicalError> {
-        let native = decode(&value).map_err(TechnicalError::adapter)?;
+        let native = decode_validation(&value).map_err(TechnicalError::adapter)?;
         Ok(match validation::validate(subject, native) {
             Ok(()) => json!({"kind":"accepted","value":value}),
             Err(reason) => json!({"kind":"rejected","reason":reason}),
