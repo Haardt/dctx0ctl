@@ -22,8 +22,12 @@ try{
  await page.getByRole('link',{name:'Spec',exact:true}).click();await page.getByRole('heading',{name:'Spec',exact:true}).waitFor();await page.getByRole('textbox',{name:'Search',exact:true}).fill('ReleaseYear');await page.locator('.virtual a').first().click();await page.getByRole('link',{name:/^Source ·/}).click();await page.locator('mark').waitFor();checks.push('spec search opens pinned source and marked line');
  await page.goto('file://'+resolve(output,'index.html')+'#view=Architecture');await page.locator('.react-flow__node').first().waitFor();
  const assertPorts=async()=>{
-  const handles=await page.locator('.react-flow__handle').evaluateAll(elements=>elements.map(e=>({height:parseFloat(getComputedStyle(e).height),width:parseFloat(getComputedStyle(e).width),source:e.classList.contains('source'),right:e.classList.contains('react-flow__handle-right'),target:e.classList.contains('target'),left:e.classList.contains('react-flow__handle-left')})));
-  assert(handles.length>0);assert(handles.every(h=>h.height===6&&h.width===6&&(h.source?h.right:h.target&&h.left)));
+  // Focusing remounts ReactFlow; wait for its styled handles to settle before
+  // checking the same dimensions/directions, rather than sampling mid-render.
+  await page.waitForFunction(()=>{
+   const handles=[...document.querySelectorAll('.react-flow__handle')].map(e=>({height:parseFloat(getComputedStyle(e).height),width:parseFloat(getComputedStyle(e).width),source:e.classList.contains('source'),right:e.classList.contains('react-flow__handle-right'),target:e.classList.contains('target'),left:e.classList.contains('react-flow__handle-left')}));
+   return handles.length>0&&handles.every(h=>h.height===6&&h.width===6&&(h.source?h.right:h.target&&h.left));
+  },undefined,{timeout:10000});
  };
  await assertPorts();
  await page.getByRole('button',{name:'Inspector',exact:true}).click();await page.getByRole('button',{name:'Connections',exact:true}).click();await page.locator('.connection-list button').first().click();await page.getByRole('region',{name:'Connection details'}).waitFor();assert((await page.locator('.relationship-detail p').count())>0);

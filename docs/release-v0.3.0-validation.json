@@ -421,5 +421,63 @@
       "github_retry": "GitHub requires current platform jobs to finish before rerunning failed jobs; successful jobs will be retained",
       "baseline_promoted": false
     }
+  },
+  "release_gate_corrections": {
+    "previous_attempt": {
+      "workflow": "https://github.com/Haardt/dctx0ctl/actions/runs/40201110120/attempts/2",
+      "commit": "57decf1168990ca1fae26bd8d2e9502edd101a0f",
+      "five_platforms": "passed",
+      "platform_verification": "passed",
+      "full_validation_with_coverage_and_tutorial": "passed",
+      "merged_source_lines": {
+        "covered": 38706,
+        "total": 39846,
+        "percent": 97.14
+      },
+      "llvm_function_percent": 97.1,
+      "framework_gate": "failed: ordinary HTTP exceptions correctly remained UNKNOWN, but runner required native FAIL"
+    },
+    "changes": {
+      "frameworks": "Require a real HTTP test assertion failure for every mutation, excluding compilation/tool failures. Retain exact observed native FAIL or APPLICATION_EXCEPTION UNKNOWN separately, require exact broken routing replay and repaired PASS, and retain full normal 5674-case native PASS per framework.",
+      "browser": "Wait up to 10 seconds for graph handles to finish rendering; unchanged exact six-pixel and horizontal-direction predicates."
+    },
+    "local_framework": {
+      "report": "benchmarks/history/frameworks/20261025T183346.426365Z-2287367.json",
+      "sha256": "772875aa2567ca666dfcd7cb6884409e99cc1724ef9e92c91a650c9baa4110f3",
+      "status": "complete",
+      "mutations": 8,
+      "native_plans": {
+        "gin": {
+          "mandatory_cases": 5674,
+          "recorded_cases": 5674,
+          "native_open_obligations": 25,
+          "incomplete_provenance": [],
+          "evidence_id": "40cb7cad193d010606743176de2a4b067de1a3eddd10feb62dba2582c0ddeaed"
+        },
+        "axum": {
+          "mandatory_cases": 5674,
+          "recorded_cases": 5674,
+          "native_open_obligations": 25,
+          "incomplete_provenance": [],
+          "evidence_id": "e1b3a4d21b7046d66d4063156d929a9c7953285b10aa82f43ce0f8b20a0ceddb"
+        }
+      },
+      "elapsed_ms": 607281.434,
+      "peak_process_tree_rss_bytes": 1090473984,
+      "samples": 1,
+      "baseline": "unassessed; no promotion"
+    },
+    "local_browser": {
+      "report": "benchmarks/history/site/20261025T183540.667724Z-2291259.json",
+      "sha256": "c24906463f3f77e3827aec9d00b6f5c33d6a6fa65cf174fd718e0b2a62ee2338",
+      "passed": true,
+      "checks": 14,
+      "elapsed_ms": 58783.904,
+      "peak_process_tree_rss_bytes": 1849851904,
+      "samples": 1,
+      "iterations": 1
+    },
+    "production_and_specs_changed": false,
+    "publication": "pending fresh regular release CI for corrected QA sources"
   }
 }

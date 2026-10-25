@@ -103,20 +103,40 @@ def mutations(binary, language, framework, project, record):
         try:
             file.write_text(original.replace(before,after))
             data=cli(binary,project,record,f'{framework}-mutation-{name}','verify','run',spec,'--project',project,'--subject',PREFIX+subject,'--no-adopt',allowed=(0,1))
-            run_data=data['evidence']['run']; failures=[case for case in run_data['cases'] if case['result']['status']=='FAIL']
-            if not failures: raise RuntimeError(f'{framework} {name}: no executed FAIL: {run_data["result"]}; {run_data["provenance"]["incomplete"]}')
-            # Require an actual HTTP case for router/failure/domain mutations.
-            http_failures=[case for case in failures if 'http' in case['id'] or ':operation:' in case['id']]
-            if not http_failures: raise RuntimeError(f'{framework} {name}: no actual HTTP counterexample')
+            run_data=data['evidence']['run']
+            # An unexpected HTTP response is an observed application exception,
+            # not automatically a centrally established contract violation.
+            # Keep that UNKNOWN and require independent, real HTTP assertions to
+            # fail as well. Missing evidence/build errors never satisfy this.
+            http_failures=[case for case in run_data['cases'] if
+                ('http' in case['id'] or ':operation:' in case['id']) and
+                (case['result']['status']=='FAIL' or
+                 (case['result']['status']=='UNKNOWN' and
+                  case['result'].get('issue',{}).get('code')=='APPLICATION_EXCEPTION'))]
+            if not http_failures or run_data['provenance']['incomplete']:
+                raise RuntimeError(f'{framework} {name}: no executed HTTP counterexample: {run_data["result"]}; {run_data["provenance"]["incomplete"]}')
             counter=http_failures[0]
-            row={'variant':framework,'mutation':name,'case_id':counter['id'],'result':counter['result'],'source':relative,'http_path_basis':'Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework'}
+            if language=='go':
+                http_command=['go','test','-C',project,'./ginapi','-run','^TestActualGinRoutesValidateInputMapFailuresAndRunMiddleware$','-count=1']
+                http_exit=1
+                assertion='--- FAIL: TestActualGinRoutesValidateInputMapFailuresAndRunMiddleware'
+            else:
+                http_command=['cargo','test','--manifest-path',project/'Cargo.toml','--all-features','--test','axum','--offline','--locked','--target-dir',ROOT/'target/frameworks/http-mutation-tests/rust']
+                http_exit=101
+                test='routers_use_real_sqlite_services_and_do_not_share_state_between_sessions' if name=='domain-through-http' else 'actual_router_preserves_route_arguments_rejections_and_middleware'
+                assertion=f'test {test} ... FAILED'
+            http_label=f'{framework}-mutation-{name}-http-assertions'
+            http_output=run(http_command,ROOT,record,http_label,allowed=(http_exit,))
+            if assertion not in http_output:
+                raise RuntimeError(f'{framework} {name}: no actual HTTP assertion failure; compilation/tool failures do not count')
+            row={'variant':framework,'mutation':name,'case_id':counter['id'],'result':counter['result'],'http_assertion_failure':{'command':[str(item) for item in http_command],'exit_code':http_exit,'assertion':assertion,'measurement':http_label},'source':relative,'http_path_basis':'Captured adapter routes explicit HTTP cases and generated real Surface operations through the selected framework'}
             if name=='routing':
                 replay=cli(binary,project,record,f'{framework}-broken-replay','verify','replay',spec,data['evidence']['id'],'--case',counter['id'],'--project',project,allowed=(0,1))
-                if replay['case_result']['status']!='FAIL':raise RuntimeError('Broken route replay did not reproduce failure')
+                if replay['case_result']!=counter['result']:raise RuntimeError('Broken route replay did not reproduce the exact native result')
                 file.write_text(original)
                 replay=cli(binary,project,record,f'{framework}-repaired-replay','verify','replay',spec,data['evidence']['id'],'--case',counter['id'],'--project',project)
                 if replay['case_result']['status']!='PASS':raise RuntimeError('Repaired route replay did not pass')
-                row['replay']={'broken':'FAIL','repaired':'PASS','changed_implementation_comparison':True}
+                row['replay']={'broken':counter['result']['status'],'repaired':'PASS','changed_implementation_comparison':True}
             record['mutations'].append(row)
         finally:file.write_text(original)
 
