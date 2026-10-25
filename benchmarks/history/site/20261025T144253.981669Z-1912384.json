@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-10-25T14:42:52.266181+00:00",
+  "passed": false,
+  "complete": false,
+  "source_hash": "972ff208d5bc7459c00111a9296ca1dcfd6a567c2c2d6bb41331fb1917098f7e",
+  "revision": "f9e115520eec5ad7cff9d25e682df7db37406279",
+  "dirty": true,
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "cpu_count": 16,
+    "machine": "x86_64",
+    "cpu_model": "Intel(R) Core(TM) Ultra X7 358H"
+  },
+  "baseline_status": "unassessed: no accepted site workload baseline",
+  "samples": 1,
+  "iterations": 1,
+  "measurements": {
+    "ui-typecheck": [
+      {
+        "elapsed_ms": 1162.1007509966148,
+        "peak_rss_bytes": 332644352,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-unit": [
+      {
+        "elapsed_ms": 20.94695898995269,
+        "peak_rss_bytes": 31678464,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "ui-reproducibility": [
+      {
+        "elapsed_ms": 304.64126900187694,
+        "peak_rss_bytes": 126181376,
+        "exit_code": 1,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "checks": [],
+  "workload": "isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI",
+  "cache_conditions": "one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history",
+  "toolchain": {
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "bun": "1.4.4"
+  },
+  "spec_input_hash": "56557aa0a4a1793369c87fdfc7968197ef6a8ce0ae80f5bfaab6f7e523cba438",
+  "build_target": "target/site/build (isolated from workspace feature jobs)",
+  "error": "RuntimeError('ui-reproducibility: $ bun build.ts --check\\n\u2248 tailwindcss v4.2.1\\n\\nDone in 127ms\\n36 | await mkdir(\\'dist\\',{recursive:true});\\n37 | // These locked optional native build packages have identical Linux licenses on\\n38 | // x64 and ARM64. Keep the actual installed names in receipts, but compare their\\n39 | // CPU variants portably. Source/assets, versions and license text stay strict.\\n40 | function comparable(name:string,content:string){return name===\\'LICENSES.txt\\'||name===\\'provenance.json\\'?content.replace(/(@parcel\\\\/watcher-linux-|@tailwindcss\\\\/oxide-linux-|lightningcss-linux-)(?:x64|arm64)-/g,\\'$1native-\\'):content}\\n41 | for(const [name,content]of Object.entries(files)){if(check){if(comparable(name,await readFile(\\'dist/\\'+name,\\'utf8\\'))!==comparable(name,content))throw new Error(\\'Stale asset: \\'+name)}else await writeFile(\\'dist/\\'+name,content)}\\n                                                                                                                                                              ^\\nerror: Stale asset: site.js\\n      at /home/held/workspaces/compinion/dctx0ctl/ui/site/build.ts:41:154\\n\\nBun v1.4.4 (Linux x64)\\nerror: script \"verify-assets\" exited with code 1\\n')",
+  "summary": {
+    "ui-typecheck": {
+      "samples": 1,
+      "elapsed_ms_median": 1162.1007509966148,
+      "peak_rss_bytes_median": 332644352
+    },
+    "ui-unit": {
+      "samples": 1,
+      "elapsed_ms_median": 20.94695898995269,
+      "peak_rss_bytes_median": 31678464
+    },
+    "ui-reproducibility": {
+      "samples": 1,
+      "elapsed_ms_median": 304.64126900187694,
+      "peak_rss_bytes_median": 126181376
+    }
+  },
+  "finished_at": "2026-10-25T14:42:53.981556+00:00",
+  "recent_trends": [],
+  "comparison_status": "no comparable complete history; unassessed"
+}

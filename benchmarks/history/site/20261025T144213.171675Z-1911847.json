@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-10-25T14:42:12.969891+00:00",
+  "passed": false,
+  "complete": false,
+  "source_hash": "972ff208d5bc7459c00111a9296ca1dcfd6a567c2c2d6bb41331fb1917098f7e",
+  "revision": "f9e115520eec5ad7cff9d25e682df7db37406279",
+  "dirty": true,
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "cpu_count": 16,
+    "machine": "x86_64",
+    "cpu_model": "Intel(R) Core(TM) Ultra X7 358H"
+  },
+  "baseline_status": "unassessed: no accepted site workload baseline",
+  "samples": 1,
+  "iterations": 1,
+  "measurements": {
+    "ui-typecheck": [
+      {
+        "elapsed_ms": 10.97328300238587,
+        "peak_rss_bytes": 28995584,
+        "exit_code": 127,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "checks": [],
+  "workload": "isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI",
+  "cache_conditions": "one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history",
+  "toolchain": {
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "bun": "1.4.4"
+  },
+  "spec_input_hash": "56557aa0a4a1793369c87fdfc7968197ef6a8ce0ae80f5bfaab6f7e523cba438",
+  "build_target": "target/site/build (isolated from workspace feature jobs)",
+  "error": "RuntimeError('ui-typecheck: $ tsc --noEmit\\n/usr/bin/bash: line 1: tsc: command not found\\nerror: script \"check\" exited with code 127\\n')",
+  "summary": {
+    "ui-typecheck": {
+      "samples": 1,
+      "elapsed_ms_median": 10.97328300238587,
+      "peak_rss_bytes_median": 28995584
+    }
+  },
+  "finished_at": "2026-10-25T14:42:13.171570+00:00",
+  "recent_trends": [],
+  "comparison_status": "no comparable complete history; unassessed"
+}

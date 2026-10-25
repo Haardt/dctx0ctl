@@ -398,6 +398,28 @@
     },
     "publication": "blocked until all normal release gates pass",
     "current_workflow": "https://github.com/Haardt/dctx0ctl/actions/runs/40201110120",
-    "release_commit": "57decf1"
+    "release_commit": "57decf1",
+    "browser_validation": {
+      "ci": "failed at task graph handle assertion after self-verification passed",
+      "production_or_test_changes": false,
+      "local_retry": {
+        "report": "benchmarks/history/site/20261025T145135.810518Z-1913907.json",
+        "sha256": "d21a89603d1af0ff86156b69d8d0b05934229ec95b09f1ec64297e662557a914",
+        "passed": true,
+        "browser_checks": 14,
+        "samples": 1,
+        "iterations": 1,
+        "elapsed_ms": 429896.252,
+        "peak_process_tree_rss_bytes": 1871663104,
+        "source_hash_unchanged": true,
+        "bun": "1.4.2"
+      },
+      "earlier_local_attempts": [
+        "missing installed UI dependencies",
+        "installed Bun 1.4.4 correctly rejected by reproducible-asset guard; pinned Bun 1.4.2 fetched with official checksum"
+      ],
+      "github_retry": "GitHub requires current platform jobs to finish before rerunning failed jobs; successful jobs will be retained",
+      "baseline_promoted": false
+    }
   }
 }
