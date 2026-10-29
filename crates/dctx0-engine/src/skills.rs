@@ -7,7 +7,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 pub const SKILL_AGENTS: &[&str] = &[
     "agents", "claude", "codex", "copilot", "cursor", "gemini", "opencode",
 ];
-pub const SKILL_NAMES: &[&str] = &["dctx0", "dctx0-language", "dctx0-implementation"];
+pub const SKILL_NAMES: &[&str] = &[
+    "dctx0",
+    "dctx0-language",
+    "dctx0-implementation",
+    "dctx0-config",
+    "dctx0-delivery",
+];
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 #[derive(Debug, Clone, Serialize)]
 pub struct SkillDescription {
@@ -20,7 +26,11 @@ pub fn skill_catalog() -> Vec<SkillDescription> {
         .iter()
         .map(|name| SkillDescription {
             name,
-            version: 2,
+            version: match *name {
+                "dctx0-config" | "dctx0-delivery" => 1,
+                "dctx0" | "dctx0-implementation" => 4,
+                _ => 2,
+            },
             files: bundle(name)
                 .expect("embedded catalog")
                 .keys()
@@ -68,6 +78,34 @@ fn bundle(name: &str) -> Result<BTreeMap<&'static str, &'static str>> {
             (
                 "references/work-packages.md",
                 include_str!("../../../skills/dctx0-implementation/references/work-packages.md"),
+            ),
+        ],
+        "dctx0-delivery" => vec![
+            (
+                "SKILL.md",
+                include_str!("../../../skills/dctx0-delivery/SKILL.md"),
+            ),
+            (
+                "references/delivery-measures.md",
+                include_str!("../../../skills/dctx0-delivery/references/delivery-measures.md"),
+            ),
+            (
+                "references/query.md",
+                include_str!("../../../skills/query-guide.md"),
+            ),
+        ],
+        "dctx0-config" => vec![
+            (
+                "SKILL.md",
+                include_str!("../../../skills/dctx0-config/SKILL.md"),
+            ),
+            (
+                "references/configuration.md",
+                include_str!("../../../skills/dctx0-config/references/configuration.md"),
+            ),
+            (
+                "references/query.md",
+                include_str!("../../../skills/query-guide.md"),
             ),
         ],
         _ => return Err(Error::Invalid(format!("Unknown skill: {name}"))),
@@ -461,7 +499,7 @@ mod tests {
     fn installs_complete_embedded_trees_deduplicates_codex_and_preserves_edits() {
         let (root, mut request, locations) = fixture("install");
         let report = install_skills(&request, &locations).unwrap();
-        assert_eq!(report.installations.len(), 6);
+        assert_eq!(report.installations.len(), SKILL_NAMES.len() * 2);
         assert!(
             root.join(".agents/skills/dctx0-language/references/language.md")
                 .is_file()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Go Cinema acceptance and actual production mutations; release measurements run separately."""
 import argparse
+from cinema_expectations import EXPECTED_NATIVE_CASES
 import hashlib
 import json
 import os
@@ -50,7 +51,7 @@ def main():
         subprocess.run([sys.executable, str(ROOT / 'scripts/conformance_review_acceptance.py'), '--binary', str(binary), '--target', 'go', '--project', str(project), '--report', str(base / 'reviews.json')], check=True)
         complete = invoke(binary, project, 'verify', 'complete' , str(project / 'dctx0'), '--project', str(project), expect=0)
         assert complete['result']['status'] == 'PASS'
-        assert complete['mandatory_cases'] == 5674 and complete['tasks'] == 105
+        assert complete['mandatory_cases'] == EXPECTED_NATIVE_CASES and complete['tasks'] == 105
         assert complete['open_tasks'] == 0
         assert complete['non_pass_tasks'] == len(complete['reviewed_tasks']) == 4
         assert len(complete['reviewed_tasks']) == 4, 'Source-bound reviews stay separate from native delivery'
@@ -114,7 +115,7 @@ def main():
     report['status'] = 'PASS'
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + '\n')
-    print(f'Go Cinema PASS: 5674 cases, 105 tasks, {len(report["mutations"])} actual mutations and replay; {args.report}')
+    print(f'Go Cinema PASS: {EXPECTED_NATIVE_CASES} cases, 105 tasks, {len(report["mutations"])} actual mutations and replay; {args.report}')
 
 
 if __name__ == '__main__':

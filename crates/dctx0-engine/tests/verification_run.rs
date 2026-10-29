@@ -507,6 +507,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         [0, 1]
             .into_iter()
             .map(|value| dctx0_verification::OperationCaseInput {
+                argument_bindings: vec![],
                 id: format!("setup-{value}"),
                 invocation: Invocation {
                     subject: "W.Api.next".into(),
@@ -673,6 +674,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     fixtures.operations.insert(
         "W.Api.next".into(),
         vec![dctx0_verification::OperationCaseInput {
+            argument_bindings: vec![],
             id: "reviewed-invalid-input".into(),
             invocation: Invocation {
                 subject: "W.Api.next".into(),
@@ -737,6 +739,7 @@ export const adapter={async describe(){throw new Error('Invalid plans must not e
         fixtures.operations.insert(
             "W.Api.next".into(),
             vec![dctx0_verification::OperationCaseInput {
+                argument_bindings: vec![],
                 id: "invalid-signature".into(),
                 invocation: Invocation {
                     subject: if bad_subject {
@@ -869,6 +872,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     fixtures.operations.insert(
         "W.Api.next".into(),
         vec![dctx0_verification::OperationCaseInput {
+            argument_bindings: vec![],
             id: "setup-declared-failure".into(),
             invocation: Invocation {
                 subject: "W.Api.next".into(),
@@ -3144,6 +3148,7 @@ async fn operation_mock_cases_keep_the_consumer_real_and_detect_changed_call_arg
 export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.Api.next',role:'operation',artifact:'app.ts',entry_point:'nextValue'}],artifacts:['app.ts'],capabilities:['sessions','events','invocation','mock-injection','call-observation'],representations:{Int:'safe integer'}};},async begin(caseId,context){return {async invoke(invocation){const value=await nextValue(Number(invocation.arguments[0].value),async id=>{const actual={subject:'W.Store.load',arguments:[{kind:'integer',value:String(id)}]};const observed=await context.collaborator(actual);context.recordCall(actual,observed);if(observed.kind!=='returned')throw Error('No collaborator result');return Number(observed.value.value);});return {kind:'returned',value:{kind:'integer',value:String(value)}};},async close(){}};}};"#);
     let integer = |value: &str| VerificationValue::Integer(value.into());
     let input = dctx0_verification::OperationCaseInput {
+        argument_bindings: vec![],
         id: "reviewed-consumer".into(),
         invocation: Invocation {
             subject: "W.Api.next".into(),
@@ -3987,6 +3992,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
     fixtures.operations.insert(
         "W.Store.put".into(),
         vec![dctx0_verification::OperationCaseInput {
+            argument_bindings: vec![],
             id: "W.Store.put:contract:replace".into(),
             invocation: Invocation {
                 subject: "W.Store.put".into(),

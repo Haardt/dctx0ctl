@@ -891,6 +891,7 @@ mod tests {
         plan.operations[0]
             .cases
             .push(dctx0_verification::OperationCaseInput {
+                argument_bindings: vec![],
                 id: case.id.clone(),
                 invocation,
                 setup,

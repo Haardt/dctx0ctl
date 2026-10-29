@@ -3,6 +3,8 @@ use dctx0_changes::{Changes, RenameMapping, Snapshot, diff};
 pub use dctx0_changes::{HistoryEntry, HistoryReader, HistoryWriter, RenameEvent};
 use dctx0_changes::{LineagePath, RenameLineage};
 use dctx0_core::Diagnostic;
+mod experimental_coverage;
+pub use experimental_coverage::*;
 mod storage;
 mod storage_maintenance;
 mod storage_spec;
@@ -391,3 +393,6 @@ mod tests {
         assert!(initialize(&mut connection, 0, AccessMode::ReadWrite).is_err());
     }
 }
+
+mod test_analysis;
+pub use test_analysis::AnalysisRecord;

@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def source_hash():
     paths = [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock']
     for directory in ('crates', 'targets'):
-        for pattern in ('**/*.rs', '**/Cargo.toml'):
+        for pattern in ('**/*.rs', '**/*.py', '**/Cargo.toml'):
             paths.extend((ROOT / directory).glob(pattern))
     # Target profiles and helpers are embedded with include_str! in Rust crates.
     for pattern in ('**/*.md', '**/*.ts', '**/*.go'):

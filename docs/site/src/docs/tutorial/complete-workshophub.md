@@ -133,7 +133,13 @@ workspace WorkshopHub {
           ! WorkshopNotFound
           ! InvalidWorkshopState
           ! PersistenceUnavailable {
-          state replaces Workshop by id
+          state replaces Workshop by id from Workshop {
+            id = id
+            title = before.Workshop(id).title
+            capacity = before.Workshop(id).capacity
+            registered = before.Workshop(id).registered
+            status = Published
+          }
         }
         effects { write Workshop }
 
@@ -142,7 +148,13 @@ workspace WorkshopHub {
           ! WorkshopNotFound
           ! InvalidWorkshopState
           ! PersistenceUnavailable {
-          state replaces Workshop by id
+          state replaces Workshop by id from Workshop {
+            id = id
+            title = before.Workshop(id).title
+            capacity = before.Workshop(id).capacity
+            registered = before.Workshop(id).registered
+            status = Cancelled
+          }
         }
         effects { write Workshop }
       }

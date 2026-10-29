@@ -20,7 +20,7 @@ pub(crate) struct SkillInstallArgs {
     project: PathBuf,
     #[arg(long,value_delimiter=',',default_value="agents",value_parser=["agents","claude","codex","copilot","cursor","gemini","opencode","all"])]
     agent: Vec<String>,
-    #[arg(long,value_delimiter=',',value_parser=["dctx0","dctx0-language","dctx0-implementation"])]
+    #[arg(long,value_delimiter=',',value_parser=["dctx0","dctx0-language","dctx0-implementation","dctx0-config","dctx0-delivery"])]
     skill: Vec<String>,
     #[arg(long)]
     global: bool,
@@ -136,7 +136,10 @@ mod tests {
         )
         .unwrap();
         let report: serde_json::Value = serde_json::from_slice(&output).unwrap();
-        assert_eq!(report["installations"].as_array().unwrap().len(), 18);
+        assert_eq!(
+            report["installations"].as_array().unwrap().len(),
+            dctx0_engine::SKILL_NAMES.len() * 6
+        );
         assert!(!root.join(".agents").exists());
         std::fs::remove_dir_all(root).unwrap();
     }

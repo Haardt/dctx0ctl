@@ -189,6 +189,7 @@ pub struct NativeWorker {
     received: usize,
     session_evidence: Vec<NativeSessionEvidence>,
     evidence_bytes: usize,
+    scoped_state_observation: bool,
 }
 pub type NativeMockHandler<'a> =
     dyn FnMut(&Invocation) -> Result<Observation, NativeFailure> + Send + 'a;
@@ -347,6 +348,7 @@ impl NativeWorker {
             received: 0,
             session_evidence: Vec::new(),
             evidence_bytes: 0,
+            scoped_state_observation: false,
         })
     }
     pub fn pid(&self) -> u32 {
@@ -412,6 +414,12 @@ impl NativeWorker {
                             NativeFailureKind::Protocol,
                             "Reply ID does not match the pending request",
                         ));
+                    }
+                    if let WorkerReply::Described { description } = &reply {
+                        self.scoped_state_observation = description
+                            .capabilities
+                            .iter()
+                            .any(|capability| capability == "scoped-state-observation");
                     }
                     return Ok(reply);
                 }

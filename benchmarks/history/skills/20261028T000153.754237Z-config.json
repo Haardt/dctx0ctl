@@ -1,0 +1,96 @@
+{
+  "scope": "Focused config-skill release catalog and isolated installation; no full workspace acceptance claim",
+  "timestamp": "2026-10-28T00:01:42.267054+00:00",
+  "binary_sha256": "3266bd968efe5572b424e3dab43bdd9e20380ad84a41c3ccfa7cfcb44de8b3f2",
+  "baseline_status": "unassessed; no baseline promotion",
+  "samples": [
+    {
+      "workload": "catalog",
+      "sample": 0,
+      "elapsed_ms": 10.85474799037911,
+      "peak_rss_bytes": 19423232,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "workload": "install",
+      "sample": 0,
+      "elapsed_ms": 10.29947999631986,
+      "peak_rss_bytes": 19423232,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "workload": "catalog",
+      "sample": 1,
+      "elapsed_ms": 10.281294991727918,
+      "peak_rss_bytes": 19554304,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "workload": "install",
+      "sample": 1,
+      "elapsed_ms": 10.296583001036197,
+      "peak_rss_bytes": 19554304,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "workload": "catalog",
+      "sample": 2,
+      "elapsed_ms": 10.259444999974221,
+      "peak_rss_bytes": 19554304,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "workload": "install",
+      "sample": 2,
+      "elapsed_ms": 10.381473999586888,
+      "peak_rss_bytes": 19554304,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ],
+  "schema_version": 1,
+  "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+  "dirty_worktree": true,
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "hardware": "x86_64",
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "profile": "release; all-features; locked; no coverage",
+  "warmup": 0,
+  "repetitions": 3,
+  "cache_conditions": "warm OS/build caches; fresh install destination per sample",
+  "source_sha256": {
+    "crates/dctx0-engine/src/skills.rs": "466fed4b6650a1129985d8f451ce46a4ae4fb5a591a3d31504716bbfff7ef688",
+    "crates/dctx0-cli/src/skills.rs": "42300cca732e38e85664c91bcb0c9689d822a8ba00df4df12e98fcaa635c9a22",
+    "skills/dctx0-config/SKILL.md": "85e09a1cb800c8156d075eb398a5050fa7d99f54c18584e1acbe21b1fe226502",
+    "skills/dctx0-config/references/configuration.md": "cb29e5f9069e2a226868c1f3ef57649e65a079d2ec0cfa69dcaa4d8457209656",
+    "skills/dctx0-config/references/query.md": "43ea0e5d93ecef1980b33c155c77bdb3e0df557874dbb832c4c3794a70bf7085",
+    "skills/dctx0-config/references/workflow-measurement.md": "97a945037cdccfa5ec600ebc4469f2fc9126474519813d76c8b938cb642ddd50"
+  },
+  "validation": {
+    "cli_installation_tests": 3,
+    "engine_installation_tests": 5,
+    "skill_validator": "PASS",
+    "rustfmt": "PASS",
+    "release_build": "PASS"
+  },
+  "installed_skill": "/home/held/.codex/skills/dctx0-config",
+  "installed_binary": "/home/held/.local/bin/dctx0",
+  "baseline_comparison": {
+    "status": "unassessed: new focused workloads; baseline unchanged",
+    "absolute_runtime_delta_ms": null,
+    "runtime_delta_percent": null,
+    "absolute_ram_delta_bytes": null,
+    "ram_delta_percent": null
+  }
+}

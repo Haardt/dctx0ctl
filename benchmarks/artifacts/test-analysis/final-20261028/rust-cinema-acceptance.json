@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "scope": "Complete unchanged Rust Cinema; authored review kept separate; targeted production mutations and replay",
+  "mutations": [
+    {
+      "mutation": "winner",
+      "expected_status": "FAIL",
+      "subject": "HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner",
+      "case_id": "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak#assertion:2:0:0",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "ASSERTION_FAILED",
+          "message": "Observed implementation violates the modeled assertion",
+          "span": {
+            "file": "movie-night.dctx0",
+            "start": {
+              "offset": 37138,
+              "line": 966,
+              "column": 14
+            },
+            "end": {
+              "offset": 37436,
+              "line": 972,
+              "column": 56
+            }
+          }
+        }
+      },
+      "mandatory_cases": 233,
+      "recorded_cases": 233,
+      "replay": {
+        "broken": {
+          "status": "FAIL",
+          "issue": {
+            "code": "ASSERTION_FAILED",
+            "message": "Observed implementation violates the modeled assertion",
+            "span": {
+              "file": "movie-night.dctx0",
+              "start": {
+                "offset": 37138,
+                "line": 966,
+                "column": 14
+              },
+              "end": {
+                "offset": 37436,
+                "line": 972,
+                "column": 56
+              }
+            }
+          }
+        },
+        "repaired": {
+          "status": "PASS"
+        },
+        "provenance_changes": 3
+      }
+    },
+    {
+      "mutation": "persistence",
+      "expected_status": "FAIL",
+      "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:contract:update",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "STATE_EFFECT_VIOLATED",
+          "message": "Actual state differs from the complete modeled state effect",
+          "span": {
+            "file": "movie-night.dctx0",
+            "start": {
+              "offset": 14750,
+              "line": 356,
+              "column": 9
+            },
+            "end": {
+              "offset": 14782,
+              "line": 357,
+              "column": 1
+            }
+          }
+        }
+      },
+      "mandatory_cases": 1499,
+      "recorded_cases": 1499
+    },
+    {
+      "mutation": "lifecycle",
+      "expected_status": "FAIL",
+      "subject": "HomeCinema.MovieNight.ScreeningPollLifecycle",
+      "case_id": "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close:contract:real-entry",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "STATE_EFFECT_VIOLATED",
+          "message": "Actual state differs from the complete modeled state effect",
+          "span": {
+            "file": "movie-night.dctx0",
+            "start": {
+              "offset": 32981,
+              "line": 861,
+              "column": 9
+            },
+            "end": {
+              "offset": 33241,
+              "line": 867,
+              "column": 1
+            }
+          }
+        }
+      },
+      "mandatory_cases": 2838,
+      "recorded_cases": 2838
+    },
+    {
+      "mutation": "http",
+      "expected_status": "UNKNOWN",
+      "subject": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm",
+      "case_id": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm:contract:http-entry",
+      "result": {
+        "status": "UNKNOWN",
+        "issue": {
+          "code": "APPLICATION_EXCEPTION",
+          "message": "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm: Unexpected HTTP status 400: {\"error\":\"Incorrect operation arity\"}",
+          "span": null
+        }
+      },
+      "mandatory_cases": 1568,
+      "recorded_cases": 1568
+    },
+    {
+      "mutation": "collaborator-calls",
+      "expected_status": "FAIL",
+      "subject": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote",
+      "case_id": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote:contract:success",
+      "result": {
+        "status": "FAIL",
+        "issue": {
+          "code": "OPERATION_CLAUSE_VIOLATED",
+          "message": "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote: Ensures",
+          "span": {
+            "file": "movie-night.dctx0",
+            "start": {
+              "offset": 35693,
+              "line": 924,
+              "column": 17
+            },
+            "end": {
+              "offset": 35734,
+              "line": 924,
+              "column": 58
+            }
+          }
+        }
+      },
+      "mandatory_cases": 2838,
+      "recorded_cases": 2838
+    }
+  ],
+  "complete": {
+    "adopted_tasks": [],
+    "basis": "deterministic native cases plus explicitly source-bound agent inspection",
+    "inspected_run": "53d0b1c26ba56bdbaf8c9b691e51f91cf0e3011ec065514cfafac130c98c9e6f",
+    "inspected_tasks": [],
+    "mandatory_cases": 5766,
+    "native_result": {
+      "issue": {
+        "code": "MANUAL_REQUIREMENT",
+        "message": "HomeCinema.MovieNight.Catalog#constraint:1: Constraint has no automatically asserted meaning",
+        "span": null
+      },
+      "status": "UNKNOWN"
+    },
+    "native_run": "48d4747568aa6342b62446b6fb6dd799ba34d967435d9892e9a54e88926cbbd6",
+    "non_pass_tasks": 4,
+    "open_tasks": 0,
+    "result": {
+      "status": "PASS"
+    },
+    "reviewed_tasks": [
+      1,
+      103,
+      104,
+      105
+    ],
+    "schema_version": 1,
+    "summary": {
+      "case_count": 5766,
+      "case_inventory_complete": true,
+      "case_subjects": [
+        "HomeCinema.MovieNight.AddComment",
+        "HomeCinema.MovieNight.CastVote",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogApi.changeFilmAvailability",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogApi.getFilm",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogApi.saveFilm",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogApi.searchFilms",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogStore.changeAvailability",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogStore.find",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save",
+        "HomeCinema.MovieNight.Catalog.FilmCatalogStore.search",
+        "HomeCinema.MovieNight.Catalog.change film availability",
+        "HomeCinema.MovieNight.Catalog.save a film in the collection",
+        "HomeCinema.MovieNight.Catalog.search and filter the film overview",
+        "HomeCinema.MovieNight.Catalog.unknown film details",
+        "HomeCinema.MovieNight.ChangeAvailability",
+        "HomeCinema.MovieNight.Comment",
+        "HomeCinema.MovieNight.CommentAdded",
+        "HomeCinema.MovieNight.CommentId",
+        "HomeCinema.MovieNight.CommentNotFound",
+        "HomeCinema.MovieNight.CommentOverview",
+        "HomeCinema.MovieNight.CommentText",
+        "HomeCinema.MovieNight.CommentView",
+        "HomeCinema.MovieNight.Community.CommentStore.append",
+        "HomeCinema.MovieNight.Community.CommentStore.listByFilm",
+        "HomeCinema.MovieNight.Community.FilmCommunityApi.addComment",
+        "HomeCinema.MovieNight.Community.FilmCommunityApi.getFilmRating",
+        "HomeCinema.MovieNight.Community.FilmCommunityApi.listComments",
+        "HomeCinema.MovieNight.Community.FilmCommunityApi.rateFilm",
+        "HomeCinema.MovieNight.Community.FilmPresence.exists",
+        "HomeCinema.MovieNight.Community.RatingStore.summary",
+        "HomeCinema.MovieNight.Community.RatingStore.upsert",
+        "HomeCinema.MovieNight.Community.add a comment",
+        "HomeCinema.MovieNight.Community.list comments for a film",
+        "HomeCinema.MovieNight.Community.replace a rating with five stars",
+        "HomeCinema.MovieNight.Community.show the member rating",
+        "HomeCinema.MovieNight.Film",
+        "HomeCinema.MovieNight.FilmAvailability",
+        "HomeCinema.MovieNight.FilmAvailabilityChanged",
+        "HomeCinema.MovieNight.FilmDetails",
+        "HomeCinema.MovieNight.FilmId",
+        "HomeCinema.MovieNight.FilmNotFound",
+        "HomeCinema.MovieNight.FilmOverview",
+        "HomeCinema.MovieNight.FilmRated",
+        "HomeCinema.MovieNight.FilmSaved",
+        "HomeCinema.MovieNight.FilmSearch",
+        "HomeCinema.MovieNight.FilmSort",
+        "HomeCinema.MovieNight.FilmSummary",
+        "HomeCinema.MovieNight.FilmVote",
+        "HomeCinema.MovieNight.FilmVoteResult",
+        "HomeCinema.MovieNight.Genre",
+        "HomeCinema.MovieNight.MemberId",
+        "HomeCinema.MovieNight.OpenVoting",
+        "HomeCinema.MovieNight.PageLimit",
+        "HomeCinema.MovieNight.PageOffset",
+        "HomeCinema.MovieNight.PersistenceUnavailable",
+        "HomeCinema.MovieNight.PollId",
+        "HomeCinema.MovieNight.PollNotFound",
+        "HomeCinema.MovieNight.PollStatus",
+        "HomeCinema.MovieNight.RateFilm",
+        "HomeCinema.MovieNight.Rating",
+        "HomeCinema.MovieNight.RatingSummary",
+        "HomeCinema.MovieNight.ReleaseYear",
+        "HomeCinema.MovieNight.RuntimeMinutes",
+        "HomeCinema.MovieNight.SaveFilm",
+        "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak",
+        "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.castVote",
+        "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.closeVoting",
+        "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.getCurrentVoting",
+        "HomeCinema.MovieNight.ScreeningPlanning.ScreeningPlanningApi.openVoting",
+        "HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner",
+        "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.cast",
+        "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.close",
+        "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.current",
+        "HomeCinema.MovieNight.ScreeningPlanning.VotingStore.open",
+        "HomeCinema.MovieNight.ScreeningPlanning.cast or replace a film vote",
+        "HomeCinema.MovieNight.ScreeningPlanning.close voting with a deterministic winner",
+        "HomeCinema.MovieNight.ScreeningPlanning.open voting for the next appointment",
+        "HomeCinema.MovieNight.ScreeningPlanning.show the current voting",
+        "HomeCinema.MovieNight.ScreeningPoll",
+        "HomeCinema.MovieNight.ScreeningPollLifecycle",
+        "HomeCinema.MovieNight.StarRating",
+        "HomeCinema.MovieNight.VoteCast",
+        "HomeCinema.MovieNight.VotingClosed",
+        "HomeCinema.MovieNight.VotingCompleted",
+        "HomeCinema.MovieNight.VotingOpened",
+        "HomeCinema.MovieNight.VotingOverview"
+      ],
+      "causes": {},
+      "check_occurrence": 3,
+      "created_at": "2026-10-28T14:33:46.142Z",
+      "details_available": true,
+      "id": "53d0b1c26ba56bdbaf8c9b691e51f91cf0e3011ec065514cfafac130c98c9e6f",
+      "missing_case_count": 0,
+      "open_obligation_count": 0,
+      "open_obligation_count_available": true,
+      "origin": "imported",
+      "outcomes": [
+        5766,
+        0,
+        0
+      ],
+      "provenance_hash": "68bba35d79235471800bbe95a9bea32f0a087edb5086df84551e0459a1c10387",
+      "pruned_at": null,
+      "required_case_count": 5766,
+      "required_subject_count": 117,
+      "result": {
+        "status": "PASS"
+      },
+      "schema_version": 1,
+      "selected_subjects": [
+        "HomeCinema.MovieNight"
+      ],
+      "snapshot": "00cf2ec6cf8a512fb392a45ffdc0e9ff153f319480edf51e7636d978fbe6cc49",
+      "started_at_unix_ns": "1793197998407001742",
+      "target": "rust"
+    },
+    "tasks": 105
+  },
+  "spec_hashes": {
+    "movie-night.dctx0": "39b8c23eb49c0c2a89a62c37902c9c2722597e472b5476235100f38c35e2e88e",
+    "workspace.dctx0": "6d363ddab2910ea5864931e28a243f721251b75adf31b98f4ecc1c6fdffd0195"
+  },
+  "semantic_plan_equal": true
+}

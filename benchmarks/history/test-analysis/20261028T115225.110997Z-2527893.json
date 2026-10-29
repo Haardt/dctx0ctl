@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261028T115225.110997Z",
+  "status": "incomplete",
+  "source_hash": "1c7faa1421d9385331fc11e727561a11f14740cc76a151f95a48f1f5341c1da4",
+  "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+  "dirty_worktree": true,
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "machine": "x86_64",
+    "cpu_count": 16
+  },
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "measurements": {},
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "elapsed_ms": 952.1118790144101,
+      "peak_rss_bytes": 61034496,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "dctx0-test-analysis",
+        "-p",
+        "dctx0-store",
+        "-p",
+        "dctx0-engine",
+        "-p",
+        "dctx0-cli",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "elapsed_ms": 1965.7701140095014,
+      "peak_rss_bytes": 343457792,
+      "returncode": 101
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-test-analysis",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 1009.346874023322,
+      "peak_rss_bytes": 263540736,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--test",
+        "test_analysis",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 3686.3064669887535,
+      "peak_rss_bytes": 679100416,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "test_analysis",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 7057.344697997905,
+      "peak_rss_bytes": 742182912,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "test_analysis",
+        "--test",
+        "experimental_coverage",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 29235.273172002053,
+      "peak_rss_bytes": 723525632,
+      "returncode": 101
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests"
+      ],
+      "elapsed_ms": 3984.462207998149,
+      "peak_rss_bytes": 155574272,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 31944.72716897144,
+      "peak_rss_bytes": 1336647680,
+      "returncode": 0
+    }
+  ],
+  "settings": {
+    "samples": 1,
+    "warmup_runs": 1,
+    "profile": "release",
+    "cache": "warm filesystem; fresh Cargo target directory for catalog/collection/replay",
+    "fixture": "two libtest tests; two commits; one observed production failure"
+  },
+  "memory_scope": "Linux wait4 ru_maxrss: maximum child/its waited descendants, includes pre-exec parent footprint; concurrent RSS is not summed; build/test RSS additionally present in exported collection/observation data",
+  "baseline_status": "unassessed: no accepted baseline for these workloads",
+  "scope": "partial research validation; not workspace coverage acceptance",
+  "error": "Functional checks or release build failed; see raw logs",
+  "source_hash_after": "1c7faa1421d9385331fc11e727561a11f14740cc76a151f95a48f1f5341c1da4"
+}

@@ -73,6 +73,12 @@ type observeRequest struct {
 	Entities []string `json:"entities"`
 }
 
+type observeInvocationRequest struct {
+	Kind       string     `json:"kind"`
+	Entities   []string   `json:"entities"`
+	Invocation Invocation `json:"invocation"`
+}
+
 type endRequest struct {
 	Kind string `json:"kind"`
 }
@@ -736,6 +742,40 @@ func runRequest(id uint64, raw json.RawMessage) error {
 			}
 		}
 		return send(observedReply{Kind: "observed", States: states})
+	case "observe-invocation":
+		var request observeInvocationRequest
+		if err := decodeStrict(raw, &request); err != nil {
+			return err
+		}
+		active, err := requireSession()
+		if err != nil {
+			return err
+		}
+		observer, ok := active.(ScopedStateObserver)
+		if !ok {
+			return AdapterError(errors.New("No actual scoped state observer"))
+		}
+		if !subjects[request.Invocation.Subject] {
+			return errors.New("Observation invocation outside selected subjects")
+		}
+		for _, entity := range request.Entities {
+			if !subjects[entity] {
+				return errors.New("Observation outside selected subjects")
+			}
+		}
+		states, err := observer.ObserveInvocation(request.Invocation, request.Entities)
+		if err != nil {
+			return err
+		}
+		if states == nil {
+			states = map[string][]Value{}
+		}
+		for entity, rows := range states {
+			if rows == nil {
+				states[entity] = []Value{}
+			}
+		}
+		return send(observedReply{Kind: "observed", States: states})
 	case "end":
 		var request endRequest
 		if err := decodeStrict(raw, &request); err != nil {
@@ -842,9 +882,11 @@ func runExecutor() {
 			id := item.id
 			cleanup := end()
 			category := "unclassified"
-            var attributed *TechnicalError
-            if errors.As(err, &attributed) && (attributed.Category == "adapter" || attributed.Category == "environment") { category = attributed.Category }
-            technical(&id, category, err)
+			var attributed *TechnicalError
+			if errors.As(err, &attributed) && (attributed.Category == "adapter" || attributed.Category == "environment") {
+				category = attributed.Category
+			}
+			technical(&id, category, err)
 			if cleanup != nil {
 				technical(&id, "cleanup", cleanup)
 			}

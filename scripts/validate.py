@@ -33,7 +33,7 @@ def digest(paths):
 
 
 def validation_sources():
-    paths = [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock', *ROOT.glob('crates/**/*.rs'), *ROOT.glob('crates/**/Cargo.toml'), *ROOT.glob('scripts/**/*.py'), *ROOT.glob('targets/**/*.rs'), *ROOT.glob('targets/**/Cargo.toml'), *ROOT.glob('targets/**/*.md'), *ROOT.glob('targets/**/*.ts'), *ROOT.glob('examples/cinema/src/**/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/typescript/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/**/*.json'), ROOT / 'examples/cinema/package.json', ROOT / 'examples/cinema/bun.lock']
+    paths = [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock', *ROOT.glob('crates/**/*.rs'), *ROOT.glob('crates/**/*.py'), *ROOT.glob('crates/**/Cargo.toml'), *ROOT.glob('scripts/**/*.py'), *ROOT.glob('targets/**/*.rs'), *ROOT.glob('targets/**/Cargo.toml'), *ROOT.glob('targets/**/*.md'), *ROOT.glob('targets/**/*.ts'), *ROOT.glob('examples/cinema/src/**/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/typescript/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/**/*.json'), ROOT / 'examples/cinema/package.json', ROOT / 'examples/cinema/bun.lock']
     adaptive = ROOT / 'fixtures/conformance/adaptive-typescript'
     paths.extend(adaptive.glob('*/src/**/*.ts'))
     paths.extend(adaptive.glob('*/.dctx0/testing/**/*.ts'))
@@ -332,6 +332,19 @@ def validation_step(command, returncode):
     return step
 
 
+def read_analysis_report(stdout, source_hash):
+    lines = stdout.splitlines()
+    if not lines:
+        raise ValueError('Research measurement did not publish a receipt')
+    path = Path(lines[-1])
+    if path.parent != ROOT / 'benchmarks/history/test-analysis':
+        raise ValueError('Unexpected research measurement receipt path')
+    report = json.loads(path.read_text())
+    if report.get('schema_version') != 1 or report.get('status') != 'complete' or not source_hash == report.get('source_hash') == report.get('source_hash_after'):
+        raise ValueError('Research measurement receipt is incomplete or uses different source inputs')
+    return report
+
+
 def main():
     os.environ.setdefault("DCTX0_TEST_PYTHON", sys.executable)
     # Match CI's bounded QA images. Large symbol-heavy debug executables can
@@ -347,7 +360,7 @@ def main():
     parser.add_argument('--coverage', action='store_true', help='enforce 97%% line/function coverage')
     parser.add_argument('--tutorial', action='store_true', help='validate all 16 TypeScript steps, feature coverage, mutations and replay; measure representative tutorial Rust phases last')
     parser.add_argument('--skip-performance', action='store_true', help='defer release measurements; save check results separately from benchmark history')
-    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification', 'editors', 'conformance-reviews', 'workflow-tools', 'bindings'), default='workspace', help='non-workspace focuses are partial development checks; release measurements still run')
+    parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification', 'editors', 'conformance-reviews', 'workflow-tools', 'bindings', 'experimental-coverage'), default='workspace', help='non-workspace focuses are partial development checks; release measurements still run')
     parser.add_argument('--samples', type=int, default=5)
     parser.add_argument('--iterations', type=int, default=20)
     parser.add_argument('--speed-tolerance', type=float, default=20)
@@ -369,6 +382,19 @@ def main():
                 ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--locked'],
                 ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--features', 'rust', '--locked'],
                 ['cargo', 'test', '--no-fail-fast', '-p', 'dctx0-cli', '--no-default-features', '--features', 'go', '--locked']]
+    if args.focus == 'experimental-coverage':
+        if args.coverage:
+            parser.error('Coverage acceptance requires workspace focus')
+        commands = commands[:5] + [
+            ['cargo', 'test', '-p', 'dctx0-test-analysis', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-store', '--test', 'test_analysis', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'test_analysis', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'test_analysis', '--all-features', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-engine', '--lib', 'coverage_affected', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-store', '--test', 'experimental_coverage', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'experimental_coverage', '--all-features', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'experimental_coverage', '--no-default-features', '--locked'],
+        ]
     if args.focus == 'native-transport':
         if args.coverage:
             parser.error('Coverage acceptance requires workspace focus')
@@ -411,7 +437,7 @@ def main():
     for command in commands:
         if command[:2] == ['cargo', 'test']:
             command.extend(['--', '--skip', 'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'])
-    if args.focus not in ('editors', 'conformance-reviews', 'workflow-tools', 'bindings'):
+    if args.focus not in ('editors', 'conformance-reviews', 'workflow-tools', 'bindings', 'experimental-coverage'):
         commands.insert(0, ['bun', 'install', '--frozen-lockfile', '--cwd', 'examples/cinema'])
         commands.insert(1, ['bun', 'run', '--cwd', 'examples/cinema', 'typecheck'])
         commands.insert(2, ['bun', 'test', 'examples/cinema/src', './examples/cinema/.dctx0/testing/typescript/http-integration.test.ts', './examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts'])
@@ -438,7 +464,7 @@ def main():
             ['bun', 'examples/tutorial/mutation-acceptance.ts'],
             ['bun', 'examples/tutorial/verify-variants.ts', '--skip-performance'],
         ])
-    if args.focus not in ('conformance-reviews', 'workflow-tools', 'bindings'):
+    if args.focus not in ('conformance-reviews', 'workflow-tools', 'bindings', 'experimental-coverage'):
         commands.append([sys.executable, 'scripts/editor_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--functional-only'])
     if args.coverage:
         commands.append([sys.executable, 'scripts/coverage.py'] + (['--skip-performance'] if args.skip_performance else []))
@@ -504,6 +530,22 @@ def main():
         validation_steps.append({'command': command, 'returncode': returncode})
         passed = passed and returncode == 0
     record = benchmark(args)
+    analysis_command = [sys.executable, 'scripts/test_analysis_acceptance.py', '--measure-only', '--samples', str(args.samples)]
+    analysis_result = subprocess.run(analysis_command, cwd=ROOT, stdout=subprocess.PIPE, text=True)
+    print(analysis_result.stdout, end='', flush=True)
+    analysis_code = analysis_result.returncode
+    try:
+        analysis_report = read_analysis_report(analysis_result.stdout, record.get('source_hash'))
+        record['test_analysis'] = analysis_report
+        for name, metrics in analysis_report['measurements'].items():
+            record['measurements']['test-analysis/' + name] = {
+                **metrics, 'iterations': 1, 'protocol_version': 1,
+                'memory_scope': analysis_report['memory_scope']}
+    except (OSError, ValueError) as error:
+        analysis_code = 1
+        record['test_analysis'] = {'status': 'unavailable', 'error': str(error)}
+    validation_steps.append({'command': analysis_command, 'returncode': analysis_code})
+    passed = passed and analysis_code == 0
     query_command = [sys.executable, 'scripts/query_acceptance.py', '--measure-only', '--binary', str(ROOT / 'target/release/dctx0'), '--samples', str(args.samples)]
     query_code = subprocess.run(query_command, cwd=ROOT).returncode
     validation_steps.append({'command': query_command, 'returncode': query_code})

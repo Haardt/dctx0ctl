@@ -40,6 +40,9 @@ pub(crate) fn run(args: &[String], output: &mut dyn Write) -> Result<bool, Strin
     let project = |path: &Path| Project::new(path, cli.db.as_deref()).map_err(error_message);
     let mut valid = true;
     match cli.command {
+        Command::Experimental(args) => {
+            valid = crate::experimental::run(args, cli.db.as_deref(), output)?
+        }
         Command::Lsp { project, stdio: _ } => {
             dctx0_lsp::serve_stdio(dctx0_lsp::ServerOptions { project })?
         }

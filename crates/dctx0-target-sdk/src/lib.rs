@@ -135,6 +135,10 @@ pub enum WorkerRequest {
     Observe {
         entities: Vec<String>,
     },
+    ObserveInvocation {
+        entities: Vec<String>,
+        invocation: Invocation,
+    },
     End,
     Shutdown,
     MockReply {

@@ -48,12 +48,15 @@ class PerformanceTests(unittest.TestCase):
         self.store = Path(self.temporary.name) / 'benchmarks'
         self.patch = patch.object(validate, 'STORE', self.store)
         self.patch.start()
+        self.analysis_patch = patch.object(validate, 'read_analysis_report', return_value={'measurements': {}, 'memory_scope': 'mock measurement'})
+        self.analysis_patch.start()
         self.args = argparse.Namespace(speed_tolerance=20, ram_tolerance=10)
         self.output = contextlib.redirect_stdout(io.StringIO())
         self.output.__enter__()
 
     def tearDown(self):
         self.output.__exit__(None, None, None)
+        self.analysis_patch.stop()
         self.patch.stop()
         self.temporary.cleanup()
 
@@ -149,7 +152,7 @@ class PerformanceTests(unittest.TestCase):
         def run(command, **kwargs):
             calls.append(command)
             failed = command[:2] == ['cargo', 'test'] or 'scripts/coverage.py' in command
-            return argparse.Namespace(returncode=1 if failed else 0)
+            return argparse.Namespace(stdout='', returncode=1 if failed else 0)
         with patch.object(validate.sys, 'argv', ['validate.py', '--coverage', '--samples', '1', '--iterations', '1']), patch.object(validate.subprocess, 'run', side_effect=run), patch.object(validate, 'benchmark', return_value=record()), patch.object(validate, 'save', side_effect=lambda result, args: saved.append(copy.deepcopy(result)) or True):
             self.assertEqual(validate.main(), 1)
         self.assertTrue(any('scripts/coverage.py' in command for command in calls))
@@ -162,7 +165,7 @@ class PerformanceTests(unittest.TestCase):
     def test_deferred_performance_keeps_checks_and_never_writes_benchmark_history(self):
         for failed in (False, True):
             reports = []
-            with patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification', '--skip-performance']), patch.object(validate.subprocess, 'run', return_value=argparse.Namespace(returncode=int(failed))) as runner, patch.object(validate, 'digest', return_value='checked'), patch.object(validate, 'validation_sources', return_value=[]), patch.object(validate, 'benchmark') as benchmark, patch.object(validate, 'save') as save, patch.object(validate, 'atomic', side_effect=lambda path, report: reports.append(report)):
+            with patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification', '--skip-performance']), patch.object(validate.subprocess, 'run', return_value=argparse.Namespace(stdout='', returncode=int(failed))) as runner, patch.object(validate, 'digest', return_value='checked'), patch.object(validate, 'validation_sources', return_value=[]), patch.object(validate, 'benchmark') as benchmark, patch.object(validate, 'save') as save, patch.object(validate, 'atomic', side_effect=lambda path, report: reports.append(report)):
                 self.assertEqual(validate.main(), int(failed))
             benchmark.assert_not_called()
             save.assert_not_called()
@@ -183,7 +186,7 @@ class PerformanceTests(unittest.TestCase):
                 self.assertTrue(temporary.is_dir())
                 self.assertTrue(temporary.is_relative_to(cache / 'dctx0ctl'))
                 environments.append(temporary)
-            return argparse.Namespace(returncode=0)
+            return argparse.Namespace(stdout='', returncode=0)
         measured = record() | {'source_hash': 'checked'}
         with patch.dict(validate.os.environ, {'XDG_CACHE_HOME': str(cache), 'TMPDIR': '/original-temporary-root'}), patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification']), patch.object(validate.subprocess, 'run', side_effect=run), patch.object(validate, 'digest', return_value='checked'), patch.object(validate, 'validation_sources', return_value=[]), patch.object(validate, 'benchmark', return_value=measured) as benchmark, patch.object(validate, 'save', return_value=True):
             self.assertEqual(validate.main(), 0)
@@ -197,7 +200,7 @@ class PerformanceTests(unittest.TestCase):
         for hashes, measured_hash, expected in [(('before', 'changed'), 'changed', 1), (('checked', 'checked'), 'changed', 1), (('checked', 'checked'), 'checked', 0)]:
             saved = []
             measured = record() | {'source_hash': measured_hash}
-            with patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification']), patch.object(validate.subprocess, 'run', return_value=argparse.Namespace(returncode=0)), patch.object(validate, 'digest', side_effect=hashes), patch.object(validate, 'validation_sources', return_value=[]), patch.object(validate, 'benchmark', return_value=measured), patch.object(validate, 'save', side_effect=lambda result, args: saved.append(copy.deepcopy(result)) or True):
+            with patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification']), patch.object(validate.subprocess, 'run', return_value=argparse.Namespace(stdout='', returncode=0)), patch.object(validate, 'digest', side_effect=hashes), patch.object(validate, 'validation_sources', return_value=[]), patch.object(validate, 'benchmark', return_value=measured), patch.object(validate, 'save', side_effect=lambda result, args: saved.append(copy.deepcopy(result)) or True):
                 self.assertEqual(validate.main(), expected)
             self.assertEqual(saved[0]['validation_status'], 'fail' if expected else 'pass')
             self.assertEqual(saved[0]['validation_source_hash'], hashes[0])
@@ -217,11 +220,11 @@ class PerformanceTests(unittest.TestCase):
                     if command[:2] == ['bun', 'install']:
                         dependency.parent.mkdir(parents=True, exist_ok=True)
                         dependency.write_text('{"version":"pinned"}')
-                        return argparse.Namespace(returncode=int(preparation_failed))
+                        return argparse.Namespace(stdout='', returncode=int(preparation_failed))
                     self.assertTrue(dependency.exists(), 'Checks must follow dependency preparation')
                     if mutate and command[:2] == ['cargo', 'test']:
                         dependency.write_text('{"version":"changed during tests"}')
-                    return argparse.Namespace(returncode=0)
+                    return argparse.Namespace(stdout='', returncode=0)
                 def benchmark(args):
                     return record() | {'source_hash': validate.digest(sources())}
                 with patch.object(validate, 'ROOT', root), patch.object(validate.sys, 'argv', ['validate.py', '--focus', 'verification', '--example', 'cinema']), patch.object(validate, 'validation_sources', side_effect=sources), patch.object(validate.subprocess, 'run', side_effect=run), patch.object(validate, 'benchmark', side_effect=benchmark), patch.object(validate, 'save', side_effect=lambda result, args: saved.append(copy.deepcopy(result)) or True):
@@ -246,3 +249,25 @@ class ValidationStatusTests(unittest.TestCase):
         self.assertEqual(validate.validation_status([unavailable, failure]), 'fail')
         self.assertEqual(validate.validation_status([validate.validation_step(command, 1)]), 'fail')
         self.assertEqual(validate.validation_status([validate.validation_step(command, 0)]), 'pass')
+
+
+class ResearchReceiptTests(unittest.TestCase):
+    def test_receipt_requires_exact_source_pin_complete_run_and_owned_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'benchmarks/history/test-analysis/run.json'
+            path.parent.mkdir(parents=True)
+            receipt = {'schema_version': 1, 'status': 'complete', 'source_hash': 'source', 'source_hash_after': 'source'}
+            path.write_text(json.dumps(receipt))
+            with patch.object(validate, 'ROOT', root):
+                self.assertEqual(validate.read_analysis_report(str(path), 'source'), receipt)
+                with self.assertRaises(ValueError):
+                    validate.read_analysis_report(str(path), 'different')
+                with self.assertRaises(ValueError):
+                    validate.read_analysis_report('', 'source')
+                with self.assertRaises(ValueError):
+                    validate.read_analysis_report('/unowned/receipt.json', 'source')
+                receipt['status'] = 'incomplete'
+                path.write_text(json.dumps(receipt))
+                with self.assertRaises(ValueError):
+                    validate.read_analysis_report(str(path), 'source')

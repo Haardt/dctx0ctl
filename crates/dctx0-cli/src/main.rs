@@ -3,6 +3,7 @@ mod benchmark;
 mod codec_scaffold;
 mod commands;
 mod editors;
+mod experimental;
 mod harness_benchmark;
 mod metrics;
 mod profile_benchmark;

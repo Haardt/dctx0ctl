@@ -13,6 +13,8 @@ pub struct OperationCaseInput {
     pub invocation: Invocation,
     pub setup: Vec<Invocation>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub argument_bindings: Vec<crate::OperationArgumentBinding>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mocks: Vec<crate::OperationMock>,
 }
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
@@ -27,6 +29,14 @@ pub struct OperationAssessment {
     pub checked: Vec<String>,
     pub open: Vec<VerificationIssue>,
     pub result: VerificationResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending_call: Option<OperationClauseCall>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperationClauseCall {
+    pub key: String,
+    pub invocation: Invocation,
 }
 fn issue(
     plan: &OperationPlan,
@@ -48,44 +58,77 @@ fn expression(
     context: &ObservationContext,
     budgets: &VerificationBudgets,
 ) -> VerificationResult {
+    clause_expression(
+        ir,
+        plan,
+        node,
+        variables,
+        context,
+        budgets,
+        &BTreeMap::new(),
+    )
+    .unwrap_or_else(|_| VerificationResult::Unknown {
+        issue: issue(
+            plan,
+            "CLAUSE_OBSERVATION_REQUIRED",
+            "Clause needs a native pure-call observation",
+            Some(node.span.clone()),
+        ),
+    })
+}
+fn clause_expression(
+    ir: &WorkspaceIr,
+    plan: &OperationPlan,
+    node: &SemanticNode,
+    variables: &BTreeMap<String, VerificationValue>,
+    context: &ObservationContext,
+    budgets: &VerificationBudgets,
+    observations: &BTreeMap<String, Vec<InvocationObservation>>,
+) -> Result<VerificationResult, OperationClauseCall> {
     if node.expressions.is_empty() {
-        return VerificationResult::Unknown {
+        return Ok(VerificationResult::Unknown {
             issue: issue(
                 plan,
                 "CLAUSE_NOT_EXECUTABLE",
                 "Clause has no typed Boolean expression",
                 Some(node.span.clone()),
             ),
-        };
+        });
     }
-    for expression in &node.expressions {
-        match evaluate_observed(ir, expression, variables, &[], context, budgets) {
+    for (index, expression) in node.expressions.iter().enumerate() {
+        let key = format!("{}:{index}", node.id);
+        let tape = observations
+            .get(&key)
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        match evaluate_observed(ir, expression, variables, tape, context, budgets) {
             Evaluation::Complete(VerificationValue::Boolean(true)) => {}
             Evaluation::Complete(VerificationValue::Boolean(false)) => {
-                return VerificationResult::Fail {
+                return Ok(VerificationResult::Fail {
                     issue: issue(
                         plan,
                         "OPERATION_CLAUSE_VIOLATED",
                         format!("{:?}", node.kind),
                         Some(expression.span.clone()),
                     ),
-                };
+                });
             }
-            Evaluation::Unknown(issue) => return VerificationResult::Unknown { issue },
-            Evaluation::ApplicationFailure(issue) => return VerificationResult::Fail { issue },
+            Evaluation::Invoke(invocation) => return Err(OperationClauseCall { key, invocation }),
+            Evaluation::Unknown(issue) => return Ok(VerificationResult::Unknown { issue }),
+            Evaluation::ApplicationFailure(issue) => return Ok(VerificationResult::Fail { issue }),
             _ => {
-                return VerificationResult::Unknown {
+                return Ok(VerificationResult::Unknown {
                     issue: issue(
                         plan,
                         "CLAUSE_OBSERVATION_REQUIRED",
                         "Clause needs a missing call observation or Boolean result",
                         Some(expression.span.clone()),
                     ),
-                };
+                });
             }
         }
     }
-    VerificationResult::Pass
+    Ok(VerificationResult::Pass)
 }
 fn bindings(
     plan: &OperationPlan,
@@ -158,11 +201,24 @@ pub fn assess_operation(
     context: &ObservationContext,
     budgets: &VerificationBudgets,
 ) -> OperationAssessment {
+    assess_operation_continued(ir, plan, observed, context, budgets, &BTreeMap::new())
+}
+/// Clause oracle calls have their own positional tapes. They are not application
+/// effect/call observations and cannot satisfy a modeled `calls` obligation.
+pub fn assess_operation_continued(
+    ir: &WorkspaceIr,
+    plan: &OperationPlan,
+    observed: &InvocationObservation,
+    context: &ObservationContext,
+    budgets: &VerificationBudgets,
+    observations: &BTreeMap<String, Vec<InvocationObservation>>,
+) -> OperationAssessment {
     let mut report = OperationAssessment {
         subject: plan.operation.id.clone(),
         checked: vec![],
         open: vec![],
         result: operation_ready(ir, plan, &observed.invocation, context, budgets),
+        pending_call: None,
     };
     if report.result != VerificationResult::Pass {
         return report;
@@ -250,7 +306,23 @@ pub fn assess_operation(
     for node in &plan.clauses {
         let result = match node.kind {
             StatementKind::Requires => VerificationResult::Pass,
-            StatementKind::Ensures => expression(ir, plan, node, &variables, &after, budgets),
+            StatementKind::Ensures => {
+                match clause_expression(ir, plan, node, &variables, &after, budgets, observations) {
+                    Ok(result) => result,
+                    Err(call) => {
+                        report.pending_call = Some(call);
+                        report.result = VerificationResult::Unknown {
+                            issue: issue(
+                                plan,
+                                "CLAUSE_OBSERVATION_REQUIRED",
+                                "Clause needs a native pure-call observation",
+                                Some(node.span.clone()),
+                            ),
+                        };
+                        return report;
+                    }
+                }
+            }
             StatementKind::State => {
                 crate::operation_state::assess_state(ir, plan, node, &variables, &after, budgets)
             }

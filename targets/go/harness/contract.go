@@ -99,6 +99,12 @@ type StateObserver interface {
 	Observe(entities []string) (map[string][]Value, error)
 }
 
+// ScopedStateObserver receives actual invocation arguments to select owned records.
+// It must not execute the invocation or count snapshot reads as application effects.
+type ScopedStateObserver interface {
+	ObserveInvocation(invocation Invocation, entities []string) (map[string][]Value, error)
+}
+
 // ProjectAdapter is implemented once per project in the adapter file.
 // The generated worker consumes the package-level variable `adapter`.
 type ProjectAdapter interface {

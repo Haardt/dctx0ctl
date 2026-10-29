@@ -17,7 +17,7 @@ fn problem(node: &SemanticNode, code: &str, message: &str, failed: bool) -> Veri
         VerificationResult::Unknown { issue }
     }
 }
-fn marker(node: &SemanticNode, name: &str) -> bool {
+pub(crate) fn marker(node: &SemanticNode, name: &str) -> bool {
     let mut depth = 0usize;
     for term in node.terms.iter().skip(2) {
         if depth == 0 && term.text == name {
@@ -61,8 +61,12 @@ fn unalias<'a>(
     }
     None
 }
-fn explicit_projection(plan: &OperationPlan) -> Option<&Expression> {
+fn explicit_projection<'a>(
+    plan: &'a OperationPlan,
+    budgets: &VerificationBudgets,
+) -> Option<&'a Expression> {
     let mut values = Vec::new();
+    let mut remaining = budgets.evaluation_steps;
     for expression in plan
         .clauses
         .iter()
@@ -81,25 +85,57 @@ fn explicit_projection(plan: &OperationPlan) -> Option<&Expression> {
             }
             _ => expression,
         };
-        if let ExpressionKind::Binary {
-            operator,
-            left,
-            right,
-        } = &expression.value
-        {
-            if operator == "==" {
-                if matches!(&left.value,ExpressionKind::Variable{name} if name=="result") {
-                    values.push(right.as_ref());
-                } else if matches!(&right.value,ExpressionKind::Variable{name} if name=="result") {
-                    values.push(left.as_ref());
-                }
-            }
+        if !collect_projection(
+            expression,
+            &mut values,
+            &mut remaining,
+            budgets.recursion_depth,
+        ) {
+            return None;
         }
     }
     if values.len() == 1 {
         values.pop()
     } else {
         None
+    }
+}
+
+// Only conjunctions make their nested equality unconditional. Do not extract
+// projections from alternatives or other conditional expressions.
+fn collect_projection<'a>(
+    expression: &'a Expression,
+    values: &mut Vec<&'a Expression>,
+    remaining: &mut usize,
+    depth: usize,
+) -> bool {
+    if *remaining == 0 {
+        return false;
+    }
+    *remaining -= 1;
+    let ExpressionKind::Binary {
+        operator,
+        left,
+        right,
+    } = &expression.value
+    else {
+        return true;
+    };
+    match operator.as_str() {
+        "and" | "&&" => {
+            depth > 0
+                && collect_projection(left, values, remaining, depth - 1)
+                && collect_projection(right, values, remaining, depth - 1)
+        }
+        "==" => {
+            if matches!(&left.value,ExpressionKind::Variable{name} if name=="result") {
+                values.push(right.as_ref());
+            } else if matches!(&right.value,ExpressionKind::Variable{name} if name=="result") {
+                values.push(left.as_ref());
+            }
+            true
+        }
+        _ => true,
     }
 }
 pub(crate) fn assess_state(
@@ -326,7 +362,7 @@ pub(crate) fn assess_state(
             true,
         );
     }
-    if let Some(projection) = explicit_projection(plan) {
+    if let Some(projection) = explicit_projection(plan, budgets) {
         let mut independent = variables.clone();
         independent.remove("result");
         return match evaluate_observed(ir, projection, &independent, &[], context, budgets) {

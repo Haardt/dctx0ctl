@@ -1,0 +1,2009 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-10-27T23:59:08.727384+00:00",
+  "status": "scoped_validation_complete_workspace_acceptance_incomplete",
+  "feature": "dctx0 experimental coverage",
+  "baseline_promoted": false,
+  "validation_command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:$PATH python3 scripts/validate.py --focus experimental-coverage --samples 1 --iterations 1",
+  "smoke": {
+    "test_id": "path+file:///home/held/workspaces/compinion/dctx0ctl/crates/dctx0-language#0.3.0::parser::lexer_preserves_numbers_operators_strings_and_unicode_positions",
+    "outcome": "pass",
+    "test_duration_ms": 20.523269005934708,
+    "test_peak_rss_bytes": 22249472,
+    "build_ms": 4006.969707988901,
+    "build_peak_rss_bytes": 373407744,
+    "provenance": {
+      "artifacts": "/home/held/workspaces/compinion/dctx0ctl/.dctx0ctl/coverage/1793145507854013665-1738735",
+      "binary_sha256": "5f9a90a1e69484cc7fdc47c7c283e4fe714267d83864795122b8782c10b85808",
+      "build_ms": 4006.969707988901,
+      "build_peak_rss_bytes": 373407744,
+      "coverage_available": true,
+      "coverage_scope": "instrumented Rust objects in this test executable; child/native coverage not included",
+      "dirty_worktree": true,
+      "environment_hash": "fa7d808cd421c863326cef195d73815f38f9db29f1dc25183135205cd2e4b55c",
+      "execution_artifacts": "/home/held/workspaces/compinion/dctx0ctl/.dctx0ctl/coverage/1793145507854013665-1738735/execution-000000",
+      "exit_code": 0,
+      "fingerprint_scope": "workspace package source/config files; external inputs not captured",
+      "ignored_tests": "excluded using libtest --list --ignored; doctests/benchmarks/custom harnesses unsupported",
+      "peak_rss_scope": "Linux wait4 ru_maxrss for test process including waited descendants; concurrent process RSS is not summed",
+      "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+      "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+      "rustflags": " -C instrument-coverage",
+      "schema_version": 1,
+      "source_fingerprint": "6057b4842a295856121db858ff244cd85dda6d7aab3c6e7a5dffc21db6d37a73"
+    },
+    "indexed_lines": 190
+  },
+  "measurement_limitations": [
+    "Coverage collection uses instrumented debug builds, independent of release performance gates.",
+    "wait4 RSS includes startup and waited descendants; concurrent RSS is not summed.",
+    "20 ms polling floor for short test elapsed times.",
+    "One smoke sample is not a performance regression assessment."
+  ],
+  "earlier_attempts": [
+    {
+      "status": "interrupted_before_release_measurements",
+      "reason": "Changed collection to stream per-execution artifacts atomically",
+      "elapsed_ms": 333855.94,
+      "sampled_process_tree_peak_rss_bytes": 984576000
+    },
+    {
+      "status": "interrupted_before_release_measurements",
+      "reason": "Corrected append-only import assertion before final validation",
+      "elapsed_ms": 77466.078,
+      "sampled_process_tree_peak_rss_bytes": 952975360
+    },
+    {
+      "status": "interrupted_before_release_measurements",
+      "reason": "Go integration tests could not resolve the locally installed Go binary; added the cached toolchain to PATH for the final run",
+      "elapsed_ms": 272526.821,
+      "sampled_process_tree_peak_rss_bytes": 1011085312
+    }
+  ],
+  "known_validation_failures": [
+    {
+      "test": "skills::tests::catalog_and_default_preview_are_available_to_embedded_cli_callers",
+      "path": "crates/dctx0-cli/src/skills.rs:139",
+      "expected_installations": 18,
+      "actual_installations": 24,
+      "cause": "Concurrent worktree change adds a fourth bundled skill; the existing embedded CLI assertion still expects three skills across six agent formats.",
+      "experimental_coverage_tests": "pass"
+    }
+  ],
+  "release_measurement_path": "benchmarks/history/20261028T003116.068108Z-1786931.json",
+  "release_measurement": {
+    "schema_version": 1,
+    "timestamp": "2026-10-28T00:22:32.440260+00:00",
+    "status": "complete",
+    "measurements": {
+      "cinema": {
+        "samples": [
+          {
+            "elapsed_ms": 1.4549,
+            "process_wall_ms": 2.0785820088349283,
+            "peak_rss_bytes": 5050368
+          }
+        ],
+        "elapsed_ms": 1.4549,
+        "peak_rss_bytes": 5050368,
+        "recent_comparable_runs": 3
+      },
+      "cinema/compile": {
+        "samples": [
+          {
+            "elapsed_ms": 4.033239,
+            "process_wall_ms": 9.791196003789082,
+            "peak_rss_bytes": 10522624
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 4.033239,
+        "peak_rss_bytes": 10522624,
+        "recent_comparable_runs": 3
+      },
+      "cinema/graph": {
+        "samples": [
+          {
+            "elapsed_ms": 0.6543840000000001,
+            "process_wall_ms": 6.208745995536447,
+            "peak_rss_bytes": 10870784
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.6543840000000001,
+        "peak_rss_bytes": 10870784,
+        "recent_comparable_runs": 3
+      },
+      "cinema/snapshot": {
+        "samples": [
+          {
+            "elapsed_ms": 16.228251,
+            "process_wall_ms": 23.576131992740557,
+            "peak_rss_bytes": 19353600
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 16.228251,
+        "peak_rss_bytes": 19353600,
+        "recent_comparable_runs": 3
+      },
+      "cinema/diff": {
+        "samples": [
+          {
+            "elapsed_ms": 0.223904,
+            "process_wall_ms": 21.581663997494616,
+            "peak_rss_bytes": 16560128
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.223904,
+        "peak_rss_bytes": 16560128,
+        "recent_comparable_runs": 3
+      },
+      "cinema/diff-changed": {
+        "samples": [
+          {
+            "elapsed_ms": 0.557237,
+            "process_wall_ms": 38.20649199769832,
+            "peak_rss_bytes": 20541440
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.557237,
+        "peak_rss_bytes": 20541440,
+        "recent_comparable_runs": 3
+      },
+      "cinema/persist": {
+        "samples": [
+          {
+            "elapsed_ms": 71.06025100000001,
+            "process_wall_ms": 182.1798049932113,
+            "peak_rss_bytes": 94064640
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 71.06025100000001,
+        "peak_rss_bytes": 94064640,
+        "recent_comparable_runs": 3
+      },
+      "cinema/check": {
+        "samples": [
+          {
+            "elapsed_ms": 85.44173400000001,
+            "process_wall_ms": 198.19104700582102,
+            "peak_rss_bytes": 98443264
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 85.44173400000001,
+        "peak_rss_bytes": 98443264,
+        "recent_comparable_runs": 3
+      },
+      "cinema/check-changed": {
+        "samples": [
+          {
+            "elapsed_ms": 85.861496,
+            "process_wall_ms": 211.6849820013158,
+            "peak_rss_bytes": 101752832
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 85.861496,
+        "peak_rss_bytes": 101752832,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-plan": {
+        "samples": [
+          {
+            "elapsed_ms": 7.567464,
+            "process_wall_ms": 153.51601500879042,
+            "peak_rss_bytes": 92844032
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 7.567464,
+        "peak_rss_bytes": 92844032,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-reconcile": {
+        "samples": [
+          {
+            "elapsed_ms": 0.7680220000000001,
+            "process_wall_ms": 142.6999630057253,
+            "peak_rss_bytes": 92987392
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.7680220000000001,
+        "peak_rss_bytes": 92987392,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-publish": {
+        "samples": [
+          {
+            "elapsed_ms": 119.130746,
+            "process_wall_ms": 454.7550279967254,
+            "peak_rss_bytes": 105488384
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 2,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 119.130746,
+        "peak_rss_bytes": 105488384,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-list": {
+        "samples": [
+          {
+            "elapsed_ms": 0.172439,
+            "process_wall_ms": 138.7644630012801,
+            "peak_rss_bytes": 92946432
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.172439,
+        "peak_rss_bytes": 92946432,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-context-md": {
+        "samples": [
+          {
+            "elapsed_ms": 4.224692,
+            "process_wall_ms": 142.20462100638542,
+            "peak_rss_bytes": 93048832
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 4.224692,
+        "peak_rss_bytes": 93048832,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-context-json": {
+        "samples": [
+          {
+            "elapsed_ms": 4.201476,
+            "process_wall_ms": 144.65791599650402,
+            "peak_rss_bytes": 92868608
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 4.201476,
+        "peak_rss_bytes": 92868608,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-slice": {
+        "samples": [
+          {
+            "elapsed_ms": 0.23611500000000002,
+            "process_wall_ms": 138.53431100142188,
+            "peak_rss_bytes": 93081600
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.23611500000000002,
+        "peak_rss_bytes": 93081600,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-claim": {
+        "samples": [
+          {
+            "elapsed_ms": 10.601989,
+            "process_wall_ms": 149.3145840067882,
+            "peak_rss_bytes": 93065216
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 10.601989,
+        "peak_rss_bytes": 93065216,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-package": {
+        "samples": [
+          {
+            "elapsed_ms": 5.866874,
+            "process_wall_ms": 142.93529400310945,
+            "peak_rss_bytes": 93085696
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 5.866874,
+        "peak_rss_bytes": 93085696,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-package-delta": {
+        "samples": [
+          {
+            "elapsed_ms": 5.916564,
+            "process_wall_ms": 150.0417240022216,
+            "peak_rss_bytes": 93048832
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 5.916564,
+        "peak_rss_bytes": 93048832,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-package-apply": {
+        "samples": [
+          {
+            "elapsed_ms": 0.82995,
+            "process_wall_ms": 148.90714899229351,
+            "peak_rss_bytes": 93011968
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.82995,
+        "peak_rss_bytes": 93011968,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-review-changes": {
+        "samples": [
+          {
+            "elapsed_ms": 0.004173,
+            "process_wall_ms": 138.52775099803694,
+            "peak_rss_bytes": 92835840
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.004173,
+        "peak_rss_bytes": 92835840,
+        "recent_comparable_runs": 3
+      },
+      "cinema/tasks-progress": {
+        "samples": [
+          {
+            "elapsed_ms": 0.182737,
+            "process_wall_ms": 138.86139799433295,
+            "peak_rss_bytes": 93057024
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.182737,
+        "peak_rss_bytes": 93057024,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-diagnostics-summary": {
+        "samples": [
+          {
+            "elapsed_ms": 0.109598,
+            "process_wall_ms": 269.9176830064971,
+            "peak_rss_bytes": 61640704
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.109598,
+        "peak_rss_bytes": 61640704,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-diagnostics-cases": {
+        "samples": [
+          {
+            "elapsed_ms": 0.146912,
+            "process_wall_ms": 266.449835995445,
+            "peak_rss_bytes": 61149184
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.146912,
+        "peak_rss_bytes": 61149184,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-evaluate-unbound": {
+        "samples": [
+          {
+            "elapsed_ms": 0.03167,
+            "process_wall_ms": 6.153071997687221,
+            "peak_rss_bytes": 11358208
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.03167,
+        "peak_rss_bytes": 11358208,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-assess-unbound": {
+        "samples": [
+          {
+            "elapsed_ms": 0.149788,
+            "process_wall_ms": 6.948747002752498,
+            "peak_rss_bytes": 12009472
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.149788,
+        "peak_rss_bytes": 12009472,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-generate": {
+        "samples": [
+          {
+            "elapsed_ms": 41.507248,
+            "process_wall_ms": 48.73880199738778,
+            "peak_rss_bytes": 15532032
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 41.507248,
+        "peak_rss_bytes": 15532032,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-project": {
+        "samples": [
+          {
+            "elapsed_ms": 88.750248,
+            "process_wall_ms": 95.79603500606027,
+            "peak_rss_bytes": 24145920
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 88.750248,
+        "peak_rss_bytes": 24145920,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-harness": {
+        "samples": [
+          {
+            "elapsed_ms": 0.019185,
+            "process_wall_ms": 6.2592009926447645,
+            "peak_rss_bytes": 10727424
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.019185,
+        "peak_rss_bytes": 10727424,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-codecs": {
+        "samples": [
+          {
+            "elapsed_ms": 0.093421,
+            "process_wall_ms": 5.67804099409841,
+            "peak_rss_bytes": 10743808
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.093421,
+        "peak_rss_bytes": 10743808,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-bindings-plan": {
+        "samples": [
+          {
+            "elapsed_ms": 0.22458299999999998,
+            "process_wall_ms": 96.12928399292286,
+            "peak_rss_bytes": 23326720
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.22458299999999998,
+        "peak_rss_bytes": 23326720,
+        "recent_comparable_runs": 2
+      },
+      "cinema/verification-init": {
+        "samples": [
+          {
+            "elapsed_ms": 0.270948,
+            "process_wall_ms": 5.868238004040904,
+            "peak_rss_bytes": 11223040
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.270948,
+        "peak_rss_bytes": 11223040,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-history-publish": {
+        "samples": [
+          {
+            "elapsed_ms": 3.787421,
+            "process_wall_ms": 220.61073999793734,
+            "peak_rss_bytes": 61456384
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 3.787421,
+        "peak_rss_bytes": 61456384,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-history-read": {
+        "samples": [
+          {
+            "elapsed_ms": 0.100862,
+            "process_wall_ms": 222.6098849932896,
+            "peak_rss_bytes": 61095936
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 0.100862,
+        "peak_rss_bytes": 61095936,
+        "recent_comparable_runs": 3
+      },
+      "cinema/verification-discover": {
+        "samples": [
+          {
+            "elapsed_ms": 60.359533,
+            "process_wall_ms": 203.1203380029183,
+            "peak_rss_bytes": 94228480,
+            "application_source_hash": "1e2a59841ecfa9f12bcae6e293eab775555acf29f158a5f79cb8a26d850e1c24"
+          }
+        ],
+        "iterations": 1,
+        "application_source_hash": "1e2a59841ecfa9f12bcae6e293eab775555acf29f158a5f79cb8a26d850e1c24",
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 60.359533,
+        "peak_rss_bytes": 94228480,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/typescript/create": {
+        "samples": [
+          {
+            "elapsed_ms": 1.144887,
+            "process_wall_ms": 3.359344002092257,
+            "peak_rss_bytes": 8134656
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 1.144887,
+        "peak_rss_bytes": 8134656,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/typescript/load": {
+        "samples": [
+          {
+            "elapsed_ms": 0.380142,
+            "process_wall_ms": 2.683866987354122,
+            "peak_rss_bytes": 9023488
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.380142,
+        "peak_rss_bytes": 9023488,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/typescript/context-md": {
+        "samples": [
+          {
+            "elapsed_ms": 6.937289,
+            "process_wall_ms": 469.3249440024374,
+            "peak_rss_bytes": 99475456
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 6.937289,
+        "peak_rss_bytes": 99475456,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/typescript/context-json": {
+        "samples": [
+          {
+            "elapsed_ms": 6.563414,
+            "process_wall_ms": 454.84335599758197,
+            "peak_rss_bytes": 99434496
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 6.563414,
+        "peak_rss_bytes": 99434496,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/typescript/claim": {
+        "samples": [
+          {
+            "elapsed_ms": 79.266381,
+            "process_wall_ms": 533.1696039938834,
+            "peak_rss_bytes": 99364864
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 79.266381,
+        "peak_rss_bytes": 99364864,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/java/create": {
+        "samples": [
+          {
+            "elapsed_ms": 0.882192,
+            "process_wall_ms": 3.2003560045268387,
+            "peak_rss_bytes": 8146944
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.882192,
+        "peak_rss_bytes": 8146944,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/java/load": {
+        "samples": [
+          {
+            "elapsed_ms": 0.315914,
+            "process_wall_ms": 2.5644080014899373,
+            "peak_rss_bytes": 8761344
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.315914,
+        "peak_rss_bytes": 8761344,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/java/context-md": {
+        "samples": [
+          {
+            "elapsed_ms": 5.797263,
+            "process_wall_ms": 433.9132500026608,
+            "peak_rss_bytes": 99573760
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 5.797263,
+        "peak_rss_bytes": 99573760,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/java/context-json": {
+        "samples": [
+          {
+            "elapsed_ms": 6.241289,
+            "process_wall_ms": 406.4528750022873,
+            "peak_rss_bytes": 99229696
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 6.241289,
+        "peak_rss_bytes": 99229696,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/java/claim": {
+        "samples": [
+          {
+            "elapsed_ms": 69.343938,
+            "process_wall_ms": 463.0701070127543,
+            "peak_rss_bytes": 99516416
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 69.343938,
+        "peak_rss_bytes": 99516416,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/go/create": {
+        "samples": [
+          {
+            "elapsed_ms": 0.890209,
+            "process_wall_ms": 2.917376987170428,
+            "peak_rss_bytes": 8151040
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.890209,
+        "peak_rss_bytes": 8151040,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/go/load": {
+        "samples": [
+          {
+            "elapsed_ms": 0.33527999999999997,
+            "process_wall_ms": 2.1740649972343817,
+            "peak_rss_bytes": 8916992
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.33527999999999997,
+        "peak_rss_bytes": 8916992,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/go/context-md": {
+        "samples": [
+          {
+            "elapsed_ms": 5.814982,
+            "process_wall_ms": 405.2890189923346,
+            "peak_rss_bytes": 99561472
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 5.814982,
+        "peak_rss_bytes": 99561472,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/go/context-json": {
+        "samples": [
+          {
+            "elapsed_ms": 5.686017,
+            "process_wall_ms": 406.82919399114326,
+            "peak_rss_bytes": 97431552
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 5.686017,
+        "peak_rss_bytes": 97431552,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/go/claim": {
+        "samples": [
+          {
+            "elapsed_ms": 68.373744,
+            "process_wall_ms": 467.6028780086199,
+            "peak_rss_bytes": 97161216
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 68.373744,
+        "peak_rss_bytes": 97161216,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/rust/create": {
+        "samples": [
+          {
+            "elapsed_ms": 0.856333,
+            "process_wall_ms": 2.7235049929004163,
+            "peak_rss_bytes": 8187904
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.856333,
+        "peak_rss_bytes": 8187904,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/rust/load": {
+        "samples": [
+          {
+            "elapsed_ms": 0.341116,
+            "process_wall_ms": 2.3017429921310395,
+            "peak_rss_bytes": 8876032
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; profile files only; no compiler or SQLite",
+        "elapsed_ms": 0.341116,
+        "peak_rss_bytes": 8876032,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/rust/context-md": {
+        "samples": [
+          {
+            "elapsed_ms": 5.781077,
+            "process_wall_ms": 407.43521800322924,
+            "peak_rss_bytes": 97009664
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 5.781077,
+        "peak_rss_bytes": 97009664,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/rust/context-json": {
+        "samples": [
+          {
+            "elapsed_ms": 5.656568,
+            "process_wall_ms": 413.86569499445613,
+            "peak_rss_bytes": 99434496
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 5.656568,
+        "peak_rss_bytes": 99434496,
+        "recent_comparable_runs": 3
+      },
+      "cinema/profiles/rust/claim": {
+        "samples": [
+          {
+            "elapsed_ms": 69.799621,
+            "process_wall_ms": 466.50977700483054,
+            "peak_rss_bytes": 97505280
+          }
+        ],
+        "iterations": 1,
+        "protocol_version": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes profile and task setup, IR and SQLite; no children",
+        "elapsed_ms": 69.799621,
+        "peak_rss_bytes": 97505280,
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/check": {
+        "samples": [
+          {
+            "elapsed_ms": 120.12200300523546,
+            "peak_rss_bytes": 60628992,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 120.12200300523546,
+        "peak_rss_bytes": 60628992,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/discovery": {
+        "samples": [
+          {
+            "elapsed_ms": 89.76419499958865,
+            "peak_rss_bytes": 86794240,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 89.76419499958865,
+        "peak_rss_bytes": 86794240,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/planning": {
+        "samples": [
+          {
+            "elapsed_ms": 415.4060120054055,
+            "peak_rss_bytes": 102477824,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 415.4060120054055,
+        "peak_rss_bytes": 102477824,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/harness-setup": {
+        "samples": [
+          {
+            "elapsed_ms": 2.3258060100488365,
+            "peak_rss_bytes": 87891968,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 2.3258060100488365,
+        "peak_rss_bytes": 87891968,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/first-project-build": {
+        "samples": [
+          {
+            "elapsed_ms": 10050.407461996656,
+            "peak_rss_bytes": 382738432,
+            "exit_code": 1,
+            "managed_build_elapsed_ms": 1633.681,
+            "go_compile_elapsed_ms": 563.518,
+            "go_compile_peak_rss_bytes": 382738432,
+            "runtime_metrics": {
+              "kind": "measured",
+              "peak_rss_bytes": 25407488,
+              "runtime_version": "go1.25.0",
+              "platform": "linux"
+            },
+            "native_engine_elapsed_ms": 5222.544,
+            "go_version": "go version go1.25.0 linux/amd64",
+            "worker_hash": "1db0c30b40215d15ff16cb0b413054a5f1dfece72854aa4481463fbfdb35ff62"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 10050.407461996656,
+        "peak_rss_bytes": 382738432,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/warm-build": {
+        "samples": [
+          {
+            "elapsed_ms": 18231.236509003793,
+            "peak_rss_bytes": 382373888,
+            "exit_code": 1,
+            "managed_build_elapsed_ms": 1056.643,
+            "go_compile_elapsed_ms": 448.705,
+            "go_compile_peak_rss_bytes": 382373888,
+            "runtime_metrics": {
+              "kind": "measured",
+              "peak_rss_bytes": 25513984,
+              "runtime_version": "go1.25.0",
+              "platform": "linux"
+            },
+            "native_engine_elapsed_ms": 5108.91,
+            "go_version": "go version go1.25.0 linux/amd64",
+            "worker_hash": "1db0c30b40215d15ff16cb0b413054a5f1dfece72854aa4481463fbfdb35ff62"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 18231.236509003793,
+        "peak_rss_bytes": 382373888,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/source-bound-review-and-delivery": {
+        "samples": [
+          {
+            "elapsed_ms": 70962.48310399824,
+            "peak_rss_bytes": 382521344,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 70962.48310399824,
+        "peak_rss_bytes": 382521344,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/complete-and-adoption": {
+        "samples": [
+          {
+            "elapsed_ms": 64189.85472699569,
+            "peak_rss_bytes": 382029824,
+            "exit_code": 0,
+            "native_adopted_tasks": 0,
+            "inspected_tasks": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 64189.85472699569,
+        "peak_rss_bytes": 382029824,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/counterexample-and-shrink": {
+        "samples": [
+          {
+            "elapsed_ms": 43236.883439996745,
+            "peak_rss_bytes": 382357504,
+            "exit_code": 1,
+            "central_shrink_elapsed_ms": 9.884,
+            "shrink_attempts": 4,
+            "expected_result": "FAIL from intentional production mutation"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 43236.883439996745,
+        "peak_rss_bytes": 382357504,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/broken-replay": {
+        "samples": [
+          {
+            "elapsed_ms": 13426.8389630015,
+            "peak_rss_bytes": 382128128,
+            "exit_code": 1,
+            "expected_result": "FAIL from intentional production mutation"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 13426.8389630015,
+        "peak_rss_bytes": 382128128,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-go/repaired-replay": {
+        "samples": [
+          {
+            "elapsed_ms": 13214.085095998598,
+            "peak_rss_bytes": 382332928,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 13214.085095998598,
+        "peak_rss_bytes": 382332928,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated warm build; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/check": {
+        "samples": [
+          {
+            "elapsed_ms": 117.07467699307017,
+            "peak_rss_bytes": 60690432,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 117.07467699307017,
+        "peak_rss_bytes": 60690432,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/discovery": {
+        "samples": [
+          {
+            "elapsed_ms": 86.93565700377803,
+            "peak_rss_bytes": 86810624,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 86.93565700377803,
+        "peak_rss_bytes": 86810624,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/planning": {
+        "samples": [
+          {
+            "elapsed_ms": 412.06994900130667,
+            "peak_rss_bytes": 102002688,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 412.06994900130667,
+        "peak_rss_bytes": 102002688,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/harness-setup": {
+        "samples": [
+          {
+            "elapsed_ms": 2.421785000478849,
+            "peak_rss_bytes": 87719936,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 2.421785000478849,
+        "peak_rss_bytes": 87719936,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/first-project-build": {
+        "samples": [
+          {
+            "elapsed_ms": 13102.443007999682,
+            "peak_rss_bytes": 345829376,
+            "exit_code": 1,
+            "managed_build_elapsed_ms": 4686.004,
+            "runtime_metrics": {
+              "kind": "measured",
+              "peak_rss_bytes": 8396800,
+              "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+              "platform": "linux"
+            },
+            "native_engine_elapsed_ms": 3835.866,
+            "rust_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+            "worker_hash": "e0e3b0a8f5a11d901d8af6fb2c36a5f4c89ea166483446665ac2fb87da8ecfd6"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 13102.443007999682,
+        "peak_rss_bytes": 345829376,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/warm-build": {
+        "samples": [
+          {
+            "elapsed_ms": 21332.52966699365,
+            "peak_rss_bytes": 345305088,
+            "exit_code": 1,
+            "managed_build_elapsed_ms": 4493.154,
+            "runtime_metrics": {
+              "kind": "measured",
+              "peak_rss_bytes": 8495104,
+              "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+              "platform": "linux"
+            },
+            "native_engine_elapsed_ms": 4499.312,
+            "rust_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+            "worker_hash": "78fb118e16b92db556f912c147c0c08aaee0448868d3ffdf9bc986465d4a5c93"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 21332.52966699365,
+        "peak_rss_bytes": 345305088,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/source-bound-review-and-delivery": {
+        "samples": [
+          {
+            "elapsed_ms": 77299.6889759961,
+            "peak_rss_bytes": 348200960,
+            "exit_code": 0,
+            "memory_status": "measured",
+            "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 77299.6889759961,
+        "peak_rss_bytes": 348200960,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/complete-and-adoption": {
+        "samples": [
+          {
+            "elapsed_ms": 68456.38447700185,
+            "peak_rss_bytes": 347488256,
+            "exit_code": 0,
+            "native_adopted_tasks": 0,
+            "inspected_tasks": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 68456.38447700185,
+        "peak_rss_bytes": 347488256,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/counterexample-and-shrink": {
+        "samples": [
+          {
+            "elapsed_ms": 47518.28005700372,
+            "peak_rss_bytes": 342745088,
+            "exit_code": 1,
+            "central_shrink_elapsed_ms": 5.668,
+            "shrink_attempts": 4,
+            "expected_result": "FAIL from intentional production mutation"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 47518.28005700372,
+        "peak_rss_bytes": 342745088,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/broken-replay": {
+        "samples": [
+          {
+            "elapsed_ms": 17260.77231101226,
+            "peak_rss_bytes": 346902528,
+            "exit_code": 1,
+            "expected_result": "FAIL from intentional production mutation"
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 17260.77231101226,
+        "peak_rss_bytes": 346902528,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-rust/repaired-replay": {
+        "samples": [
+          {
+            "elapsed_ms": 17234.96583700762,
+            "peak_rss_bytes": 346632192,
+            "exit_code": 0
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 17234.96583700762,
+        "peak_rss_bytes": 346632192,
+        "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately",
+        "protocol_version": 1,
+        "workload_settings": {
+          "seed": 42,
+          "generated_cases": 100,
+          "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-editor/initialize": {
+        "samples": [
+          {
+            "elapsed_ms": 1.1106260062661022,
+            "peak_rss_bytes": 7561216
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 1.1106260062661022,
+        "peak_rss_bytes": 7561216,
+        "memory_scope": "Linux server process VmHWM, cumulative per persistent session; excludes editor/client process; unsupported measurement is null",
+        "protocol_version": 1,
+        "workload_settings": {
+          "cache": "cold server, warm OS cache",
+          "project": "cinema"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-editor/analysis-and-symbols": {
+        "samples": [
+          {
+            "elapsed_ms": 56.1245510034496,
+            "peak_rss_bytes": 17682432
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 56.1245510034496,
+        "peak_rss_bytes": 17682432,
+        "memory_scope": "Linux server process VmHWM, cumulative per persistent session; excludes editor/client process; unsupported measurement is null",
+        "protocol_version": 1,
+        "workload_settings": {
+          "cache": "cold server, warm OS cache",
+          "project": "cinema"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-editor/semantic-colors": {
+        "samples": [
+          {
+            "elapsed_ms": 9.470466000493616,
+            "peak_rss_bytes": 18821120
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 9.470466000493616,
+        "peak_rss_bytes": 18821120,
+        "memory_scope": "Linux server process VmHWM, cumulative per persistent session; excludes editor/client process; unsupported measurement is null",
+        "protocol_version": 1,
+        "workload_settings": {
+          "cache": "cold server, warm OS cache",
+          "project": "cinema"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-editor/unsaved-change": {
+        "samples": [
+          {
+            "elapsed_ms": 80.127106004511,
+            "peak_rss_bytes": 26222592
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 80.127106004511,
+        "peak_rss_bytes": 26222592,
+        "memory_scope": "Linux server process VmHWM, cumulative per persistent session; excludes editor/client process; unsupported measurement is null",
+        "protocol_version": 1,
+        "workload_settings": {
+          "cache": "cold server, warm OS cache",
+          "project": "cinema"
+        },
+        "recent_comparable_runs": 3
+      },
+      "cinema-editor/workspace-navigation": {
+        "samples": [
+          {
+            "elapsed_ms": 10.111729992786422,
+            "peak_rss_bytes": 26222592
+          }
+        ],
+        "iterations": 1,
+        "elapsed_ms": 10.111729992786422,
+        "peak_rss_bytes": 26222592,
+        "memory_scope": "Linux server process VmHWM, cumulative per persistent session; excludes editor/client process; unsupported measurement is null",
+        "protocol_version": 1,
+        "workload_settings": {
+          "cache": "cold server, warm OS cache",
+          "project": "cinema"
+        },
+        "recent_comparable_runs": 3
+      }
+    },
+    "settings": {
+      "iterations": 1,
+      "samples": 1,
+      "warmup_runs": 1,
+      "profile": "release",
+      "features": "all",
+      "cache": "warm filesystem; fresh process per sample"
+    },
+    "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+    "hardware": {
+      "machine": "x86_64",
+      "cpu_count": 16,
+      "cpu": "Intel(R) Core(TM) Ultra X7 358H"
+    },
+    "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+    "dirty_worktree": "M AGENTS.md\n M README.md\n D benchmarks/history/20261015T184022.281691Z-30679.json\n D benchmarks/history/20261015T195713.967729Z-330837.json\n D benchmarks/history/20261015T200340.237851Z-31481.json\n D benchmarks/history/queries/20261023T162740.461841Z-22328.json\n D benchmarks/history/queries/20261023T163437.933313Z-25251.json\n D benchmarks/history/queries/20261023T163828.282766Z-27484.json\n D benchmarks/history/release/20261012T114652.549030Z-1130213.json\n D benchmarks/history/self-verification/20261013T081553.719026Z-1583727.json\n D benchmarks/history/self-verification/20261013T082534.753116Z-1588753.json\n M crates/dctx0-cli/src/args.rs\n M crates/dctx0-cli/src/commands.rs\n M crates/dctx0-cli/src/main.rs\n M crates/dctx0-cli/src/skills.rs\n M crates/dctx0-cli/tests/skills.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/native/contracts.rs\n M crates/dctx0-engine/src/native/lifecycles.rs\n M crates/dctx0-engine/src/native/mod.rs\n M crates/dctx0-engine/src/native/operations.rs\n M crates/dctx0-engine/src/native/session.rs\n M crates/dctx0-engine/src/skills.rs\n M crates/dctx0-engine/src/verification_run/execution.rs\n M crates/dctx0-engine/src/verification_run/replay.rs\n M crates/dctx0-engine/tests/native.rs\n M crates/dctx0-engine/tests/verification_run.rs\n M crates/dctx0-store/src/lib.rs\n M crates/dctx0-target-sdk/src/lib.rs\n M crates/dctx0-verification/src/generation.rs\n M crates/dctx0-verification/src/lib.rs\n M crates/dctx0-verification/src/operation.rs\n M crates/dctx0-verification/src/operation_state.rs\n M crates/dctx0-verification/src/projection/mod.rs\n M crates/dctx0-verification/src/scenario.rs\n M crates/dctx0-verification/tests/generation.rs\n M crates/dctx0-verification/tests/operation_mocks.rs\n M crates/dctx0-verification/tests/projection.rs\n M crates/dctx0-verification/tests/scenario.rs\n M crates/dctx0-verification/tests/state_effects.rs\n M docs/site/src/docs/language/control-and-effects.md\n M docs/site/src/docs/tools.md\n M docs/site/src/docs/tutorial.md\n M docs/site/src/docs/tutorial/complete-workshophub.md\n M docs/site/src/reference/verification-workflow.md\n M examples/cinema-go/.dctx0/testing/go/examples.json\n M examples/cinema-go/.dctx0/testing/go/inspection-notes.json\n M examples/cinema-rust/.dctx0/testing/rust/examples.json\n M examples/cinema-rust/.dctx0/testing/rust/inspection-notes.json\n M examples/cinema/.dctx0/testing/typescript/examples.json\n M examples/cinema/.dctx0/testing/typescript/inspection-notes.json\n M install.sh\n M scripts/conformance_review_acceptance.py\n M scripts/coverage.py\n M scripts/framework_acceptance.py\n M scripts/go_cinema_acceptance.py\n M scripts/go_cinema_performance.py\n M scripts/rust_cinema_acceptance.py\n M scripts/rust_cinema_performance.py\n M scripts/validate.py\n M skills/dctx0-implementation/SKILL.md\n M skills/dctx0/SKILL.md\n M targets/go/harness/contract.go\n M targets/go/harness/worker.go\n?? benchmarks/history/20261027T220632.684556Z-1466845.json\n?? benchmarks/history/20261027T230259.714321Z-1568551.json\n?? benchmarks/history/20261027T231506.505776Z-1627937.json\n?? benchmarks/history/dependency-resolution/20261027T220629.209148Z-1550833.json\n?? benchmarks/history/dependency-resolution/20261027T230255.936440Z-1627557.json\n?? benchmarks/history/queries/20261027T220626.523266Z-1550683.json\n?? benchmarks/history/queries/20261027T230253.043803Z-1627408.json\n?? benchmarks/history/queries/20261027T231506.577511Z-1643676.json\n?? benchmarks/history/release/20261024T114527.546153Z-91296.json\n?? benchmarks/history/self-verification/20261027T233750.092722Z-1651134.json\n?? benchmarks/history/self-verification/20261027T234555.236047Z-1691375.json\n?? benchmarks/history/skills/\n?? crates/dctx0-cli/src/experimental.rs\n?? crates/dctx0-cli/tests/experimental_coverage.rs\n?? crates/dctx0-engine/src/coverage_collect.py\n?? crates/dctx0-engine/src/experimental_coverage.rs\n?? crates/dctx0-store/src/experimental_coverage.rs\n?? crates/dctx0-store/tests/experimental_coverage.rs\n?? crates/dctx0-verification/src/generation/\n?? crates/dctx0-verification/src/operation_arguments.rs\n?? crates/dctx0-verification/src/projection/state.rs\n?? crates/dctx0-verification/tests/operation_arguments.rs\n?? crates/dctx0-verification/tests/projection_state.rs\n?? crates/dctx0-verification/tests/scenario_continuations.rs\n?? crates/dctx0-verification/tests/string_generation.rs\n?? docs/experimental-coverage-validation.json\n?? docs/self-verification-2026-10-28-initial.json\n?? docs/site/src/reference/coverage.md\n?? docs/state-contract-followup-validation.json\n?? docs/state-contract-validation.json\n?? scripts/cinema_expectations.py\n?? scripts/tests/test_cinema_expectations.py\n?? scripts/tests/test_experimental_coverage.py\n?? skills/dctx0-config/",
+    "source_hash": "b16893ba8d932fba3c228efea1411ccc44617a1645a23f7eb66f0f2f7050e41c",
+    "input_hashes": {
+      "cinema": "ef0ba39c0ffc94fc9ca2bce00b85d335b8d4f33e224d2f891567c310fcd1b516"
+    },
+    "memory_scope": "Linux post-exec VmHWM from standalone Rust parser process /proc/self/status; no child processes",
+    "go_cinema_performance": {
+      "schema_version": 1,
+      "status": "complete",
+      "binary_hash": "3266bd968efe5572b424e3dab43bdd9e20380ad84a41c3ccfa7cfcb44de8b3f2",
+      "seed": 42,
+      "generated_cases": 100,
+      "samples": {
+        "check": {
+          "elapsed_ms": 120.12200300523546,
+          "peak_rss_bytes": 60628992,
+          "exit_code": 0
+        },
+        "discovery": {
+          "elapsed_ms": 89.76419499958865,
+          "peak_rss_bytes": 86794240,
+          "exit_code": 0
+        },
+        "planning": {
+          "elapsed_ms": 415.4060120054055,
+          "peak_rss_bytes": 102477824,
+          "exit_code": 0
+        },
+        "harness-setup": {
+          "elapsed_ms": 2.3258060100488365,
+          "peak_rss_bytes": 87891968,
+          "exit_code": 0
+        },
+        "first-project-build": {
+          "elapsed_ms": 10050.407461996656,
+          "peak_rss_bytes": 382738432,
+          "exit_code": 1,
+          "managed_build_elapsed_ms": 1633.681,
+          "go_compile_elapsed_ms": 563.518,
+          "go_compile_peak_rss_bytes": 382738432,
+          "runtime_metrics": {
+            "kind": "measured",
+            "peak_rss_bytes": 25407488,
+            "runtime_version": "go1.25.0",
+            "platform": "linux"
+          },
+          "native_engine_elapsed_ms": 5222.544,
+          "go_version": "go version go1.25.0 linux/amd64",
+          "worker_hash": "1db0c30b40215d15ff16cb0b413054a5f1dfece72854aa4481463fbfdb35ff62"
+        },
+        "warm-build": {
+          "elapsed_ms": 18231.236509003793,
+          "peak_rss_bytes": 382373888,
+          "exit_code": 1,
+          "managed_build_elapsed_ms": 1056.643,
+          "go_compile_elapsed_ms": 448.705,
+          "go_compile_peak_rss_bytes": 382373888,
+          "runtime_metrics": {
+            "kind": "measured",
+            "peak_rss_bytes": 25513984,
+            "runtime_version": "go1.25.0",
+            "platform": "linux"
+          },
+          "native_engine_elapsed_ms": 5108.91,
+          "go_version": "go version go1.25.0 linux/amd64",
+          "worker_hash": "1db0c30b40215d15ff16cb0b413054a5f1dfece72854aa4481463fbfdb35ff62"
+        },
+        "source-bound-review-and-delivery": {
+          "elapsed_ms": 70962.48310399824,
+          "peak_rss_bytes": 382521344,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "complete-and-adoption": {
+          "elapsed_ms": 64189.85472699569,
+          "peak_rss_bytes": 382029824,
+          "exit_code": 0,
+          "native_adopted_tasks": 0,
+          "inspected_tasks": 0
+        },
+        "counterexample-and-shrink": {
+          "elapsed_ms": 43236.883439996745,
+          "peak_rss_bytes": 382357504,
+          "exit_code": 1,
+          "central_shrink_elapsed_ms": 9.884,
+          "shrink_attempts": 4,
+          "expected_result": "FAIL from intentional production mutation"
+        },
+        "broken-replay": {
+          "elapsed_ms": 13426.8389630015,
+          "peak_rss_bytes": 382128128,
+          "exit_code": 1,
+          "expected_result": "FAIL from intentional production mutation"
+        },
+        "repaired-replay": {
+          "elapsed_ms": 13214.085095998598,
+          "peak_rss_bytes": 382332928,
+          "exit_code": 0
+        }
+      },
+      "baseline": "unassessed; never promoted automatically",
+      "cache": "first project build and repeated warm build; existing module/toolchain caches",
+      "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately"
+    },
+    "rust_cinema_performance": {
+      "schema_version": 1,
+      "status": "complete",
+      "binary_hash": "3266bd968efe5572b424e3dab43bdd9e20380ad84a41c3ccfa7cfcb44de8b3f2",
+      "seed": 42,
+      "generated_cases": 100,
+      "samples": {
+        "check": {
+          "elapsed_ms": 117.07467699307017,
+          "peak_rss_bytes": 60690432,
+          "exit_code": 0
+        },
+        "discovery": {
+          "elapsed_ms": 86.93565700377803,
+          "peak_rss_bytes": 86810624,
+          "exit_code": 0
+        },
+        "planning": {
+          "elapsed_ms": 412.06994900130667,
+          "peak_rss_bytes": 102002688,
+          "exit_code": 0
+        },
+        "harness-setup": {
+          "elapsed_ms": 2.421785000478849,
+          "peak_rss_bytes": 87719936,
+          "exit_code": 0
+        },
+        "first-project-build": {
+          "elapsed_ms": 13102.443007999682,
+          "peak_rss_bytes": 345829376,
+          "exit_code": 1,
+          "managed_build_elapsed_ms": 4686.004,
+          "runtime_metrics": {
+            "kind": "measured",
+            "peak_rss_bytes": 8396800,
+            "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+            "platform": "linux"
+          },
+          "native_engine_elapsed_ms": 3835.866,
+          "rust_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+          "worker_hash": "e0e3b0a8f5a11d901d8af6fb2c36a5f4c89ea166483446665ac2fb87da8ecfd6"
+        },
+        "warm-build": {
+          "elapsed_ms": 21332.52966699365,
+          "peak_rss_bytes": 345305088,
+          "exit_code": 1,
+          "managed_build_elapsed_ms": 4493.154,
+          "runtime_metrics": {
+            "kind": "measured",
+            "peak_rss_bytes": 8495104,
+            "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+            "platform": "linux"
+          },
+          "native_engine_elapsed_ms": 4499.312,
+          "rust_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+          "worker_hash": "78fb118e16b92db556f912c147c0c08aaee0448868d3ffdf9bc986465d4a5c93"
+        },
+        "source-bound-review-and-delivery": {
+          "elapsed_ms": 77299.6889759961,
+          "peak_rss_bytes": 348200960,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        "complete-and-adoption": {
+          "elapsed_ms": 68456.38447700185,
+          "peak_rss_bytes": 347488256,
+          "exit_code": 0,
+          "native_adopted_tasks": 0,
+          "inspected_tasks": 0
+        },
+        "counterexample-and-shrink": {
+          "elapsed_ms": 47518.28005700372,
+          "peak_rss_bytes": 342745088,
+          "exit_code": 1,
+          "central_shrink_elapsed_ms": 5.668,
+          "shrink_attempts": 4,
+          "expected_result": "FAIL from intentional production mutation"
+        },
+        "broken-replay": {
+          "elapsed_ms": 17260.77231101226,
+          "peak_rss_bytes": 346902528,
+          "exit_code": 1,
+          "expected_result": "FAIL from intentional production mutation"
+        },
+        "repaired-replay": {
+          "elapsed_ms": 17234.96583700762,
+          "peak_rss_bytes": 346632192,
+          "exit_code": 0
+        }
+      },
+      "baseline": "unassessed; never promoted automatically",
+      "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches",
+      "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately"
+    },
+    "editor_performance": {
+      "status": "PASS",
+      "binary": "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+      "samples": {
+        "initialize": {
+          "elapsed_ms": 1.1106260062661022,
+          "peak_rss_bytes": 7561216
+        },
+        "analysis-and-symbols": {
+          "elapsed_ms": 56.1245510034496,
+          "peak_rss_bytes": 17682432
+        },
+        "semantic-colors": {
+          "elapsed_ms": 9.470466000493616,
+          "peak_rss_bytes": 18821120
+        },
+        "unsaved-change": {
+          "elapsed_ms": 80.127106004511,
+          "peak_rss_bytes": 26222592
+        },
+        "workspace-navigation": {
+          "elapsed_ms": 10.111729992786422,
+          "peak_rss_bytes": 26222592
+        }
+      },
+      "memory_scope": "Linux server process VmHWM, cumulative per persistent session; excludes editor/client process; unsupported measurement is null",
+      "cache": "cold server, warm OS cache; one sample per phase; includes debounce in analysis phases"
+    },
+    "source_hash_after": "b16893ba8d932fba3c228efea1411ccc44617a1645a23f7eb66f0f2f7050e41c",
+    "validation_source_hash": "b16893ba8d932fba3c228efea1411ccc44617a1645a23f7eb66f0f2f7050e41c",
+    "validation_source_hash_after": "b16893ba8d932fba3c228efea1411ccc44617a1645a23f7eb66f0f2f7050e41c",
+    "validation_scope": "experimental-coverage",
+    "validation_build_environment": {
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_OPT_LEVEL": null,
+      "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+      "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": null,
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": null,
+      "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": null,
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": null,
+      "CARGO_BUILD_JOBS": "1",
+      "RUST_TEST_THREADS": "1"
+    },
+    "validation_steps": [
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--workspace",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--test",
+          "experimental_coverage",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-cli",
+          "--test",
+          "experimental_coverage",
+          "--all-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-cli",
+          "--test",
+          "experimental_coverage",
+          "--no-default-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--no-fail-fast",
+          "-p",
+          "dctx0-cli",
+          "--all-features",
+          "--locked",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/query_acceptance.py",
+          "--measure-only",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+          "--samples",
+          "1"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "scripts/dependency_resolution_acceptance.py",
+          "--binary",
+          "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0"
+        ],
+        "returncode": 0
+      }
+    ],
+    "adaptive_conformance": {
+      "status": "unavailable",
+      "reason": "No fresh successful adaptive report from this validation"
+    },
+    "native_executor_conformance": {
+      "status": "unavailable"
+    },
+    "native_transport_conformance": {
+      "status": "unavailable",
+      "reason": "No successful native transport conformance report from this validation"
+    },
+    "validation_status": "pass",
+    "performance_gate": "unassessed",
+    "unassessed_workloads": [
+      "cinema/compile",
+      "cinema/graph",
+      "cinema/snapshot",
+      "cinema/diff",
+      "cinema/diff-changed",
+      "cinema/persist",
+      "cinema/check",
+      "cinema/check-changed",
+      "cinema/tasks-plan",
+      "cinema/tasks-reconcile",
+      "cinema/tasks-publish",
+      "cinema/tasks-list",
+      "cinema/tasks-context-md",
+      "cinema/tasks-context-json",
+      "cinema/tasks-slice",
+      "cinema/tasks-claim",
+      "cinema/tasks-package",
+      "cinema/tasks-package-delta",
+      "cinema/tasks-package-apply",
+      "cinema/tasks-review-changes",
+      "cinema/tasks-progress",
+      "cinema/verification-diagnostics-summary",
+      "cinema/verification-diagnostics-cases",
+      "cinema/verification-evaluate-unbound",
+      "cinema/verification-assess-unbound",
+      "cinema/verification-generate",
+      "cinema/verification-project",
+      "cinema/verification-harness",
+      "cinema/verification-codecs",
+      "cinema/verification-bindings-plan",
+      "cinema/verification-init",
+      "cinema/verification-history-publish",
+      "cinema/verification-history-read",
+      "cinema/verification-discover",
+      "cinema/profiles/typescript/create",
+      "cinema/profiles/typescript/load",
+      "cinema/profiles/typescript/context-md",
+      "cinema/profiles/typescript/context-json",
+      "cinema/profiles/typescript/claim",
+      "cinema/profiles/java/create",
+      "cinema/profiles/java/load",
+      "cinema/profiles/java/context-md",
+      "cinema/profiles/java/context-json",
+      "cinema/profiles/java/claim",
+      "cinema/profiles/go/create",
+      "cinema/profiles/go/load",
+      "cinema/profiles/go/context-md",
+      "cinema/profiles/go/context-json",
+      "cinema/profiles/go/claim",
+      "cinema/profiles/rust/create",
+      "cinema/profiles/rust/load",
+      "cinema/profiles/rust/context-md",
+      "cinema/profiles/rust/context-json",
+      "cinema/profiles/rust/claim",
+      "cinema-go/check",
+      "cinema-go/discovery",
+      "cinema-go/planning",
+      "cinema-go/harness-setup",
+      "cinema-go/first-project-build",
+      "cinema-go/warm-build",
+      "cinema-go/source-bound-review-and-delivery",
+      "cinema-go/complete-and-adoption",
+      "cinema-go/counterexample-and-shrink",
+      "cinema-go/broken-replay",
+      "cinema-go/repaired-replay",
+      "cinema-rust/check",
+      "cinema-rust/discovery",
+      "cinema-rust/planning",
+      "cinema-rust/harness-setup",
+      "cinema-rust/first-project-build",
+      "cinema-rust/warm-build",
+      "cinema-rust/source-bound-review-and-delivery",
+      "cinema-rust/complete-and-adoption",
+      "cinema-rust/counterexample-and-shrink",
+      "cinema-rust/broken-replay",
+      "cinema-rust/repaired-replay",
+      "cinema-editor/initialize",
+      "cinema-editor/analysis-and-symbols",
+      "cinema-editor/semantic-colors",
+      "cinema-editor/unsaved-change",
+      "cinema-editor/workspace-navigation"
+    ],
+    "tolerances_percent": {
+      "speed": 20,
+      "ram": 10
+    }
+  },
+  "workspace_attempt": {
+    "command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:$PATH python3 scripts/validate.py --coverage --samples 1 --iterations 1",
+    "status": "failed_and_interrupted",
+    "elapsed_ms": 1170419.315,
+    "sampled_process_tree_peak_rss_bytes": 983015424,
+    "known_failure": {
+      "test": "skills::tests::catalog_and_default_preview_are_available_to_embedded_cli_callers",
+      "path": "crates/dctx0-cli/src/skills.rs:139",
+      "expected_installations": 18,
+      "actual_installations": 24,
+      "cause": "Concurrent worktree change adds a fourth bundled skill; the existing embedded CLI assertion still expects three skills across six agent formats.",
+      "experimental_coverage_tests": "pass"
+    },
+    "interruption_reason": "After the unrelated catalog assertion failure, the full Cinema test consumed over fifteen minutes. Stopped this broad run and completed the feature-scoped checks plus the complete existing release measurement suite. Workspace coverage acceptance remains incomplete."
+  },
+  "workspace_coverage_acceptance": "not completed; no percentage or full-workspace acceptance claimed",
+  "release_cli_collection_sample": {
+    "cli_sha256": "3266bd968efe5572b424e3dab43bdd9e20380ad84a41c3ccfa7cfcb44de8b3f2",
+    "cli_profile": "release, uninstrumented",
+    "test_id": "path+file:///home/held/workspaces/compinion/dctx0ctl/crates/dctx0-language#0.3.0::parser::lexer_preserves_numbers_operators_strings_and_unicode_positions",
+    "outcome": "pass",
+    "duration_ms": 20.46844999131281,
+    "peak_rss_bytes": 22286336,
+    "provenance": {
+      "artifacts": "/home/held/workspaces/compinion/dctx0ctl/.dctx0ctl/coverage/1793147500002522633-1796589",
+      "binary_sha256": "5f9a90a1e69484cc7fdc47c7c283e4fe714267d83864795122b8782c10b85808",
+      "build_ms": 4193.383506004466,
+      "build_peak_rss_bytes": 338542592,
+      "coverage_available": true,
+      "coverage_scope": "instrumented Rust objects in this test executable; child/native coverage not included",
+      "dirty_worktree": true,
+      "environment_hash": "2ad608a48b3b81b18c7fbc5c79cf3420a87ff2d0aa3de0aa4df5382bfe6b10c6",
+      "execution_artifacts": "/home/held/workspaces/compinion/dctx0ctl/.dctx0ctl/coverage/1793147500002522633-1796589/execution-000000",
+      "exit_code": 0,
+      "fingerprint_scope": "workspace package source/config files; external inputs not captured",
+      "ignored_tests": "excluded using libtest --list --ignored; doctests/benchmarks/custom harnesses unsupported",
+      "peak_rss_scope": "Linux wait4 ru_maxrss for test process including waited descendants; concurrent process RSS is not summed",
+      "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+      "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+      "rustflags": " -C instrument-coverage",
+      "schema_version": 1,
+      "source_fingerprint": "6057b4842a295856121db858ff244cd85dda6d7aab3c6e7a5dffc21db6d37a73"
+    },
+    "indexed_lines": 190
+  }
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Final-stage release costs for Go Cinema; never promotes a benchmark baseline."""
 from verification_storage import saved_verification_artifacts
+from cinema_expectations import assert_native_cinema
 import argparse
 import hashlib
 import json
@@ -68,8 +69,7 @@ def main():
         for cache in ('first-project-build', 'warm-build'):
             native = run(cache, 'verify', 'run', project / 'dctx0', '--project', project, '--no-adopt')
             result = native['evidence']['run']
-            if len(result['required_cases']) != 5674 or len(result['cases']) != 5674 or any(case['result']['status'] != 'PASS' for case in result['cases']) or result['provenance']['incomplete']:
-                raise RuntimeError('Measured Go native plan is incomplete or failing')
+            assert_native_cinema(result)
             details = artifacts(project, native['evidence']['id'])
             receipt = details['application/vnd.dctx0.go-build-inputs+json']
             build = details['application/vnd.dctx0.build-audit+json']

@@ -11,6 +11,8 @@ selected profiles before editing. Inspect relevant command help; do not translat
 old Runatron task envelopes or tool names into invented Rust commands.
 Read [references/implementation.md](references/implementation.md) for target and
 evidence details when implementing adapters or interpreting incomplete verification.
+For project configuration and resource-limit diagnosis, use `$dctx0-config` when
+available; keep configuration changes distinct from implementation repairs.
 
 For multi-task work, delegation or a resumed context, use the pinned package and
 closure routine in [references/work-packages.md](references/work-packages.md).
@@ -49,3 +51,7 @@ For inventory and verification investigations, read [the query guide](references
 
 For external activity and token attribution, load
 [workflow measurement](references/workflow-measurement.md) only when measuring work.
+
+For substantial multi-task delivery planning or stalled validation loops, use
+`$dctx0-delivery` when available. It groups existing tasks into usable production
+outcomes, uses change reports and measures delivery without reducing acceptance.

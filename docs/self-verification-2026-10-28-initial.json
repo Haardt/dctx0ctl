@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-27T23:41:35.530531+00:00",
+  "acceptance_record": "benchmarks/history/self-verification/20261027T233750.092722Z-1651134.json",
+  "acceptance_runner_complete": true,
+  "status": "captured_snapshot_pass_current_worktree_drifted",
+  "machine_complete_in_capture": true,
+  "source_current_at_initial_check": true,
+  "source_current_after_coupled_stages": false,
+  "changed_since_capture": [
+    "crates/dctx0-engine/src/native/contracts.rs",
+    "crates/dctx0-engine/src/native/operations.rs",
+    "crates/dctx0-verification/src/lib.rs"
+  ],
+  "source_hash": "6617c7a10e6c45b31cf2cce211f1c9049f961658f7a0fcb2d97658e6cb3e80f4",
+  "captured_root": "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152",
+  "required_cases": 1233,
+  "executed_cases": 1233,
+  "case_results": {
+    "PASS": 1233
+  },
+  "native_aggregate": {
+    "status": "UNKNOWN",
+    "issue": {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    }
+  },
+  "manual_requirements": [
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0#constraint:2: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0#constraint:3: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Compiler.Compatibility: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Distribution.Packaging: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Editors.EditorIntegration: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Evidence.NativeAuthority: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.History.Persistence: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Native.ExecutionAndAdoption: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.PlatformBoundaries: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Profiles.ProfileBinding: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Site#constraint:1: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Site#constraint:2: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Site#constraint:3: Constraint has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Site.BrowserExperience: Review has no automatically asserted meaning",
+      "span": null
+    },
+    {
+      "code": "MANUAL_REQUIREMENT",
+      "message": "Dctx0.Tasks.HistoryAndConcurrency: Review has no automatically asserted meaning",
+      "span": null
+    }
+  ],
+  "mutations": [
+    {
+      "name": "compiler",
+      "source": "crates/dctx0-language/src/compiler.rs",
+      "failures": [
+        "Dctx0.Compiler.empty named workspace compiles",
+        "Dctx0.Compiler.fragments resolve across real source files",
+        "Dctx0.Compiler.pure operation compiles"
+      ],
+      "result": {
+        "command": [
+          "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/.dctx0/testing/rust/executables/dctx0",
+          "verify",
+          "run",
+          "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/dctx0",
+          "--project",
+          "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152",
+          "--subject",
+          "Dctx0.Compiler",
+          "--no-adopt",
+          "--json",
+          "--full"
+        ],
+        "elapsed_ms": 90542.33134299284,
+        "peak_rss_bytes": 774152192,
+        "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+        "exit_code": 1,
+        "stderr": ""
+      }
+    },
+    {
+      "name": "evidence",
+      "source": "crates/dctx0-tasks/src/adoption.rs",
+      "failures": [
+        "Dctx0.Evidence.empty requirements cannot pass"
+      ],
+      "result": {
+        "command": [
+          "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/.dctx0/testing/rust/executables/dctx0",
+          "verify",
+          "run",
+          "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/dctx0",
+          "--project",
+          "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152",
+          "--subject",
+          "Dctx0.Evidence",
+          "--no-adopt",
+          "--json",
+          "--full"
+        ],
+        "elapsed_ms": 78726.90238901123,
+        "peak_rss_bytes": 769482752,
+        "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+        "exit_code": 1,
+        "stderr": ""
+      }
+    }
+  ],
+  "measurements": [
+    {
+      "phase": "preparation",
+      "elapsed_ms": 627,
+      "peak_rss_bytes": 63205376,
+      "memory_method": "post-preparation orchestrator /proc VmHWM; includes preparation",
+      "passed": true
+    },
+    {
+      "phase": "cold-cli-build",
+      "cache_condition": "fresh target directory; existing registry cache",
+      "passed": true,
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "-p",
+        "dctx0-cli",
+        "--target-dir",
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/.bin/cold-cli-build"
+      ],
+      "elapsed_ms": 358607.6272729988,
+      "peak_rss_bytes": 810278912,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0
+    },
+    {
+      "phase": "orchestrator",
+      "elapsed_ms": 101012,
+      "peak_rss_bytes": 157208576,
+      "memory_method": "post-execution orchestrator /proc VmHWM; previous stages included, child workers excluded",
+      "passed": true
+    },
+    {
+      "phase": "native-worker",
+      "samples": [
+        {
+          "kind": "measured",
+          "peak_rss_bytes": 26316800,
+          "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+          "platform": "linux"
+        }
+      ],
+      "memory_method": "worker-reported /proc VmHWM, captured in native artifacts",
+      "passed": true
+    },
+    {
+      "phase": "warm-finite-plan",
+      "passed": true,
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/.dctx0/testing/rust/executables/dctx0",
+        "verify",
+        "run",
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152",
+        "--no-adopt",
+        "--json",
+        "--full"
+      ],
+      "elapsed_ms": 123990.87472799874,
+      "peak_rss_bytes": 775622656,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 1
+    },
+    {
+      "phase": "replay",
+      "passed": true,
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/.dctx0/testing/rust/executables/dctx0",
+        "verify",
+        "replay",
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152/dctx0",
+        "59443ce03eba449bf0363ac10f786c91adf322bc7f7aed0892d433f0ee3d5f84",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/self-verification/1793143323417684382-1651152",
+        "--case",
+        "Dctx0.ApiInt:value:0",
+        "--json",
+        "--full"
+      ],
+      "elapsed_ms": 96254.0933900018,
+      "peak_rss_bytes": 766226432,
+      "memory_method": "Linux wait4 child-and-waited-descendants ru_maxrss; not incremental allocation",
+      "exit_code": 0
+    }
+  ],
+  "watchdog": {
+    "elapsed_ms": 946908.544,
+    "peak_process_tree_rss_bytes": 1515667456,
+    "budget_bytes": 7781810176
+  },
+  "note": "A separate process changed three original Rust inputs after the initial source-current check. This completed snapshot run is preserved; it is not current-worktree PASS. A fresh source-built run follows."
+}

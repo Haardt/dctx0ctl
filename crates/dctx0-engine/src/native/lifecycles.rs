@@ -157,8 +157,13 @@ impl NativeWorker {
                 .collect::<Vec<_>>();
             if !setup_plan.clauses.is_empty() && !entities.is_empty() {
                 setup_context.before = Some(
-                    self.observe_case(entities, dctx0_core::StatePhase::Before, cancel)
-                        .await?,
+                    self.observe_invocation_case(
+                        entities,
+                        dctx0_core::StatePhase::Before,
+                        Some(invocation),
+                        cancel,
+                    )
+                    .await?,
                 );
             }
             let ready = dctx0_verification::operation_ready(
@@ -222,9 +227,10 @@ impl NativeWorker {
         }
         for (position, invocation) in invocations.into_iter().enumerate() {
             let before = self
-                .observe_case(
+                .observe_invocation_case(
                     vec![plan.entity.clone()],
                     dctx0_core::StatePhase::Before,
+                    Some(&invocation),
                     cancel,
                 )
                 .await?;
@@ -250,9 +256,10 @@ impl NativeWorker {
                 .invoke_case(invocation.clone(), cancel, &mut cases::reject_mock)
                 .await?;
             let after = self
-                .observe_case(
+                .observe_invocation_case(
                     vec![plan.entity.clone()],
                     dctx0_core::StatePhase::After,
+                    Some(&invocation),
                     cancel,
                 )
                 .await?;

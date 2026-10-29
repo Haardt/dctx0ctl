@@ -1225,6 +1225,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
     }
     fs::write(temp.0.join("config.json"),r#"{"mode":"real","database":":memory:","time":"2026-10-10T18:00:00Z","ids":["00000000-0000-4000-8000-000000000030","00000000-0000-4000-8000-000000000031"]}"#).unwrap();
     let input = OperationCaseInput {
+        argument_bindings: vec![],
         id: "cinema-comment-projection".into(),
         invocation: Invocation {
             subject: "HomeCinema.MovieNight.Community.CommentStore.listByFilm".into(),
@@ -1333,6 +1334,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
         }
         fs::write(&production, source).unwrap();
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-presence-{exists}-{mutated}"),
             invocation: Invocation {
                 subject: presence.operation.id.clone(),
@@ -1448,6 +1450,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
             ]
         };
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-rating-{mutation}"),
             invocation: Invocation {
                 subject: rating_plan.operation.id.clone(),
@@ -1515,6 +1518,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
         }
         fs::write(&production, source).unwrap();
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-upsert-{mutation}"),
             invocation: rated(film_id.clone(), member_id.clone(), "FiveStars"),
             setup: vec![
@@ -1601,6 +1605,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
         }
         fs::write(&production, source).unwrap();
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-append-{mutation}"),
             invocation: Invocation {
                 subject: append_plan.operation.id.clone(),
@@ -1735,6 +1740,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
             .find(|operation| operation.operation.id == subject)
             .unwrap();
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-catalog-{method}-{mutation}"),
             invocation: Invocation {
                 subject,
@@ -1843,6 +1849,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
             .find(|operation| operation.operation.id == subject)
             .unwrap();
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-voting-{method}-{mutation}"),
             invocation: Invocation {
                 subject,
@@ -2047,6 +2054,7 @@ async fn cinema_lifecycle_paths_use_actual_sqlite_state_and_real_scoped_services
             fields.insert("limit".into(), VerificationValue::Integer("1".into()));
         }
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: format!("cinema-search-{scenario}-{sort}-{mutation}"),
             invocation: Invocation {
                 subject: search_plan.operation.id.clone(),
@@ -3316,5 +3324,151 @@ async fn technical_categories_preserve_explicit_causes_without_message_guessing(
             .unwrap_err();
         assert_eq!(error.kind, expected);
         worker.abort().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn pure_clause_oracles_resume_in_order_and_reject_effects_bad_returns_and_exhaustion() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "oracle-continuation.dctx0".into(),
+        text: "workspace W { entity Item { id:Int\nkey id } surface Api {
+          operation g(input:Int) -> Int { pure }
+          operation f() -> Int { pure\n ensures result == Api.g(1) + Api.g(2) }
+        } }"
+        .into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let original = compiled.ir.unwrap();
+    let temp = Temp::new();
+    for mode in [
+        "ok",
+        "wrong",
+        "events",
+        "write",
+        "bad-return",
+        "unknown-contract",
+        "invalid-input",
+        "budget",
+        "unavailable",
+        "exception",
+    ] {
+        let mut ir = original.clone();
+        let mut budgets = VerificationBudgets::default();
+        if mode == "unknown-contract" {
+            ir.operations.get_mut("W.Api.g").unwrap().result = TypeRef::builtin("FutureBuiltin");
+        }
+        if mode == "invalid-input" {
+            ir.operations.get_mut("W.Api.g").unwrap().parameters[0].ty = TypeRef::builtin("UUID");
+        }
+        if mode == "budget" {
+            let mut clause = ir
+                .nodes
+                .iter()
+                .find(|node| node.owner == "W.Api.f" && node.kind == StatementKind::Ensures)
+                .unwrap()
+                .clone();
+            let helper = dctx0_language::compile(&[Source { file:"budget.dctx0".into(),text:"workspace W { surface Api { operation g(input:Int) -> Int { pure } operation f() -> Int { pure\n ensures Api.g(1) == 1 } } }".into() }]).ir.unwrap();
+            clause.expressions = helper
+                .nodes
+                .iter()
+                .find(|node| node.kind == StatementKind::Ensures)
+                .unwrap()
+                .expressions
+                .clone();
+            ir.nodes
+                .retain(|node| node.owner != "W.Api.f" || node.kind != StatementKind::Ensures);
+            for index in 0..5 {
+                let mut node = clause.clone();
+                node.id = format!("W.Api.f#ensures:{index}");
+                ir.nodes.push(node);
+            }
+            budgets.evaluation_steps = 4;
+        }
+        let program = format!(
+            r#"
+import sys,json
+mode={mode:?}
+next_argument=1
+for line in sys.stdin:
+ p=json.loads(line);r=p['request'];kind=r['kind']
+ if kind=='begin':reply={{'kind':'begun','case_id':r['case_id']}}
+ elif kind=='end':reply={{'kind':'ended'}}
+ elif kind=='invoke':
+  invocation=r['invocation'];oracle=invocation['subject']=='W.Api.g'
+  if oracle:
+   argument=int(invocation['arguments'][0]['value'])
+   if mode!='budget':
+    assert argument==next_argument
+    next_argument+=1
+   value={{'kind':'integer','value':str(argument+(1 if mode=='wrong' else 0))}}
+  else:value={{'kind':'integer','value':'3'}}
+  if oracle and mode=='bad-return':value={{'kind':'boolean','value':True}}
+  observation={{'kind':'unavailable','reason':'missing oracle'}} if oracle and mode=='unavailable' else {{'kind':'threw','message':'oracle exception'}} if oracle and mode=='exception' else {{'kind':'returned','value':value}}
+  reply={{'kind':'invoked','observation':observation,'events':[{{'subject':'W.Changed','payload':{{'kind':'unit'}}}}] if oracle and mode=='events' else [],'resources':[{{'resource':'W.Item','access':'write'}}] if oracle and mode=='write' else []}}
+ else:reply={{'kind':'bye'}}
+ print(json.dumps({{'protocol_version':1,'message':{{'kind':'reply','id':p['id'],'reply':reply}}}}),flush=True)
+ if kind=='shutdown':break
+"#
+        );
+        let mut worker = NativeWorker::spawn(&recipe(&program), &temp.0, limits())
+            .await
+            .unwrap();
+        let result = worker
+            .execute_pure_operation(
+                &ir,
+                &ir.operations["W.Api.f"],
+                Invocation {
+                    subject: "W.Api.f".into(),
+                    arguments: vec![],
+                },
+                &budgets,
+                &NativeCancellation::default(),
+            )
+            .await
+            .unwrap();
+        match mode {
+            "ok" => assert_eq!(result, VerificationResult::Pass),
+            "wrong" => assert!(
+                matches!(result,VerificationResult::Fail {issue} if issue.code=="OPERATION_CLAUSE_VIOLATED")
+            ),
+            "events" | "write" => assert!(
+                matches!(result,VerificationResult::Fail {issue} if issue.code=="PURE_CLAUSE_EFFECT")
+            ),
+            "bad-return" => assert!(
+                matches!(result,VerificationResult::Fail {issue} if issue.code=="NATIVE_RETURN_CONTRACT")
+            ),
+            "budget" => assert!(
+                matches!(result,VerificationResult::Unknown {issue} if issue.code=="EVALUATION_BUDGET")
+            ),
+            "invalid-input" => assert!(
+                matches!(result,VerificationResult::Unknown {issue} if issue.code=="CLAUSE_CALL_INPUT")
+            ),
+            _ => assert!(
+                matches!(result, VerificationResult::Unknown { .. }),
+                "{mode}: {result:?}"
+            ),
+        }
+        let invocations = worker
+            .session_evidence()
+            .iter()
+            .filter(|entry| matches!(entry, NativeSessionEvidence::Invoked { .. }))
+            .count();
+        if mode == "ok" {
+            assert_eq!(
+                invocations, 3,
+                "The operation and its two oracle occurrences execute exactly once"
+            );
+        }
+        if mode == "invalid-input" {
+            assert_eq!(
+                invocations, 1,
+                "Invalid oracle arguments never reach the worker"
+            );
+        }
+        worker.finish().await.unwrap();
     }
 }

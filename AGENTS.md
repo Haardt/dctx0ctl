@@ -1398,3 +1398,165 @@ baseline comparisons remain unassessed and the accepted baseline is unchanged.
 The full coverage above precedes this version-only bump. No publication or
 completion of the larger workflow plan is claimed. See
 `docs/release-v0.3.0-validation.json` and `docs/release-v0.3.0.md`.
+
+
+## Constructive state preflight (2026-10-27)
+
+Verification projection reports `STATE_REPLACEMENT_SOURCE_REQUIRED` for a missing
+explicit replacement selector/source shape and `STATE_OBSERVES_WRITE_CONFLICT`
+for read-only `observes` plus a write declaration for the same resolved entity.
+These are open plan issues with source positions and remedies, not native FAIL
+proofs. `check` and historical snapshot IR remain compatible; state assessment
+still preserves observed state and never invents replacement values. WorkshopHub
+publication/cancellation now construct complete entity sources explicitly.
+
+Four focused projection tests and four isolated installed-CLI cases pass, including
+unchanged history under read-only planning. Workspace check, build, formatting and
+Clippy pass. The coupled full working-tree validation is failed: one existing
+state-result projection test fails (641 regular tests pass), Go/Rust acceptance
+rejects frozen fixture hashes, and coverage is 39,045/40,362 merged source lines
+(96.74%) and 3,206/3,313 LLVM functions (96.77%), below the unchanged 97% gates.
+The new preflight module has no uncovered source lines; no exclusion or branch
+completeness claim is introduced. All pre-existing working-tree changes remain.
+
+Fifty-five Rust release speed/RSS workloads are recorded; the native Go measurement
+aborts on an incomplete/failing plan, leaving the bundle incomplete and subsequent
+native measurements unexecuted. Reduced samples remain unassessed; the accepted
+baseline is unchanged. The exact local 0.3.0 development binary is installed at
+`~/.local/bin/dctx0`, with a verified backup of the previous binary. See
+`docs/state-contract-validation.json` and its retained measurement records for
+scope, failures, raw coverage totals and installation hashes. No aggregate PASS
+or release publication is claimed.
+
+
+## State-contract validation repaired (2026-10-28)
+
+This supersedes the failed 2026-10-27 state-preflight validation checkpoint.
+The state-result regression now verifies the pending independent oracle request
+and retains the separate unsupported state-projection obligation; consumer call
+traces still cannot supply expression evidence. Added real native continuation
+checks reject oracle effects, invalid returns/inputs and budget exhaustion, and
+setup-binding tests cover ordered dataflow, nested record/list paths, missing or
+failed results and overlapping/forward destinations.
+
+Cinema acceptance now deliberately pins 5,766 cases by identity and case family:
+3,862 contract, 1,784 operation, 101 assertion, 12 example, five entity-identity
+and two lifecycle cases. Six runners share these reviewed expectations. The
+values-6/rejections-3 corpus and the additional castVote preparation replace the
+historical 5,674-case inventory; compiler snapshot goldens and production/spec
+sources are unchanged. The changed testing preparation was explicitly inspected
+before renewing only its source hash/scope in all three target review fixtures.
+
+Fresh full workspace/feature checks pass: 647 regular all-feature Rust tests,
+648 instrumented executions, 41 Python tests, qualified Go Race, TypeScript
+review/delivery acceptance and complete Go/Rust Cinema acceptance with 5,766
+native cases, five actual production mutations and broken/repaired replay each.
+Coverage passes the unchanged 97% gates: 39,191/40,362 merged source lines
+(97.10%) and 3,215/3,313 raw LLVM functions (97.04%). Raw LLVM totals are retained
+separately; no branch-completeness claim or new exclusion is introduced.
+
+All 82 release speed/RSS workloads complete. Additional standard measurements use
+five samples/20 iterations for core workloads (phase iterations capped at three)
+and separately reported native compiler/harness workloads. Successful checks are
+reused only against exactly identical source hashes; no functional stages are
+silently skipped. The accepted baseline is incompatible and remains unchanged;
+no performance regression assessment or baseline promotion is claimed. The exact
+validated local 0.3.0 binary is installed and all four installed-CLI state-contract
+smokes pass. See `docs/state-contract-followup-validation.json` for complete
+receipts, raw metrics, sampling, source pins, hashes and the earlier failed run.
+
+## Experimental per-test coverage (2026-10-28)
+
+`dctx0 experimental coverage collect/import/list/affected` is an opt-in Rust/libtest
+research collector using the existing Store database and global `--db` override.
+Its additive `experimental_coverage_*_v1` tables are initialized only by explicit
+writes, independently of the main history schema version. Read-only queries do
+not create tables. Records append full LLVM exports, merged profiles and
+provenance; positive segment intervals provide a file/line lookup index.
+The Linux/Python adapter builds in unique directories, isolates tests with
+per-execution profiles, bounds child output and time, and records build/test
+speed and wait4 RSS separately. Ignored tests/doctests/custom harnesses and
+coverage from separately linked native/child executables are outside its scope.
+This is a data foundation with observational candidate queries, not automatic
+test skipping, reuse of results or task PASS evidence. Collector Python tests are separate from LLVM
+Rust coverage. Existing unrelated worktree changes must be preserved.
+
+Scoped development validation is available with `python3 scripts/validate.py
+--focus experimental-coverage --samples 1 --iterations 1`: Python checks,
+workspace compilation/formatting/Clippy, coverage-store tests and CLI collection
+with/without default features, coupled with the release measurement suite.
+This focus does not certify the workspace 97% coverage gate. Dated validation,
+raw release samples and scope limits are retained in
+`docs/experimental-coverage-validation.json`; no baseline is promoted.
+
+`experimental coverage affected <application-root> --base HEAD` now reports
+ordinary project-test candidates from old-coordinate Git hunk/coverage overlap;
+it requires neither a specification nor the DCTX0 verification harness. Exact
+clean base revisions and a single source/environment/compiler cohort are required.
+Candidates pin historical executions and include reasons and optional Cargo argv.
+Insertions, new files, binary/config changes and missing coverage remain unknown;
+`can_skip_other_tests` is always false. New captures qualify test IDs by target
+kind (identity version 2); old execution records remain immutable/readable.
+The query is read-only and never creates a missing database. The focused runner
+includes matcher tests and a real two-test Git/Cargo regression experiment.
+
+Affected-query development evidence is retained in
+`docs/coverage-affected-validation.json`: focused checks pass, 82 reduced-sample
+release workloads complete, and the release CLI identifies the failing test in a
+normal two-test Git/Cargo regression fixture without a DCTX0 spec/SDK harness.
+New-path/catalog uncertainty remains explicit. No full-workspace coverage or
+performance-baseline acceptance is claimed by this increment.
+
+## Isolated libtest research foundation (2026-10-28)
+
+`dctx0-test-analysis` owns pure versioned research models, conservative coverage
+selection and evaluation. The additive `experimental_analysis_*_v1` extension
+stores immutable snapshots/catalogs/collections/observations/predictions/labels
+and transactional append-only progress events, independently of the main schema.
+`experimental coverage catalog/collect/collection` inventories scoped libtests;
+`experimental test-analysis shadow/replay/show/export/recompute` provides frozen
+predictions, chronological detached-worktree replay, resume and offline NDJSON
+recalculation. Existing coverage import/list/affected data remain available and
+never acquire a fabricated complete catalog. Individual test-definition hashes
+remain unknown; executable hashes are not substituted for them.
+
+The reference consists only of isolated supported libtests, with ignored and
+unsupported targets visible. Catalog, execution and evaluable-reference
+completeness are separate. Ordinary FAIL is a valid label; timeout, crash and
+infrastructure failure are not PASS or ordinary test failures. Prediction
+publication precedes target execution. Replay uses locked/offline Cargo, retains
+owned worktrees/raw artifacts, pins implementation and environment fingerprints,
+and never checks out the user worktree. Research evidence never authorizes
+spec/task PASS, automatic test skipping, training or result reuse.
+
+`python3 scripts/test_analysis_acceptance.py --samples 3` couples focused Rust/
+Python checks with six separate release CLI workloads and retains the latest 20
+summaries under `benchmarks/history/test-analysis`. The workspace validator also
+runs these workloads. See `docs/site/src/reference/test-analysis.md` for commands,
+reference scope, RSS limitations and dataset semantics. Full acceptance still
+requires `python3 scripts/validate.py --coverage`; scoped results alone do not
+certify the unchanged 97% gates. Baseline promotion remains explicitly authorized
+only.
+
+Full research-foundation validation (2026-10-28) passes all 32 workspace steps,
+including 97.13% merged source lines (41,369/42,590) and 97.12% LLVM functions
+(3,371/3,471), without new exclusions or threshold changes. Raw LLVM metrics
+remain separate; branch completeness is not claimed. All 88 release workloads
+completed, including six research phases with five samples and one warmup.
+The documented serial QA profile retains assertions and overflow checks at
+dev/test optimization level 1. Elapsed time was 2,838,858 ms; sampled peak
+process-tree RSS was 1,037,082,624 bytes. Performance comparison is unassessed
+where the accepted baseline is incompatible or absent; no baseline was promoted.
+See `docs/test-analysis-validation.json` for durable receipts, raw data, the
+offline dataset and the exact command. Earlier partial/failed runs are retained
+as such and do not certify acceptance.
+
+## Delivery skill (0.3.1)
+
+Five embedded skills include `dctx0-delivery` for substantial multi-task work.
+It builds usable production deliveries over existing pinned task IDs and
+prerequisites, reuses package/source change reports and batches validation at
+functional boundaries without reducing mandatory acceptance. Delivery KPIs keep
+first usable behavior, complete acceptance, repeat checks and effort separate.
+Concrete alpha workflow findings belong in the application's
+`DCTX0_IMPROVEMENT_WORKFLOW.md`; they grant no test-skipping or PASS authority.

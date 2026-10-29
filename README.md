@@ -186,7 +186,7 @@ To build only a selected target:
 cargo build --release -p dctx0-cli --no-default-features --features rust --locked
 ```
 
-Parsing, compilation, and task planning do not require a native application toolchain. Verification additionally needs Bun for TypeScript, Go 1.25+ for Cinema Go, or Cargo and a C toolchain for Cinema Rust. Prepare native dependencies explicitly before managed execution. Python is used for repository validation scripts, not CLI product workflows.
+Parsing, compilation, and task planning do not require a native application toolchain. Verification additionally needs Bun for TypeScript, Go 1.25+ for Cinema Go, or Cargo and a C toolchain for Cinema Rust. Prepare native dependencies explicitly before managed execution. Python is used for repository validation scripts and the opt-in experimental coverage collector; established CLI workflows do not require it.
 
 ### Draft a contract with your agent
 
@@ -408,13 +408,15 @@ release speed/RAM command `python3 scripts/validate.py --coverage --samples 1 --
 
 ## Agent skills and editors
 
-The CLI bundles three complementary skills:
+The CLI bundles five complementary skills:
 
 | Skill | Purpose |
 | --- | --- |
 | [`dctx0`](skills/dctx0/SKILL.md) | Navigate the workflow, select work, and interpret verification evidence. |
 | [`dctx0-language`](skills/dctx0-language/SKILL.md) | Author, review, and repair specifications, including typed contracts, examples, and lifecycles. |
 | [`dctx0-implementation`](skills/dctx0-implementation/SKILL.md) | Implement and repair application tasks and testing adapters using pinned requirements and native verification. |
+| [`dctx0-config`](skills/dctx0-config/SKILL.md) | Configure project roots, native verification deadlines, corpus/transport budgets and editable profiles; diagnose resource-limit failures. |
+| [`dctx0-delivery`](skills/dctx0-delivery/SKILL.md) | Plan usable production deliveries, reuse change reports, batch validation and measure workflow improvements. |
 
 Install them for your coding agent:
 
@@ -704,3 +706,117 @@ The coupled runner prepares the pinned Cinema Rust harness cache with
 before recording source pins; subsequent native builds stay offline. HTTP mutations
 that throw without a modeled result must produce blocking UNKNOWN with
 `APPLICATION_EXCEPTION`; the other Cinema mutations still require executed contract FAIL.
+
+### Experimental per-test Rust coverage
+
+`dctx0 experimental coverage` collects research data in the existing database
+(`--db` overrides `.dctx0ctl/state.sqlite3` under the supplied application root).
+It requires no specification. Collection executes ordinary project tests;
+`affected` reports candidates without executing or skipping them. These commands
+do not change specification heads, tasks or verification PASS evidence.
+
+```sh
+rustup component add llvm-tools-preview
+# Linux, Python 3 and a standard Rust libtest workspace are required.
+dctx0 experimental coverage collect . --package dctx0-language --timeout-secs 300
+dctx0 experimental coverage list . --limit 20
+# Use the exact filename returned by LLVM, normally an absolute filename.
+dctx0 experimental coverage list . --file /absolute/project/src/lib.rs --line 12
+# Optional: replay/import a collector JSON report, preserving historical executions.
+dctx0 experimental coverage import . /path/to/report.json
+```
+
+`--filter SUBSTRING` limits collection by package/target/test identity. Every
+collection builds in a fresh directory, runs each non-ignored test separately
+from its package directory, and stores immutable results, LLVM JSON, merged
+profiles, binary/source/environment fingerprints, elapsed milliseconds and
+Linux `wait4` peak RSS bytes. Collection streams individual artifact records
+into one SQLite transaction instead of retaining all exports in memory. Build
+speed/RSS is recorded separately. RSS includes
+waited descendants but does not sum concurrently resident processes. Outputs,
+raw profiles, per-execution records and a replayable `manifest.json` remain
+under `.dctx0ctl/coverage/<run>/`; these artifacts
+can be large. A failed test is retained and gives a failing command exit status.
+An interrupted test may have no flushed coverage; this is explicitly recorded.
+Tool/build/export failures retain partial files and do not publish a batch.
+
+The additive version-1 experimental tables are created only on explicit
+collection/import; queries open the database read-only. Imports append new
+execution IDs, including when importing the same report twice. Query results
+include full historical exports and are limited to 20 executions by default.
+The line lookup indexes positive LLVM segment intervals; it is an observed
+coverage lookup, not evidence that other tests are unaffected by a change.
+LLVM regions/functions/branches remain in the raw export when supplied by the
+installed compiler; branch coverage and ordered call paths are not promised.
+Doctests, custom harnesses, ignored tests, external/native code and separately
+linked child executables are outside this initial collection scope. Source
+fingerprints cover the documented workspace source/config file inventory,
+not every possible external build input. No result-reuse validity is inferred.
+
+Full validation uses `python3 scripts/validate.py --coverage`; it includes collector
+process/real-LLVM tests and the CLI/storage tests, plus release speed/RAM
+measurements. Reduced `--samples 1 --iterations 1` runs are development evidence
+and do not promote the accepted performance baseline. Python collector coverage
+is separate from Rust LLVM coverage. For scoped development checks paired with
+release speed/RAM measurements, use
+`python3 scripts/validate.py --focus experimental-coverage --samples 1 --iterations 1`.
+That focus is partial validation and does not certify the workspace coverage gate.
+
+If application and specification roots differ, pass the existing history path
+explicitly, for example `dctx0 --db dctx0/.dctx0ctl/state.sqlite3 experimental
+coverage collect . --package my-package`. Coverage execution ownership uses the
+application root; specification history keeps its existing project keys.
+
+### Experimental affected project tests
+
+This operates on the application's recorded Rust tests, without a DCTX0 spec or
+DCTX0 verification harness. Ignore `.dctx0ctl/` in Git before collection so that
+local artifacts do not make the baseline dirty.
+
+```sh
+# Collect at a clean, committed baseline. Use the same --db for both commands.
+dctx0 experimental coverage collect . --package my-package
+# After editing project files: staged + unstaged changes and untracked files.
+dctx0 experimental coverage affected . --base HEAD
+```
+
+`--base` accepts a local Git commit/ref and defaults to `HEAD`; it is resolved to
+an exact commit. `affected` opens an existing database read-only and creates no
+database when none exists. Its JSON returns candidate test IDs, historical
+execution IDs/outcomes, old file/line ranges explaining each overlap, and Cargo
+argument arrays to run individual tests from `project_root`. Older imported
+records may have no command metadata (`command: null`). It never executes these
+commands. Exit zero means the query succeeded, including when coverage is missing.
+
+Only clean, coverage-bearing records at the exact base revision are eligible.
+The newest source/environment/toolchain cohort is selected, with the latest
+execution per test; incompatible and duplicate records are counted as excluded.
+Timeout profiles are excluded. Changes are matched against **old** coordinates,
+so line shifts do not match current line numbers against historical profiles.
+For pure insertions, adjacent old lines can suggest candidates, while the new
+lines remain explicitly unknown. Renames are treated as deletion plus addition.
+
+`unknowns` identifies missing baselines, uncovered old ranges, new/untracked
+files, binary or file-mode changes, and non-Rust/build-input changes. Every
+nonempty diff also states that historical coverage cannot prove new paths or
+complete test-catalog coverage. `can_skip_other_tests` remains **false**: this is
+an explainable candidate query for agent feedback and shadow evaluation, not
+permission to omit the rest of the suite. Coverage from another commit or a dirty
+collection is retained in history but is not used as baseline evidence.
+
+New captures include the Cargo target kind in test IDs (identity version 2) to
+distinguish identically named library/binary/integration tests. Existing execution
+IDs and raw records remain unchanged. When target metadata is available, the
+query also distinguishes targets in older imported test IDs.
+
+For ordinary Rust/Cargo incremental-test research, see the
+[test-analysis guide](docs/site/src/reference/test-analysis.md). Catalogs,
+isolated collections, frozen shadow predictions and chronological replay need
+Linux, Git, Python 3.11+, Cargo/Rust and the installed `llvm-tools-preview`
+component. Research builds run locked and offline. Run the coupled checks and
+six release speed/RAM workloads with `python3 scripts/test_analysis_acceptance.py
+--samples 3`; full workspace acceptance remains `python3 scripts/validate.py
+--coverage`. No benchmark baseline is promoted automatically.
+The [2026-10-28 validation index](docs/test-analysis-validation.json) retains the
+successful full-workspace checks, coverage, speed/RAM samples and an offline
+recomputation dataset. Performance baseline comparison remains unassessed.

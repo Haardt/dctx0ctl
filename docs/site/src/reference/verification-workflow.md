@@ -50,3 +50,52 @@ This is not branch completeness. All 81 release speed/RSS workloads completed;
 one sample/iteration and one warmup leave general baseline comparisons unassessed.
 The accepted baseline is unchanged. See `docs/verification-workflow-validation.json`
 for pinned source hashes, raw evidence, measurement provenance and outstanding work.
+
+## Constructive state preflight (2026-10-27)
+
+`verify plan` now reports `STATE_REPLACEMENT_SOURCE_REQUIRED` for replacements
+without an explicit complete selector/source shape, and
+`STATE_OBSERVES_WRITE_CONFLICT` when an operation declares both read-only
+`state observes` and write access to the same resolved entity. Messages retain
+the operation identity and state-clause source position and explain the remedy.
+These are open plan obligations, not evidence of a failed native implementation.
+The native state assessor still requires actual observations and never infers a
+replacement from observed state or postconditions.
+
+For compatibility, compilation and historical snapshot IR remain unchanged;
+selector-only historical specifications still compile, but their verification
+plan explicitly exposes the missing constructive source. Plans are read-only
+and do not rewrite snapshots, tasks or historical results. `observes` still
+requires unchanged successful state. Write access and after-state postconditions
+do not give it mutation semantics. See the [state language guide](../docs/language/control-and-effects.md#state-on-a-port-operation)
+for complete replacements using inputs, explicit results and before-state fields.
+The WorkshopHub tutorial now supplies full sources for publication/cancellation.
+
+
+The 2026-10-27 follow-up reviews the expanded finite Cinema corpus explicitly:
+`dctx0-values-6`/`dctx0-rejections-3` and the additional candidate-film/poll setup
+produce 5,766 mandatory cases (3,862 contract, 1,784 operation, 101 assertion,
+12 example, five entity-identity and two lifecycle cases). The six native
+acceptance/performance entrypoints share exact case-family expectations and
+still require every requested case PASS with complete native provenance.
+This intentionally updates the former 5,674-case acceptance inventory; compiler
+snapshot goldens and production/specification files remain unchanged.
+
+The changed testing fixtures were inspected separately: the new castVote setup
+saves the selected film and opens its referenced poll, identically for all three
+targets. Only that reviewed fixture hash and its inspection scope are renewed;
+other authored findings remain. The review is not native testing evidence.
+The State-result regression now checks the explicit pending oracle request and
+verifies that application call traces cannot substitute for its independent
+continuation tape or silently discharge an unsupported state projection.
+
+
+Follow-up acceptance completed on 2026-10-28: the full workspace/feature checks,
+647 regular Rust tests, 648 instrumented executions, 41 Python tests, qualified
+Go Race and native Cinema mutation/replay acceptance pass. Coverage is 97.10%
+merged source lines and 97.04% LLVM functions, with unchanged thresholds and no
+new exclusions. All 82 release speed/RSS workloads complete; the additional
+standard sampling retains five samples/20 iterations for core measurements.
+Baseline comparison remains explicitly unassessed due to incompatible metadata;
+the accepted baseline is unchanged. Full receipts and the preserved failed
+checkpoint are recorded in `docs/state-contract-followup-validation.json`.

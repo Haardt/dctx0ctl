@@ -104,14 +104,16 @@ A port operation may have exactly one constructive `state` clause. It tells boun
 | `state lists Entity` | Read a collection of entity states |
 | `state inserts Entity from parameter` | Insert a new entity constructed from a parameter |
 | `state upserts Entity from parameter` | Insert or replace from a parameter |
-| `state replaces Entity by keyPath` | Replace existing state selected by a key |
+| `state replaces Entity by keyPath from source` | Replace existing state selected by a key with a complete entity source |
 | `state removes Entity by keyPath` | Remove state selected by a key |
 
-`by` identifies an operation parameter or field path from which the entity key can be determined. `from` identifies the parameter that constructively supplies the entity.
+`by` identifies an operation parameter or field path from which the entity key can be determined. `from` supplies an explicit expression constructing the complete entity: an entity parameter or a record constructor, for example. A selector identifies a row; it does not define its replacement values.
 
 ### `observes`
 
-`observes` selects one existing entity by a parameter or field-path key and models a read. It commonly pairs with `Option<Entity>` or a message projection and a `read Entity` effect.
+`observes` selects one existing entity by a parameter or field-path key and models a read. It commonly pairs with `Option<Entity>` or a message projection and a `read Entity` effect. On success, the complete observed state of this entity must remain unchanged, including unselected rows. `observes` never acquires write semantics from an effect or postcondition.
+
+The verification plan reports `STATE_OBSERVES_WRITE_CONFLICT` when the same operation also declares `write` for this resolved entity. This flags conflicting read-only state and write declarations; it does not prove that every postcondition is logically unsatisfiable. A condition such as `after.Entity(key).phase == Ready` can already hold before the call. For an intended update, supply a constructive writing state clause instead.
 
 ### `lists`
 
@@ -127,7 +129,25 @@ A port operation may have exactly one constructive `state` clause. It tells boun
 
 ### `replaces`
 
-`replaces` requires existing state and replaces it using an entity key obtained through contextual `by`.
+`replaces` requires existing state, a complete identity selector through contextual `by`, and an explicit complete entity source through `from`. The source must preserve the selected identity. Other rows remain unchanged. `by` alone is insufficient, even when before/after observations and postconditions are available.
+
+Construct every field explicitly. Take changed values from inputs or explicitly modeled results and preserve other fields from `before`. For example:
+
+```dctx0
+state replaces Workshop by id from Workshop {
+  id = id
+  title = before.Workshop(id).title
+  capacity = before.Workshop(id).capacity
+  registered = before.Workshop(id).registered
+  status = Published
+}
+```
+
+A complete entity result can also be an explicit source (`from result`); a partial view cannot supply omitted fields. When using result fields, constrain their intended values separately in postconditions: persistence agreeing with a returned value alone does not prove that the value is correct. Do not use the actual `after` state as the expected source. The verifier does not invent replacements from actual state or solve postconditions to construct them.
+
+Use `upserts` with a complete source if inserting an absent row is also intended. `replaces` requires an existing row; it cannot fulfill a contract requiring creation when the row is absent.
+
+For compatibility, `check` still accepts historical selector-only `replaces` clauses. `verify plan` now reports `STATE_REPLACEMENT_SOURCE_REQUIRED` before native execution when the explicit source or complete selector is missing, or a replacement uses an unsupported `where` selector. Runtime value validity and identity agreement still require assessment. These plan issues keep verification incomplete; compilation success is not a claim of executable state conformance.
 
 ### `removes`
 

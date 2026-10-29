@@ -1055,6 +1055,7 @@ fn generated_preconditions_classify_candidates_and_preserve_explicit_cases() {
     );
     let ir = compiled.ir.unwrap();
     let explicit = OperationCaseInput {
+        argument_bindings: vec![],
         mocks: vec![],
         id: "explicit-invalid-precondition".into(),
         invocation: Invocation {
@@ -1148,6 +1149,7 @@ fn invalid_preparation_calls_remain_mandatory_and_are_reported_before_execution(
                 .into_iter()
                 .enumerate()
                 .map(|(index, setup)| OperationCaseInput {
+                    argument_bindings: vec![],
                     id: format!("invalid-setup-{index}"),
                     invocation: Invocation {
                         subject: "W.Api.next".into(),

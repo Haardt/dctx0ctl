@@ -1,0 +1,701 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-27",
+  "status": "fix_installed_focused_checks_pass_full_validation_failed",
+  "scope": "Constructive state verification preflight and documentation; local development CLI installation",
+  "changes": [
+    "Plan issues for replaces without a complete explicit selector/source shape",
+    "Plan conflict for observes plus write access to the same resolved entity",
+    "Complete WorkshopHub publication/cancellation replacement sources and state modeling documentation"
+  ],
+  "compatibility": {
+    "compiler_and_snapshot_ir": "unchanged; historical selector-only replaces remains accepted by check",
+    "state_assessment": "unchanged; observes still preserves complete entity state; no replacement inference",
+    "sqlite_and_transport": "unchanged"
+  },
+  "installation": {
+    "timestamp": "2026-10-27T21:48:52.391298+00:00",
+    "version": "dctx0 0.3.0",
+    "installed_path": "/home/held/.local/bin/dctx0",
+    "installed_sha256": "01981c870c95a294e52c35b6ad599b42ec88bd47d1338ad3f926cb59c28afb63",
+    "previous_sha256": "02695e8c5c1eec07c23c2e78f74086211bd063defc2ab50a3e5d0fda0a5d1b19",
+    "backup": "/home/held/.local/share/dctx0/backups/dctx0-0.3.0-02695e8c5c1eec07",
+    "source_binary": "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+    "scope": "local development build; includes pre-existing working-tree changes; no release publication",
+    "still_matches_release": true
+  },
+  "installed_cli_smoke": {
+    "binary": "/home/held/.local/bin/dctx0",
+    "sha256": "01981c870c95a294e52c35b6ad599b42ec88bd47d1338ad3f926cb59c28afb63",
+    "memory_scope": "Linux wait4 ru_maxrss for each spawned child in bytes; includes inherited fork/pre-exec pages, so this is not standalone post-exec CLI RSS. Elapsed time uses 10 ms completion polling and includes launch overhead.",
+    "cases": [
+      {
+        "name": "missing-source",
+        "check": {
+          "elapsed_ms": 51.41311600164045,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 0
+        },
+        "plan": {
+          "elapsed_ms": 10.563396994257346,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 1
+        },
+        "issues": [
+          {
+            "code": "STATE_REPLACEMENT_SOURCE_REQUIRED",
+            "message": "W.Store.apply: replaces requires a complete identity selector and an explicit complete entity source: state replaces Entity by key from Entity { ... }. Observed after state and postconditions do not supply a replacement",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 105,
+                "line": 3,
+                "column": 60
+              },
+              "end": {
+                "offset": 135,
+                "line": 3,
+                "column": 90
+              }
+            }
+          }
+        ],
+        "read_only": true
+      },
+      {
+        "name": "observe-write",
+        "check": {
+          "elapsed_ms": 40.65265900862869,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 0
+        },
+        "plan": {
+          "elapsed_ms": 10.289986996212974,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 1
+        },
+        "issues": [
+          {
+            "code": "STATE_OBSERVES_WRITE_CONFLICT",
+            "message": "W.Store.apply: state observes W.Item requires its complete observed entity state to remain unchanged on success, but this operation declares write access to the same entity. For an intended change, use replaces (existing entity) or upserts (insert or replace) with an explicit complete source; otherwise remove the write declaration. Postconditions alone do not define a state update",
+            "span": {
+              "file": "workspace.dctx0",
+              "start": {
+                "offset": 105,
+                "line": 3,
+                "column": 60
+              },
+              "end": {
+                "offset": 135,
+                "line": 3,
+                "column": 90
+              }
+            }
+          }
+        ],
+        "read_only": true
+      },
+      {
+        "name": "complete-source",
+        "check": {
+          "elapsed_ms": 40.61009500583168,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 0
+        },
+        "plan": {
+          "elapsed_ms": 10.326166011509486,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 0
+        },
+        "issues": [],
+        "read_only": true
+      },
+      {
+        "name": "read-only",
+        "check": {
+          "elapsed_ms": 40.69143100059591,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 0
+        },
+        "plan": {
+          "elapsed_ms": 10.322165006073192,
+          "peak_rss_bytes": 59596800,
+          "exit_code": 0
+        },
+        "issues": [],
+        "read_only": true
+      }
+    ],
+    "baseline_comparison": "unassessed; isolated correctness smoke cases have no accepted baseline",
+    "status": "pass"
+  },
+  "focused_regression_tests": {
+    "status": "pass",
+    "tests": 4,
+    "target": "dctx0-verification --test projection_state",
+    "also_covers": "complete WorkshopHub specification and immutable IR projection"
+  },
+  "workspace_command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:$PATH CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true python3 scripts/validate.py --coverage --samples 1 --iterations 1",
+  "workspace_log": "target/state-contract-validation/workspace.log",
+  "known_failures": [
+    {
+      "stage": "workspace Rust tests",
+      "test": "result_projections_do_not_substitute_call_traces_for_expression_observations",
+      "detail": "Existing test expects STATE_RESULT_PROJECTION_REQUIRED; the current working tree includes earlier native-call continuation changes. This test uses state lists, outside the new preflight diagnostics."
+    },
+    {
+      "stage": "Go and Rust Cinema acceptance",
+      "detail": "conformance_review_acceptance.py rejects mismatched frozen fixture hashes before executing acceptance. examples.json files were already modified at task start; no frozen hashes were refreshed."
+    },
+    {
+      "stage": "workspace coverage",
+      "detail": "The current complete working tree misses the unchanged 97% merged-line/function thresholds; new preflight module has no uncovered source lines. The same state-result projection test also fails under instrumentation."
+    },
+    {
+      "stage": "native release performance",
+      "detail": "go_cinema_performance.py aborts with Measured Go native plan is incomplete or failing. Subsequent Rust/editor performance stages are not reached. This is separate from the earlier frozen-review-hash acceptance failures."
+    }
+  ],
+  "release_build": {
+    "status": "pass",
+    "elapsed_ms": 148024.692,
+    "peak_sampled_process_tree_rss_bytes": 842231808,
+    "measurement_scope": "memory_guard sampled process-tree RSS sum every 50ms; shared pages counted per process"
+  },
+  "performance_baseline": {
+    "promoted": false,
+    "sha256": "85c6efc7052fd3bef04e582a828b417c3488c86841e7a64b2f638ef236a09444",
+    "unchanged": true
+  },
+  "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+  "working_tree": "dirty before this task; existing changes preserved and included in local build",
+  "coverage": {
+    "status": "failed",
+    "instrumented_exit_code": 101,
+    "thresholds": {
+      "merged_source_lines_percent": 97,
+      "llvm_functions_percent": 97
+    },
+    "merged_source_lines": {
+      "covered_lines": 39045,
+      "lines": 40362,
+      "line_percent": 96.73702987958971
+    },
+    "raw_llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3313,
+        "covered": 3206,
+        "percent": 96.7702988228192
+      },
+      "instantiations": {
+        "count": 8167,
+        "covered": 4952,
+        "percent": 60.634259826129544
+      },
+      "lines": {
+        "count": 42623,
+        "covered": 40918,
+        "percent": 95.99981230790887
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 65323,
+        "covered": 60875,
+        "notcovered": 4448,
+        "percent": 93.19075976302375
+      }
+    },
+    "source_hash_before": "4f2c8d7e6cdf7a675a583304b5b0a5c045895ec9dc796f3b8ee55ad3d002a845",
+    "source_hash_after": "4f2c8d7e6cdf7a675a583304b5b0a5c045895ec9dc796f3b8ee55ad3d002a845",
+    "raw_evidence": [
+      "target/coverage/workspace.lcov",
+      "target/coverage/llvm.json",
+      "target/coverage/source-summary.json"
+    ],
+    "new_preflight_module_uncovered_lines": [],
+    "branch_completeness": false,
+    "exclusions_added": false
+  },
+  "regular_all_feature_tests": {
+    "passed": 641,
+    "failed": 1,
+    "deferred_benchmark_conformance": "executed separately by coupled runner"
+  },
+  "workspace_steps": [
+    {
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        "--cwd",
+        "examples/cinema"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        "--cwd",
+        "fixtures/conformance/adaptive-typescript/direct"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        "--cwd",
+        "fixtures/conformance/adaptive-typescript/service"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fetch",
+        "--manifest-path",
+        "examples/cinema-rust/.dctx0/testing/rust/Cargo.toml",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "run",
+        "--cwd",
+        "examples/cinema",
+        "typecheck"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "bun",
+        "test",
+        "examples/cinema/src",
+        "./examples/cinema/.dctx0/testing/typescript/http-integration.test.ts",
+        "./examples/cinema/.dctx0/testing/typescript/persistence-conformance.test.ts"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--workspace",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--workspace",
+        "--all-features",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 101
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--features",
+        "rust",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--no-default-features",
+        "--features",
+        "go",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "go",
+        "mod",
+        "download",
+        "-C",
+        "examples/cinema-go"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-C",
+        "examples/cinema-go",
+        "-coverprofile=/home/held/workspaces/compinion/dctx0ctl/target/go-cinema.coverage",
+        "./..."
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "-C",
+        "examples/cinema-go",
+        "./..."
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/go_race.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/go_cinema_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/debug/dctx0"
+      ],
+      "returncode": 1
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--manifest-path",
+        "examples/cinema-rust/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--manifest-path",
+        "examples/cinema-rust/Cargo.toml",
+        "--all-targets",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/rust_cinema_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/debug/dctx0"
+      ],
+      "returncode": 1
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--manifest-path",
+        "examples/cinema-rust/Cargo.toml",
+        "--all-features",
+        "--offline",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "--manifest-path",
+        "examples/cinema-rust/.dctx0/testing/rust/Cargo.toml",
+        "--lib",
+        "--offline",
+        "--locked",
+        "--",
+        "--skip",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/editor_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/debug/dctx0",
+        "--functional-only"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/coverage.py"
+      ],
+      "returncode": 1
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--no-fail-fast",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked",
+        "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/query_acceptance.py",
+        "--measure-only",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "--samples",
+        "1"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/dependency_resolution_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0"
+      ],
+      "returncode": 0
+    }
+  ],
+  "source_provenance": {
+    "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+    "source_hash": "f2dcc0af8560f77fca43d5713f3ca0bb8d386651fc77214f911a908893eca14b",
+    "source_hash_after": null,
+    "validation_source_hash": "f2dcc0af8560f77fca43d5713f3ca0bb8d386651fc77214f911a908893eca14b",
+    "validation_source_hash_after": "f2dcc0af8560f77fca43d5713f3ca0bb8d386651fc77214f911a908893eca14b",
+    "validation_build_environment": {
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "CARGO_BUILD_JOBS": "1",
+      "RUST_TEST_THREADS": "1"
+    }
+  },
+  "performance": {
+    "status": "incomplete",
+    "gate": "fail",
+    "record": "benchmarks/history/20261027T220632.684556Z-1466845.json",
+    "workloads_with_speed_and_rss": 55,
+    "settings": {
+      "iterations": 1,
+      "samples": 1,
+      "warmup_runs": 1,
+      "profile": "release",
+      "features": "all",
+      "cache": "warm filesystem; fresh process per sample"
+    },
+    "error": "Command '['/usr/bin/python3', 'scripts/go_cinema_performance.py', '--binary', '/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0']' returned non-zero exit status 1.",
+    "baseline_comparison": "unassessed: incomplete measurement bundle and reduced development samples; no baseline promotion",
+    "tolerances_percent": {
+      "speed": 20,
+      "ram": 10
+    },
+    "representative_workloads": {
+      "cinema": {
+        "samples": [
+          {
+            "elapsed_ms": 1.24687,
+            "process_wall_ms": 1.597410999238491,
+            "peak_rss_bytes": 5050368
+          }
+        ],
+        "elapsed_ms": 1.24687,
+        "peak_rss_bytes": 5050368,
+        "recent_comparable_runs": 2
+      },
+      "cinema/compile": {
+        "samples": [
+          {
+            "elapsed_ms": 3.946939,
+            "process_wall_ms": 9.437460990739055,
+            "peak_rss_bytes": 10788864
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 3.946939,
+        "peak_rss_bytes": 10788864,
+        "recent_comparable_runs": 2
+      },
+      "cinema/verification-generate": {
+        "samples": [
+          {
+            "elapsed_ms": 42.912106,
+            "process_wall_ms": 50.30715299653821,
+            "peak_rss_bytes": 15376384
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 42.912106,
+        "peak_rss_bytes": 15376384,
+        "recent_comparable_runs": 2
+      },
+      "cinema/verification-project": {
+        "samples": [
+          {
+            "elapsed_ms": 90.329043,
+            "process_wall_ms": 97.64924699265976,
+            "peak_rss_bytes": 24137728
+          }
+        ],
+        "iterations": 1,
+        "memory_scope": "Linux post-exec VmHWM; includes phase setup, IR and SQLite; no children",
+        "elapsed_ms": 90.329043,
+        "peak_rss_bytes": 24137728,
+        "recent_comparable_runs": 2
+      }
+    },
+    "additional_complete_records": [
+      "benchmarks/history/queries/20261027T220626.523266Z-1550683.json",
+      "benchmarks/history/dependency-resolution/20261027T220629.209148Z-1550833.json"
+    ]
+  },
+  "validation_guard": {
+    "elapsed_ms": 2093518.214,
+    "peak_sampled_process_tree_rss_bytes": 1031118848,
+    "method": "Linux process-tree RSS sum sampled every 50 ms; shared pages counted per process",
+    "policy": "one third of startup MemAvailable"
+  }
+}

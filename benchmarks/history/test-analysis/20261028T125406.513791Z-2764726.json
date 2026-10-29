@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261028T125406.513791Z",
+  "status": "incomplete",
+  "source_hash": "280f710a0c3cbc0cb65812a74c43cf1556baf86a026d8a1bdfeff6caaf36cfac",
+  "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+  "dirty_worktree": true,
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "machine": "x86_64",
+    "cpu_count": 16,
+    "cpu": "Intel(R) Core(TM) Ultra X7 358H"
+  },
+  "python": "3.14.8 (main, Oct 13 2026, 10:33:10) [GCC 16.2.1 20260810]",
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "measurements": {},
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "elapsed_ms": 653.5020069859456,
+      "peak_rss_bytes": 61124608,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "dctx0-test-analysis",
+        "-p",
+        "dctx0-store",
+        "-p",
+        "dctx0-engine",
+        "-p",
+        "dctx0-cli",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "elapsed_ms": 1786.8753310176544,
+      "peak_rss_bytes": 534777856,
+      "returncode": 101
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-test-analysis",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 1393.6685239896178,
+      "peak_rss_bytes": 308277248,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-store",
+        "--test",
+        "test_analysis",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 12420.354434027104,
+      "peak_rss_bytes": 1302061056,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "test_analysis",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 8601.647470990429,
+      "peak_rss_bytes": 1313771520,
+      "returncode": 101
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "test_analysis",
+        "--test",
+        "experimental_coverage",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 1442.5840970070567,
+      "peak_rss_bytes": 492879872,
+      "returncode": 101
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests"
+      ],
+      "elapsed_ms": 3781.9216340139974,
+      "peak_rss_bytes": 157949952,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 1515.6361279950943,
+      "peak_rss_bytes": 492298240,
+      "returncode": 101
+    }
+  ],
+  "settings": {
+    "samples": 1,
+    "warmup_runs": 1,
+    "profile": "release",
+    "cache": "warm filesystem; fresh Cargo target directory for catalog/collection/replay",
+    "fixture": "two libtest tests; two commits; one observed production failure"
+  },
+  "memory_scope": "Linux wait4 ru_maxrss: maximum child/its waited descendants, includes pre-exec parent footprint; concurrent RSS is not summed; build/test RSS additionally present in exported collection/observation data",
+  "baseline_status": "unassessed here: scripts/validate.py applies the accepted baseline and independent speed/RAM gates",
+  "scope": "partial research validation; not workspace coverage acceptance",
+  "error": "Functional checks or release build failed; see raw logs",
+  "source_hash_after": "280f710a0c3cbc0cb65812a74c43cf1556baf86a026d8a1bdfeff6caaf36cfac"
+}

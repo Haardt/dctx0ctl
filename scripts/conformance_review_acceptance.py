@@ -5,6 +5,7 @@ This is workflow acceptance, not a newly generated architectural approval.
 Performance measurements are run separately at the end by validate.py.
 """
 from verification_storage import saved_verification_artifacts
+from cinema_expectations import EXPECTED_NATIVE_CASES, assert_native_cinema
 import argparse
 import hashlib
 import json
@@ -42,7 +43,8 @@ def main():
             notes_path = project / '.dctx0/testing' / target / 'inspection-notes.json'
             notes = json.loads(notes_path.read_text())
             for name, expected in notes['reviewed_hashes'].items():
-                assert hashlib.sha256((project / name).read_bytes()).hexdigest() == expected
+                actual = hashlib.sha256((project / name).read_bytes()).hexdigest()
+                assert actual == expected, f'{target}: reviewed fixture changed: {name}; expected {expected}, got {actual}; explicit source reinspection required'
             if args.http_frameworks:
                 configuration = project / '.dctx0/testing' / target / 'config.json'
                 config = json.loads(configuration.read_text())
@@ -83,8 +85,7 @@ def main():
                     receipt = json.loads(contents)
                     retained['go_compile'] = {key: receipt[key] for key in ('build_elapsed_us', 'build_peak_rss_bytes', 'go_version', 'binary_hash')}
             run = native['evidence']['run']
-            assert len(run['cases']) == len(run['required_cases']) == 5674, f'{variant}: {len(run["cases"])}/{len(run["required_cases"])} cases; {run["result"]}; {run["provenance"]["incomplete"]}'
-            assert all(case['result']['status'] == 'PASS' for case in run['cases']), f'{variant}: failing cases: {[(case["id"], case["result"]) for case in run["cases"] if case["result"]["status"] != "PASS"][:5]}'
+            assert_native_cinema(run)
             assert native['adopted_tasks'], 'Complete native evidence must actually deliver eligible implementation tasks'
             assert len(run['open_obligations']) == 25
             assert not run['provenance']['incomplete'], f'{variant}: incomplete native provenance: {run["provenance"]["incomplete"]}; result: {run["result"]}'
@@ -149,7 +150,7 @@ def main():
             complete = invoke('verify', 'complete', spec, '--project', project)
             assert complete['tasks'] == 105 and complete['open_tasks'] == 0
             assert complete['non_pass_tasks'] == len(complete['reviewed_tasks']) == 4
-            assert complete['mandatory_cases'] == 5674 and complete['result']['status'] == 'PASS'
+            assert complete['mandatory_cases'] == EXPECTED_NATIVE_CASES and complete['result']['status'] == 'PASS'
             report['targets'][variant] = {**complete, 'native_artifacts': retained}
     report['status'] = 'pass'
     args.report.parent.mkdir(parents=True, exist_ok=True)

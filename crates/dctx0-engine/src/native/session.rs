@@ -166,6 +166,7 @@ impl NativeWorker {
             }
         }
     }
+    #[cfg(test)]
     pub(super) async fn observe_case(
         &mut self,
         entities: Vec<String>,
@@ -173,14 +174,28 @@ impl NativeWorker {
         cancel: &NativeCancellation,
     ) -> Result<std::collections::BTreeMap<String, Vec<dctx0_core::VerificationValue>>, NativeFailure>
     {
+        self.observe_invocation_case(entities, phase, None, cancel)
+            .await
+    }
+    pub(super) async fn observe_invocation_case(
+        &mut self,
+        entities: Vec<String>,
+        phase: dctx0_core::StatePhase,
+        invocation: Option<&Invocation>,
+        cancel: &NativeCancellation,
+    ) -> Result<std::collections::BTreeMap<String, Vec<dctx0_core::VerificationValue>>, NativeFailure>
+    {
+        let request = match invocation.filter(|_| self.scoped_state_observation) {
+            Some(invocation) => WorkerRequest::ObserveInvocation {
+                entities: entities.clone(),
+                invocation: invocation.clone(),
+            },
+            None => WorkerRequest::Observe {
+                entities: entities.clone(),
+            },
+        };
         match self
-            .request(
-                WorkerRequest::Observe {
-                    entities: entities.clone(),
-                },
-                cancel,
-                &mut cases::reject_mock,
-            )
+            .request(request, cancel, &mut cases::reject_mock)
             .await?
         {
             WorkerReply::Observed { states } => {

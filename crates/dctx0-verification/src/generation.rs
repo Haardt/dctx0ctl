@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
-pub const GENERATOR_VERSION: &str = "dctx0-values-5";
+mod strings;
+
+pub const GENERATOR_VERSION: &str = "dctx0-values-6";
 pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-3";
 
 // Adjacent IEEE-754 values, without the Rust 1.86 next_up/next_down APIs.
@@ -468,14 +470,6 @@ impl Generator<'_> {
                 }
             }
         }
-        if corpus.values.len() > self.budgets.generated_cases {
-            corpus.exhaustive = false;
-            let last = corpus.values.pop().unwrap();
-            corpus.values.truncate(self.budgets.generated_cases);
-            if self.budgets.generated_cases > 1 {
-                *corpus.values.last_mut().unwrap() = last;
-            }
-        }
         let mut seen = BTreeSet::new();
         let mut valid = Vec::new();
         for value in corpus.values {
@@ -492,6 +486,14 @@ impl Generator<'_> {
             }
         }
         corpus.values = valid;
+        if corpus.values.len() > self.budgets.generated_cases {
+            corpus.exhaustive = false;
+            let last = corpus.values.pop().unwrap();
+            corpus.values.truncate(self.budgets.generated_cases);
+            if self.budgets.generated_cases > 1 {
+                *corpus.values.last_mut().unwrap() = last;
+            }
+        }
         if self.exhausted {
             corpus.issues.push(VerificationIssue {
                 code: "GENERATION_BUDGET".into(),
@@ -519,7 +521,7 @@ impl Generator<'_> {
         }
         corpus
     }
-    /// Only direct equalities provide witnesses; the full contract still decides validity.
+    /// Literal equalities and prefixes seed candidates; the full contract decides validity.
     fn string_equality_witnesses(&mut self, ty: &TypeRef, depth: usize) -> Vec<V> {
         if self.base(ty, depth) != Some("String") {
             return Vec::new();
@@ -565,6 +567,7 @@ impl Generator<'_> {
             };
             current = alias;
         }
+        values.extend(strings::prefix_witnesses(self.ir, ty, self.budgets));
         values
     }
     fn base<'a>(&'a self, ty: &'a TypeRef, depth: usize) -> Option<&'a str> {
@@ -645,29 +648,43 @@ impl Generator<'_> {
             self.exhausted = true;
             return (Vec::new(), false);
         }
-        self.steps += cost;
-        let tuples = (0..count)
-            .map(|position| {
-                let mut remainder = position;
-                domains
-                    .iter()
-                    .map(|domain| {
-                        let index = if complete {
-                            let index = remainder % domain.len();
-                            remainder /= domain.len();
-                            index
-                        } else if position == 0 {
-                            0
-                        } else if position == 1 {
-                            domain.len() - 1
-                        } else {
-                            self.rng.index(domain.len())
-                        };
-                        domain[index].clone()
-                    })
-                    .collect()
-            })
-            .collect();
+        let mut tuples = Vec::new();
+        let mut seen = BTreeSet::new();
+        let mut position = 0;
+        while tuples.len() < count {
+            if domains.len() > self.budgets.evaluation_steps.saturating_sub(self.steps) {
+                self.exhausted = true;
+                break;
+            }
+            self.steps += domains.len();
+            let mut remainder = position;
+            let indices = domains
+                .iter()
+                .map(|domain| {
+                    if complete {
+                        let index = remainder % domain.len();
+                        remainder /= domain.len();
+                        index
+                    } else if position == 0 {
+                        0
+                    } else if position == 1 {
+                        domain.len() - 1
+                    } else {
+                        self.rng.index(domain.len())
+                    }
+                })
+                .collect::<Vec<_>>();
+            position += 1;
+            if seen.insert(indices.clone()) {
+                tuples.push(
+                    domains
+                        .iter()
+                        .zip(indices)
+                        .map(|(domain, index)| domain[index].clone())
+                        .collect(),
+                );
+            }
+        }
         (tuples, complete)
     }
     fn builtin(&mut self, ty: &TypeRef, depth: usize) -> ValueCorpus {

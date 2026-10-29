@@ -3,6 +3,10 @@ mod storage;
 pub use storage::*;
 mod site;
 pub use site::*;
+mod coverage_affected;
+pub use coverage_affected::{CoverageAffected, affected_project_tests};
+mod experimental_coverage;
+pub use experimental_coverage::collect_experimental_coverage;
 mod editors;
 use dctx0_changes::HistoryReader;
 pub use editors::{
@@ -189,3 +193,9 @@ pub use review_input::{DEFAULT_REVIEW_INPUT_BYTES, read_review_input};
 
 mod codecs;
 pub use codecs::*;
+
+mod test_analysis;
+pub use test_analysis::{
+    research_collect, research_export, research_recompute, research_records, research_replay,
+    research_shadow,
+};

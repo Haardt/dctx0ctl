@@ -1,14 +1,15 @@
 [workspace]
-members = ["crates/dctx0-lsp", "crates/dctx0-target-sdk", "crates/dctx0-core", "crates/dctx0-interpreter", "crates/dctx0-verification", "crates/dctx0-language", "crates/dctx0-cli", "crates/dctx0-graph", "crates/dctx0-changes", "crates/dctx0-store", "crates/dctx0-engine", "crates/dctx0-tasks", "targets/typescript", "targets/java", "targets/go", "targets/rust"]
+members = ["crates/dctx0-test-analysis", "crates/dctx0-lsp", "crates/dctx0-target-sdk", "crates/dctx0-core", "crates/dctx0-interpreter", "crates/dctx0-verification", "crates/dctx0-language", "crates/dctx0-cli", "crates/dctx0-graph", "crates/dctx0-changes", "crates/dctx0-store", "crates/dctx0-engine", "crates/dctx0-tasks", "targets/typescript", "targets/java", "targets/go", "targets/rust"]
 resolver = "3"
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 
 [workspace.dependencies]
+dctx0-test-analysis = { path = "crates/dctx0-test-analysis" }
 axum = "=0.8.9"
 base64 = "=0.22.1"
 flate2 = "=1.1.9"

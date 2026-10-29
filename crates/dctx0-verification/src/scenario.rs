@@ -8,6 +8,24 @@ use dctx0_interpreter::{
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+enum ScenarioError {
+    Result(Box<VerificationResult>),
+    Invoke {
+        expression: Box<Expression>,
+        invocation: Invocation,
+    },
+}
+enum PendingCall {
+    Step {
+        invocation: Invocation,
+        binding: String,
+    },
+    Expression {
+        invocation: Invocation,
+        expression: Box<Expression>,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioEvidence {
     pub subject: String,
@@ -42,35 +60,38 @@ pub struct Scenario<'a> {
     variables: BTreeMap<String, VerificationValue>,
     cursor: usize,
     executed: BTreeSet<(u8, usize)>,
-    pending: Option<(Invocation, String)>,
+    pending: Option<PendingCall>,
+    expression_tapes: Vec<(Expression, Vec<InvocationObservation>)>,
     last: Option<Observation>,
     calls: CallTrace,
     mocks: Vec<PreparedMock>,
     evidence: ScenarioEvidence,
 }
-fn unknown(code: &str, message: &str) -> Box<VerificationResult> {
-    Box::new(VerificationResult::Unknown {
+fn unknown(code: &str, message: &str) -> ScenarioError {
+    ScenarioError::Result(Box::new(VerificationResult::Unknown {
         issue: VerificationIssue {
             code: code.into(),
             message: message.into(),
             span: None,
         },
-    })
+    }))
 }
-fn failed(code: &str, message: &str) -> Box<VerificationResult> {
-    Box::new(VerificationResult::Fail {
+fn failed(code: &str, message: &str) -> ScenarioError {
+    ScenarioError::Result(Box::new(VerificationResult::Fail {
         issue: VerificationIssue {
             code: code.into(),
             message: message.into(),
             span: None,
         },
-    })
+    }))
 }
-fn contract(result: ValueContract) -> Result<(), Box<VerificationResult>> {
+fn contract(result: ValueContract) -> Result<(), ScenarioError> {
     match result {
         ValueContract::Accepted => Ok(()),
         ValueContract::Rejected { reason } => Err(failed("SCENARIO_CONTRACT", &reason)),
-        ValueContract::Unknown { issue } => Err(Box::new(VerificationResult::Unknown { issue })),
+        ValueContract::Unknown { issue } => Err(ScenarioError::Result(Box::new(
+            VerificationResult::Unknown { issue },
+        ))),
     }
 }
 impl<'a> Scenario<'a> {
@@ -87,6 +108,7 @@ impl<'a> Scenario<'a> {
             cursor: 0,
             executed: BTreeSet::new(),
             pending: None,
+            expression_tapes: Vec::new(),
             last: None,
             calls: CallTrace::Pending,
             mocks: Vec::new(),
@@ -108,24 +130,40 @@ impl<'a> Scenario<'a> {
             },
         }
     }
-    fn stop(&mut self, result: &VerificationResult) {
+    fn stop(&mut self, error: &ScenarioError) {
+        let ScenarioError::Result(result) = error else {
+            self.stop(&unknown(
+                "SCENARIO_PROTOCOL",
+                "Unexpected nested invocation outside expression evaluation",
+            ));
+            return;
+        };
         if matches!(self.evidence.result, VerificationResult::Pass)
-            || matches!(*result, VerificationResult::Fail { .. })
+            || matches!(**result, VerificationResult::Fail { .. })
                 && !matches!(self.evidence.result, VerificationResult::Fail { .. })
         {
-            self.evidence.result = result.clone();
+            self.evidence.result = *result.clone();
         }
     }
-    fn value(&self, expression: &Expression) -> Result<VerificationValue, Box<VerificationResult>> {
+    fn tape(&self, expression: &Expression) -> &[InvocationObservation] {
+        self.expression_tapes
+            .iter()
+            .find(|(candidate, _)| candidate == expression)
+            .map_or(&[], |(_, observations)| observations.as_slice())
+    }
+    fn value(&self, expression: &Expression) -> Result<VerificationValue, ScenarioError> {
         self.evaluated(
             expression,
-            evaluate(self.ir, expression, &self.variables, &[], self.budgets),
+            evaluate(
+                self.ir,
+                expression,
+                &self.variables,
+                self.tape(expression),
+                self.budgets,
+            ),
         )
     }
-    fn assertion_value(
-        &self,
-        expression: &Expression,
-    ) -> Result<VerificationValue, Box<VerificationResult>> {
+    fn assertion_value(&self, expression: &Expression) -> Result<VerificationValue, ScenarioError> {
         let context = ObservationContext {
             calls: match &self.calls {
                 CallTrace::Observed(calls) => Some(calls.clone()),
@@ -139,7 +177,7 @@ impl<'a> Scenario<'a> {
                 self.ir,
                 expression,
                 &self.variables,
-                &[],
+                self.tape(expression),
                 &context,
                 self.budgets,
             ),
@@ -149,28 +187,37 @@ impl<'a> Scenario<'a> {
         &self,
         expression: &Expression,
         evaluation: Evaluation,
-    ) -> Result<VerificationValue, Box<VerificationResult>> {
+    ) -> Result<VerificationValue, ScenarioError> {
         let value = match evaluation {
             Evaluation::Complete(value) => value,
             Evaluation::Unknown(issue) => {
-                return Err(Box::new(VerificationResult::Unknown { issue }));
+                return Err(ScenarioError::Result(Box::new(
+                    VerificationResult::Unknown { issue },
+                )));
             }
-            _ => {
-                return Err(unknown(
-                    "SCENARIO_EXPRESSION_CALL",
-                    "Nested actual calls need a separate expression continuation",
-                ));
+            Evaluation::Invoke(invocation) => {
+                return Err(ScenarioError::Invoke {
+                    expression: Box::new(expression.clone()),
+                    invocation,
+                });
+            }
+            Evaluation::ApplicationFailure(issue) => {
+                return Err(ScenarioError::Result(Box::new(
+                    VerificationResult::Unknown { issue },
+                )));
             }
         };
         modeled_value(self.ir, &expression.ty, value, self.budgets).map_err(|value| match value {
-            ValueContract::Unknown { issue } => Box::new(VerificationResult::Unknown { issue }),
+            ValueContract::Unknown { issue } => {
+                ScenarioError::Result(Box::new(VerificationResult::Unknown { issue }))
+            }
             other => unknown(
                 "MODELED_VALUE_CONTRACT",
                 &format!("Invalid modeled value: {other:?}"),
             ),
         })
     }
-    fn invocation(&self, expression: &Expression) -> Result<Invocation, Box<VerificationResult>> {
+    fn invocation(&self, expression: &Expression) -> Result<Invocation, ScenarioError> {
         let ExpressionKind::Call {
             target: Some(subject),
             arguments,
@@ -196,17 +243,19 @@ impl<'a> Scenario<'a> {
             .iter()
             .zip(&operation.parameters)
             .map(|(expression, parameter)| {
-                let value = self.value(expression)?;
+                let mut argument = expression.clone();
+                argument.ty = parameter.ty.clone();
+                let value = self.value(&argument)?;
                 contract(check_value(self.ir, &parameter.ty, &value, self.budgets))?;
                 Ok(value)
             })
-            .collect::<Result<_, Box<VerificationResult>>>()?;
+            .collect::<Result<_, ScenarioError>>()?;
         Ok(Invocation {
             subject: subject.clone(),
             arguments,
         })
     }
-    fn prepare(&mut self, index: usize) -> Result<(), Box<VerificationResult>> {
+    fn prepare(&mut self, index: usize) -> Result<(), ScenarioError> {
         let step = self
             .plan
             .mocks
@@ -243,7 +292,7 @@ impl<'a> Scenario<'a> {
         &self,
         invocation: &Invocation,
         observation: &Observation,
-    ) -> Result<(), Box<VerificationResult>> {
+    ) -> Result<(), ScenarioError> {
         match observation {
             Observation::Returned { value } => {
                 let operation = &self.ir.operations[&invocation.subject];
@@ -305,7 +354,7 @@ impl<'a> Scenario<'a> {
         events: Vec<VerificationEvent>,
         calls: Option<Vec<InvocationObservation>>,
     ) {
-        let Some((invocation, binding)) = self.pending.take() else {
+        let Some(pending) = self.pending.take() else {
             self.stop(&unknown(
                 "SCENARIO_PROTOCOL",
                 "Observation has no pending invocation",
@@ -322,6 +371,43 @@ impl<'a> Scenario<'a> {
                 CallTrace::Observed(previous)
             }
             _ => CallTrace::Incomplete,
+        };
+        if let PendingCall::Expression {
+            invocation,
+            expression,
+        } = pending
+        {
+            if let Err(result) = self.check_observation(&invocation, &observation) {
+                self.stop(&result);
+            }
+            if !events.is_empty() {
+                self.stop(&failed(
+                    "PURE_OPERATION_EMITTED",
+                    "Nested pure operation emitted actual events",
+                ));
+            }
+            let observed = InvocationObservation {
+                invocation,
+                observation,
+            };
+            self.evidence.invocations.push(observed.clone());
+            if let Some((_, tape)) = self
+                .expression_tapes
+                .iter_mut()
+                .find(|(candidate, _)| candidate == expression.as_ref())
+            {
+                tape.push(observed);
+            } else {
+                self.expression_tapes.push((*expression, vec![observed]));
+            }
+            return;
+        }
+        let PendingCall::Step {
+            invocation,
+            binding,
+        } = pending
+        else {
+            unreachable!()
         };
         if let Err(result) = self.check_observation(&invocation, &observation) {
             self.stop(&result);
@@ -358,7 +444,7 @@ impl<'a> Scenario<'a> {
         });
         self.last = Some(observation);
     }
-    fn check(&mut self, index: usize) -> Result<(), Box<VerificationResult>> {
+    fn check(&mut self, index: usize) -> Result<(), ScenarioError> {
         let expectation = self.plan.expectations.get(index).ok_or_else(|| {
             unknown(
                 "SCENARIO_ORDER",
@@ -481,15 +567,32 @@ impl<'a> Scenario<'a> {
                     Some(step) => match self.invocation(&step.invocation) {
                         Err(result) => Err(result),
                         Ok(invocation) => {
-                            self.pending = Some((invocation.clone(), step.binding.clone()));
+                            self.expression_tapes.clear();
+                            self.pending = Some(PendingCall::Step {
+                                invocation: invocation.clone(),
+                                binding: step.binding.clone(),
+                            });
                             return ScenarioStep::Invoke(invocation);
                         }
                     },
                 },
                 ExampleAction::Check(index) => self.check(index),
             };
-            if let Err(result) = result {
-                self.stop(&result);
+            match result {
+                Err(ScenarioError::Invoke {
+                    expression,
+                    invocation,
+                }) => {
+                    self.cursor -= 1;
+                    self.executed.remove(&identity);
+                    self.pending = Some(PendingCall::Expression {
+                        expression,
+                        invocation: invocation.clone(),
+                    });
+                    return ScenarioStep::Invoke(invocation);
+                }
+                Err(result) => self.stop(&result),
+                Ok(()) => self.expression_tapes.clear(),
             }
         }
         self.evidence.unused_mocks = self

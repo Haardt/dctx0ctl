@@ -3,6 +3,7 @@ mod expressions;
 mod model;
 mod paths;
 mod scenarios;
+mod state;
 use crate::{VerificationCase, VerificationScope, generate_inputs, generate_values};
 use dctx0_core::*;
 pub use model::*;
@@ -209,6 +210,7 @@ pub fn project_program(
                 })
                 .cloned()
                 .collect();
+            plan.issues.extend(state::issues(ir, &clauses));
             plan.capabilities.push(if operation.pure {
                 Capability::PureCalls
             } else {
@@ -371,6 +373,7 @@ pub fn project_program(
             .iter()
             .enumerate()
             .map(|(index, preparation)| crate::OperationCaseInput {
+                argument_bindings: vec![],
                 id: format!("{}:preparation:{index}", operation.operation.id),
                 invocation: Invocation {
                     subject: operation.operation.id.clone(),
@@ -386,6 +389,10 @@ pub fn project_program(
             })
             .collect::<Vec<_>>();
         for case in operation.cases.iter().chain(&prepared_cases) {
+            if let Err(message) = crate::validate_argument_bindings(ir, case) {
+                plan.issues
+                    .push(issue(span, "INVALID_OPERATION_ARGUMENT_BINDING", &message));
+            }
             for setup in &case.setup {
                 let span = ir
                     .symbols

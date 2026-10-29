@@ -17,6 +17,8 @@ pub(crate) struct Cli {
 }
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    /// Opt-in research features; interfaces may change.
+    Experimental(crate::experimental::ExperimentalArgs),
     /// Run the read-only language server over stdin/stdout.
     Lsp {
         #[arg(long)]

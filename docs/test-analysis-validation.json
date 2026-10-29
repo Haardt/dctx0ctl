@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-28",
+  "implementation_status": "implemented",
+  "validation_status": "pass",
+  "performance_gate": "unassessed",
+  "scope": "Linux ordinary Cargo/libtest projects; isolated supported tests only; no equivalence with normal parallel Cargo suite or hermetic execution",
+  "implemented": [
+    "pure versioned dctx0-test-analysis models, conservative coverage selection and offline evaluation",
+    "immutable additive SQLite extension, append-only guarded progress, content-addressed artifacts",
+    "catalog and complete scoped isolated collection, ignored/unsupported inventory and separate completeness axes",
+    "frozen shadow prediction before target observations; exact baseline snapshot/scope checks",
+    "manifest-pinned chronological detached-worktree replay, interruption/transaction-fault resume and offline locked Cargo",
+    "replay-scoped versioned NDJSON export and exact offline prediction/evaluation recomputation",
+    "legacy coverage compatibility without invented catalogs; unchanged main SQLite schema, compiler IR and task/PASS semantics"
+  ],
+  "workspace": {
+    "report": "benchmarks/history/20261028T145931.310953Z-3010606.json",
+    "retained_report": "benchmarks/artifacts/test-analysis/final-20261028/workspace-measurements.json",
+    "log": "benchmarks/artifacts/test-analysis/final-20261028/workspace.log",
+    "command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:/home/held/.cargo/bin:$PATH CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true python3 scripts/validate.py --coverage",
+    "profile_explanation": "documented serial QA dev/test optimization level 1, assertions and overflow checks enabled; separate non-instrumented release performance builds",
+    "passed_steps": 32,
+    "failed_steps": [],
+    "elapsed_ms": 2838858.003,
+    "peak_process_tree_rss_bytes": 1037082624,
+    "memory_scope": "sampled Linux process-tree RSS sum at 50ms; shared pages counted per process, sampled peak is not kernel hard limit",
+    "source_hash_before": "402bfd11ef1a98b7a8414b5d83387d9db5c63a1cb83ce1115ccc4ccb70cb5c5f",
+    "source_hash_after": "402bfd11ef1a98b7a8414b5d83387d9db5c63a1cb83ce1115ccc4ccb70cb5c5f",
+    "revision": "4cfce3454a55fcfaa55c03501a78e9b3ae19590c",
+    "dirty_worktree": true
+  },
+  "focused": {
+    "report": "benchmarks/artifacts/test-analysis/final-20261028/focused-checks.json",
+    "rust_research_and_legacy_test_methods": 20,
+    "python_tests": 46,
+    "scope": "partial preflight, followed by successful full workspace acceptance"
+  },
+  "coverage": {
+    "threshold_percent": 97,
+    "merged_source_lines": {
+      "covered": 41369,
+      "total": 42590,
+      "percent": 97.13312984268607
+    },
+    "llvm_functions": {
+      "count": 3471,
+      "covered": 3371,
+      "percent": 97.11898588303083
+    },
+    "raw_llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3471,
+        "covered": 3371,
+        "percent": 97.11898588303083
+      },
+      "instantiations": {
+        "count": 8505,
+        "covered": 5149,
+        "percent": 60.54085831863609
+      },
+      "lines": {
+        "count": 44955,
+        "covered": 43348,
+        "percent": 96.42531420309199
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 69325,
+        "covered": 64817,
+        "notcovered": 4508,
+        "percent": 93.49729534799856
+      }
+    },
+    "archive": "benchmarks/artifacts/test-analysis/coverage-final-20261028",
+    "new_exclusions": [],
+    "limitations": [
+      "Raw LLVM source instances remain separate from merged source-line gate.",
+      "No complete branch/region coverage claim.",
+      "Python collector helpers have functional/end-to-end validation; Rust LLVM does not measure their source coverage."
+    ]
+  },
+  "performance": {
+    "workloads": 88,
+    "samples": 5,
+    "warmup_runs": 1,
+    "new_workloads": {
+      "catalog": {
+        "elapsed_ms": 664.5693659957033,
+        "peak_rss_bytes": 158814208
+      },
+      "collection": {
+        "elapsed_ms": 1260.2936360053718,
+        "peak_rss_bytes": 159092736
+      },
+      "prediction": {
+        "elapsed_ms": 1.257826981600374,
+        "peak_rss_bytes": 28409856
+      },
+      "evaluation": {
+        "elapsed_ms": 1.2352820194792002,
+        "peak_rss_bytes": 28409856
+      },
+      "replay": {
+        "elapsed_ms": 3714.158265996957,
+        "peak_rss_bytes": 161091584
+      },
+      "export": {
+        "elapsed_ms": 3.183555993018672,
+        "peak_rss_bytes": 28409856
+      }
+    },
+    "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+    "memory_scope": "Linux wait4 ru_maxrss: maximum child/its waited descendants, includes pre-exec parent footprint; concurrent RSS is not summed; build/test RSS additionally present in exported collection/observation data",
+    "raw_samples": "benchmarks/artifacts/test-analysis/final-20261028/workspace-measurements.json",
+    "cache": "warm filesystem; fresh Cargo target directory for catalog/collection/replay",
+    "baseline": "benchmarks/baseline.json",
+    "baseline_changed": false,
+    "gate": "unassessed",
+    "tolerances_percent": {
+      "speed": 20,
+      "ram": 10
+    },
+    "interpretation": "No comparable accepted baseline for new workloads; no assertion of no performance regression. Historical trends and explicit unassessed workloads retained in full report."
+  },
+  "reproducible_dataset": {
+    "dataset": "benchmarks/artifacts/test-analysis/final-20261028/dataset.ndjson",
+    "artifacts": "benchmarks/artifacts/test-analysis/final-20261028/artifacts",
+    "index": "benchmarks/artifacts/test-analysis/final-20261028/index.json",
+    "recompute": [
+      "target/release/dctx0 experimental test-analysis recompute benchmarks/artifacts/test-analysis/final-20261028/dataset.ndjson --stage prediction",
+      "target/release/dctx0 experimental test-analysis recompute benchmarks/artifacts/test-analysis/final-20261028/dataset.ndjson --stage evaluation"
+    ],
+    "archived_copy_validation": "benchmarks/artifacts/test-analysis/final-20261028/offline-checks.json"
+  },
+  "native_regression_acceptance": {
+    "go": "benchmarks/artifacts/test-analysis/final-20261028/go-cinema-acceptance.json",
+    "rust": "benchmarks/artifacts/test-analysis/final-20261028/rust-cinema-acceptance.json",
+    "both_status": "PASS",
+    "each_cases": 5766,
+    "each_tasks": 105,
+    "each_meaningful_mutations": 5,
+    "replay": true
+  },
+  "prior_failures": {
+    "completed_workspace_failure": "benchmarks/history/20261028T134835.770737Z-2800050.json",
+    "coverage_archive": "benchmarks/artifacts/test-analysis/coverage-20261028T134835Z",
+    "reason": "previous LLVM function coverage 96.89476710753308%; fixed by shared existing error formatting and exercised failure labels; thresholds unchanged",
+    "interrupted_or_failed_logs": "benchmarks/artifacts/test-analysis/intermediate-logs/index.json",
+    "interpretation": "Earlier failed and incomplete runs are not acceptance evidence."
+  },
+  "limits": [
+    "Individual test-definition hashes remain unknown unless explicitly provided with provenance; binary hash is never substituted.",
+    "Ignored tests are inventoried but not enabled; doctests/custom harnesses and external local path dependencies are unsupported.",
+    "Crash/timeout/infrastructure errors prevent complete selection metrics; regular TestFailure is valid reference data.",
+    "One isolated reference attempt does not establish causal regression or repeat-run reproducibility; no confirmed commit failure-rate claim.",
+    "No spec/task PASS, automatic test skipping, PASS reuse, ML training, mutation generator or independent-project statistical dataset is authorized."
+  ]
+}

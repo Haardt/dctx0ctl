@@ -31,7 +31,8 @@ stale-state conflict, reread the current state before deciding whether to retry;
 do not blindly repeat a workflow that may already have published earlier steps.
 
 For spec changes use `$dctx0-language`; for application tasks or an external adapter
-use `$dctx0-implementation`. Keep the user's actual scope and existing authorization.
+use `$dctx0-implementation`. For project setup, native timeouts and resource
+configuration use `$dctx0-config` when available. Keep the user's actual scope and existing authorization.
 Do not invent business requirements or alter a spec merely to pass verification.
 For multi-task implementation, follow the implementation skill's pinned package,
 context-delta and evidence-to-task closure routine. Save the starting plan/event
@@ -63,3 +64,7 @@ Diagnose causes before choosing repairs. A contract violation needs an implement
 repair; missing observers need adapter work; explicit dependency outages need
 an environment repair. Unclassified exceptions remain UNKNOWN in new assessments.
 Historical FAIL stays historical FAIL. Inspection cannot override either outcome.
+
+For substantial multi-task delivery planning or stalled validation loops, use
+`$dctx0-delivery` when available. It groups existing tasks into usable production
+outcomes, uses change reports and measures delivery without reducing acceptance.

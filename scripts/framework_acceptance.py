@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Coupled Gin/Axum acceptance: functional checks first, release speed/RSS last."""
 from verification_storage import saved_verification_artifacts
+from cinema_expectations import assert_native_cinema
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -27,7 +28,7 @@ def input_hash():
     files = []
     for base in (ROOT/'examples/cinema-go', ROOT/'examples/cinema-rust', ROOT/'targets/go/framework-profiles', ROOT/'targets/rust/framework-profiles'):
         files.extend(p for p in base.rglob('*') if p.is_file() and not any(part in ('target','.bin','.dctx0ctl') for part in p.relative_to(base).parts) and not p.name.startswith('cinema.sqlite3'))
-    files.extend(ROOT/'scripts'/name for name in ('framework_acceptance.py','conformance_review_acceptance.py','memory_guard.py','release_support.py'))
+    files.extend(ROOT/'scripts'/name for name in ('framework_acceptance.py','conformance_review_acceptance.py','cinema_expectations.py','memory_guard.py','release_support.py'))
     for path in sorted(files):
         digest.update(str(path.relative_to(ROOT)).encode()); digest.update(path.read_bytes())
     return digest.hexdigest()
@@ -77,8 +78,7 @@ def native_details(project, data):
 
 def assert_native(data, label):
     run=data['evidence']['run']
-    if len(run['required_cases'])!=5674 or len(run['cases'])!=5674 or any(case['result']['status']!='PASS' for case in run['cases']) or run['provenance']['incomplete']:
-        raise RuntimeError(f'{label}: native plan is incomplete/failing: {run["result"]}; {run["provenance"]["incomplete"]}')
+    assert_native_cinema(run)
     if len(run['open_obligations'])!=25:
         raise RuntimeError(f'{label}: manual obligations were lost')
     return {'mandatory_cases':len(run['required_cases']),'recorded_cases':len(run['cases']),'native_open_obligations':25,'incomplete_provenance':run['provenance']['incomplete'],'evidence_id':data['evidence']['id']}

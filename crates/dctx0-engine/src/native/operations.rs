@@ -4,7 +4,7 @@ use dctx0_core::{
     OperationIr, VerificationBudgets, VerificationIssue, VerificationResult, WorkspaceIr,
 };
 use dctx0_interpreter::{ValueContract, check_value};
-use dctx0_verification::{InputCorpus, OperationPlan, assess_operation, operation_ready};
+use dctx0_verification::{InputCorpus, OperationPlan, assess_operation_continued, operation_ready};
 impl NativeWorker {
     pub async fn execute_pure_operation(
         &mut self,
@@ -95,7 +95,7 @@ impl NativeWorker {
                     Observation::Returned { value } => {
                         match check_value(ir, &operation.result, &value, budgets) {
                             ValueContract::Accepted => {
-                                assess_operation(
+                                self.assess_native_clauses(
                                     ir,
                                     &plan,
                                     &dctx0_core::InvocationObservation {
@@ -109,7 +109,9 @@ impl NativeWorker {
                                         ..Default::default()
                                     },
                                     budgets,
+                                    cancel,
                                 )
+                                .await?
                                 .result
                             }
                             ValueContract::Rejected { reason } => VerificationResult::Fail {
@@ -134,6 +136,104 @@ impl NativeWorker {
         match tokio::time::timeout(deadline, action).await {
             Ok(result) => result,
             Err(_) => Err(self.expired_case().await),
+        }
+    }
+    pub(super) async fn assess_native_clauses(
+        &mut self,
+        ir: &WorkspaceIr,
+        plan: &OperationPlan,
+        observed: &dctx0_core::InvocationObservation,
+        context: &dctx0_interpreter::ObservationContext,
+        budgets: &VerificationBudgets,
+        cancel: &NativeCancellation,
+    ) -> Result<dctx0_verification::OperationAssessment, NativeFailure> {
+        let mut tapes =
+            std::collections::BTreeMap::<String, Vec<dctx0_core::InvocationObservation>>::new();
+        loop {
+            let assessed = assess_operation_continued(ir, plan, observed, context, budgets, &tapes);
+            let Some(pending) = assessed.pending_call.clone() else {
+                return Ok(assessed);
+            };
+            let finish = |result: VerificationResult| {
+                let mut report = assessed.clone();
+                report.pending_call = None;
+                if let VerificationResult::Unknown { issue } = &result {
+                    report.open.push(issue.clone());
+                }
+                report.result = result;
+                report
+            };
+            let issue = |code: &str, message: String| VerificationIssue {
+                code: code.into(),
+                message,
+                span: None,
+            };
+            if tapes.values().map(Vec::len).sum::<usize>() >= budgets.evaluation_steps {
+                return Ok(finish(VerificationResult::Unknown {
+                    issue: issue(
+                        "EVALUATION_BUDGET",
+                        "Pure clause continuation exhausted its invocation budget".into(),
+                    ),
+                }));
+            }
+            let operation = &ir.operations[&pending.invocation.subject];
+            if !operation.pure
+                || operation.parameters.len() != pending.invocation.arguments.len()
+                || operation
+                    .parameters
+                    .iter()
+                    .zip(&pending.invocation.arguments)
+                    .any(|(parameter, value)| {
+                        !matches!(
+                            check_value(ir, &parameter.ty, value, budgets),
+                            ValueContract::Accepted
+                        )
+                    })
+            {
+                return Ok(finish(VerificationResult::Unknown {
+                    issue: issue(
+                        "CLAUSE_CALL_INPUT",
+                        "Clause invocation does not match a valid pure signature".into(),
+                    ),
+                }));
+            }
+            let delivered = self
+                .invoke_case(pending.invocation.clone(), cancel, &mut cases::reject_mock)
+                .await?;
+            if !delivered.events.is_empty()
+                || delivered.resources.as_ref().is_some_and(|resources| {
+                    resources
+                        .iter()
+                        .any(|resource| resource.access == dctx0_core::ResourceAccess::Write)
+                })
+            {
+                return Ok(finish(VerificationResult::Fail {
+                    issue: issue(
+                        "PURE_CLAUSE_EFFECT",
+                        "Pure clause oracle emitted events or wrote a resource".into(),
+                    ),
+                }));
+            }
+            if let Observation::Returned { value } = &delivered.observation {
+                match check_value(ir, &operation.result, value, budgets) {
+                    ValueContract::Accepted => {}
+                    ValueContract::Rejected { reason } => {
+                        return Ok(finish(VerificationResult::Fail {
+                            issue: issue("NATIVE_RETURN_CONTRACT", reason),
+                        }));
+                    }
+                    ValueContract::Unknown { issue } => {
+                        return Ok(finish(VerificationResult::Unknown { issue }));
+                    }
+                }
+            }
+            tapes
+                .entry(pending.key)
+                .or_default()
+                .push(dctx0_core::InvocationObservation {
+                    invocation: pending.invocation,
+                    observation: delivered.observation,
+                });
         }
     }
 }

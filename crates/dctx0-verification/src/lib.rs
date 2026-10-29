@@ -245,7 +245,8 @@ mod operation_effects;
 mod operation_state;
 pub use entity_identity::{entity_identity_case, validate_entity_identity_cases};
 pub use operation::{
-    OperationAssessment, OperationCaseInput, OperationObservers, assess_operation, operation_ready,
+    OperationAssessment, OperationCaseInput, OperationClauseCall, OperationObservers,
+    assess_operation, assess_operation_continued, operation_ready,
 };
 mod scenario;
 pub use scenario::*;
@@ -263,11 +264,16 @@ pub use shrinking::{
     shrink_invocations, shrink_lifecycle_inputs,
 };
 
+mod operation_arguments;
+pub use operation_arguments::{
+    OperationArgumentBinding, resolve_operation_arguments, validate_argument_bindings,
+};
+
 mod operation_mocks;
 pub use operation_mocks::{OperationMock, OperationMockSession};
 
 /// Version of central observation and contract assessment, distinct from generation.
-pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-17";
+pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-24";
 
 pub mod diagnostics;
 

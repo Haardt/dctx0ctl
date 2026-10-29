@@ -47,6 +47,33 @@ fn generic(name: &str, element: TypeRef) -> TypeRef {
         arguments: vec![element],
     }
 }
+
+#[test]
+fn sampled_products_fill_the_requested_distinct_case_budget_despite_collisions() {
+    let ir = ir();
+    let parameters = ["first", "second", "third"].map(|name| FieldIr {
+        name: name.into(),
+        ty: TypeRef::builtin("Boolean"),
+    });
+    let budgets = VerificationBudgets {
+        generated_cases: 7,
+        ..Default::default()
+    };
+    let corpus = dctx0_verification::generate_inputs(&ir, &parameters, &budgets);
+    assert_eq!(corpus.bindings.len(), 7);
+    assert!(corpus.issues.is_empty(), "{:?}", corpus.issues);
+    assert!(!corpus.exhaustive);
+    assert_eq!(
+        corpus,
+        dctx0_verification::generate_inputs(&ir, &parameters, &budgets)
+    );
+    let distinct = corpus
+        .bindings
+        .iter()
+        .map(|value| serde_json::to_string(value).unwrap())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(distinct.len(), 7);
+}
 fn valid(ir: &WorkspaceIr, ty: &TypeRef, corpus: &ValueCorpus, budgets: &VerificationBudgets) {
     for value in &corpus.values {
         assert_eq!(

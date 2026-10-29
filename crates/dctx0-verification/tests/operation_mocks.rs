@@ -273,6 +273,7 @@ fn planning_rejects_invalid_replies_and_undeclared_mock_collaborators() {
     let ir = compiled.ir.unwrap();
     let (_, mock) = fixture();
     let input = OperationCaseInput {
+        argument_bindings: vec![],
         id: "consumer-case".into(),
         invocation: Invocation {
             subject: "W.Api.next".into(),

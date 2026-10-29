@@ -1,12 +1,14 @@
 # Skills and editors
 
-## Three bundled skills
+## Five bundled skills
 
 | Skill | Purpose |
 | --- | --- |
 | `dctx0` | Navigate the CLI workflow and interpret evidence. |
 | `dctx0-language` | Author, review, and repair typed specifications, examples, and lifecycles. |
 | `dctx0-implementation` | Implement application tasks and external adapters from pinned requirements, profiles, and native evidence. |
+| `dctx0-config` | Diagnose and adjust project configuration, native deadlines, resource budgets, runtime selection, and profiles. |
+| `dctx0-delivery` | Plan usable production deliveries, reuse change reports, batch validation and measure workflow improvements. |
 
 The agent can write the specification with you, then work through application tasks. Product decisions remain explicit; a failing implementation does not authorize weakening the contract.
 

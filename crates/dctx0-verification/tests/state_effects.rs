@@ -1150,30 +1150,72 @@ fn result_projections_do_not_substitute_call_traces_for_expression_observations(
         .unwrap();
         let actual = observed(row("1", "2"));
         let mut state = context(vec![], vec![]);
-        let unknown = assess_operation(&ir, &plan, &actual, &state, &Default::default());
-        assert!(
-            matches!(unknown.result, VerificationResult::Unknown { issue } if issue.code == "STATE_RESULT_PROJECTION_REQUIRED" && issue.span.is_some())
-        );
+        let assert_pending = |report: OperationAssessment| {
+            assert!(
+                matches!(report.result, VerificationResult::Unknown { ref issue }
+                if issue.code == "CLAUSE_OBSERVATION_REQUIRED" && issue.span.is_some())
+            );
+            assert!(
+                report
+                    .open
+                    .iter()
+                    .any(|issue| issue.code == "STATE_RESULT_PROJECTION_REQUIRED")
+            );
+            let pending = report
+                .pending_call
+                .expect("An independent oracle call is required");
+            assert_eq!(pending.invocation.subject, "W.Factory.make");
+            assert_eq!(pending.invocation.arguments, actual.invocation.arguments);
+            pending
+        };
+        let pending = assert_pending(assess_operation(
+            &ir,
+            &plan,
+            &actual,
+            &state,
+            &Default::default(),
+        ));
         state.calls = Some(vec![InvocationObservation {
-            invocation: Invocation {
-                subject: "W.Factory.make".into(),
-                arguments: vec![row("1", "2")],
-            },
+            invocation: pending.invocation.clone(),
             observation: Observation::Returned {
                 value: row("1", "2"),
             },
         }]);
-        // Trace evidence records what the consumer called. It does not supply
-        // the independent invocation requested while evaluating this expression.
-        assert!(
-            matches!(assess_operation(&ir, &plan, &actual, &state, &Default::default()).result,
-            VerificationResult::Unknown { issue } if issue.code == "STATE_RESULT_PROJECTION_REQUIRED")
-        );
+        // Consumer traces never become an independent expression-oracle tape.
+        assert_pending(assess_operation(
+            &ir,
+            &plan,
+            &actual,
+            &state,
+            &Default::default(),
+        ));
         state.calls.as_mut().unwrap()[0].observation = Observation::Returned {
             value: row("1", "3"),
         };
+        assert_pending(assess_operation(
+            &ir,
+            &plan,
+            &actual,
+            &state,
+            &Default::default(),
+        ));
+        let tapes = BTreeMap::from([(
+            pending.key,
+            vec![InvocationObservation {
+                invocation: pending.invocation,
+                observation: Observation::Returned {
+                    value: row("1", "2"),
+                },
+            }],
+        )]);
+        let resumed =
+            assess_operation_continued(&ir, &plan, &actual, &state, &Default::default(), &tapes);
+        assert!(resumed.pending_call.is_none());
+        // A proved postcondition does not silently discharge the separate state
+        // projection, which still requires its own independent support.
         assert!(
-            matches!(assess_operation(&ir, &plan, &actual, &state, &Default::default()).result, VerificationResult::Unknown { issue } if issue.code == "STATE_RESULT_PROJECTION_REQUIRED")
+            matches!(resumed.result, VerificationResult::Unknown { issue }
+            if issue.code == "STATE_RESULT_PROJECTION_REQUIRED")
         );
     }
 }
@@ -1266,4 +1308,86 @@ fn incomplete_replacement_source_cannot_certify_an_unchanged_entity() {
         matches!(assessed.result, VerificationResult::Unknown { issue }
         if issue.code == "STATE_SOURCE_INCOMPLETE")
     );
+}
+
+#[test]
+fn constructive_result_projections_follow_conjunctions_but_never_conditional_alternatives_or_self_reference()
+ {
+    for (postcondition, executable) in [
+        (
+            "success implies result == View { items = after.Item } and true",
+            true,
+        ),
+        ("true and (result == View { items = after.Item })", true),
+        ("result == View { items = after.Item } or true", false),
+        ("false implies result == View { items = after.Item }", false),
+        ("result == result", false),
+    ] {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "bounded-projection.dctx0".into(),
+            text: format!(
+                "workspace W {{ entity Item {{ id:Int\namount:Int\nkey id }} type View {{ items:List<Item> }} port Store {{ operation apply(item:Item) -> View {{ state lists Item\n ensures {postcondition} }} }} }}"
+            ),
+        }]);
+        assert!(
+            compiled.diagnostics.is_empty(),
+            "{:?}",
+            compiled.diagnostics
+        );
+        let ir = compiled.ir.unwrap();
+        let plan = project_program(
+            &ir,
+            "pinned",
+            1,
+            VerificationScope {
+                subjects: ["W.Store.apply".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        )
+        .operations
+        .remove(0);
+        let actual = observed(VerificationValue::Record(BTreeMap::from([(
+            "items".into(),
+            VerificationValue::List(vec![row("1", "2")]),
+        )])));
+        let assessment = assess_operation(
+            &ir,
+            &plan,
+            &actual,
+            &context(vec![row("1", "2")], vec![row("1", "2")]),
+            &Default::default(),
+        );
+        if executable {
+            assert_eq!(
+                assessment.result,
+                VerificationResult::Pass,
+                "{postcondition}"
+            );
+        } else {
+            assert!(
+                matches!(assessment.result, VerificationResult::Unknown { .. }),
+                "{postcondition}: {assessment:?}"
+            );
+        }
+        if executable {
+            for budgets in [
+                VerificationBudgets {
+                    recursion_depth: 0,
+                    ..Default::default()
+                },
+                VerificationBudgets {
+                    evaluation_steps: 0,
+                    ..Default::default()
+                },
+            ] {
+                assert!(matches!(
+                    assess_operation(&ir, &plan, &actual, &context(vec![], vec![]), &budgets)
+                        .result,
+                    VerificationResult::Unknown { .. }
+                ));
+            }
+        }
+    }
 }

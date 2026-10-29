@@ -169,3 +169,12 @@ SQL results/full exports, with 83–98% faster SQL workloads. Local coverage rea
 97.17% source lines and 97.01% LLVM functions; Go Race is unavailable on the local
 ARM64 host, so no full local aggregate PASS is claimed. Normal tag CI and five
 native platform gates remain mandatory. The accepted baseline is unchanged.
+
+## v0.3.1: delivery workflow and experimental test analysis
+
+Five bundled skills now include `dctx0-delivery` for usable production packages,
+change-aware context reuse, validation cadence and measurable alpha improvements.
+The configuration skill and opt-in Rust/libtest coverage/test-analysis commands
+are included alongside state-clause, nested-call and corpus-generation fixes.
+Experimental test candidates do not authorize skipping other mandatory tests.
+Main SQLite and SDK versions remain unchanged; full release gates still apply.

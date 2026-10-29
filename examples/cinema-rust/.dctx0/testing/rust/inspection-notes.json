@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "actor": "codex-rust-cinema-review",
-  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. Explicit transport delta inspected on 2026-10-15: accepted connections are normalized to blocking mode with the existing five-second timeouts, and delayed HTTP header/body fragments are covered by the real application test. See docs/native-portability-rust-http-review.md for the source inspection and old/new hashes; requirement judgements are unchanged. SDK-2 testing-boundary delta inspected on 2026-10-25 by the implementing Codex session (self-inspection, no independent-review claim). Only adapter.rs and contract.rs source bindings were renewed; see docs/rust-sdk2-boundary-review.md. Production and spec requirements remain unchanged; native tests are separate evidence.",
+  "scope": "Authored source review of unchanged Cinema spec and actual Rust application; finite native verification remains distinct. Added Axum transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. Explicit transport delta inspected on 2026-10-15: accepted connections are normalized to blocking mode with the existing five-second timeouts, and delayed HTTP header/body fragments are covered by the real application test. See docs/native-portability-rust-http-review.md for the source inspection and old/new hashes; requirement judgements are unchanged. SDK-2 testing-boundary delta inspected on 2026-10-25 by the implementing Codex session (self-inspection, no independent-review claim). Only adapter.rs and contract.rs source bindings were renewed; see docs/rust-sdk2-boundary-review.md. Production and spec requirements remain unchanged; native tests are separate evidence. 2026-10-27 focused reinspection: examples.json adds one explicit castVote preparation that saves the candidate film and opens its referenced poll. Identical preparation data is shared by TypeScript, Go and Rust; production/spec sources and existing review findings are unchanged. This inspection does not assert native PASS.",
   "reviewed_hashes": {
     ".dctx0/testing/rust/Cargo.lock": "4d21819855e28d9fe77d93a357790da9b68655d77c6189e96b5015d4b7e655fb",
     ".dctx0/testing/rust/Cargo.toml": "42afbdc3cee33145bcb0049ece5aea11da78b2c79b7ace85b8f04ef29508bf1b",
     ".dctx0/testing/rust/adapter.rs": "567552d9d95622ac642fce117fc5f80f6968dfec7713e8257dbdd10ceb767299",
     ".dctx0/testing/rust/config.json": "2b882a80a014ec95b4ef71e4e52623d4a84697f3758ef4afabbc551a48e5eca5",
     ".dctx0/testing/rust/contract.rs": "d5802b4227dd93f575fb8ed88cb996dbbf73de3d60f8f7a071505d45a7f9af2a",
-    ".dctx0/testing/rust/examples.json": "0584c7525cdb2f6721447270b107d195caa150d83c1516f588388083ae3be079",
+    ".dctx0/testing/rust/examples.json": "18a75dd14eedb420ed859f49b879cc6e0ab724deceeb2f496fed8e2198bbb487",
     ".dctx0/testing/rust/http.rs": "5349e192824332f5b4bff6d7f2e026ccaf157ff6691be5984987b0bf0595949c",
     ".dctx0/testing/rust/lifecycles.json": "1652e70cd8c7d0aec4f40210855aee9a165fae6a891d82523a935c13a007039a",
     ".dctx0/testing/rust/translation.rs": "152e2779ff734b36a1ffc03958088759a84b375c863294b94fa0691be3a58b2a",

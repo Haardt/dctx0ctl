@@ -257,9 +257,17 @@ fn unsupported_or_malformed_scenario_plans_and_delivery_states_are_explicit() {
     nested.mocks[0].outcome = Some(MockOutcome::Returned {
         expression: nested.mocks[0].invocation.clone(),
     });
-    expect_code(
-        completed(Scenario::new(&pure, &nested, &budgets).advance()).result,
-        "SCENARIO_EXPRESSION_CALL",
+    let mut scenario = Scenario::new(&pure, &nested, &budgets);
+    assert!(matches!(scenario.advance(), ScenarioStep::Invoke(invocation) if invocation == call()));
+    scenario.deliver(value("5"), vec![]);
+    assert!(
+        matches!(scenario.advance(), ScenarioStep::Invoke(invocation) if invocation.subject == "W.Api.read")
+    );
+    assert_eq!(scenario.collaborator(&call()), value("5"));
+    scenario.deliver(value("5"), vec![event("5")]);
+    assert_eq!(
+        completed(scenario.advance()).result,
+        VerificationResult::Pass
     );
 }
 

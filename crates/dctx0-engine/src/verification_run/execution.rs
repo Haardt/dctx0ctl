@@ -470,6 +470,7 @@ pub(super) async fn execute(
                     .await
             } else {
                 let input = dctx0_verification::OperationCaseInput {
+                    argument_bindings: vec![],
                     id: id.clone(),
                     invocation: invocation.clone(),
                     setup: pending.setup.clone(),

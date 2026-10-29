@@ -5,8 +5,7 @@ use dctx0_core::{
 };
 use dctx0_interpreter::ObservationContext;
 use dctx0_verification::{
-    OperationAssessment, OperationCaseInput, OperationObservers, OperationPlan, assess_operation,
-    operation_ready,
+    OperationAssessment, OperationCaseInput, OperationObservers, OperationPlan, operation_ready,
 };
 
 #[cfg(test)]
@@ -34,6 +33,7 @@ mod setup_tests {
         );
         let operation = &plan.operations[0];
         let input = OperationCaseInput {
+            argument_bindings: vec![],
             id: "undeclared-setup".into(),
             invocation: Invocation {
                 subject: "W.Api.f".into(),
@@ -107,6 +107,7 @@ impl NativeWorker {
                     checked: vec![],
                     open: vec![],
                     result: VerificationResult::Pass,
+                    pending_call: None,
                 },
             };
             if let Some(issue) = mocks.issues.first() {
@@ -117,7 +118,14 @@ impl NativeWorker {
                 self.end_case(cancel).await?;
                 return Ok(result);
             }
-            for invocation in &input.setup {
+            for (setup_index, _) in input.setup.iter().enumerate() {
+                let invocation = dctx0_verification::resolve_operation_arguments(
+                    ir,
+                    input,
+                    &result.setup,
+                    Some(setup_index),
+                )
+                .map_err(|message| NativeFailure::new(NativeFailureKind::Technical, message))?;
                 let operation = ir.operations.get(&invocation.subject).ok_or_else(|| {
                     NativeFailure::new(
                         NativeFailureKind::Technical,
@@ -158,11 +166,16 @@ impl NativeWorker {
                     .collect::<Vec<_>>();
                 if observers.states && !setup_plan.clauses.is_empty() && !entities.is_empty() {
                     setup_context.before = Some(
-                        self.observe_case(entities, dctx0_core::StatePhase::Before, cancel)
-                            .await?,
+                        self.observe_invocation_case(
+                            entities,
+                            dctx0_core::StatePhase::Before,
+                            Some(&invocation),
+                            cancel,
+                        )
+                        .await?,
                     );
                 }
-                let ready = operation_ready(ir, &setup_plan, invocation, &setup_context, budgets);
+                let ready = operation_ready(ir, &setup_plan, &invocation, &setup_context, budgets);
                 if ready != VerificationResult::Pass {
                     result.assessment.result = ready;
                     self.end_case(cancel).await?;
@@ -175,8 +188,16 @@ impl NativeWorker {
                     invocation: invocation.clone(),
                     observation: delivered.observation,
                 };
-                let assessed =
-                    assess_operation(ir, &setup_plan, &observed, &setup_context, budgets);
+                let assessed = self
+                    .assess_native_clauses(
+                        ir,
+                        &setup_plan,
+                        &observed,
+                        &setup_context,
+                        budgets,
+                        cancel,
+                    )
+                    .await?;
                 let success = matches!(observed.observation,Observation::Returned{ref value} if !matches!(value,dctx0_core::VerificationValue::Failure{..}));
                 result.setup.push(observed);
                 if assessed.result != VerificationResult::Pass || !success {
@@ -188,6 +209,9 @@ impl NativeWorker {
                     return Ok(result);
                 }
             }
+            let invocation =
+                dctx0_verification::resolve_operation_arguments(ir, input, &result.setup, None)
+                    .map_err(|message| NativeFailure::new(NativeFailureKind::Technical, message))?;
             let entities = ir
                 .references
                 .iter()
@@ -204,18 +228,23 @@ impl NativeWorker {
                 .collect::<Vec<_>>();
             if observers.states && !entities.is_empty() {
                 result.context.before = Some(
-                    self.observe_case(entities.clone(), dctx0_core::StatePhase::Before, cancel)
-                        .await?,
+                    self.observe_invocation_case(
+                        entities.clone(),
+                        dctx0_core::StatePhase::Before,
+                        Some(&invocation),
+                        cancel,
+                    )
+                    .await?,
                 );
             }
-            let ready = operation_ready(ir, plan, &input.invocation, &result.context, budgets);
+            let ready = operation_ready(ir, plan, &invocation, &result.context, budgets);
             if ready != VerificationResult::Pass {
                 result.assessment.result = ready;
                 self.end_case(cancel).await?;
                 return Ok(result);
             }
             let delivered = self
-                .invoke_case(input.invocation.clone(), cancel, &mut |invocation| {
+                .invoke_case(invocation.clone(), cancel, &mut |invocation| {
                     Ok(mocks.respond(invocation))
                 })
                 .await;
@@ -250,7 +279,7 @@ impl NativeWorker {
                 result.assessment.result = recorded;
                 result.context.calls = Some(mocks.observed.clone());
                 result.observed = Some(InvocationObservation {
-                    invocation: input.invocation.clone(),
+                    invocation: invocation.clone(),
                     observation: delivered.observation,
                 });
                 self.end_case(cancel).await?;
@@ -258,8 +287,13 @@ impl NativeWorker {
             }
             if observers.states && !entities.is_empty() {
                 result.context.after = Some(
-                    self.observe_case(entities, dctx0_core::StatePhase::After, cancel)
-                        .await?,
+                    self.observe_invocation_case(
+                        entities,
+                        dctx0_core::StatePhase::After,
+                        Some(&invocation),
+                        cancel,
+                    )
+                    .await?,
                 );
             }
             result.context.calls = if observers.calls {
@@ -270,10 +304,12 @@ impl NativeWorker {
             result.context.resources = delivered.resources;
             result.context.events = observers.events.then_some(delivered.events);
             let observed = InvocationObservation {
-                invocation: input.invocation.clone(),
+                invocation: invocation.clone(),
                 observation: delivered.observation,
             };
-            result.assessment = assess_operation(ir, plan, &observed, &result.context, budgets);
+            result.assessment = self
+                .assess_native_clauses(ir, plan, &observed, &result.context, budgets, cancel)
+                .await?;
             result.observed = Some(observed);
             self.end_case(cancel).await?;
             Ok(result)
