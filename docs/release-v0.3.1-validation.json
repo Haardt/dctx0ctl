@@ -161,10 +161,27 @@
     }
   },
   "release": {
-    "status": "pending_ci",
+    "status": "published",
     "tag": "v0.3.1",
+    "revision": "61b4349ac29a966bf97d2c2368b2b2400395e465",
+    "release_id": 428077799,
+    "published_at": "2026-10-29T15:53:11Z",
+    "url": "https://github.com/Haardt/dctx0ctl/releases/tag/v0.3.1",
     "workflow_run": 40873631934,
-    "url": "https://github.com/Haardt/dctx0ctl/actions/runs/40873631934"
+    "workflow_url": "https://github.com/Haardt/dctx0ctl/actions/runs/40873631934",
+    "jobs": "benchmarks/artifacts/release-v0.3.1/release-jobs.json",
+    "artifact_index": "benchmarks/artifacts/release-v0.3.1/ci-artifacts.json",
+    "assets": [
+      "dctx0-v0.3.1-aarch64-apple-darwin.tar.gz",
+      "dctx0-v0.3.1-aarch64-unknown-linux-gnu.tar.gz",
+      "dctx0-v0.3.1-x86_64-apple-darwin.tar.gz",
+      "dctx0-v0.3.1-x86_64-pc-windows-msvc.zip",
+      "dctx0-v0.3.1-x86_64-unknown-linux-gnu.tar.gz",
+      "install.ps1",
+      "install.sh",
+      "SHA256SUMS"
+    ],
+    "checksums": "benchmarks/artifacts/release-v0.3.1/published-SHA256SUMS.txt"
   },
   "repairs": [
     "Aligned the separate self-verification Cargo.lock without upgrading registry dependencies.",
@@ -230,5 +247,70 @@
       "Alpha findings distinguish hypotheses, measured trials and product gaps; logging grants no PASS or new permissions."
     ],
     "installed_reference_links": "all local relative references resolve; bundled resources installed byte-for-byte in CLI integration test"
-  }
+  },
+  "ci_validation": {
+    "status": "pass",
+    "scope": "full workspace, coverage, tutorial, self-verification/mutations, storage, large inspections, companion and Gin/Axum acceptance; five separate native platform jobs passed",
+    "merged_source_lines": {
+      "covered": 41395,
+      "total": 42603,
+      "reported_percent": 97.16
+    },
+    "llvm_functions_reported_percent": 97.15,
+    "elapsed_ms": 6764851.454,
+    "peak_process_tree_rss_bytes": 1913634816,
+    "memory_method": "Linux process-tree RSS sum sampled every 50 ms; shared pages counted per process; not a kernel hard peak",
+    "summary": "benchmarks/artifacts/release-v0.3.1/ci-validation-summary.json",
+    "performance_baseline_promoted": false
+  },
+  "published_installation": {
+    "status": "pass",
+    "recorded_at": "2026-10-29T15:54:02.371786+00:00",
+    "command": [
+      "bash",
+      "install.sh",
+      "--version",
+      "v0.3.1",
+      "--bin-dir",
+      "/home/held/.local/bin"
+    ],
+    "installer": {
+      "elapsed_ms": 2028.2714529894292,
+      "peak_rss_bytes": 19664896,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "checks": {
+      "version": {
+        "elapsed_ms": 10.391240008175373,
+        "peak_rss_bytes": 19664896,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "catalog": {
+        "elapsed_ms": 10.344166978029534,
+        "peak_rss_bytes": 19664896,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "skills": {
+        "elapsed_ms": 10.280935006448999,
+        "peak_rss_bytes": 19664896,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    },
+    "binary": "/home/held/.local/bin/dctx0",
+    "binary_sha256": "fc17dd856201932d94e189c61d8528befacbdfdcd46088aef99e01aacedfe712",
+    "version": "0.3.1",
+    "project_skills": "all five unchanged after official distribution installation",
+    "release_url": "https://github.com/Haardt/dctx0ctl/releases/tag/v0.3.1"
+  },
+  "workflow_findings": "DCTX0_IMPROVEMENT_WORKFLOW.md",
+  "finalized_at": "2026-10-29T15:56:07.426858+00:00",
+  "final_source_hash": "d2c335b5806b798829238acaa342567eae695c850d9f03b00cd0e5a64051290d"
 }

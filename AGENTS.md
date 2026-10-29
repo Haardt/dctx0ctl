@@ -1570,3 +1570,15 @@ run took 3,811,327.730 ms with sampled process-tree peak RSS of 1,054,556,160
 bytes. Performance comparison remains unassessed and the accepted baseline was
 not promoted. `docs/release-v0.3.1-validation.json` records source pins, prior
 incomplete attempts, installation evidence and the separate public release gates.
+
+Public 0.3.1 publication (2026-10-29) passes the complete GitHub validation,
+including tutorials, self-verification/mutations, storage, inspections, companion
+and Gin/Axum acceptance, plus all five native platform jobs. CI merged source
+lines are 41,395/42,603 (97.16%); LLVM functions are 97.15%. The coupled CI run
+took 6,764,851.454 ms with sampled process-tree peak RSS of 1,913,634,816 bytes;
+these hosted measurements are separate from local evidence and do not establish
+an optimization speedup. The official checksum-verified distribution and all
+five runatron-business skills are installed. Source pins, assets and public
+workflow receipts are recorded in `docs/release-v0.3.1-validation.json`.
+`DCTX0_IMPROVEMENT_WORKFLOW.md` retains concrete findings and unconfirmed
+workflow proposals without changing acceptance obligations.
