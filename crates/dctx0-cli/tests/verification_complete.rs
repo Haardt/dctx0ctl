@@ -200,7 +200,12 @@ fn complete_cli_executes_real_cases_delivers_reviews_and_rejects_stale_notes_and
     let review = fixture.notes.subjects.remove("W.Boundary").unwrap();
     let missing = fixture.run(true);
     assert!(!missing.status.success());
-    assert!(String::from_utf8_lossy(&missing.stderr).contains("Effective assessment incomplete"));
+    assert!(
+        String::from_utf8_lossy(&missing.stderr).contains("Effective assessment incomplete"),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&missing.stdout),
+        String::from_utf8_lossy(&missing.stderr)
+    );
     assert!(
         fixture
             .project
@@ -435,7 +440,12 @@ async fn agent_task_reviews_close_obligations_without_notes_or_test_pass_and_rej
     // The legacy import cannot overrule the latest source-bound request-changes.
     let failure = fixture.run(true);
     assert!(!failure.status.success());
-    assert!(String::from_utf8_lossy(&failure.stderr).contains("Effective assessment incomplete"));
+    assert!(
+        String::from_utf8_lossy(&failure.stderr).contains("Effective assessment incomplete"),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&failure.stdout),
+        String::from_utf8_lossy(&failure.stderr)
+    );
     let mut legacy_rejection = review.clone();
     legacy_rejection.conformance = None;
     let rejected = fixture
