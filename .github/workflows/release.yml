@@ -136,6 +136,12 @@ jobs:
     env:
       CARGO_BUILD_JOBS: 1
       RUST_TEST_THREADS: 1
+      # Native acceptance also builds the debug CLI. Keep its captured verifier
+      # image below the identity limit, as in the workspace validation job.
+      # Release executables and coverage instrumentation remain unchanged.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
       RELEASE_TARGET: ${{ matrix.target }}
       RELEASE_TAG: ${{ needs.version.outputs.tag }}
       RELEASE_EXECUTABLE: ${{ matrix.executable }}
