@@ -1560,3 +1560,13 @@ functional boundaries without reducing mandatory acceptance. Delivery KPIs keep
 first usable behavior, complete acceptance, repeat checks and effort separate.
 Concrete alpha workflow findings belong in the application's
 `DCTX0_IMPROVEMENT_WORKFLOW.md`; they grant no test-skipping or PASS authority.
+
+Local 0.3.1 validation (2026-10-29) passes all 32 workspace stages, 673 regular
+all-feature Rust executions and 674 instrumented executions. Merged source lines
+are 41,382/42,603 (97.13%); LLVM functions are 3,371/3,471 (97.12%). Raw LLVM
+metrics remain separate and no branch completeness is claimed. All 88 release
+workloads completed with five samples and 20 iterations after one warmup. The
+run took 3,811,327.730 ms with sampled process-tree peak RSS of 1,054,556,160
+bytes. Performance comparison remains unassessed and the accepted baseline was
+not promoted. `docs/release-v0.3.1-validation.json` records source pins, prior
+incomplete attempts, installation evidence and the separate public release gates.

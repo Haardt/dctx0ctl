@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "version": "0.3.1",
+  "recorded_at": "2026-10-29T13:34:17.814300+00:00",
+  "revision": "61b4349ac29a966bf97d2c2368b2b2400395e465",
+  "local_validation_status": "pass",
+  "workspace": {
+    "command": "PATH=/home/held/.cache/dctx0-toolchains/go/bin:/home/held/.cargo/bin:$PATH CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true python3 scripts/validate.py --coverage",
+    "passed_steps": 32,
+    "source_hash_before": "d2c335b5806b798829238acaa342567eae695c850d9f03b00cd0e5a64051290d",
+    "source_hash_after": "d2c335b5806b798829238acaa342567eae695c850d9f03b00cd0e5a64051290d",
+    "measurements": "benchmarks/artifacts/release-v0.3.1/workspace-measurements.json",
+    "log": "benchmarks/artifacts/release-v0.3.1/workspace.log",
+    "elapsed_ms": 3811327.73,
+    "peak_process_tree_rss_bytes": 1054556160,
+    "memory_method": "Linux process-tree RSS sum sampled every 50 ms; shared pages counted per process; not a kernel hard peak",
+    "regular_all_feature_test_executions": 673
+  },
+  "coverage": {
+    "merged_source_lines": {
+      "covered": 41382,
+      "total": 42603,
+      "percent": 97.13400464756003
+    },
+    "llvm_functions": {
+      "count": 3471,
+      "covered": 3371,
+      "percent": 97.11898588303083
+    },
+    "raw_totals": "benchmarks/artifacts/release-v0.3.1/raw-llvm-totals.json",
+    "source_summary": "benchmarks/artifacts/release-v0.3.1/coverage-source-summary.json",
+    "branch_completeness": false,
+    "threshold_percent": 97,
+    "instrumented_test_executions": 674
+  },
+  "performance": {
+    "workloads": 88,
+    "settings": {
+      "iterations": 20,
+      "samples": 5,
+      "warmup_runs": 1,
+      "profile": "release",
+      "features": "all",
+      "cache": "warm filesystem; fresh process per sample"
+    },
+    "gate": "unassessed",
+    "unassessed_workloads": [
+      "cinema/tasks-package",
+      "cinema/tasks-package-delta",
+      "cinema/tasks-package-apply",
+      "cinema/tasks-review-changes",
+      "cinema/tasks-progress",
+      "cinema/verification-diagnostics-summary",
+      "cinema/verification-diagnostics-cases",
+      "cinema/verification-evaluate-unbound",
+      "cinema/verification-assess-unbound",
+      "cinema/verification-generate",
+      "cinema/verification-project",
+      "cinema/verification-harness",
+      "cinema/verification-codecs",
+      "cinema/verification-bindings-plan",
+      "cinema/verification-init",
+      "cinema/verification-history-publish",
+      "cinema/verification-history-read",
+      "cinema/verification-discover",
+      "cinema/profiles/typescript/create",
+      "cinema/profiles/typescript/load",
+      "cinema/profiles/typescript/context-md",
+      "cinema/profiles/typescript/context-json",
+      "cinema/profiles/typescript/claim",
+      "cinema/profiles/java/create",
+      "cinema/profiles/java/load",
+      "cinema/profiles/java/context-md",
+      "cinema/profiles/java/context-json",
+      "cinema/profiles/java/claim",
+      "cinema/profiles/go/create",
+      "cinema/profiles/go/load",
+      "cinema/profiles/go/context-md",
+      "cinema/profiles/go/context-json",
+      "cinema/profiles/go/claim",
+      "cinema/profiles/rust/create",
+      "cinema/profiles/rust/load",
+      "cinema/profiles/rust/context-md",
+      "cinema/profiles/rust/context-json",
+      "cinema/profiles/rust/claim",
+      "cinema-go/check",
+      "cinema-go/discovery",
+      "cinema-go/planning",
+      "cinema-go/harness-setup",
+      "cinema-go/first-project-build",
+      "cinema-go/warm-build",
+      "cinema-go/source-bound-review-and-delivery",
+      "cinema-go/complete-and-adoption",
+      "cinema-go/counterexample-and-shrink",
+      "cinema-go/broken-replay",
+      "cinema-go/repaired-replay",
+      "cinema-rust/check",
+      "cinema-rust/discovery",
+      "cinema-rust/planning",
+      "cinema-rust/harness-setup",
+      "cinema-rust/first-project-build",
+      "cinema-rust/warm-build",
+      "cinema-rust/source-bound-review-and-delivery",
+      "cinema-rust/complete-and-adoption",
+      "cinema-rust/counterexample-and-shrink",
+      "cinema-rust/broken-replay",
+      "cinema-rust/repaired-replay",
+      "cinema-editor/initialize",
+      "cinema-editor/analysis-and-symbols",
+      "cinema-editor/semantic-colors",
+      "cinema-editor/unsaved-change",
+      "cinema-editor/workspace-navigation",
+      "test-analysis/catalog",
+      "test-analysis/collection",
+      "test-analysis/prediction",
+      "test-analysis/evaluation",
+      "test-analysis/replay",
+      "test-analysis/export"
+    ],
+    "baseline_promoted": false,
+    "baseline_sha256": "85c6efc7052fd3bef04e582a828b417c3488c86841e7a64b2f638ef236a09444"
+  },
+  "installation": {
+    "status": "pass",
+    "scope": "local tagged-source CLI installation and project skill upgrade; public release gates remain separate",
+    "version": "dctx0 0.3.1",
+    "revision": "61b4349ac29a966bf97d2c2368b2b2400395e465",
+    "binary": "/home/held/.local/bin/dctx0",
+    "binary_sha256": "5cded4443a51b244c24fa9d9b7742bfb0ef4dd6d15583164b8d727009b95ea37",
+    "project": "/home/held/workspaces/compinion/runatron-business",
+    "backup": "/home/held/.cache/dctx0ctl/upgrades/v0.3.1-20261029T121331Z",
+    "measurements": {
+      "version": {
+        "elapsed_ms": 10.733194008935243,
+        "peak_rss_bytes": 19722240,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "catalog": {
+        "elapsed_ms": 10.438639990752563,
+        "peak_rss_bytes": 19722240,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "install": {
+        "elapsed_ms": 10.40776798618026,
+        "peak_rss_bytes": 19722240,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "idempotence": {
+        "elapsed_ms": 10.502641991479322,
+        "peak_rss_bytes": 19722240,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    }
+  },
+  "release": {
+    "status": "pending_ci",
+    "tag": "v0.3.1",
+    "workflow_run": 40873631934,
+    "url": "https://github.com/Haardt/dctx0ctl/actions/runs/40873631934"
+  },
+  "repairs": [
+    "Aligned the separate self-verification Cargo.lock without upgrading registry dependencies.",
+    "Native platform QA now omits debug symbols, matching workspace QA: verifier images remain below the existing 256 MiB identity capture limit.",
+    "Failing complete-verification assertions now retain stdout/stderr diagnostics."
+  ],
+  "incomplete_attempts": [
+    "workspace-lockfile-incomplete.log",
+    "workspace-lockfile-regeneration-incomplete.log",
+    "workspace-dependent-lockfiles-incomplete.log",
+    "workspace-diagnostic-interference-incomplete.log"
+  ],
+  "diagnostics": {
+    "debug_symbols": {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/memory_guard.py",
+        "cargo",
+        "test",
+        "--locked",
+        "--all-features",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "verification_complete"
+      ],
+      "scope": "CI-profile focused diagnostic; not full acceptance",
+      "elapsed_ms": 61060.21203301498,
+      "peak_rss_bytes": 1143365632,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "without_debug_symbols": {
+      "command": [
+        "/usr/bin/python3",
+        "scripts/memory_guard.py",
+        "cargo",
+        "test",
+        "--locked",
+        "--all-features",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "verification_complete"
+      ],
+      "scope": "CI-profile repair diagnostic; not full acceptance",
+      "elapsed_ms": 45981.808189011645,
+      "peak_rss_bytes": 651792384,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "skill_review": {
+    "status": "reviewed",
+    "validator": "skill-creator quick_validate.py: valid",
+    "scenarios": [
+      "Single-task edits do not require delivery orchestration.",
+      "Multi-task planning reads complete scoped requirements and uses dctx0 prerequisites without rewriting task definitions.",
+      "Application changes require relevant source inspection; package deltas alone do not establish freshness.",
+      "Focused checks and replay precede full required package gates; experimental candidates grant no permission to skip other tests.",
+      "Alpha findings distinguish hypotheses, measured trials and product gaps; logging grants no PASS or new permissions."
+    ],
+    "installed_reference_links": "all local relative references resolve; bundled resources installed byte-for-byte in CLI integration test"
+  }
+}

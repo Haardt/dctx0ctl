@@ -16,7 +16,9 @@ reports are conservative suggestions: `can_skip_other_tests` remains false.
 The research corpus is separate from specification/task evidence and does not
 authorize automatic test skipping, PASS reuse or adoption.
 
-Existing task definitions, main SQLite schema and native SDK interface remain
-unchanged. Experimental analysis uses additive extension tables. All required
-workspace validation and five-host distribution/native checks remain release
-gates. Performance baselines are not automatically promoted.
+Existing task definitions and the main SQLite schema remain unchanged. SDK
+interface version 2 and transport framing version 1 are retained. Invocation-aware
+observation adds a worker request; use the current generated testing transports
+with the current CLI. Experimental analysis uses additive extension tables. All
+required workspace validation and five-host distribution/native checks remain
+release gates. Performance baselines are not automatically promoted.
