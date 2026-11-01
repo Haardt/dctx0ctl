@@ -286,7 +286,7 @@ fn validate_refinements(node: &SemanticNode, diagnostics: &mut Vec<Diagnostic>) 
         && (node.terms.len() != 1
             || !matches!(
                 node.terms[0].text.as_str(),
-                "Email" | "UUID" | "Uri" | "Date" | "DateTime"
+                "Email" | "UUID" | "Uri" | "Date" | "DateTime" | "Hex"
             ))
     {
         problem(

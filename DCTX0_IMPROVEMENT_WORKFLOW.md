@@ -71,3 +71,31 @@ separate target directories. Coordinate generated artifacts as well as source
 files. This does not restrict independent dctx0 commands sharing SQLite; their
 existing transaction/claim rules remain applicable. No test failure from the
 invalidated run is treated as acceptance or as a product regression.
+
+## 2026-10-31 — Configurable verification capture budgets
+
+A consuming project requested a larger capture file limit because regenerable
+build outputs of the application (an 18,467,869-byte runner binary) exceeded the
+hardcoded 16 MiB per-file limit and had to be moved out of the capture root.
+
+`VerificationConfiguration` now accepts an optional strict
+`capture: { max_file_bytes, max_tree_bytes }` block. Defaults keep the
+historical 16 MiB per-file and 512 MiB tree limits; each bound is validated
+non-zero and inclusive up to 1 TiB, and `schema_version` is unchanged, so
+configurations without the block behave exactly as before. The budgets flow into
+`Capture::new_with_budget`/`Capture::inventory_with_budget` and are used by the
+run capture, the captured/application freshness rechecks, adoption preview,
+task attestation, program inspection, review templates and stored review notes,
+so stored and current inventories are always compared under identical limits.
+Oversized files are rejected from their metadata before reading; the existing
+error message strings are unchanged. The CLI self-verification keeps its own
+fixed limits, and old binaries reject the new key because the configuration is
+strict (install CLI and pinned toolchains together).
+
+Validation performed: `cargo check --workspace` clean; full `dctx0-engine` lib
+suite 84/84 (process tests need `DCTX0_TEST_PYTHON`); `verification_go`
+integration test green with the target Go toolchain on PATH; consuming-project
+acceptance (116/116 native cases with the oversized binary present, adoption
+inventory recomputed without budget errors). The repository's full
+self-verification and its dated capability/coverage status pages were not
+refreshed by this change and remain deferred to an explicit request.

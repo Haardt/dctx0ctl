@@ -151,7 +151,7 @@ impl Project {
             selection.subjects = config.scope.subjects.clone();
             selection.tasks = config.scope.tasks.clone();
         }
-        let mut capture = Capture::new(&application)?;
+        let mut capture = Capture::new_with_budget(&application, config.capture_budgets())?;
         let captured_inputs = capture.files.clone();
         let fixtures: ProjectionFixtures = if pinned.is_none() {
             serde_json::from_slice(&fs::read(capture.root.join(&config.fixtures))?)?
@@ -470,7 +470,8 @@ impl Project {
                 }
             }
         }
-        let execution_inputs = Capture::inventory(&capture.root)?;
+        let execution_inputs =
+            Capture::inventory_with_budget(&capture.root, config.capture_budgets())?;
         let started_at_unix_ns = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| Error::Invalid(e.to_string()))?
@@ -626,7 +627,7 @@ impl Project {
                     VerificationResult::Pass
                 }
             });
-        match Capture::inventory(&capture.root) {
+        match Capture::inventory_with_budget(&capture.root, config.capture_budgets()) {
             Ok(current) if current == execution_inputs => {}
             Ok(_) => run.provenance.incomplete.push(issue(
                 "CAPTURED_INPUTS_CHANGED",
@@ -652,7 +653,7 @@ impl Project {
             }
         }
         let _lock = self.lock()?;
-        match Capture::inventory(&application) {
+        match Capture::inventory_with_budget(&application, config.capture_budgets()) {
             Ok(current) if current == captured_inputs => {}
             Ok(_) => run.provenance.incomplete.push(issue(
                 "APPLICATION_INPUTS_CHANGED",

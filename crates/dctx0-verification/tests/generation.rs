@@ -498,6 +498,10 @@ fn text_refinement_corpora_include_valid_format_samples_and_length_boundaries() 
  value Link = String { format Uri }
  value Day = String { format Date }
  value Instant = String { format DateTime }
+ value Digest = String {
+  length 64..64
+  format Hex
+ }
 }"#
         .into(),
     }]);
@@ -507,7 +511,15 @@ fn text_refinement_corpora_include_valid_format_samples_and_length_boundaries() 
         compiled.diagnostics
     );
     let ir = compiled.ir.unwrap();
-    for name in ["Name", "Email", "Identifier", "Link", "Day", "Instant"] {
+    for name in [
+        "Name",
+        "Email",
+        "Identifier",
+        "Link",
+        "Day",
+        "Instant",
+        "Digest",
+    ] {
         let ty = ty(&format!("W.{name}"));
         let corpus = generate_values(&ir, &ty, &Default::default());
         assert!(!corpus.values.is_empty(), "{name}: {corpus:?}");
@@ -519,6 +531,17 @@ fn text_refinement_corpora_include_valid_format_samples_and_length_boundaries() 
             for length in [2, 4] {
                 assert!(corpus.values.iter().any(|value| matches!(value, VerificationValue::String(s) if s.encode_utf16().count() == length)));
             }
+        }
+        if name == "Digest" {
+            // The plain length boundary sample is not hex: it must have been
+            // re-classified out of the accepted corpus, leaving hex samples.
+            assert!(
+                !corpus.values.iter().any(
+                    |value| matches!(value, VerificationValue::String(s) if s.starts_with('x'))
+                ),
+                "{corpus:?}"
+            );
+            assert!(corpus.values.iter().any(|value| matches!(value, VerificationValue::String(s) if s.len() == 64 && s.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)))), "{corpus:?}");
         }
     }
 }
@@ -532,6 +555,10 @@ fn refinement_rejections_cover_actual_length_and_format_violations_not_only_wron
  value Entries = List<Int> { length 1..2 }
  value Day = String { format Date }
  value Identifier = String { format UUID }
+ value Digest = String {
+  length 64..64
+  format Hex
+ }
 }"#
         .into(),
     }]);
@@ -544,6 +571,12 @@ fn refinement_rejections_cover_actual_length_and_format_violations_not_only_wron
         (
             "Identifier",
             VerificationValue::String("00000000-0000-0000-0000-000000000001".into()),
+        ),
+        (
+            "Digest",
+            VerificationValue::String(
+                "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz".into(),
+            ),
         ),
     ] {
         let result =

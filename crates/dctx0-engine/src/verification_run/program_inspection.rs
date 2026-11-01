@@ -19,7 +19,7 @@ impl Project {
         native_run: &str,
         inspections: &[ProgramInspection],
     ) -> Result<InspectedVerificationReport> {
-        let (application, _) = self.verification_configuration(application)?;
+        let (application, config) = self.verification_configuration(application)?;
         let _lock = self.lock()?;
         let mut store = self.store(AccessMode::ReadWrite)?;
         let source = store.verification_run(&self.key(), native_run)?;
@@ -71,7 +71,7 @@ impl Project {
         let inputs: BTreeMap<String, String> = serde_json::from_slice(
             &unique("application/vnd.dctx0.captured-input-inventory+json")?.contents,
         )?;
-        if Capture::inventory(&application)? != inputs {
+        if Capture::inventory_with_budget(&application, config.capture_budgets())? != inputs {
             return Err(Error::Invalid(
                 "Program inspection sources or dependencies changed since execution".into(),
             ));

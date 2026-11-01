@@ -28,7 +28,7 @@ impl Project {
                 "Nonempty inspected task reports are required".into(),
             ));
         }
-        let (application, _) = self.verification_configuration(application)?;
+        let (application, config) = self.verification_configuration(application)?;
         let _lock = self.lock()?;
         let saved = self.saved_verification_run(native_run)?;
         let run = &saved.run;
@@ -72,7 +72,7 @@ impl Project {
             ));
         }
         let captured: BTreeMap<String, String> = serde_json::from_slice(&artifact.contents)?;
-        if Capture::inventory(&application)? != captured {
+        if Capture::inventory_with_budget(&application, config.capture_budgets())? != captured {
             return Err(Error::Invalid(
                 "Inspected implementation or dependencies changed since native verification".into(),
             ));

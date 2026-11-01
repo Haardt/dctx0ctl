@@ -51,7 +51,7 @@ impl Project {
                     "Imported evidence cannot authorize automatic task delivery",
                 ));
             } else {
-                let (application, _) = self.verification_configuration(application)?;
+                let (application, config) = self.verification_configuration(application)?;
                 let artifacts = run
                     .artifacts
                     .iter()
@@ -79,7 +79,10 @@ impl Project {
                         &a.contents,
                     )?)
                 }) {
-                    Ok(inputs) => match Capture::inventory(&application) {
+                    Ok(inputs) => match Capture::inventory_with_budget(
+                        &application,
+                        config.capture_budgets(),
+                    ) {
                         Ok(current) if current == inputs => {}
                         Ok(_) => report.issues.push(issue(
                             "ADOPTION_IMPLEMENTATION_CHANGED",

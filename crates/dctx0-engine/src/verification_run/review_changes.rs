@@ -23,7 +23,7 @@ impl Project {
         application: Option<&Path>,
         task: i64,
     ) -> Result<ReviewChangesReport> {
-        let (application, _) = self.verification_configuration(application)?;
+        let (application, config) = self.verification_configuration(application)?;
         let session = self.task_session(None, None)?;
         let member = session.member(task)?;
         let snapshot = self.load(&session.plan.snapshot_id)?;
@@ -39,7 +39,10 @@ impl Project {
             requirements_hash: member.candidate.requirements_hash.clone(),
             // Include current drift in diagnostics, but never offer an unpinned template.
             spec_source_hash: source_hash.clone(),
-            implementation_artifacts: Capture::inventory(&application)?,
+            implementation_artifacts: Capture::inventory_with_budget(
+                &application,
+                config.capture_budgets(),
+            )?,
             subjects: empty_review_subjects(subjects),
         };
         // Follow only explicit renewal ancestry, never a similar or convenient

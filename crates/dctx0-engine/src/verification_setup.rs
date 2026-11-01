@@ -18,6 +18,38 @@ pub struct ConfiguredVerificationScope {
     pub subjects: BTreeSet<String>,
     pub tasks: BTreeSet<i64>,
 }
+/// Verification capture budgets for walking the application root. The defaults
+/// preserve the historical 16 MiB per-file and 512 MiB tree limits; raising the
+/// file limit only relaxes the per-file guard while the tree budget still
+/// bounds the captured tree that is copied into temporary storage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VerificationCaptureBudgets {
+    pub max_file_bytes: u64,
+    pub max_tree_bytes: u64,
+}
+impl Default for VerificationCaptureBudgets {
+    fn default() -> Self {
+        Self {
+            max_file_bytes: 16_777_216,
+            max_tree_bytes: 536_870_912,
+        }
+    }
+}
+impl VerificationCaptureBudgets {
+    pub fn validate(&self) -> Result<()> {
+        if self.max_file_bytes == 0
+            || self.max_tree_bytes == 0
+            || self.max_file_bytes > (1_u64 << 40)
+            || self.max_tree_bytes > (1_u64 << 40)
+        {
+            return Err(Error::Invalid(
+                "Capture budgets must be between 1 byte and 1 TiB".into(),
+            ));
+        }
+        Ok(())
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VerificationConfiguration {
@@ -25,6 +57,8 @@ pub struct VerificationConfiguration {
     pub dependency_resolution: Option<DependencyResolutionBudget>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution: Option<VerificationExecutionBudgets>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture: Option<VerificationCaptureBudgets>,
     pub schema_version: u32,
     pub target: String,
     pub runtime: String,
@@ -32,6 +66,12 @@ pub struct VerificationConfiguration {
     pub fixtures: String,
     pub scope: ConfiguredVerificationScope,
     pub budgets: VerificationBudgets,
+}
+impl VerificationConfiguration {
+    /// Effective capture budgets; absent configuration keeps the historical limits.
+    pub fn capture_budgets(&self) -> VerificationCaptureBudgets {
+        self.capture.unwrap_or_default()
+    }
 }
 /// Native literal-reference budget, independent of generated test corpora.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -158,6 +198,7 @@ fn validate(config: &VerificationConfiguration) -> Result<()> {
         .dependency_resolution
         .unwrap_or_default()
         .validate()?;
+    config.capture.unwrap_or_default().validate()?;
     if let Some(execution) = &config.execution {
         execution
             .native_limits()
@@ -256,6 +297,7 @@ impl Project {
         let config = VerificationConfiguration {
             dependency_resolution: Some(Default::default()),
             execution: None,
+            capture: None,
             schema_version: 1,
             target: bundle.target.clone(),
             runtime: generator.runtime().into(),
@@ -355,6 +397,62 @@ impl Project {
 #[cfg(test)]
 mod execution_budget_tests {
     use super::*;
+    #[test]
+    fn capture_budgets_are_optional_bounded_and_keep_historical_defaults() {
+        let text = r#"{"schema_version":1,"target":"rust","runtime":"cargo","adapter":".dctx0/testing/rust/adapter.rs","fixtures":".dctx0/testing/rust/examples.json","scope":{"subjects":["W"],"tasks":[]},"budgets":{"seed":42,"generated_cases":16,"collection_size":2,"recursion_depth":8,"value_bytes":65536,"shrink_steps":100,"evaluation_steps":100000}}"#;
+        let config: VerificationConfiguration = serde_json::from_str(text).unwrap();
+        assert!(config.capture.is_none());
+        assert_eq!(
+            config.capture_budgets(),
+            VerificationCaptureBudgets::default()
+        );
+        assert_eq!(config.capture_budgets().max_file_bytes, 16_777_216);
+        assert_eq!(config.capture_budgets().max_tree_bytes, 536_870_912);
+        assert!(validate(&config).is_ok());
+        let mut configured: VerificationConfiguration = serde_json::from_str(text).unwrap();
+        configured.capture = Some(VerificationCaptureBudgets {
+            max_file_bytes: 34_359_738_368,
+            max_tree_bytes: 2_147_483_648,
+        });
+        assert!(validate(&configured).is_ok());
+        assert_eq!(configured.capture_budgets().max_file_bytes, 34_359_738_368);
+        assert_eq!(configured.capture_budgets().max_tree_bytes, 2_147_483_648);
+        for budgets in [
+            VerificationCaptureBudgets {
+                max_file_bytes: 0,
+                max_tree_bytes: 2_147_483_648,
+            },
+            VerificationCaptureBudgets {
+                max_file_bytes: 34_359_738_368,
+                max_tree_bytes: 0,
+            },
+            VerificationCaptureBudgets {
+                max_file_bytes: (1_u64 << 40) + 1,
+                max_tree_bytes: 1_u64 << 40,
+            },
+        ] {
+            let mut rejected = configured.clone();
+            rejected.capture = Some(budgets);
+            assert!(validate(&rejected).is_err(), "{budgets:?}");
+        }
+        // The bound itself is inclusive: exactly one TiB stays valid.
+        configured.capture = Some(VerificationCaptureBudgets {
+            max_file_bytes: 1_u64 << 40,
+            max_tree_bytes: 1_u64 << 40,
+        });
+        assert!(validate(&configured).is_ok());
+        configured.capture = Some(VerificationCaptureBudgets {
+            max_file_bytes: 1_u64 << 40,
+            max_tree_bytes: (1_u64 << 40) + 1,
+        });
+        assert!(validate(&configured).is_err());
+        assert!(
+            serde_json::from_str::<VerificationCaptureBudgets>(
+                r#"{"max_file_bytes":1,"unknown":2}"#
+            )
+            .is_err()
+        );
+    }
     #[test]
     fn dependency_reference_budgets_are_explicit_bounded_and_strict() {
         assert_eq!(DependencyResolutionBudget::default().max_references, 10_000);

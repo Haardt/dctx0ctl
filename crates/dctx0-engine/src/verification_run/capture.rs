@@ -19,12 +19,26 @@ struct Limits {
     count: usize,
 }
 impl Capture {
+    /// Historical default limits; test and fixture paths only. Production paths
+    /// pass the configured budgets explicitly through the *_with_budget forms.
+    #[cfg(test)]
     pub fn new(application: &Path) -> Result<Self> {
+        Self::new_with_budget(
+            application,
+            crate::verification_setup::VerificationCaptureBudgets::default(),
+        )
+    }
+    /// Capture with the configured budgets; the defaults keep the historical
+    /// 16 MiB per-file and 512 MiB tree limits.
+    pub fn new_with_budget(
+        application: &Path,
+        budgets: crate::verification_setup::VerificationCaptureBudgets,
+    ) -> Result<Self> {
         Self::bounded(
             application,
             Limits {
-                file: 16_777_216,
-                tree: 536_870_912,
+                file: budgets.max_file_bytes,
+                tree: budgets.max_tree_bytes,
                 count: 20_000,
             },
         )
@@ -32,12 +46,24 @@ impl Capture {
     fn bounded(application: &Path, limits: Limits) -> Result<Self> {
         Self::scan(application, limits, true)
     }
+    #[cfg(test)]
     pub fn inventory(application: &Path) -> Result<BTreeMap<String, String>> {
+        Self::inventory_with_budget(
+            application,
+            crate::verification_setup::VerificationCaptureBudgets::default(),
+        )
+    }
+    /// Inventory with the configured budgets so stored and current inventories
+    /// are always compared under identical limits.
+    pub fn inventory_with_budget(
+        application: &Path,
+        budgets: crate::verification_setup::VerificationCaptureBudgets,
+    ) -> Result<BTreeMap<String, String>> {
         let capture = Self::scan(
             application,
             Limits {
-                file: 16_777_216,
-                tree: 536_870_912,
+                file: budgets.max_file_bytes,
+                tree: budgets.max_tree_bytes,
                 count: 20_000,
             },
             false,
@@ -127,6 +153,15 @@ impl Capture {
         } else {
             &mut self.remaining
         };
+        // Reject over-budget files from their size before reading them, so a
+        // large generated artifact cannot consume the capture tree budget or
+        // the process memory while the limits are evaluated.
+        let size = fs::metadata(source)?.len();
+        if size > file_limit || size > *remaining {
+            return Err(Error::Invalid(
+                "Verification capture exceeds its 16 MiB file or 512 MiB tree budget".into(),
+            ));
+        }
         let mut bytes = Vec::new();
         fs::File::open(source)?
             .take(file_limit + 1)
@@ -168,6 +203,34 @@ impl Drop for Capture {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn configured_capture_budgets_accept_larger_regular_files() {
+        let root = std::env::temp_dir().join(format!(
+            "dctx0-capture-budgets-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&root).unwrap();
+        std::fs::File::create(root.join("generated.bin"))
+            .unwrap()
+            .set_len(16_777_217)
+            .unwrap();
+        assert!(Capture::new(&root).is_err());
+        let budgets = crate::verification_setup::VerificationCaptureBudgets {
+            max_file_bytes: 34_359_738_368,
+            max_tree_bytes: 2_147_483_648,
+        };
+        let capture = Capture::new_with_budget(&root, budgets).unwrap();
+        assert!(capture.files.contains_key("generated.bin"));
+        assert_eq!(
+            Capture::inventory_with_budget(&root, budgets).unwrap(),
+            capture.files
+        );
+        let copied = capture.root.clone();
+        drop(capture);
+        assert!(!copied.exists());
+        fs::remove_dir_all(&root).unwrap();
+    }
     #[test]
     fn capture_rejects_symlinks_and_enforces_file_tree_and_count_budgets() {
         let root =

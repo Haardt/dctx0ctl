@@ -491,6 +491,11 @@ fn text_refinements_use_utf16_lengths_and_all_reviewed_formats() {
  value Link = String { format Uri }
  value Day = String { format Date }
  value Instant = String { format DateTime }
+ value Hash = String { format Hex }
+ value Digest = String {
+  length 64..64
+  format Hex
+ }
 }"#
         .into(),
     }]);
@@ -521,6 +526,25 @@ fn text_refinements_use_utf16_lengths_and_all_reviewed_formats() {
         ("Instant", "2026-10-11T12:00:00+02:00", true),
         ("Instant", "2026-02-30T00:00:00Z", false),
         ("Instant", "October 11, 2026", false),
+        ("Hash", "0123456789abcdef", true),
+        ("Hash", "ABCDEF0123456789", false),
+        ("Hash", "not-a-digest-value", false),
+        ("Hash", "", false),
+        (
+            "Digest",
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            true,
+        ),
+        (
+            "Digest",
+            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            false,
+        ),
+        (
+            "Digest",
+            "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789",
+            false,
+        ),
     ] {
         let actual = check(&ir, &ty(&format!("W.{name}")), &string(value));
         assert_eq!(

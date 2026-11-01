@@ -33,7 +33,7 @@ impl Project {
         application: Option<&Path>,
         task: i64,
     ) -> Result<ReviewReport> {
-        let (application, _) = self.verification_configuration(application)?;
+        let (application, config) = self.verification_configuration(application)?;
         let session = self.task_session(None, None)?;
         let member = session.member(task)?;
         let snapshot = self.load(&session.plan.snapshot_id)?;
@@ -57,7 +57,10 @@ impl Project {
                 snapshot: snapshot.id,
                 requirements_hash: member.candidate.requirements_hash.clone(),
                 spec_source_hash: snapshot.source_hash,
-                implementation_artifacts: Capture::inventory(&application)?,
+                implementation_artifacts: Capture::inventory_with_budget(
+                    &application,
+                    config.capture_budgets(),
+                )?,
                 subjects: empty_review_subjects(subjects),
             }),
         })
@@ -67,9 +70,10 @@ impl Project {
         &self,
         application: &Path,
     ) -> Result<AuthoredInspections> {
+        let (_, config) = self.verification_configuration(Some(application))?;
         let session = self.task_session(None, None)?;
         let snapshot = self.load(&session.plan.snapshot_id)?;
-        let inventory = Capture::inventory(application)?;
+        let inventory = Capture::inventory_with_budget(application, config.capture_budgets())?;
         let mut notes = AuthoredInspections {
             schema_version: 1,
             actor: "dctx0-task-review".into(),

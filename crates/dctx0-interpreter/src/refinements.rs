@@ -73,6 +73,14 @@ pub(crate) fn format(terms: &[&str], value: &V) -> C {
                 })
         }
         "Uri" => url::Url::parse(text).is_ok(),
+        // Exact lowercase hexadecimal digits; uppercase is rejected with the
+        // reviewed "exact lowercase hex" rule instead of being folded silently.
+        "Hex" => {
+            !text.is_empty()
+                && text
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        }
         // Reject impossible calendar dates instead of the reference Date.parse
         // rollover. This intentional tightening is independent of the target.
         "Date" => {

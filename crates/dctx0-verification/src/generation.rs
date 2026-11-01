@@ -148,6 +148,11 @@ pub fn generate_rejections(
                         "2026-01-01T24:00:00Z",
                         "October 11, 2026",
                     ],
+                    Some("Hex") => &[
+                        "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+                        "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789",
+                        "----------------------------------------------------------------",
+                    ],
                     _ => &[],
                 };
                 candidates.extend(invalid.iter().map(|text| V::String((*text).into())));
@@ -442,6 +447,11 @@ impl Generator<'_> {
                         ],
                         Some("Date") => &["1970-01-01", "2000-02-29", "2026-10-11"],
                         Some("DateTime") => &["1970-01-01T00:00:00Z", "2000-02-29T12:00:00+01:00"],
+                        Some("Hex") => &[
+                            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                            "0000000000000000000000000000000000000000000000000000000000000000",
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        ],
                         _ => &[],
                     };
                     corpus.values.splice(
