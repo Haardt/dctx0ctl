@@ -168,3 +168,9 @@ impl TargetProfileProvider for Provider {
         ]
     }
 }
+
+mod codecs;
+pub use codecs::{CODEC_GENERATOR_VERSION, generate_codecs};
+
+mod scaffolds;
+pub use scaffolds::generate_test_scaffold;

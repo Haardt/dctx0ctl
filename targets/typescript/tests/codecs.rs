@@ -379,3 +379,65 @@ fn generated_codecs_execute_independent_native_wire_pairs_and_typecheck() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn failure_assertions_and_child_fixture_environments_are_explicit() {
+    let data = serde_json::from_str(include_str!(
+        "../../../fixtures/conformance/codecs/declarations.json"
+    ))
+    .unwrap();
+    let root = std::env::temp_dir().join(format!("dctx0-ts-failure-codecs-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let artifact = generate_codecs(&data, &CodecOptions::default(), "pin").unwrap();
+    fs::write(root.join("codecs.ts"), artifact.contents).unwrap();
+    fs::write(
+        root.join("contract.ts"),
+        include_str!("../harness/contract.ts"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("contract-testing.ts"),
+        include_str!("../harness/testing.ts"),
+    )
+    .unwrap();
+    fs::write(root.join("assertions.test.ts"),r#"
+import {test,expect} from 'bun:test';
+import {declaredFailure,returnedRecord,stringField,decodeInput,decode,technicalFailure,recordedCalls,unavailableObservation} from './codecs.ts';
+import {EnvironmentError} from './contract.ts';
+import {planCommand,configuredFixture} from './contract-testing.ts';
+const payload={kind:'record',value:{code:{kind:'string',value:'DENIED'}}} as const;
+const observation={kind:'returned',value:{kind:'failure',value:{declaration:'W.Denied',payload}}} as const;
+test('failure assertions reject contradictory decoders and technical errors',()=>{
+ technicalFailure(new EnvironmentError('private'),'environment');expect(()=>technicalFailure(new Error('environment'),'environment')).toThrow();
+ unavailableObservation({kind:'unavailable',reason:'missing actual state'});
+ const invocation={subject:'actual',arguments:[]};recordedCalls([{invocation}],invocation,1);expect(()=>recordedCalls(undefined,invocation,1)).toThrow();expect(()=>recordedCalls([{invocation}],invocation,0)).toThrow();
+ const f=declaredFailure(observation,'W.Denied');stringField(f.payload,'code','DENIED');
+ expect(()=>returnedRecord(observation)).toThrow();expect(()=>declaredFailure(observation,'W.Record')).toThrow();
+ expect(()=>stringField(f.payload,'code','WRONG')).toThrow();
+ expect(()=>declaredFailure(observation,'W.Denied',new Error('secret'))).toThrow('technical failure');
+ for(const kind of ['threw','unavailable'])expect(()=>declaredFailure({kind},'W.Denied')).toThrow();
+});
+test('invalid shapes reach an independent production binding',()=>{
+ const wire={kind:'record',value:{extra:{kind:'boolean',value:true}}} as const;
+ expect(()=>decode('W.Record',wire)).toThrow();const input=decodeInput('W.Record',wire);let calls=0;
+ function actualParser(v:unknown){calls++;if(!v||!('id' in (v as object)))throw new Error('production shape rejection');return v;}
+ expect(()=>actualParser(input)).toThrow('production shape rejection');expect(calls).toBe(1);
+});
+test('child environment removes an inherited fixture without changing parent',async()=>{
+ const before=process.env.PATH;const child=planCommand(process.execPath,process.cwd(),['-e',"if(process.env.PATH!==undefined)process.exit(2)"],{PATH:undefined});
+ expect(await child.exited).toBe(0);expect(process.env.PATH).toBe(before);
+ expect(()=>configuredFixture('DCTX0_NONEXISTENT_FIXTURE_2718')).toThrow('not configured');
+});
+"#).unwrap();
+    let output = Command::new("bun")
+        .args(["test", "assertions.test.ts"])
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

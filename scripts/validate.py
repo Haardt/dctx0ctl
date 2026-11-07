@@ -49,6 +49,8 @@ def validation_sources():
     for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
         paths.extend(path for path in (ROOT / "editors").glob(pattern) if "target" not in path.relative_to(ROOT / "editors").parts)
     paths.extend(ROOT.glob('targets/**/*.go'))
+    for suffix in ('go','rs','ts'):
+        paths.extend(ROOT.glob(f'fixtures/conformance/generator/**/*.{suffix}'))
     paths.extend(ROOT.glob('targets/rust/harness/*.toml'))
     paths.extend(ROOT.glob('examples/cinema-rust/src/**/*.rs'))
     paths.extend(ROOT.glob('examples/cinema-rust/tests/**/*.rs'))
@@ -456,6 +458,11 @@ def main():
             [sys.executable,'scripts/rust_cinema_acceptance.py','--binary',str(ROOT / 'target/debug/dctx0')],
             ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/Cargo.toml','--all-features','--offline','--locked','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
             ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/.dctx0/testing/rust/Cargo.toml','--lib','--offline','--locked','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
+        ])
+    if args.focus == 'workspace':
+        commands.extend([
+            ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'],
+            [sys.executable, 'scripts/generator_acceptance.py', '--skip-build', '--scaffolds-only'],
         ])
     if args.tutorial:
         commands.extend([

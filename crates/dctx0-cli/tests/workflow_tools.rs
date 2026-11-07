@@ -153,17 +153,19 @@ fn codec_cli_reports_explicit_feature_availability() {
         "--project",
         "app",
         "--target",
-        "go",
+        "java",
     ]);
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("only typescript"));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("No codec generator enabled for java")
+    );
     #[cfg(not(feature = "typescript"))]
     assert!(
         String::from_utf8_lossy(
             &t.cmd(&["verify", "scaffold-codecs", "spec", "--project", "app"])
                 .stderr
         )
-        .contains("TypeScript target feature")
+        .contains("No codec generator enabled for typescript")
     );
     #[cfg(not(feature = "typescript"))]
     assert!(

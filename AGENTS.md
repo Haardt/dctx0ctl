@@ -1582,3 +1582,16 @@ five runatron-business skills are installed. Source pins, assets and public
 workflow receipts are recorded in `docs/release-v0.3.1-validation.json`.
 `DCTX0_IMPROVEMENT_WORKFLOW.md` retains concrete findings and unconfirmed
 workflow proposals without changing acceptance obligations.
+
+Native generator checkpoint (2026-11-07): `verify scaffold-codecs` supports Go,
+Rust and TypeScript structural testing representations and outcome assertions.
+`verify bindings scaffold` creates editable native entrypoints pinned to the
+published central plan; `verify bindings test` executes that plan transiently
+without publishing evidence or adopting tasks. Generated fixture hooks fail until
+authored production bindings and prerequisites are reviewed. Environment choices
+apply to child processes only. Existing files are preserved; `--candidate NAME`
+writes inert comparison files. Production validators, observers, resource ownership
+and unsupported native mappings remain authored. See
+`docs/site/src/reference/native-test-generators.md` for supported shapes, commands
+and limits. The focused runner comparison uses an isolated application copy;
+runatron-business has no task-owned changes or adoption commit.

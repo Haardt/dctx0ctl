@@ -1,0 +1,780 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261107T120254.350847Z",
+  "status": "complete",
+  "revision": "f3c6968e901f8447a28ef6198dfa4fa435f73fe7",
+  "dirty_worktree": true,
+  "source_hash_before": "9b23444e3fef73ff9433b612ea521dcc3b14987bb2bef654d89ec0effd83ae23",
+  "platform": "Linux-7.3.1-1-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "machine": "x86_64",
+    "cpu_count": 16
+  },
+  "toolchains": {
+    "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+    "go": "go version go1.27.3-X:nodwarf5 linux/amd64",
+    "bun": "1.4.4"
+  },
+  "settings": {
+    "features": "all-features",
+    "seed": 42,
+    "samples": 1,
+    "cache": "existing compiler caches, fresh isolated projects",
+    "profile": "uninstrumented release CLI; native test commands measured separately"
+  },
+  "scope": "codecs, publication and three-target central scaffolds",
+  "baseline": {
+    "status": "unassessed",
+    "reason": "new generator workloads; no baseline promotion"
+  },
+  "measurements": [
+    {
+      "label": "release-build",
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--all-features",
+        "--locked"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 214588.52371800458,
+      "peak_rss_bytes": 841818112,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "native-codecs",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-target-go",
+        "-p",
+        "dctx0-target-rust",
+        "-p",
+        "dctx0-target-typescript",
+        "--test",
+        "codecs",
+        "--locked"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 4782.103361001646,
+      "peak_rss_bytes": 332390400,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "publication-and-central-driver",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-engine",
+        "--test",
+        "codec_scaffold",
+        "--test",
+        "verification_go",
+        "--locked"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 17421.85179599619,
+      "peak_rss_bytes": 947478528,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "generator-cli",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "dctx0-cli",
+        "--test",
+        "generators",
+        "--all-features",
+        "--locked"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 7958.678889997827,
+      "peak_rss_bytes": 1274126336,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-check",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 50.94671400001971,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-init",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "init",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces",
+        "--target",
+        "go",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 40.77266500098631,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-proposal",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces",
+        "--target",
+        "go",
+        "--subject",
+        "W.Api.next",
+        "--dry-run",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 21.070458002213854,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-deterministic-proposal",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces",
+        "--target",
+        "go",
+        "--subject",
+        "W.Api.next",
+        "--dry-run",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 11.07447800313821,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-generate",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces",
+        "--target",
+        "go",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 30.96043899859069,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-candidate",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces",
+        "--target",
+        "go",
+        "--subject",
+        "W.Api.next",
+        "--candidate",
+        "upgrade"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 30.90157700353302,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-preserve",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/go application with spaces",
+        "--target",
+        "go",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 21.096304000820965,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-unimplemented-hook",
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-timeout=120s",
+        "-run=^TestPublishedContractPlan$",
+        "."
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 233.18361299607204,
+      "peak_rss_bytes": 99909632,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-actual-production",
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-timeout=120s",
+        "-run=^TestPublishedContractPlan$",
+        "."
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 829.3372370026191,
+      "peak_rss_bytes": 101019648,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-production-mutation",
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-timeout=120s",
+        "-run=^TestPublishedContractPlan$",
+        "."
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 779.1062269971007,
+      "peak_rss_bytes": 104923136,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "go-permissive-validator-mutation",
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-timeout=120s",
+        "-run=^TestPublishedContractPlan$",
+        "."
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 727.3670570066315,
+      "peak_rss_bytes": 105058304,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-check",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 51.010866001888644,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-init",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "init",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces",
+        "--target",
+        "typescript",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 41.459492000285536,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-proposal",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces",
+        "--target",
+        "typescript",
+        "--subject",
+        "W.Api.next",
+        "--dry-run",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 10.838149006303865,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-deterministic-proposal",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces",
+        "--target",
+        "typescript",
+        "--subject",
+        "W.Api.next",
+        "--dry-run",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 10.707636996812653,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-generate",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces",
+        "--target",
+        "typescript",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 30.949888001487125,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-candidate",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces",
+        "--target",
+        "typescript",
+        "--subject",
+        "W.Api.next",
+        "--candidate",
+        "upgrade"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 31.071056000655517,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-preserve",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/typescript application with spaces",
+        "--target",
+        "typescript",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 10.730964000686072,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-unimplemented-hook",
+      "command": [
+        "bun",
+        "test",
+        "--timeout",
+        "120000",
+        "contract-plan.test.ts"
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 10.607131996948738,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-actual-production",
+      "command": [
+        "bun",
+        "test",
+        "--timeout",
+        "120000",
+        "contract-plan.test.ts"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 192.11091600300279,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-production-mutation",
+      "command": [
+        "bun",
+        "test",
+        "--timeout",
+        "120000",
+        "contract-plan.test.ts"
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 182.06066900165752,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "typescript-permissive-validator-mutation",
+      "command": [
+        "bun",
+        "test",
+        "--timeout",
+        "120000",
+        "contract-plan.test.ts"
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 181.73469399334863,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-check",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 60.995856001682114,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-init",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "init",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces",
+        "--target",
+        "rust",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 51.097301999107,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-prepare",
+      "command": [
+        "cargo",
+        "generate-lockfile",
+        "--offline"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 40.77048200269928,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-proposal",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces",
+        "--target",
+        "rust",
+        "--subject",
+        "W.Api.next",
+        "--dry-run",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 10.589451994746923,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-deterministic-proposal",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces",
+        "--target",
+        "rust",
+        "--subject",
+        "W.Api.next",
+        "--dry-run",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 10.464339000463951,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-generate",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces",
+        "--target",
+        "rust",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 30.68817999883322,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-candidate",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces",
+        "--target",
+        "rust",
+        "--subject",
+        "W.Api.next",
+        "--candidate",
+        "upgrade"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 30.56559999822639,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-preserve",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "bindings",
+        "scaffold",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces/spec",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/generator-acceptance/20261107T120254.350847Z/rust application with spaces",
+        "--target",
+        "rust",
+        "--subject",
+        "W.Api.next"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 10.451319998537656,
+      "peak_rss_bytes": 67194880,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-unimplemented-hook",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "published_contract_plan"
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 3802.9100349958753,
+      "peak_rss_bytes": 334344192,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-actual-production",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "published_contract_plan"
+      ],
+      "expected_exit": 0,
+      "elapsed_ms": 2922.28931599675,
+      "peak_rss_bytes": 206446592,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-production-mutation",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "published_contract_plan"
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 2697.1875640010694,
+      "peak_rss_bytes": 206790656,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "rust-permissive-validator-mutation",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "published_contract_plan"
+      ],
+      "expected_exit": 1,
+      "elapsed_ms": 2799.176152002474,
+      "peak_rss_bytes": 206528512,
+      "exit_code": 101,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ],
+  "binary_hash": "40d71447c82a638b8cc793bfc950e123e82f3e267ca319fe05446dd31c5ab1dd",
+  "source_hash_after": "9b23444e3fef73ff9433b612ea521dcc3b14987bb2bef654d89ec0effd83ae23"
+}

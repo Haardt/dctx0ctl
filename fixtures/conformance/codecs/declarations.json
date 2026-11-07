@@ -1,0 +1,176 @@
+{
+  "W.Id": {
+    "id": "W.Id",
+    "stable_id": null,
+    "keys": [],
+    "alias": {
+      "name": "Int",
+      "symbol_id": null,
+      "arguments": []
+    },
+    "fields": [],
+    "variants": []
+  },
+  "W.Text": {
+    "id": "W.Text",
+    "stable_id": null,
+    "keys": [],
+    "alias": {
+      "name": "String",
+      "symbol_id": null,
+      "arguments": []
+    },
+    "fields": [],
+    "variants": []
+  },
+  "W.Denied": {
+    "id": "W.Denied",
+    "stable_id": null,
+    "keys": [],
+    "alias": null,
+    "fields": [
+      {
+        "name": "code",
+        "ty": {
+          "name": "String",
+          "symbol_id": null,
+          "arguments": []
+        }
+      }
+    ],
+    "variants": []
+  },
+  "W.Record": {
+    "id": "W.Record",
+    "stable_id": null,
+    "keys": [],
+    "alias": null,
+    "fields": [
+      {
+        "name": "id",
+        "ty": {
+          "name": "W.Id",
+          "symbol_id": "W.Id",
+          "arguments": []
+        }
+      },
+      {
+        "name": "child",
+        "ty": {
+          "name": "Option",
+          "symbol_id": null,
+          "arguments": [
+            {
+              "name": "W.Denied",
+              "symbol_id": "W.Denied",
+              "arguments": []
+            }
+          ]
+        }
+      },
+      {
+        "name": "items",
+        "ty": {
+          "name": "List",
+          "symbol_id": null,
+          "arguments": [
+            {
+              "name": "String",
+              "symbol_id": null,
+              "arguments": []
+            }
+          ]
+        }
+      }
+    ],
+    "variants": []
+  },
+  "W.Mode": {
+    "id": "W.Mode",
+    "stable_id": null,
+    "keys": [],
+    "alias": null,
+    "fields": [],
+    "variants": [
+      {
+        "name": "Open",
+        "payload": null
+      },
+      {
+        "name": "Closed",
+        "payload": null
+      }
+    ]
+  },
+  "W.Unsupported": {
+    "id": "W.Unsupported",
+    "stable_id": null,
+    "keys": [],
+    "alias": {
+      "name": "Unsupported",
+      "symbol_id": null,
+      "arguments": []
+    },
+    "fields": [],
+    "variants": []
+  },
+  "W.NestedOption": {
+    "id": "W.NestedOption",
+    "stable_id": null,
+    "keys": [],
+    "alias": {
+      "name": "Option",
+      "symbol_id": null,
+      "arguments": [
+        {
+          "name": "Option",
+          "symbol_id": null,
+          "arguments": [
+            {
+              "name": "String",
+              "symbol_id": null,
+              "arguments": []
+            }
+          ]
+        }
+      ]
+    },
+    "fields": [],
+    "variants": []
+  },
+  "W.Choice": {
+    "id": "W.Choice",
+    "stable_id": null,
+    "keys": [],
+    "alias": null,
+    "fields": [],
+    "variants": [
+      {
+        "name": "Empty",
+        "payload": null
+      },
+      {
+        "name": "Count",
+        "payload": {
+          "name": "Int",
+          "symbol_id": null,
+          "arguments": []
+        }
+      },
+      {
+        "name": "Maybe",
+        "payload": {
+          "name": "Option",
+          "symbol_id": null,
+          "arguments": [
+            {
+              "name": "String",
+              "symbol_id": null,
+              "arguments": []
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

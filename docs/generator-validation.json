@@ -1,0 +1,97 @@
+{
+  "scope": "native test generator validation; not application acceptance",
+  "workspace_report": "benchmarks/history/20261107T135656.134169Z-2067427.json",
+  "workspace_source_hash": "53ac3cf894ca0c09f63fe90d621376f85db1a8408463240b285b3a3e8d926342",
+  "workspace_validation_status": "pass",
+  "workspace_steps": 34,
+  "workspace_failed_steps": [],
+  "workspace_receipt": {
+    "qa_profile": {
+      "CARGO_PROFILE_DEV_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "CARGO_BUILD_JOBS": "1",
+      "RUST_TEST_THREADS": "1"
+    },
+    "command": [
+      "python3",
+      "scripts/validate.py",
+      "--coverage"
+    ],
+    "started": "2026-11-07T12:43:26.344632+00:00",
+    "finished": "2026-11-07T13:56:56.177486+00:00",
+    "elapsed_ms": 4409832.865884004,
+    "exit_code": 0,
+    "log": "/home/held/workspaces/compinion/dctx0ctl/target/generator-workspace-validation.log"
+  },
+  "workspace_peak_process_tree_rss_bytes": 2376720384,
+  "workspace_memory_method": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+  "performance_workloads": 88,
+  "performance_gate": "unassessed",
+  "baseline_promoted": false,
+  "coverage": {
+    "lines": 43291,
+    "covered_lines": 42031,
+    "line_percent": 97.08946432283847,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "a3923a340ec39e0480b33fdfe0a0d32369e274470ca88a8d893089c59f39165a",
+    "source_hash_after": "a3923a340ec39e0480b33fdfe0a0d32369e274470ca88a8d893089c59f39165a",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3512,
+        "covered": 3410,
+        "percent": 97.09567198177677
+      },
+      "instantiations": {
+        "count": 8596,
+        "covered": 5201,
+        "percent": 60.504885993485345
+      },
+      "lines": {
+        "count": 45676,
+        "covered": 44025,
+        "percent": 96.38541028111044
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 70248,
+        "covered": 65654,
+        "notcovered": 4594,
+        "percent": 93.46031203735338
+      }
+    }
+  },
+  "raw_coverage_artifacts": [
+    "target/coverage/workspace.lcov",
+    "target/coverage/llvm.json"
+  ],
+  "limitations": [
+    "No branch completeness claim",
+    "Native helper coverage is not measured by Rust LLVM instrumentation",
+    "Final example adapter and acceptance-runner refinements are validated separately; workspace source hash predates those refinements",
+    "Original runatron-business repository has no task-owned changes"
+  ],
+  "final_generator_report": "benchmarks/history/generators/20261107T135902.521422Z-2505410.json",
+  "final_generator_source_hash": "4bf3ff3607c8158947cf60e6d7a919712657a53a7384555c022bde69682d5488",
+  "final_generator_source_hash_after": "4bf3ff3607c8158947cf60e6d7a919712657a53a7384555c022bde69682d5488",
+  "final_generator_status": "complete",
+  "final_generator_measurements": 40,
+  "final_generator_elapsed_ms": 42118.483,
+  "final_generator_peak_process_tree_rss_bytes": 459476992
+}

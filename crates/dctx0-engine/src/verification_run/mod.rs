@@ -64,6 +64,24 @@ pub struct NativeVerificationReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub adoption_proposal: Option<dctx0_tasks::AdoptionProposal>,
 }
+/// Exact published requirements and generated inputs selected by an editable test.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BindingTestPin {
+    pub snapshot: String,
+    pub check_occurrence: u64,
+    pub plan_hash: String,
+}
+/// Ephemeral central assessment. It has no saved run ID or task-delivery authority.
+#[derive(Debug, Serialize)]
+pub struct BindingTestReport {
+    pub published: bool,
+    pub run: VerificationRun,
+}
+enum ExecutionReport {
+    Published(NativeVerificationReport),
+    Transient(BindingTestReport),
+}
 impl Project {
     pub async fn run_verification(
         &self,
@@ -135,13 +153,78 @@ impl Project {
     pub(crate) async fn run_verification_with_limits(
         &self,
         application: Option<&Path>,
-        mut selection: VerificationSelection,
+        selection: VerificationSelection,
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
         no_adopt: bool,
         pinned: Option<(ProgramPlan, VerificationLifecycleFixtures, Option<String>)>,
         limits: NativeLimits,
     ) -> Result<NativeVerificationReport> {
+        match self
+            .execute_verification(
+                application,
+                selection,
+                generator,
+                cancellation,
+                no_adopt,
+                pinned,
+                limits,
+                None,
+            )
+            .await?
+        {
+            ExecutionReport::Published(report) => Ok(report),
+            ExecutionReport::Transient(_) => {
+                Err(Error::Invalid("Unexpected transient verification".into()))
+            }
+        }
+    }
+    /// Execute the full selected finite plan without publishing or adopting evidence.
+    pub async fn test_verification(
+        &self,
+        application: &Path,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        expected: BindingTestPin,
+    ) -> Result<BindingTestReport> {
+        let (_, config) = self.verification_configuration(Some(application))?;
+        let limits = config
+            .execution
+            .as_ref()
+            .map(VerificationExecutionBudgets::native_limits)
+            .unwrap_or_default();
+        match self
+            .execute_verification(
+                Some(application),
+                selection,
+                generator,
+                cancellation,
+                true,
+                None,
+                limits,
+                Some(expected),
+            )
+            .await?
+        {
+            ExecutionReport::Transient(report) => Ok(report),
+            ExecutionReport::Published(_) => {
+                Err(Error::Invalid("Unexpected published verification".into()))
+            }
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn execute_verification(
+        &self,
+        application: Option<&Path>,
+        mut selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        no_adopt: bool,
+        pinned: Option<(ProgramPlan, VerificationLifecycleFixtures, Option<String>)>,
+        limits: NativeLimits,
+        transient: Option<BindingTestPin>,
+    ) -> Result<ExecutionReport> {
         let parent = pinned.as_ref().and_then(|(_, _, parent)| parent.clone());
         let supervision = limits.supervision_capabilities();
         let historical = selection.historical_check.is_some() || pinned.is_some();
@@ -165,6 +248,16 @@ impl Project {
                 None,
             ),
         };
+        if let Some(expected) = &transient {
+            if plan.snapshot != expected.snapshot
+                || plan.check_occurrence != expected.check_occurrence
+                || digest(&serde_json::to_vec(&plan)?) != expected.plan_hash
+            {
+                return Err(Error::Invalid(
+                    "Generated binding test pins are stale; regenerate a candidate".into(),
+                ));
+            }
+        }
         if plan
             .issues
             .iter()
@@ -399,30 +492,39 @@ impl Project {
                             "application/vnd.dctx0.rust-build-inputs+json",
                             serde_json::to_vec(&receipt)?,
                         ));
-                        let relative = format!(
-                            ".dctx0ctl/native/rust/{}/worker{}",
-                            receipt.binary_hash,
-                            std::env::consts::EXE_SUFFIX
-                        );
-                        let (parent, executable) =
-                            crate::verification_setup::safe_file(&application, &relative)?;
-                        fs::create_dir_all(parent)?;
-                        if executable.try_exists()? {
-                            if digest(&fs::read(&executable)?) != receipt.binary_hash {
-                                return Err(Error::Invalid(
-                                    "Stored Rust worker hash mismatch".into(),
-                                ));
-                            }
+                        if transient.is_some() {
+                            bundle.recipe.program = capture
+                                .root
+                                .join(directory)
+                                .join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX))
+                                .to_string_lossy()
+                                .into_owned();
                         } else {
-                            fs::copy(
-                                capture
-                                    .root
-                                    .join(directory)
-                                    .join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)),
-                                &executable,
-                            )?;
+                            let relative = format!(
+                                ".dctx0ctl/native/rust/{}/worker{}",
+                                receipt.binary_hash,
+                                std::env::consts::EXE_SUFFIX
+                            );
+                            let (parent, executable) =
+                                crate::verification_setup::safe_file(&application, &relative)?;
+                            fs::create_dir_all(parent)?;
+                            if executable.try_exists()? {
+                                if digest(&fs::read(&executable)?) != receipt.binary_hash {
+                                    return Err(Error::Invalid(
+                                        "Stored Rust worker hash mismatch".into(),
+                                    ));
+                                }
+                            } else {
+                                fs::copy(
+                                    capture.root.join(directory).join(format!(
+                                        ".bin/worker{}",
+                                        std::env::consts::EXE_SUFFIX
+                                    )),
+                                    &executable,
+                                )?;
+                            }
+                            bundle.recipe.program = executable.to_string_lossy().into_owned();
                         }
-                        bundle.recipe.program = executable.to_string_lossy().into_owned();
                         rust_receipt = Some(receipt);
                     }
                     Err(error) => {
@@ -437,30 +539,39 @@ impl Project {
                             "application/vnd.dctx0.go-build-inputs+json",
                             serde_json::to_vec(&receipt)?,
                         ));
-                        let relative = format!(
-                            ".dctx0ctl/native/go/{}/worker{}",
-                            receipt.binary_hash,
-                            std::env::consts::EXE_SUFFIX
-                        );
-                        let (parent, executable) =
-                            crate::verification_setup::safe_file(&application, &relative)?;
-                        fs::create_dir_all(parent)?;
-                        if executable.try_exists()? {
-                            if digest(&fs::read(&executable)?) != receipt.binary_hash {
-                                return Err(Error::Invalid(
-                                    "Stored Go worker hash mismatch".into(),
-                                ));
-                            }
+                        if transient.is_some() {
+                            bundle.recipe.program = capture
+                                .root
+                                .join(directory)
+                                .join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX))
+                                .to_string_lossy()
+                                .into_owned();
                         } else {
-                            fs::copy(
-                                capture
-                                    .root
-                                    .join(directory)
-                                    .join(format!(".bin/worker{}", std::env::consts::EXE_SUFFIX)),
-                                &executable,
-                            )?;
+                            let relative = format!(
+                                ".dctx0ctl/native/go/{}/worker{}",
+                                receipt.binary_hash,
+                                std::env::consts::EXE_SUFFIX
+                            );
+                            let (parent, executable) =
+                                crate::verification_setup::safe_file(&application, &relative)?;
+                            fs::create_dir_all(parent)?;
+                            if executable.try_exists()? {
+                                if digest(&fs::read(&executable)?) != receipt.binary_hash {
+                                    return Err(Error::Invalid(
+                                        "Stored Go worker hash mismatch".into(),
+                                    ));
+                                }
+                            } else {
+                                fs::copy(
+                                    capture.root.join(directory).join(format!(
+                                        ".bin/worker{}",
+                                        std::env::consts::EXE_SUFFIX
+                                    )),
+                                    &executable,
+                                )?;
+                            }
+                            bundle.recipe.program = executable.to_string_lossy().into_owned();
                         }
-                        bundle.recipe.program = executable.to_string_lossy().into_owned();
                         go_receipt = Some(receipt);
                     }
                     Err(error) => {
@@ -652,7 +763,11 @@ impl Project {
                     .push(issue("GO_BUILD_INPUTS_CHANGED", error.to_string()));
             }
         }
-        let _lock = self.lock()?;
+        let _lock = if transient.is_none() {
+            Some(self.lock()?)
+        } else {
+            None
+        };
         match Capture::inventory_with_budget(&application, config.capture_budgets()) {
             Ok(current) if current == captured_inputs => {}
             Ok(_) => run.provenance.incomplete.push(issue(
@@ -702,6 +817,19 @@ impl Project {
             other => run.provenance.incomplete.push(issue("RUNTIME_IDENTITY_CHANGED_OR_UNAVAILABLE",
                 format!("Actual runtime executable or launch environment cannot be pinned at publication: {other:?}"))),
         }
+        if transient.is_some() {
+            if matches!(run.result, VerificationResult::Pass) {
+                if let Some(problem) = run.provenance.incomplete.first() {
+                    run.result = VerificationResult::Unknown {
+                        issue: problem.clone(),
+                    };
+                }
+            }
+            return Ok(ExecutionReport::Transient(BindingTestReport {
+                published: false,
+                run,
+            }));
+        }
         let saved = self
             .store(AccessMode::ReadWrite)?
             .record_verification_run_owned_from(&self.key(), run, &artifacts, parent.as_deref())?;
@@ -710,12 +838,12 @@ impl Project {
         } else {
             adoption::publish(self, &application, &plan, &saved, &artifacts)?
         };
-        Ok(NativeVerificationReport {
+        Ok(ExecutionReport::Published(NativeVerificationReport {
             supervision: Some(supervision),
             evidence: saved,
             adopted_tasks,
             adoption_issues,
             adoption_proposal,
-        })
+        }))
     }
 }

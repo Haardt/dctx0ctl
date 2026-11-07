@@ -46,21 +46,62 @@ pub fn publish_codec_scaffold(
     generator_version: &str,
     dry_run: bool,
 ) -> Result<CodecScaffoldReport> {
+    publish_target_codec_scaffold(
+        application,
+        "typescript",
+        filename,
+        artifact,
+        inputs,
+        options,
+        generator_version,
+        dry_run,
+    )
+}
+
+/// Target-aware publication preserves all existing files, including edited generated files.
+#[allow(clippy::too_many_arguments)]
+pub fn publish_target_codec_scaffold(
+    application: &Path,
+    target: &str,
+    filename: &str,
+    artifact: Artifact,
+    inputs: &CodecInputs,
+    options: CodecOptions,
+    generator_version: &str,
+    dry_run: bool,
+) -> Result<CodecScaffoldReport> {
+    let extension = match target {
+        "typescript" => "ts",
+        "go" => "go",
+        "rust" => "rs",
+        _ => return Err(Error::Invalid("Unsupported codec target".into())),
+    };
     if filename.is_empty()
         || filename.contains(['/', '\\'])
         || filename.chars().any(char::is_control)
-        || !filename.ends_with(".ts")
+        || !(filename.ends_with(&format!(".{extension}"))
+            || filename.ends_with(&format!(".{extension}.txt")))
         || matches!(
             filename,
-            "contract.ts" | "worker.ts" | "adapter.ts" | "module-observer.ts"
+            "contract.ts"
+                | "worker.ts"
+                | "adapter.ts"
+                | "module-observer.ts"
+                | "contract.go"
+                | "worker.go"
+                | "adapter.go"
+                | "build.go"
+                | "contract.rs"
+                | "worker.rs"
+                | "adapter.rs"
         )
     {
         return Err(Error::Invalid(
-            "Codec output must be a separate .ts basename beside contract.ts".into(),
+            "Codec output must be a separate native basename beside the contract".into(),
         ));
     }
     let root = fs::canonicalize(application)?;
-    let relative = format!(".dctx0/testing/typescript/{filename}");
+    let relative = format!(".dctx0/testing/{target}/{filename}");
     let (parent, path) = crate::verification_setup::safe_file(&root, &relative)?;
     let exists = path.try_exists()?;
     let status = if exists {

@@ -27,9 +27,12 @@ pub(crate) struct CodecScaffoldArgs {
     types: Vec<String>,
     #[arg(long)]
     config: Option<PathBuf>,
-    /// Separate .ts basename beside contract.ts; existing files are preserved.
-    #[arg(long, default_value = "wire-codecs.ts")]
-    output: String,
+    /// Separate native basename beside the contract; existing files are preserved.
+    #[arg(long)]
+    output: Option<String>,
+    /// Save an inert comparison proposal with a .txt suffix.
+    #[arg(long)]
+    candidate: Option<String>,
     #[arg(long)]
     dry_run: bool,
 }
@@ -73,47 +76,48 @@ pub(crate) fn run(
     output: &mut dyn Write,
 ) -> Result<bool, String> {
     let options = args.configuration()?;
-    if args.target != "typescript" {
-        return Err("Codec scaffolding currently supports only typescript".into());
+    let enabled = (args.target == "typescript" && cfg!(feature = "typescript"))
+        || (args.target == "go" && cfg!(feature = "go"))
+        || (args.target == "rust" && cfg!(feature = "rust"));
+    if !enabled {
+        return Err(format!("No codec generator enabled for {}", args.target));
     }
-    #[cfg(feature = "typescript")]
-    {
-        let project =
-            dctx0_engine::Project::new(&args.input, database).map_err(crate::error_message)?;
-        let inputs = project
-            .codec_inputs(&args.subject.into_iter().collect())
-            .map_err(crate::error_message)?;
-        let artifact = dctx0_target_typescript::generate_codecs(
-            &inputs.declarations,
-            &options,
-            &inputs.snapshot,
-        )
+    let project =
+        dctx0_engine::Project::new(&args.input, database).map_err(crate::error_message)?;
+    let inputs = project
+        .codec_inputs(&args.subject.into_iter().collect())
         .map_err(crate::error_message)?;
-        let report = dctx0_engine::publish_codec_scaffold(
-            &args.project,
-            &args.output,
-            artifact,
-            &inputs,
-            options,
-            dctx0_target_typescript::CODEC_GENERATOR_VERSION,
-            args.dry_run,
-        )
-        .map_err(crate::error_message)?;
-        if json {
-            crate::render::json(output, &report)?;
-        } else {
-            writeln!(output, "Codec scaffold: {} ({})\nSnapshot: {}\nTesting representation conversion only; production validation and native proof remain separate.", report.path, report.status, report.snapshot).map_err(crate::error_message)?;
-            if report.dry_run {
-                writeln!(output, "\n{}", report.artifact.contents).map_err(crate::error_message)?;
-            }
+    let (artifact, version) = generate(
+        &args.target,
+        &inputs.declarations,
+        &options,
+        &inputs.snapshot,
+    )?;
+    let filename = args.output.unwrap_or_else(|| artifact.path.clone());
+    let filename = match args.candidate {
+        Some(name) => format!("{name}.{filename}.txt"),
+        None => filename,
+    };
+    let report = dctx0_engine::publish_target_codec_scaffold(
+        &args.project,
+        &args.target,
+        &filename,
+        artifact,
+        &inputs,
+        options,
+        version,
+        args.dry_run,
+    )
+    .map_err(crate::error_message)?;
+    if json {
+        crate::render::json(output, &report)?;
+    } else {
+        writeln!(output, "Codec scaffold: {} ({})\nSnapshot: {}\nRepresentation conversion only; production validation and native proof remain separate.", report.path, report.status, report.snapshot).map_err(crate::error_message)?;
+        if report.dry_run {
+            writeln!(output, "\n{}", report.artifact.contents).map_err(crate::error_message)?;
         }
-        Ok(true)
     }
-    #[cfg(not(feature = "typescript"))]
-    {
-        let _ = (args, database, json, output, options);
-        Err("Codec scaffolding requires the TypeScript target feature".into())
-    }
+    Ok(true)
 }
 
 pub(crate) fn benchmark(
@@ -143,5 +147,30 @@ pub(crate) fn benchmark(
     {
         let _ = (ir, iterations, files, output);
         Err("Codec scaffolding requires the TypeScript target feature".into())
+    }
+}
+
+/// Target dispatch keeps the command and binding scaffolds on the same generators.
+pub(crate) fn generate(
+    target: &str,
+    declarations: &std::collections::BTreeMap<String, dctx0_core::DataIr>,
+    options: &CodecOptions,
+    snapshot: &str,
+) -> Result<(dctx0_target_sdk::Artifact, &'static str), String> {
+    let _ = (declarations, options, snapshot);
+    match target {
+        #[cfg(feature = "typescript")]
+        "typescript" => dctx0_target_typescript::generate_codecs(declarations, options, snapshot)
+            .map(|a| (a, dctx0_target_typescript::CODEC_GENERATOR_VERSION))
+            .map_err(crate::error_message),
+        #[cfg(feature = "go")]
+        "go" => dctx0_target_go::generate_codecs(declarations, options, snapshot)
+            .map(|a| (a, dctx0_target_go::CODEC_GENERATOR_VERSION))
+            .map_err(crate::error_message),
+        #[cfg(feature = "rust")]
+        "rust" => dctx0_target_rust::generate_codecs(declarations, options, snapshot)
+            .map(|a| (a, dctx0_target_rust::CODEC_GENERATOR_VERSION))
+            .map_err(crate::error_message),
+        _ => Err(format!("No codec generator enabled for {target}")),
     }
 }

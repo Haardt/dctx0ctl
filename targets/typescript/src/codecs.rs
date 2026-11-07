@@ -3,7 +3,7 @@ use dctx0_core::{CodecOptions, DataIr};
 use dctx0_target_sdk::{Artifact, Error};
 use std::collections::BTreeMap;
 
-pub const CODEC_GENERATOR_VERSION: &str = "dctx0-typescript-codecs-2";
+pub const CODEC_GENERATOR_VERSION: &str = "dctx0-typescript-codecs-3";
 
 pub fn generate_codecs(
     declarations: &BTreeMap<String, DataIr>,
@@ -19,7 +19,7 @@ pub fn generate_codecs(
     Ok(Artifact {
         path: "wire-codecs.ts".into(),
         contents: format!(
-            "/** Editable testing codecs. Generator: {CODEC_GENERATOR_VERSION}.\n * Representation conversion only; does not replace production contract validation. */\nimport type {{ Value }} from './contract.ts';\nexport const snapshot = {snapshot};\nconst declarations: Record<string, Data> = {descriptor};\nexport const configuration: Configuration = {configuration};\n{}",
+            "/** Editable testing codecs. Generator: {CODEC_GENERATOR_VERSION}.\n * Representation conversion only; does not replace production contract validation. */\nimport type {{ Value }} from './contract.ts';\nimport {{AdapterError,EnvironmentError}} from './contract.ts';\nexport const snapshot = {snapshot};\nconst declarations: Record<string, Data> = {descriptor};\nexport const configuration: Configuration = {configuration};\n{}",
             include_str!("../harness/codecs.ts")
         ),
     })

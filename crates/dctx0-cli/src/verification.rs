@@ -6,7 +6,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
-fn execution_target(
+pub(crate) fn execution_target(
     target: &str,
 ) -> Result<
     (

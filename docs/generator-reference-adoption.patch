@@ -1,0 +1,359 @@
+--- a/packages/runner/.dctx0/testing/go/control-assign_test.go
++++ b/packages/runner/.dctx0/testing/go/control-assign_test.go
+@@ -1,9 +1,6 @@
+ package main
+ 
+ import (
+-	"encoding/json"
+-	"errors"
+-	"os"
+ 	"reflect"
+ 	"strings"
+ 	"testing"
+@@ -23,9 +20,12 @@
+ }
+ 
+ func TestControlAssignDeniesWithoutRecordingAnAcceptance(t *testing.T) {
+-	calls := []Invocation{}
++	if _, err := ConfiguredFixture("RUNNER_VERIFICATION_DATABASE"); err != nil {
++		t.Fatal(err)
++	}
++	calls := []InvocationObservation{}
+ 	generic, err := (runnerAdapter{}).Begin("control-assign", TestContext{RecordCall: func(invocation Invocation, observation Observation) error {
+-		calls = append(calls, invocation)
++		calls = append(calls, InvocationObservation{Invocation: invocation, Observation: observation})
+ 		if observation.Kind != "returned" || observation.Value == nil {
+ 			t.Error("recorded call without its actual result", invocation.Subject, observation)
+ 		}
+@@ -48,42 +48,13 @@
+ 		t.Fatal("invalid assignment accepted")
+ 	}
+ 	observation, err := session.invokeControlAssign(Invocation{Subject: subject, Arguments: []Value{controlAssignValue()}})
+-	if os.Getenv("RUNNER_VERIFICATION_DATABASE") == "" {
+-		var technical *TechnicalError
+-		if !errors.As(err, &technical) || technical.Category != "environment" {
+-			t.Fatal("missing private database reported as available", err)
+-		}
+-		return
+-	}
+-	if err != nil {
+-		t.Fatal(err)
+-	}
+-	if observation.Kind != "returned" || observation.Value == nil || observation.Value.Kind != "failure" {
+-		t.Fatal("denied authority did not answer the declared failure", observation)
+-	}
+-	// A denied authority is a declared failure: translation keeps its
+-	// declaration visible and unwraps only the payload record, so the asserted
+-	// host code is read from that payload rather than from a flat record value.
+-	var tagged struct {
+-		Declaration string `json:"declaration"`
+-	}
+-	if err := json.Unmarshal(observation.Value.Value, &tagged); err != nil {
+-		t.Fatal("denied authority declaration is not translatable", err)
+-	}
+-	payload, err := toJSON(*observation.Value)
+-	if err != nil {
+-		t.Fatal("denied authority payload is not translatable", err)
+-	}
+-	var failure struct {
+-		Code string `json:"code"`
+-	}
+-	if tagged.Declaration != prefix+"AccessDenied" || json.Unmarshal(payload, &failure) != nil || failure.Code != "PERMISSION_DENIED" {
+-		t.Fatalf("denied authority did not return AccessDenied: %s %s", tagged.Declaration, string(payload))
+-	}
++	failure := requireDeclaredFailure(t, observation, err, prefix+"AccessDenied")
++	// The literal host code is an authored assertion, not a requirement inferred by generation.
++	requireStringField(t, failure.Payload, "code", "PERMISSION_DENIED")
+ 	if len(calls) != 1 {
+ 		t.Fatal("assign must record exactly one collaborator call", calls)
+ 	}
+-	if calls[0].Subject != prefix+"Authorization.verify" || !reflect.DeepEqual(calls[0].Arguments, []Value{wireToSDK(reflect.ValueOf(protocol.AssignRuntime), reflect.TypeFor[protocol.RuntimeAction]())}) {
+-		t.Fatal("recorded call was not Authorization.verify(AssignRuntime)", calls[0])
++	if err := RecordedCalls(calls, true, Invocation{Subject: prefix + "Authorization.verify", Arguments: []Value{wireToSDK(reflect.ValueOf(protocol.AssignRuntime), reflect.TypeFor[protocol.RuntimeAction]())}}, 1); err != nil {
++		t.Fatal(err)
+ 	}
+ }
+--- a/packages/runner/.dctx0/testing/go/host-authority_test.go
++++ b/packages/runner/.dctx0/testing/go/host-authority_test.go
+@@ -3,13 +3,15 @@
+ import (
+ 	"encoding/json"
+ 	"errors"
+-	"os"
+ 	"reflect"
+ 	"strings"
+ 	"testing"
+ )
+ 
+ func TestActualHostAuthority(t *testing.T) {
++	if _, err := ConfiguredFixture("RUNNER_VERIFICATION_DATABASE"); err != nil {
++		t.Fatal(err)
++	}
+ 	resources := []ResourceObservation{}
+ 	calls := []InvocationObservation{}
+ 	generic, err := (runnerAdapter{}).Begin("actual-host-authority", TestContext{RecordCall: func(invocation Invocation, observation Observation) error {
+@@ -22,13 +24,6 @@
+ 	session := generic.(*runnerSession)
+ 	defer session.Close()
+ 	_, err = session.Invoke(Invocation{Subject: prefix + "PlatformFixtures.Provisioning.connection"})
+-	if os.Getenv("RUNNER_VERIFICATION_DATABASE") == "" {
+-		var technical *TechnicalError
+-		if !errors.As(err, &technical) || technical.Category != "environment" {
+-			t.Fatal("missing private host must remain unavailable", err)
+-		}
+-		return
+-	}
+ 	if err != nil {
+ 		t.Fatal("actual connection context setup failed", err)
+ 	}
+@@ -81,25 +76,23 @@
+ }
+ 
+ func TestAuthorityWithoutReviewedSetupRemainsUnavailable(t *testing.T) {
+-	// The private host fixture switch is an explicit environment input, exactly
+-	// like the Docker negative cases; the reviewed setup must be unavailable in
+-	// every environment rather than only in whichever one happens to be absent.
+-	t.Setenv("RUNNER_VERIFICATION_DATABASE", "")
+-	generic, err := (runnerAdapter{}).Begin("missing-private-authority-context", TestContext{})
+-	if err != nil {
+-		t.Fatal(err)
+-	}
+-	session := generic.(*runnerSession)
+-	defer session.Close()
+-	_, observeErr := session.Observe([]string{prefix + "InvocationAuthority"})
+-	_, invokeErr := session.Invoke(Invocation{Subject: prefix + "Authorization.verify", Arguments: []Value{sdkVariant("RuntimeAction", "ConnectRuntime")}})
+-	for _, failure := range []error{observeErr, invokeErr} {
+-		var technical *TechnicalError
+-		if !errors.As(failure, &technical) || technical.Category != "environment" {
+-			t.Fatal("missing receiver context must not manufacture credentials", failure)
++	fixtureScenario(t, map[string]*string{"RUNNER_VERIFICATION_DATABASE": UnavailableFixture()}, func() {
++		generic, err := (runnerAdapter{}).Begin("missing-private-authority-context", TestContext{})
++		if err != nil {
++			t.Fatal(err)
+ 		}
+-	}
+-	if session.hostFixture != nil || len(session.privateTokens) != 0 {
+-		t.Fatal("missing setup created replacement credentials")
+-	}
++		session := generic.(*runnerSession)
++		defer session.Close()
++		_, observeErr := session.Observe([]string{prefix + "InvocationAuthority"})
++		_, invokeErr := session.Invoke(Invocation{Subject: prefix + "Authorization.verify", Arguments: []Value{sdkVariant("RuntimeAction", "ConnectRuntime")}})
++		for _, failure := range []error{observeErr, invokeErr} {
++			var technical *TechnicalError
++			if !errors.As(failure, &technical) || technical.Category != "environment" {
++				t.Fatal("missing receiver context must not manufacture credentials", failure)
++			}
++		}
++		if session.hostFixture != nil || len(session.privateTokens) != 0 {
++			t.Fatal("missing setup created replacement credentials")
++		}
++	})
+ }
+--- a/packages/runner/.dctx0/testing/go/host-upgrade_test.go
++++ b/packages/runner/.dctx0/testing/go/host-upgrade_test.go
+@@ -23,15 +23,12 @@
+ 		t.Fatal("actual upgrade pre-state is missing", err)
+ 	}
+ 	result, err := session.Invoke(invocation(request))
+-	if err != nil || result.Kind != "returned" || result.Value.Kind != "record" {
+-		t.Fatal("actual Hono upgrade failed", err, result)
+-	}
++	binding := requireReturnedRecord(t, result, err)
+ 	after, err := session.ObserveInvocation(invocation(request), entities)
+ 	if err != nil || len(after[entities[1]]) != 1 {
+ 		t.Fatal("host registry did not observe negotiation", err)
+ 	}
+ 	fields := bridgeFields(t, after[entities[1]][0])
+-	binding := bridgeFields(t, *result.Value)
+ 	if !reflect.DeepEqual(fields["id"], binding["connectionId"]) || !reflect.DeepEqual(fields["phase"], sdkVariant("SocketPhase", "SocketNegotiated")) {
+ 		t.Fatal("native bridge inferred another socket", after)
+ 	}
+@@ -82,20 +79,19 @@
+ 	}
+ }
+ func TestHostUpgradeWithoutPrivateContextDoesNotProvision(t *testing.T) {
+-	// As above: unavailability is asserted explicitly, so a shared private
+-	// database cannot silently provision the host this case must not create.
+-	t.Setenv("RUNNER_VERIFICATION_DATABASE", "")
+-	generic, err := (runnerAdapter{}).Begin("missing-host-context", TestContext{})
+-	if err != nil {
+-		t.Fatal(err)
+-	}
+-	session := generic.(*runnerSession)
+-	defer session.Close()
+-	request := transport.UpgradeAttempt{Method: "GET", Path: "/api/runtime/connect", OfferedProtocol: transport.Subprotocol, Bearer: transport.EnrollmentKey(strings.Repeat("a", 64))}
+-	inv := Invocation{Subject: prefix + "RuntimeTransport.Host.acceptUpgrade", Arguments: []Value{wireToSDK(reflect.ValueOf(request), reflect.TypeOf(request))}}
+-	_, err = session.Invoke(inv)
+-	var technical *TechnicalError
+-	if !errors.As(err, &technical) || technical.Category != "environment" || session.hostFixture != nil {
+-		t.Fatal("missing setup manufactured a host", err)
+-	}
++	fixtureScenario(t, map[string]*string{"RUNNER_VERIFICATION_DATABASE": UnavailableFixture()}, func() {
++		generic, err := (runnerAdapter{}).Begin("missing-host-context", TestContext{})
++		if err != nil {
++			t.Fatal(err)
++		}
++		session := generic.(*runnerSession)
++		defer session.Close()
++		request := transport.UpgradeAttempt{Method: "GET", Path: "/api/runtime/connect", OfferedProtocol: transport.Subprotocol, Bearer: transport.EnrollmentKey(strings.Repeat("a", 64))}
++		inv := Invocation{Subject: prefix + "RuntimeTransport.Host.acceptUpgrade", Arguments: []Value{wireToSDK(reflect.ValueOf(request), reflect.TypeOf(request))}}
++		_, err = session.Invoke(inv)
++		var technical *TechnicalError
++		if !errors.As(err, &technical) || technical.Category != "environment" || session.hostFixture != nil {
++			t.Fatal("missing setup manufactured a host", err)
++		}
++	})
+ }
+--- /dev/null
++++ b/packages/runner/.dctx0/testing/go/generated-contracts_test.go
+@@ -0,0 +1,121 @@
++package main
++
++import (
++	"encoding/json"
++	"reflect"
++	"strings"
++	"testing"
++
++	"github.com/Haardt/runatron-business/packages/runner/internal/protocol"
++)
++
++// The adapter owns the connection to production. Generated conversion never decides acceptance.
++func generatedProductionCheck(name string, supplied Value) (ValueCheck, error) {
++	native, err := DecodeInput(prefix+name, supplied)
++	if err != nil {
++		return ValueCheck{}, AdapterError(err)
++	}
++	raw, err := json.Marshal(native)
++	if err != nil {
++		return ValueCheck{}, AdapterError(err)
++	}
++	if _, err = protocol.DecodeContract(name, raw); err != nil {
++		reason := err.Error()
++		return ValueCheck{Kind: "rejected", Reason: &reason}, nil
++	}
++	return ValueCheck{Kind: "accepted", Value: &supplied}, nil
++}
++func TestGeneratedConversionCallsTheActualProductionDecoder(t *testing.T) {
++	reference := sdkRecord(map[string]Value{"id": sdkString("profile"), "revision": sdkInteger(1), "digest": sdkString(strings.Repeat("a", 64))})
++	for _, item := range []struct {
++		name  string
++		value Value
++	}{{"VersionedReference", reference}, {"Assignment", controlAssignValue()}} {
++		result, err := generatedProductionCheck(item.name, item.value)
++		if err != nil || result.Kind != "accepted" {
++			t.Fatal("actual production decoder did not accept its valid input", item.name, err, result)
++		}
++		// Independent handwritten mapping is a comparison, not the production validator.
++		generated, err := Decode(prefix+item.name, item.value)
++		if err != nil {
++			t.Fatal(err)
++		}
++		raw, err := json.Marshal(generated)
++		if err != nil {
++			t.Fatal(err)
++		}
++		handwritten, err := sdkToWire(item.value, wireShapes()[item.name])
++		if err != nil {
++			t.Fatal(err)
++		}
++		var a, b any
++		if json.Unmarshal(raw, &a) != nil || json.Unmarshal(handwritten, &b) != nil || !reflect.DeepEqual(a, b) {
++			t.Fatal("generated and existing structural mappings differ", item.name)
++		}
++	}
++	for _, value := range []Value{sdkString("not a record"), sdkRecord(map[string]Value{"id": sdkString("profile"), "revision": sdkInteger(1)}), sdkRecord(map[string]Value{"id": sdkInteger(1), "revision": sdkInteger(1), "digest": sdkString(strings.Repeat("a", 64))})} {
++		result, err := generatedProductionCheck("VersionedReference", value)
++		if err != nil || result.Kind != "rejected" {
++			t.Fatal("representable negative input did not reach production rejection", err, result)
++		}
++	}
++}
++func TestGeneratedNumbersRemainExactAndFixedWidthMappingIsExplicitlyUnsupported(t *testing.T) {
++	const exact = "900719925474099312345678901234567890"
++	native, err := Decode(prefix+"Counter", sdkValue("integer", exact))
++	if err != nil {
++		t.Fatal(err)
++	}
++	number, ok := native.(json.Number)
++	if !ok || number.String() != exact {
++		t.Fatal("generated conversion changed exact integer")
++	}
++	raw, err := json.Marshal(native)
++	if err != nil {
++		t.Fatal(err)
++	}
++	actual, err := protocol.ParseInteger(raw)
++	if err != nil || string(actual) != exact {
++		t.Fatal("production lost exact integer", err)
++	}
++	if _, err := number.Int64(); err == nil {
++		t.Fatal("unsupported int64 mapping must remain explicit")
++	}
++}
++func TestGeneratedOptionalRecordRepresentation(t *testing.T) {
++	row := map[string]any{"id": "attempt", "registrationId": "registration", "tenantId": "tenant", "participantId": "participant", "runId": "run", "workspaceId": "workspace", "grantId": "grant", "epoch": json.Number("1"), "phase": "Accepted", "pendingInput": nil, "applied": false, "ceased": false, "completed": false, "lastSequence": json.Number("0"), "deadline": json.Number("60000"), "leaseExpiresAt": json.Number("30000")}
++	for _, pending := range []any{nil, "input"} {
++		row["pendingInput"] = pending
++		encoded, err := Encode(prefix+"AttemptRecord", row)
++		if err != nil {
++			t.Fatal(err)
++		}
++		decoded, err := Decode(prefix+"AttemptRecord", encoded)
++		if err != nil || !reflect.DeepEqual(decoded, row) {
++			t.Fatal("optional representation changed", err)
++		}
++	}
++	// Host attempt validation and native enum mappings remain authored; this roundtrip is no acceptance claim.
++}
++func TestGeneratedFailureAssertionsRejectContradictoryAndIncorrectObservations(t *testing.T) {
++	payload := sdkRecord(map[string]Value{"code": sdkString("PERMISSION_DENIED")})
++	value := sdkValue("failure", map[string]any{"declaration": prefix + "AccessDenied", "payload": payload})
++	observed := Observation{Kind: "returned", Value: &value}
++	failure, err := DeclaredFailure(observed, nil, prefix+"AccessDenied")
++	if err != nil {
++		t.Fatal(err)
++	}
++	if _, err := ReturnedRecord(observed, nil); err == nil {
++		t.Fatal("contradictory record decoder accepted failure")
++	}
++	if _, err := DeclaredFailure(observed, nil, prefix+"AssignmentConflict"); err == nil {
++		t.Fatal("wrong failure declaration accepted")
++	}
++	if StringField(failure.Payload, "code", "WRONG") == nil {
++		t.Fatal("wrong payload accepted")
++	}
++	reason := "missing actual fixture"
++	if _, err := DeclaredFailure(Observation{Kind: "unavailable", Reason: &reason}, nil, prefix+"AccessDenied"); err == nil {
++		t.Fatal("unavailable observation accepted as denial")
++	}
++}
+--- /dev/null
++++ b/packages/runner/.dctx0/testing/generator-adoption.ts
+@@ -0,0 +1,25 @@
++import {PostgresFixture} from '../../../../tools/dctx0/postgres-fixture';
++import {fileURLToPath} from 'node:url';
++import {mkdtemp,rm} from 'node:fs/promises';
++import {tmpdir} from 'node:os';
++import {join} from 'node:path';
++const root=fileURLToPath(new URL('../../../../',import.meta.url));
++process.chdir(root);
++const directory=await mkdtemp(join(tmpdir(),'runner-generators-'));
++const fixture=new PostgresFixture();
++try {
++ const database=await fixture.start();
++ const env={...process.env,RUNNER_VERIFICATION_DATABASE:database,RUNNER_VERIFICATION_ROOT:directory};
++ const binary=join(directory,'bridge.test');
++ const build=Bun.spawn(['sh','../../tools/go/run.sh','test','-c','-o',binary,'./.dctx0/testing/go'],{cwd:join(root,'packages/runner'),env,stdout:'inherit',stderr:'inherit'});
++ if(await build.exited!==0)throw new Error('Bridge compilation failed');
++ const cases=['TestGeneratedConversionCallsTheActualProductionDecoder','TestGeneratedNumbersRemainExactAndFixedWidthMappingIsExplicitlyUnsupported','TestGeneratedOptionalRecordRepresentation','TestGeneratedFailureAssertionsRejectContradictoryAndIncorrectObservations','TestControlAssignDeniesWithoutRecordingAnAcceptance','TestAuthorityWithoutReviewedSetupRemainsUnavailable','TestHostUpgradeWithoutPrivateContextDoesNotProvision','TestActualHostAuthority'];
++ for(const test of cases){
++  const child=Bun.spawn([binary,`-test.run=^${test}$`,'-test.count=1','-test.timeout=2s','-test.parallel=4','-test.v'],{cwd:join(root,'packages/runner/.dctx0/testing/go'),env,stdout:'inherit',stderr:'inherit'});
++  if(await child.exited!==0)throw new Error(`Generator reference regression failed: ${test}`);
++ }
++ // Missing configured prerequisites must fail rather than pass an unavailable branch.
++ const missing=Bun.spawn([binary,'-test.run=^TestControlAssignDeniesWithoutRecordingAnAcceptance$','-test.count=1','-test.timeout=2s'],{cwd:join(root,'packages/runner/.dctx0/testing/go'),env:{...env,RUNNER_VERIFICATION_DATABASE:''},stdout:'pipe',stderr:'pipe'});
++ const diagnostic=await new Response(missing.stdout).text();if(await missing.exited===0||!diagnostic.includes('not configured'))throw new Error('Missing configured fixture was not reported honestly');
++ console.log(JSON.stringify({status:'pass',cases:cases.length,missingConfiguredFixtureRejected:true,scope:'selected Go generator adoption; not application acceptance'}));
++} finally {try{await fixture.close()}finally{await rm(directory,{recursive:true,force:true})}}

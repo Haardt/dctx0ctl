@@ -170,3 +170,9 @@ pub use inspection::RustInspector;
 
 mod execution;
 pub use execution::RustHarness;
+
+mod codecs;
+pub use codecs::{CODEC_GENERATOR_VERSION, generate_codecs};
+
+mod scaffolds;
+pub use scaffolds::generate_test_scaffold;

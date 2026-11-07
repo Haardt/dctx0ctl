@@ -50,3 +50,4 @@
 - [Pinned workflow packages and measurements](reference/workflow-efficiency.md)
 
 - [Editable TypeScript wire codecs](reference/codec-scaffolds.md)
+- [Native verification generators](reference/native-test-generators.md)

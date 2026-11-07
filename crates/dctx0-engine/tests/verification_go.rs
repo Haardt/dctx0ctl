@@ -37,6 +37,62 @@ func(actualSession)Close()error{return nil}
 func(actualSession)Invoke(invocation Invocation)(Observation,error){var digits string;if err:=json.Unmarshal(invocation.Arguments[0].Value,&digits);err!=nil{return Observation{},err};n,_:=new(big.Int).SetString(digits,10);result:=production.Next(n);raw,_:=json.Marshal(result.String());v:=Value{Kind:"integer",Value:raw};return Observation{Kind:"returned",Value:&v},nil}
 "#;
     fs::write(app.join(".dctx0/testing/go/adapter.go"), adapter).unwrap();
+    // The generated test driver must execute the same plan without publishing history.
+    let (_, configuration) = project.verification_configuration(Some(&app)).unwrap();
+    let fixtures =
+        serde_json::from_slice(&fs::read(app.join(&configuration.fixtures)).unwrap()).unwrap();
+    let plan = project
+        .verification_plan(
+            VerificationSelection {
+                subjects: configuration.scope.subjects.clone(),
+                ..Default::default()
+            },
+            &fixtures,
+            configuration.budgets.clone(),
+        )
+        .unwrap();
+    use sha2::{Digest, Sha256};
+    let pin = BindingTestPin {
+        snapshot: plan.snapshot.clone(),
+        check_occurrence: plan.check_occurrence,
+        plan_hash: format!("{:x}", Sha256::digest(serde_json::to_vec(&plan).unwrap())),
+    };
+    let history_before = fs::read(&project.database).unwrap();
+    let transient = project
+        .test_verification(
+            &app,
+            Default::default(),
+            &GoHarness,
+            &NativeCancellation::default(),
+            pin.clone(),
+        )
+        .await
+        .unwrap();
+    assert!(!transient.published);
+    assert_eq!(
+        transient.run.result,
+        VerificationResult::Pass,
+        "{:?}",
+        transient.run.provenance.incomplete
+    );
+    assert_eq!(history_before, fs::read(&project.database).unwrap());
+    assert!(!app.join(".dctx0ctl/native").exists());
+    let mut stale = pin.clone();
+    stale.plan_hash = "stale plan".into();
+    assert!(
+        project
+            .test_verification(
+                &app,
+                Default::default(),
+                &GoHarness,
+                &NativeCancellation::default(),
+                stale
+            )
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("stale")
+    );
     let report = project
         .run_verification_with_native_limits(
             Some(&app),

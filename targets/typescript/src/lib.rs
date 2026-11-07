@@ -173,3 +173,6 @@ impl TargetProfileProvider for Provider {
 
 mod codecs;
 pub use codecs::*;
+
+mod scaffolds;
+pub use scaffolds::generate_test_scaffold;

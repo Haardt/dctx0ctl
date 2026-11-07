@@ -66,6 +66,41 @@ fn scaffolds_require_current_published_sources_and_never_overwrite_or_escape() {
     ] {
         assert!(publish(name, true).is_err(), "{name}");
     }
+    for (target, extension) in [("go", "go"), ("rust", "rs")] {
+        let filename = format!("generated.{extension}");
+        let publish = |name: &str, dry| {
+            publish_target_codec_scaffold(
+                &app,
+                target,
+                name,
+                artifact.clone(),
+                &inputs,
+                CodecOptions::default(),
+                "test",
+                dry,
+            )
+        };
+        assert_eq!(publish(&filename, true).unwrap().status, "proposed");
+        assert!(!app.join(format!(".dctx0/testing/{target}")).exists());
+        assert_eq!(publish(&filename, false).unwrap().status, "created");
+        let path = app.join(format!(".dctx0/testing/{target}/{filename}"));
+        fs::write(&path, "authored edits").unwrap();
+        assert_eq!(publish(&filename, false).unwrap().status, "preserved");
+        assert_eq!(fs::read_to_string(&path).unwrap(), "authored edits");
+        assert_eq!(
+            publish(&format!("candidate.{filename}.txt"), false)
+                .unwrap()
+                .status,
+            "created"
+        );
+        for protected in [
+            format!("adapter.{extension}"),
+            format!("contract.{extension}"),
+            format!("../escape.{extension}"),
+        ] {
+            assert!(publish(&protected, false).is_err());
+        }
+    }
     assert_eq!(database, fs::read(&project.database).unwrap());
     fs::write(
         spec.join("w.dctx0"),

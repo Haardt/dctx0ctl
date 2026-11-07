@@ -118,3 +118,9 @@ fail conversion explicitly and need a custom native representation. `decode`
 continues to require the contract's structural shape. Existing editable files are
 preserved: generate version 2 under another `--output` basename and merge the
 new helper into a customized scaffold.
+
+Go and Rust structural codecs, outcome assertions and central test scaffolds are
+also available. See [native verification generators](native-test-generators.md)
+for supported mappings, unsupported cases, fixture isolation and exact commands.
+The TypeScript generator is now `dctx0-typescript-codecs-3`; existing edited files
+remain preserved. Generate a candidate to adopt its additional outcome helpers.

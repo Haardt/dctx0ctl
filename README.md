@@ -820,3 +820,15 @@ six release speed/RAM workloads with `python3 scripts/test_analysis_acceptance.p
 The [2026-10-28 validation index](docs/test-analysis-validation.json) retains the
 successful full-workspace checks, coverage, speed/RAM samples and an offline
 recomputation dataset. Performance baseline comparison remains unassessed.
+
+Go, TypeScript and Rust testing representations and central test entrypoints can
+be proposed with `verify scaffold-codecs ... --target go --dry-run --json` and
+`verify bindings scaffold ... --target go --dry-run --json`. Existing files are
+preserved; `--candidate upgrade` produces inert comparison files. Production
+bindings and fixture ownership remain authored. See the
+[native generator guide](docs/site/src/reference/native-test-generators.md).
+Run `python3 scripts/memory_guard.py python3 scripts/generator_acceptance.py` for
+coupled native regressions and release generation time/RSS measurements, then
+`python3 scripts/validate.py --coverage` for full tool acceptance. Go, Bun and Rust
+must be installed; Rust native testing uses its authored offline Cargo manifest
+and lockfile. No benchmark baseline is promoted automatically.

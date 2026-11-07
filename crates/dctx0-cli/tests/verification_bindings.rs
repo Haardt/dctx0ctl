@@ -83,6 +83,7 @@ fn binding_requirements_cli_needs_no_implementation_and_keeps_history_read_only(
         fixtures: ".dctx0/testing/examples.json".into(),
         dependency_resolution: None,
         execution: None,
+        capture: None,
         scope: dctx0_engine::ConfiguredVerificationScope {
             subjects: ["W.Id".into()].into(),
             tasks: Default::default(),

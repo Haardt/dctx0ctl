@@ -205,3 +205,42 @@ function input(ref:Ref|undefined,value:Value,override:Representation|undefined,d
   }
  }
 }
+
+/** A technical error is supplied separately; it is never a business failure. */
+export function returnedRecord(observation:{kind:string;value?:Value},technical?:unknown):Record<string,Value> {
+ if(technical!==undefined)throw new TypeError('Expected returned record; technical failure');
+ if(observation.kind!=='returned'||observation.value?.kind!=='record')throw new TypeError(`Expected returned record; received ${observation.kind}/${observation.value?.kind??'missing'}`);
+ return observation.value.value;
+}
+export function declaredFailure(observation:{kind:string;value?:Value},declaration:string,technical?:unknown):{declaration:string;payload:Value|null} {
+ if(technical!==undefined)throw new TypeError(`Expected declared failure ${declaration}; technical failure`);
+ if(observation.kind!=='returned'||observation.value?.kind!=='failure')throw new TypeError(`Expected declared failure ${declaration}; received ${observation.kind}/${observation.value?.kind??'missing'}`);
+ const failure=observation.value.value;
+ if(failure.declaration!==declaration)throw new TypeError(`Expected declared failure ${declaration}; received ${failure.declaration}`);
+ if(failure.payload===null){
+  const data=declarations[declaration];if(!data||data.alias||data.variants.length||data.fields.length)throw new TypeError(`Missing failure payload for ${declaration}`);
+ }else decode(declaration,failure.payload);
+ return failure;
+}
+export function stringField(record:Value|null,name:string,expected:string):void {
+ if(record===null||record.kind!=='record'||record.value[name]?.kind!=='string')throw new TypeError(`Expected string field ${name} on record`);
+ if(record.value[name]?.value!==expected)throw new TypeError(`String field ${name} differs from expected value`);
+}
+export function technicalFailure(error:unknown,category:'adapter'|'environment'):void {
+ if(category==='adapter'?!(error instanceof AdapterError):!(error instanceof EnvironmentError))throw new TypeError(`Expected technical failure category ${category}`);
+}
+export function unavailableObservation(observation:{kind:string;reason?:string},technical?:unknown):void {
+ if(technical!==undefined)throw new TypeError('Expected unavailable observation; technical failure');
+ if(observation.kind!=='unavailable'||!observation.reason)throw new TypeError('Expected unavailable observation with a reason');
+}
+function canonicalAssertion(value:unknown):string {
+ if(Array.isArray(value))return `[${value.map(canonicalAssertion).join(',')}]`;
+ if(value!==null&&typeof value==='object')return `{${Object.entries(value).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,v])=>`${JSON.stringify(k)}:${canonicalAssertion(v)}`).join(',')}}`;
+ const text=JSON.stringify(value);if(text===undefined)throw new TypeError('Unsupported assertion value');return text;
+}
+export function recordedCalls(calls:{invocation:unknown}[]|undefined,invocation:unknown,count:number):void {
+ if(calls===undefined)throw new TypeError('Actual collaborator observations unavailable');
+ if(!Number.isSafeInteger(count)||count<0)throw new TypeError('Invalid expected call count');
+ const expected=canonicalAssertion(invocation);const found=calls.filter(c=>canonicalAssertion(c.invocation)===expected).length;
+ if(found!==count)throw new TypeError(`Expected ${count} actual collaborator calls; received ${found}`);
+}
