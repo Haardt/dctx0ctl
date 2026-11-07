@@ -346,13 +346,69 @@ impl Project {
                 }
             }
         }
+        let mut preflight = self.verification_preflight(
+            Some(&application),
+            Default::default(),
+            VerificationIntent::Delivery,
+            None,
+        )?;
+        let session = self.task_metadata_session(None, None)?;
+        let native_delivery_needed = session.plan.members.iter().any(|member| {
+            matches!(
+                member.candidate.kind,
+                TaskKind::Contract | TaskKind::Operation
+            ) && session.states[&member.task_id].work != WorkState::Done
+        });
+        if !native_delivery_needed {
+            // Revalidation of already delivered native work may still be needed
+            // for source-bound review/integration. It is explicitly diagnostic,
+            // while known execution blockers still stop before native startup.
+            let execution_blockers = preflight
+                .blockers
+                .iter()
+                .filter(|issue| {
+                    !matches!(
+                        issue.code.as_str(),
+                        "ADOPTION_TASK_PIN_REQUIRED"
+                            | "PREFLIGHT_NO_DELIVERABLE_TASKS"
+                            | "PREFLIGHT_PROFILE_REQUIRED"
+                            | "ADOPTION_PROFILE_UNAVAILABLE"
+                            | "ADOPTION_PROFILE_INCOMPLETE"
+                    )
+                })
+                .collect::<Vec<_>>();
+            if !execution_blockers.is_empty() {
+                return Err(Error::Invalid(format!(
+                    "PREFLIGHT_BLOCKED: {}; inspect verify preflight before complete",
+                    execution_blockers
+                        .iter()
+                        .take(3)
+                        .map(|i| i.code.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )));
+            }
+            preflight.intent = VerificationIntent::Diagnostic;
+        }
+        if !preflight.permits_execution() {
+            return Err(Error::Invalid(format!(
+                "PREFLIGHT_BLOCKED: {}; inspect verify preflight or use verify run --no-adopt for diagnosis",
+                preflight
+                    .blockers
+                    .iter()
+                    .take(3)
+                    .map(|i| i.code.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
         let native = self
-            .run_verification(
+            .run_verification_preflighted(
                 Some(&application),
                 Default::default(),
                 generator,
                 cancellation,
-                false,
+                preflight,
             )
             .await?;
         let run = &native.evidence.run;

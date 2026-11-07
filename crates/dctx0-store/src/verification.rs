@@ -6,8 +6,10 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 pub(crate) mod cases;
 pub(crate) mod codec;
+mod context;
 pub(crate) mod maintenance;
 mod summaries;
+pub use context::*;
 pub use maintenance::*;
 pub use summaries::*;
 pub(crate) const STORAGE_MIGRATION: &str = "

@@ -154,8 +154,36 @@ pub(crate) struct VerifyArgs {
     #[arg(long, global = true, default_value_t = 1_048_576, value_parser = clap::value_parser!(u64).range(1..=67_108_864))]
     max_output_bytes: u64,
 }
+#[derive(serde::Serialize)]
+struct PreflightedRun<'a> {
+    #[serde(flatten)]
+    report: &'a dctx0_engine::NativeVerificationReport,
+    preflight: &'a serde_json::Value,
+}
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Check scope, task pins, planned cases and declared bindings without execution.
+    Preflight {
+        input: PathBuf,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        subject: Vec<String>,
+        #[arg(long, value_parser = task_id)]
+        task: Vec<i64>,
+        #[arg(long)]
+        historical_check: Option<i64>,
+        /// Plan a diagnostic run; never promises or attempts task delivery.
+        #[arg(long, alias = "no-adopt")]
+        diagnostic: bool,
+        /// Authored schema-1 BindingDescription, relative to the application.
+        #[arg(long)]
+        bindings: Option<String>,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+        #[arg(long, default_value_t = 0)]
+        offset: usize,
+    },
     /// Plan reviewed native connections from the selected published requirements.
     Bindings(crate::verification_bindings::BindingArgs),
     /// Generate editable testing codecs from published IR and explicit representations.
@@ -252,8 +280,10 @@ enum VerifyAction {
         task: Vec<i64>,
         #[arg(long)]
         historical_check: Option<i64>,
-        #[arg(long)]
+        #[arg(long, alias = "diagnostic")]
         no_adopt: bool,
+        #[arg(long)]
+        bindings: Option<String>,
     },
     /// List compact historical outcomes; never loads case corpora.
     History {
@@ -395,6 +425,46 @@ fn run_inner(
     let full = args.full;
     let max_output_bytes = args.max_output_bytes;
     let (input, application, subject, task, historical_check, fixtures) = match args.action {
+        VerifyAction::Preflight {
+            input,
+            project: application,
+            subject,
+            task,
+            historical_check,
+            diagnostic,
+            bindings,
+            limit,
+            offset,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let intent = if diagnostic {
+                dctx0_engine::VerificationIntent::Diagnostic
+            } else {
+                dctx0_engine::VerificationIntent::Delivery
+            };
+            let report = project
+                .verification_preflight(
+                    application.as_deref(),
+                    VerificationSelection {
+                        subjects: subject.into_iter().collect(),
+                        tasks: task.into_iter().collect(),
+                        historical_check,
+                    },
+                    intent,
+                    bindings.as_deref(),
+                )
+                .map_err(crate::error_message)?;
+            crate::verification_preflight::render(
+                &report,
+                json,
+                full,
+                limit,
+                offset,
+                max_output_bytes,
+                output,
+            )?;
+            return Ok(report.permits_execution());
+        }
         VerifyAction::Bindings(args) => {
             return crate::verification_bindings::run(args, database, json, output);
         }
@@ -736,27 +806,67 @@ fn run_inner(
             task,
             historical_check,
             no_adopt,
+            bindings,
         } => {
             #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
                 let project = Project::new(&input, database).map_err(crate::error_message)?;
                 let target = configured_target(&project, application.as_deref())?;
                 let (_, generator) = execution_target(&target)?;
+                let selection = VerificationSelection {
+                    subjects: BTreeSet::from_iter(subject),
+                    tasks: BTreeSet::from_iter(task),
+                    historical_check,
+                };
+                let intent = if no_adopt || historical_check.is_some() {
+                    dctx0_engine::VerificationIntent::Diagnostic
+                } else {
+                    dctx0_engine::VerificationIntent::Delivery
+                };
+                let preflight = project
+                    .verification_preflight(
+                        application.as_deref(),
+                        selection.clone(),
+                        intent,
+                        bindings.as_deref(),
+                    )
+                    .map_err(crate::error_message)?;
+                if !preflight.permits_execution() {
+                    crate::verification_preflight::render(
+                        &preflight,
+                        json,
+                        full,
+                        20,
+                        0,
+                        max_output_bytes,
+                        output,
+                    )?;
+                    return Ok(false);
+                }
+                let preflight_summary = crate::verification_preflight::summary(&preflight, 20, 0);
+                if !json {
+                    crate::verification_preflight::render(
+                        &preflight,
+                        false,
+                        false,
+                        20,
+                        0,
+                        max_output_bytes,
+                        output,
+                    )?;
+                    output.flush().map_err(crate::error_message)?;
+                }
                 let runtime = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
                     .map_err(crate::error_message)?;
                 let report = runtime
-                    .block_on(project.run_verification(
+                    .block_on(project.run_verification_preflighted(
                         application.as_deref(),
-                        VerificationSelection {
-                            subjects: BTreeSet::from_iter(subject),
-                            tasks: BTreeSet::from_iter(task),
-                            historical_check,
-                        },
+                        selection,
                         generator,
                         &dctx0_engine::NativeCancellation::default(),
-                        no_adopt,
+                        preflight,
                     ))
                     .map_err(crate::error_message)?;
                 let pass = matches!(
@@ -765,12 +875,18 @@ fn run_inner(
                 );
                 if json {
                     if full {
-                        crate::render::json(output, &report)?;
+                        crate::render::json(
+                            output,
+                            &PreflightedRun {
+                                report: &report,
+                                preflight: &preflight_summary,
+                            },
+                        )?;
                     } else {
                         compact_run(
                             output,
                             &report.evidence,
-                            serde_json::json!({"adopted_tasks":report.adopted_tasks,"adoption_issues":report.adoption_issues}),
+                            serde_json::json!({"adopted_tasks":report.adopted_tasks,"adoption_issues":report.adoption_issues,"preflight":preflight_summary}),
                             max_output_bytes,
                         )?;
                     }
@@ -802,6 +918,7 @@ fn run_inner(
                     task,
                     historical_check,
                     no_adopt,
+                    bindings,
                 );
                 return Err("No executable TypeScript testing target is enabled".into());
             }

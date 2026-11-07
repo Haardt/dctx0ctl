@@ -1,0 +1,359 @@
+{
+  "scope": "status/preflight increment; not completion of the six-part workflow request",
+  "workspace_report": "benchmarks/history/20261107T170945.545000Z-3044904.json",
+  "workspace_status": "pass",
+  "workspace_failed_steps": [],
+  "workspace_steps": 35,
+  "workspace_receipt": {
+    "qa_profile": {
+      "CARGO_PROFILE_DEV_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "CARGO_BUILD_JOBS": "1",
+      "RUST_TEST_THREADS": "1"
+    },
+    "command": [
+      "python3",
+      "scripts/validate.py",
+      "--coverage"
+    ],
+    "started": "2026-11-07T16:04:50.001508+00:00",
+    "finished": "2026-11-07T17:09:45.590344+00:00",
+    "elapsed_ms": 3895588.849331005,
+    "exit_code": 0,
+    "log": "/home/held/workspaces/compinion/dctx0ctl/target/status-workspace-validation.log"
+  },
+  "source_hash": "7502c608209d157381eb6e3a9c42ea9bde2937d5f4547add96509906cf4f7277",
+  "dirty_worktree": "M .gitignore\n M AGENTS.md\n M README.md\n D benchmarks/history/20261021T161017.958182Z-867.json\n D benchmarks/history/dependency-resolution/20261019T181745.662178Z-26412.json\n D benchmarks/history/queries/20261023T183135.757759Z-2396.json\n D benchmarks/history/test-analysis/20261028T113601.549721Z-2482129.json\n M crates/dctx0-cli/src/args.rs\n M crates/dctx0-cli/src/commands.rs\n M crates/dctx0-cli/src/main.rs\n M crates/dctx0-cli/src/verification.rs\n M crates/dctx0-cli/tests/verification_bindings.rs\n M crates/dctx0-engine/src/lib.rs\n M crates/dctx0-engine/src/verification.rs\n M crates/dctx0-engine/src/verification_complete.rs\n M crates/dctx0-engine/src/verification_run/mod.rs\n M crates/dctx0-engine/src/verification_run/pins.rs\n M crates/dctx0-engine/src/verification_setup.rs\n M crates/dctx0-store/src/verification.rs\n M crates/dctx0-verification/src/generation/strings.rs\n M crates/dctx0-verification/src/projection/mod.rs\n M crates/dctx0-verification/tests/operation_arguments.rs\n M crates/dctx0-verification/tests/string_generation.rs\n M docs/site/src/SUMMARY.md\n M scripts/validate.py\n?? benchmarks/history/20261107T154832.707263Z-2722966.json\n?? benchmarks/history/dependency-resolution/20261107T154828.651254Z-3012233.json\n?? benchmarks/history/generators/20261107T152218.705249Z-2873021.json\n?? benchmarks/history/generators/20261107T163252.520056Z-3271079.json\n?? benchmarks/history/queries/20261107T154823.614895Z-3011875.json\n?? benchmarks/history/status/\n?? benchmarks/history/test-analysis/20261107T154743.145849Z-3004479.json\n?? crates/dctx0-cli/src/status.rs\n?? crates/dctx0-cli/src/verification_preflight.rs\n?? crates/dctx0-cli/tests/status.rs\n?? crates/dctx0-engine/src/verification_run/preflight.rs\n?? crates/dctx0-engine/src/verification_run/status.rs\n?? crates/dctx0-engine/tests/verification_preflight.rs\n?? crates/dctx0-store/src/verification/context.rs\n?? crates/dctx0-verification/src/projection/setup_arguments.rs\n?? docs/site/src/reference/status-preflight.md\n?? scripts/status_acceptance.py",
+  "coverage": {
+    "lines": 44223,
+    "covered_lines": 42925,
+    "line_percent": 97.06487574339145,
+    "instrumented_exit_code": 0,
+    "build_scope": "fresh isolated directory; no reused instrumented binaries",
+    "source_hash_before": "034329c77f21fa68fbf589ba1cb142b07f44a15e21a635bc2fc5384a07648a3d",
+    "source_hash_after": "034329c77f21fa68fbf589ba1cb142b07f44a15e21a635bc2fc5384a07648a3d",
+    "coverage_scope": "workspace",
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3582,
+        "covered": 3479,
+        "percent": 97.12451144611948
+      },
+      "instantiations": {
+        "count": 8867,
+        "covered": 5326,
+        "percent": 60.065411074771625
+      },
+      "lines": {
+        "count": 46662,
+        "covered": 44970,
+        "percent": 96.37392310659637
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 71691,
+        "covered": 66972,
+        "notcovered": 4719,
+        "percent": 93.41758379712934
+      }
+    }
+  },
+  "raw_coverage": [
+    "target/coverage/workspace.lcov",
+    "target/coverage/llvm.json"
+  ],
+  "performance_workloads": 88,
+  "performance_gate": "unassessed",
+  "baseline_promoted": false,
+  "status_measurement_report": "benchmarks/history/status/20261107T163317.397090Z-3276882.json",
+  "status_measurements": {
+    "cinema/status": {
+      "samples": [
+        {
+          "elapsed_ms": 101.61350200360175,
+          "peak_rss_bytes": 87400448,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 101.35860700393096,
+          "peak_rss_bytes": 87449600,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 101.41655900224578,
+          "peak_rss_bytes": 87674880,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 101.41655900224578,
+      "peak_rss_bytes": 87674880,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema/preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 172.28958099440206,
+          "peak_rss_bytes": 91189248,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 162.18871501041576,
+          "peak_rss_bytes": 94072832,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 172.36358500667848,
+          "peak_rss_bytes": 93925376,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 172.28958099440206,
+      "peak_rss_bytes": 94072832,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema/diagnostic-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 172.74359900329728,
+          "peak_rss_bytes": 91680768,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 161.82146700157318,
+          "peak_rss_bytes": 91455488,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 172.0033090095967,
+          "peak_rss_bytes": 94081024,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 172.0033090095967,
+      "peak_rss_bytes": 94081024,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema/whole-plan-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 384.11658599216025,
+          "peak_rss_bytes": 112881664,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 373.8099620095454,
+          "peak_rss_bytes": 112103424,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 384.73377500486095,
+          "peak_rss_bytes": 112472064,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 384.11658599216025,
+      "peak_rss_bytes": 112881664,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/status": {
+      "samples": [
+        {
+          "elapsed_ms": 101.63132600428071,
+          "peak_rss_bytes": 87568384,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 101.43058300309349,
+          "peak_rss_bytes": 87744512,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 101.46157498820685,
+          "peak_rss_bytes": 87429120,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 101.46157498820685,
+      "peak_rss_bytes": 87744512,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 172.0813209976768,
+          "peak_rss_bytes": 91226112,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 162.09021898976061,
+          "peak_rss_bytes": 93736960,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 162.39987401058897,
+          "peak_rss_bytes": 93364224,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 162.39987401058897,
+      "peak_rss_bytes": 93736960,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/diagnostic-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 162.08026300591882,
+          "peak_rss_bytes": 93368320,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 161.85028300969861,
+          "peak_rss_bytes": 93335552,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 162.33606699097436,
+          "peak_rss_bytes": 92012544,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 162.08026300591882,
+      "peak_rss_bytes": 93368320,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/whole-plan-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 394.43508301337715,
+          "peak_rss_bytes": 112005120,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 384.5790260093054,
+          "peak_rss_bytes": 112570368,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 384.67006299470086,
+          "peak_rss_bytes": 112680960,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 384.67006299470086,
+      "peak_rss_bytes": 112680960,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    }
+  },
+  "original_runatron_business_modified": false,
+  "remaining": [
+    "Authored fixture-readiness probes and native binding conformance",
+    "Confirmed EventJournal panic regression, isolation, durable checkpoints and resume",
+    "Per-task mandatory evidence progress and guarded compatible saved-run delivery",
+    "Further metadata aggregation and typed dispatch/observer generation"
+  ],
+  "limitations": [
+    "Current evidence counts classify source/task-requirement binding only; runtime/fixture readiness is separate",
+    "No branch completeness or native-helper LLVM coverage claim",
+    "Existing local projection/string repairs are preserved and not part of this increment",
+    "Lower-level engine run APIs retain their existing compatibility/publication guards"
+  ],
+  "workspace_peak_process_tree_rss_bytes": 1075568640,
+  "workspace_memory_method": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+  "earlier_failed_workspace_report": "benchmarks/history/20261107T154832.707263Z-2722966.json",
+  "earlier_failure": "Planning-time missing-before-state hints were incorrectly treated as proven missing runtime observers; native assessment and mandatory case inventory were unchanged by the correction",
+  "component_acceptance": [
+    {
+      "scope": "component native acceptance; concurrent Go/Rust probes, not a performance baseline",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/rust_cinema_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0"
+      ],
+      "source_hash": "7502c608209d157381eb6e3a9c42ea9bde2937d5f4547add96509906cf4f7277",
+      "elapsed_ms": 236864.027240008,
+      "peak_rss_bytes": 348450816,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "scope": "component native acceptance; concurrent Go/Rust probes, not a performance baseline",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/go_cinema_acceptance.py",
+        "--binary",
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0"
+      ],
+      "source_hash": "7502c608209d157381eb6e3a9c42ea9bde2937d5f4547add96509906cf4f7277",
+      "elapsed_ms": 173483.1042320002,
+      "peak_rss_bytes": 420651008,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ]
+}

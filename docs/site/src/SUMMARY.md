@@ -51,3 +51,4 @@
 
 - [Editable TypeScript wire codecs](reference/codec-scaffolds.md)
 - [Native verification generators](reference/native-test-generators.md)
+    - [Project status and preflight](reference/status-preflight.md)

@@ -463,6 +463,7 @@ def main():
         commands.extend([
             ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'],
             [sys.executable, 'scripts/generator_acceptance.py', '--skip-build', '--scaffolds-only'],
+            [sys.executable, 'scripts/status_acceptance.py', '--skip-build', '--skip-tests'],
         ])
     if args.tutorial:
         commands.extend([

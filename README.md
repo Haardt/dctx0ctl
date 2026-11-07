@@ -832,3 +832,21 @@ coupled native regressions and release generation time/RSS measurements, then
 `python3 scripts/validate.py --coverage` for full tool acceptance. Go, Bun and Rust
 must be installed; Rust native testing uses its authored offline Cargo manifest
 and lockfile. No benchmark baseline is promoted automatically.
+
+`dctx0 status SPEC --project APP` reads task totals, the latest relevant native
+run, source/requirement freshness and up to three next causes without an export
+or query preparation. `--since-plan ID --since-event SEQ` selects an explicit
+progress baseline. `dctx0 verify preflight SPEC --project APP` inspects the same
+published plan before native execution; `verify run` refuses known delivery
+blockers by default. Use `--no-adopt` (alias `--diagnostic`) explicitly to gather
+diagnostic evidence. Existing schema-1 configurations remain readable; new setups
+record an optional hash identifying their unchanged unavailable adapter scaffold.
+Bindings and private fixture readiness that cannot be established statically stay
+unknown. See the [status/preflight guide](docs/site/src/reference/status-preflight.md)
+for exact commands, compatibility, output paging and the remaining isolation,
+resume and saved-evidence delivery work.
+
+`python3 scripts/memory_guard.py python3 scripts/status_acceptance.py` couples
+focused regressions with isolated release status/preflight time/RSS samples for
+both Cinema specs. Workspace validation includes those measurements; full tool
+acceptance still requires `python3 scripts/validate.py --coverage`.

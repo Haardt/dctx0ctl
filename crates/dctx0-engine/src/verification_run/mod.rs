@@ -8,6 +8,12 @@ mod capture;
 mod dependencies;
 mod execution;
 mod pins;
+mod preflight;
+mod status;
+pub use preflight::{VerificationIntent, VerificationPreflight, VerificationPreflightPin};
+pub use status::{
+    ProjectStatus, StatusCause, StatusProgress, StatusRun, StatusRunSummary, StatusTaskCounts,
+};
 mod program_inspection;
 mod replay;
 mod review_changes;
@@ -170,6 +176,7 @@ impl Project {
                 pinned,
                 limits,
                 None,
+                None,
             )
             .await?
         {
@@ -204,12 +211,52 @@ impl Project {
                 None,
                 limits,
                 Some(expected),
+                None,
             )
             .await?
         {
             ExecutionReport::Transient(report) => Ok(report),
             ExecutionReport::Published(_) => {
                 Err(Error::Invalid("Unexpected published verification".into()))
+            }
+        }
+    }
+    /// Execute only the scope and sources inspected by the shared preflight.
+    /// Existing low-level run APIs remain available for diagnostic consumers.
+    pub async fn run_verification_preflighted(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        preflight: VerificationPreflight,
+    ) -> Result<NativeVerificationReport> {
+        if !preflight.permits_execution() {
+            return Err(Error::Invalid("PREFLIGHT_BLOCKED: resolve prerequisites or explicitly select diagnostic execution".into()));
+        }
+        let (_, config) = self.verification_configuration(application)?;
+        let limits = config
+            .execution
+            .as_ref()
+            .map(VerificationExecutionBudgets::native_limits)
+            .unwrap_or_default();
+        match self
+            .execute_verification(
+                application,
+                selection,
+                generator,
+                cancellation,
+                preflight.intent == VerificationIntent::Diagnostic,
+                None,
+                limits,
+                None,
+                Some(&preflight.pin),
+            )
+            .await?
+        {
+            ExecutionReport::Published(report) => Ok(report),
+            ExecutionReport::Transient(_) => {
+                Err(Error::Invalid("Unexpected transient verification".into()))
             }
         }
     }
@@ -224,6 +271,7 @@ impl Project {
         pinned: Option<(ProgramPlan, VerificationLifecycleFixtures, Option<String>)>,
         limits: NativeLimits,
         transient: Option<BindingTestPin>,
+        preflight: Option<&VerificationPreflightPin>,
     ) -> Result<ExecutionReport> {
         let parent = pinned.as_ref().and_then(|(_, _, parent)| parent.clone());
         let supervision = limits.supervision_capabilities();
@@ -248,6 +296,15 @@ impl Project {
                 None,
             ),
         };
+        if let Some(expected) = preflight {
+            if plan.snapshot != expected.snapshot
+                || plan.check_occurrence != expected.check_occurrence
+                || digest(&serde_json::to_vec(&plan)?) != expected.plan_hash
+                || digest(&serde_json::to_vec(&captured_inputs)?) != expected.inputs_hash
+            {
+                return Err(Error::Invalid("PREFLIGHT_INPUTS_CHANGED: source inventory, configuration or published plan changed; repeat preflight before native execution".into()));
+            }
+        }
         if let Some(expected) = &transient {
             if plan.snapshot != expected.snapshot
                 || plan.check_occurrence != expected.check_occurrence
@@ -273,6 +330,9 @@ impl Project {
             .load(&self.key(), &plan.snapshot)?;
         let (task_pin, mut pin_issues) =
             pins::capture(self, &application, &config.target, &plan, &snapshot)?;
+        if preflight.is_some_and(|expected| expected.task_pin != task_pin) {
+            return Err(Error::Invalid("PREFLIGHT_TASK_PIN_CHANGED: task events, requirements or selected profiles changed; repeat preflight before native execution".into()));
+        }
         let (directory, adapter_name) = config
             .adapter
             .rsplit_once('/')

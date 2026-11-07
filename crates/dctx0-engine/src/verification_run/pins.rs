@@ -8,7 +8,7 @@ pub(super) fn capture(
     plan: &ProgramPlan,
     snapshot: &dctx0_changes::Snapshot,
 ) -> Result<(Option<VerificationTaskPin>, Vec<VerificationIssue>)> {
-    let session = match project.task_session(None, None) {
+    let session = match project.task_metadata_session(None, None) {
         Ok(session) => session,
         Err(_) if plan.scope.tasks.is_empty() => return Ok((None, vec![])),
         Err(error) => return Err(error),

@@ -1595,3 +1595,26 @@ and unsupported native mappings remain authored. See
 `docs/site/src/reference/native-test-generators.md` for supported shapes, commands
 and limits. The focused runner comparison uses an isolated application copy;
 runatron-business has no task-owned changes or adoption commit.
+
+Workflow status/preflight increment (2026-11-07): `status` combines compact task
+and run metadata, captured-source binding freshness, an explicit/saved progress
+baseline and at most three next causes without exports or query preparation.
+`verify preflight` reuses the central plan, lifecycle input checks and task/profile
+pins. `verify run` now refuses known delivery blockers before native startup;
+`--no-adopt`/`--diagnostic` remains explicit diagnostic execution. `verify complete`
+uses the guarded path as well. New schema-1 verification configurations optionally
+remember `adapter_scaffold_hash`; existing configurations/files are preserved.
+Missing authored binding descriptions and private fixture readiness remain unknown.
+This does not implement panic recovery, durable resume, retroactive missing task
+pins or complete typed adapter generation. See
+`docs/site/src/reference/status-preflight.md` and the coupled
+`scripts/status_acceptance.py` runner for scope and remaining work.
+
+Status/preflight validation (2026-11-07): all 35 coupled workspace steps pass,
+including complete Go/Rust Cinema acceptance and generated-code regressions.
+Merged source lines are 42,925/44,223 (97.065%); LLVM functions are 3,479/3,582
+(97.125%), with unchanged 97% gates and separate raw LLVM metrics. All 88 release
+workloads completed in 3,895,588.849 ms; sampled process-tree peak RSS was
+1,075,568,640 bytes. Performance comparison remains unassessed and no baseline
+was promoted. `docs/status-preflight-validation.json` retains source pins,
+measurement references and the earlier failed preflight classification attempt.

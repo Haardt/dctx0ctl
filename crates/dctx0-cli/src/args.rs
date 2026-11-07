@@ -17,6 +17,8 @@ pub(crate) struct Cli {
 }
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    /// Compact task/evidence/source status without execution or exports.
+    Status(crate::status::StatusArgs),
     /// Opt-in research features; interfaces may change.
     Experimental(crate::experimental::ExperimentalArgs),
     /// Run the read-only language server over stdin/stdout.

@@ -76,6 +76,7 @@ fn binding_requirements_cli_needs_no_implementation_and_keeps_history_read_only(
     assert!(!root.join(".dctx0").exists());
     fs::create_dir_all(root.join("app/.dctx0/testing")).unwrap();
     let configuration = dctx0_engine::VerificationConfiguration {
+        adapter_scaffold_hash: None,
         schema_version: 1,
         target: "typescript".into(),
         runtime: "bun".into(),

@@ -53,6 +53,10 @@ impl VerificationCaptureBudgets {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VerificationConfiguration {
+    /// Exact unavailable adapter initially generated for this project. Absent
+    /// in older configurations; changing a file never proves a binding exists.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter_scaffold_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dependency_resolution: Option<DependencyResolutionBudget>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -214,6 +218,10 @@ fn validate(config: &VerificationConfiguration) -> Result<()> {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
         || config.scope.tasks.iter().any(|id| *id <= 0)
         || config.scope.subjects.iter().any(|s| s.trim().is_empty())
+        || config
+            .adapter_scaffold_hash
+            .as_ref()
+            .is_some_and(|hash| hash.len() != 64 || !hash.bytes().all(|b| b.is_ascii_hexdigit()))
     {
         return Err(Error::Invalid(
             "Invalid or unsupported verification configuration".into(),
@@ -295,6 +303,14 @@ impl Project {
         }
         let base = format!(".dctx0/testing/{}", bundle.target);
         let config = VerificationConfiguration {
+            adapter_scaffold_hash: Some(
+                dctx0_store::VerificationArtifact::new(
+                    "application/octet-stream",
+                    scaffold.contents.as_bytes().to_vec(),
+                )
+                .reference
+                .hash,
+            ),
             dependency_resolution: Some(Default::default()),
             execution: None,
             capture: None,

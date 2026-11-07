@@ -131,7 +131,7 @@ impl Project {
         }
         let mut subjects = selection.subjects;
         if !selection.tasks.is_empty() {
-            let session = store.task_session(&key, None, None)?;
+            let session = store.task_metadata_session(&key, None, None)?;
             if session.plan.check_run_id != occurrence || session.plan.snapshot_id != snapshot.id {
                 return Err(Error::Invalid("Selected task plan belongs to a different check occurrence; publish matching task requirements first".into()));
             }

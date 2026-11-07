@@ -40,6 +40,9 @@ pub(crate) fn run(args: &[String], output: &mut dyn Write) -> Result<bool, Strin
     let project = |path: &Path| Project::new(path, cli.db.as_deref()).map_err(error_message);
     let mut valid = true;
     match cli.command {
+        Command::Status(args) => {
+            valid = crate::status::run(args, cli.db.as_deref(), cli.json, output)?;
+        }
         Command::Experimental(args) => {
             valid = crate::experimental::run(args, cli.db.as_deref(), output)?
         }

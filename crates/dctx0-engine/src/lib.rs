@@ -50,8 +50,10 @@ pub use verification::VerificationSelection;
 pub use verification_discovery::*;
 pub use verification_run::{
     AdoptionPreviewTask, BindingTestPin, BindingTestReport, InspectedVerificationReport,
-    NativeVerificationReport, ReplayChange, ReviewChangesReport, TaskAttestation,
-    VerificationAdoptionPreview, VerificationLifecycleFixtures, VerificationReplayReport,
+    NativeVerificationReport, ProjectStatus, ReplayChange, ReviewChangesReport, StatusCause,
+    StatusProgress, StatusRun, StatusRunSummary, StatusTaskCounts, TaskAttestation,
+    VerificationAdoptionPreview, VerificationIntent, VerificationLifecycleFixtures,
+    VerificationPreflight, VerificationPreflightPin, VerificationReplayReport,
 };
 pub use verification_setup::*;
 
