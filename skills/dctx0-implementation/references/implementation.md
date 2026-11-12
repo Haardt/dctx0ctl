@@ -1,4 +1,11 @@
-# Implementation and adapter reference
+# Legacy adapter maintenance
+
+This reference covers the existing adapter/worker backend. Its configuration
+and authored adapters remain supported; do not migrate a project merely because
+the CLI was upgraded. For new Go/Bun connections and mixed scopes, read
+[application tests](application-tests.md). `--legacy` is a possible project
+wrapper flag, not a general `dctx0 verify` option: the CLI selects this backend
+through its existing adapter configuration and `verify run` / `verify complete`.
 
 Use `profile <target> create --project <app-root> --default --agents` to explicitly
 publish editable defaults when appropriate. Existing Markdown/AGENTS.md is preserved.

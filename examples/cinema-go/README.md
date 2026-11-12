@@ -48,3 +48,46 @@ separately in final release measurements.
 ## Additional Gin HTTP variant
 
 The existing HTTP implementation remains the default. The additional Gin router reuses this application and its unchanged Cinema spec. See [framework setup](../../docs/site/src/docs/http-frameworks.md) for production selection, adapter configuration, optional profiles, tests and limits.
+
+
+The application-test suite lives in `contracttests/`. Its local testing-only
+module is pinned to 0.2.0/application protocol 2. `scripts/generate_application_facade.py`
+derives direct typed calls from a centrally prepared bundle; authored fixtures
+provide SQLite, HTTP and actual observations. Production imports no test library.
+From the repository root, run:
+
+```sh
+python3 scripts/application_test_acceptance.py --form all
+python3 scripts/application_test_managed_acceptance.py --target go --replay --report target/cinema-go-managed/result.json
+```
+
+The second command builds from captured sources, collects native test results
+independently and verifies original, mutated and repaired native replay. Reports
+include time/process-tree RSS. Diagnostic and replay reports alone grant no
+task-adoption authority. The complete
+release gate remains `python3 scripts/validate.py --coverage`.
+
+
+For a fresh managed application-test acceptance, run from this directory:
+
+```sh
+dctx0 verify application-tests library --project . --target go
+dctx0 verify application-tests prepare dctx0 --project . --plan .dctx0/application-tests/plan.json --group cinema-native --test-name TestCinemaSuite --form all --boundary json-decoder --group-seconds 300
+dctx0 verify application-tests complete dctx0 --project . --plan .dctx0/application-tests/plan.json --group cinema-native --recipe .dctx0/application-tests/native-run.json --report .dctx0ctl/application-tests/receipt.json
+```
+
+`complete` uses the prepared check occurrence, current editable profiles and
+source-bound authored notes in `.dctx0/testing/go/inspection-notes.json` (or
+`--notes PATH`). It executes the native suite and delivers eligible tasks through
+the store's transactional guards. A confirmed fresh Go run covers all 5,766 cases
+and leaves all 105 tasks Done/PASS, including four authored review attestations.
+An explicit native-backed attestation supplies that testing evidence; review
+approval or manual completion alone does not. Existing Done/Unverified reviews
+are preserved. Final workspace coverage and release validation remain pending.
+
+`verify application-tests run` stores fresh evidence and attempts guarded task
+delivery by default. Add `--no-adopt` for diagnostics without task delivery.
+`prepare`, `serve`, imported reports and replay cannot independently authorize
+adoption. The JSON report exposes `evidence`, `adopted_tasks`, `adoption_issues`
+and `adoption_proposal`; `adoption_authority` is true only after actual task
+delivery. See the [workflow](../../docs/site/src/docs/application-tests.md).

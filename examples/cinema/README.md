@@ -15,7 +15,7 @@ the pure candidateOrderWinner operation. See
 from the repository root. It leaves all other tasks, including full module
 integration, Open.
 
-This is a complete reference project for exercising the dctx0 workflow. It contains the application implementation, V2 core bindings in `dctx0.bindings.ts`, and the separate Hono profile in `dctx0.hono.bindings.ts`. Generated Runatron artifacts remain unversioned.
+This reference application uses the native verification configuration in `.dctx0/testing/verification.json` and the application-test recipe in `.dctx0/application-tests/native-run.json`. The latter generates a typed facade from the prepared plan and connects it to the actual `CinemaSession` and Hono routes. The retained `dctx0.bindings.ts` and `dctx0.hono.bindings.ts` are historical, unvalidated plugin-binding drafts: their referenced source paths do not describe this implementation and are not used by those native workflows. They do not establish adapter or HTTP conformance.
 
 The DCTX0 contract is organized as one logical `HomeCinema` workspace across two files:
 
@@ -56,3 +56,47 @@ To regenerate or evolve the implementation task-by-task, run:
 ```
 
 The workflow pauses after generation so the implementation plan can be inspected before source files are created. Complete verification then uses `/dctx0 verify`, `/dctx0 test`, `/dctx0 review`, and `/dctx0 validate`.
+
+## Application-owned Bun tests
+
+The current native suite and generated typed production connections live in
+[.dctx0/application-tests](.dctx0/application-tests/README.md). CinemaSuite covers
+the original 5,766 finite-plan cases, including real SQLite/HTTP, scenarios and
+lifecycle paths. Production imports no testing library. Existing adapters and
+configuration remain compatible.
+
+From the repository root, the isolated native diagnostic runner is:
+
+```sh
+python3 examples/cinema/scripts/application-acceptance.py --cli target/debug/dctx0 --form all
+```
+
+For task delivery, use the prepared native plan and engine-owned recipe:
+
+```sh
+dctx0 verify application-tests prepare examples/cinema/dctx0 \
+  --project examples/cinema --plan .dctx0/application-tests/plan.json \
+  --group cinema-native --test-name CinemaSuite --form all \
+  --boundary value-constructor --group-seconds 300
+dctx0 verify application-tests complete examples/cinema/dctx0 \
+  --project examples/cinema --plan .dctx0/application-tests/plan.json \
+  --group cinema-native --recipe .dctx0/application-tests/native-run.json \
+  --report .dctx0ctl/application-tests/complete-native.json
+```
+
+The complete workflow retains source-bound authored inspection notes from
+`.dctx0/testing/typescript/inspection-notes.json` (override with `--notes`). It
+creates missing profiles/tasks from the prepared snapshot and uses the shared
+transactional task guards. The expected complete Cinema state is 105 Done tasks:
+all 105 with testing PASS on the fresh authored-complete path, including four
+separately reported source-bound review tasks. Review approval/manual completion
+alone does not set PASS; explicit native-backed inspection attestation does.
+Existing Done/Unverified reviews are preserved rather than silently upgraded.
+
+A plain `verify application-tests run` attempts eligible task delivery by default;
+add `--no-adopt` for diagnosis. A diagnostic, replayed, imported or merely saved
+PASS does not independently authorize delivery. Native captures, frozen builds,
+collector/central completion, current task/profile pins and review/claim guards
+remain required. Full repository validation with coverage and release speed/RSS
+is a separate release gate and is not claimed successful by these instructions.
+See the [application-test workflow](../../docs/site/src/docs/application-tests.md).

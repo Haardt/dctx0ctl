@@ -75,6 +75,7 @@ impl Project {
         let snapshot = self.load(&session.plan.snapshot_id)?;
         let inventory = Capture::inventory_with_budget(application, config.capture_budgets())?;
         let mut notes = AuthoredInspections {
+            done_inspections: None,
             schema_version: 1,
             actor: "dctx0-task-review".into(),
             scope: "Stored source-bound task reviews".into(),

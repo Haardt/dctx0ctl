@@ -12,10 +12,17 @@ pub struct StatusTaskCounts {
     pub in_progress: usize,
     pub blocked: usize,
     /// These three counts partition historical Done/PASS tasks. Unknown includes
-    /// imported/agent evidence and pruned native inputs; it never means current.
+    /// unbound agent evidence and pruned native inputs; it never means current.
     pub evidence_current: usize,
     pub evidence_stale: usize,
     pub evidence_unknown: usize,
+    /// INSPECTED evidence with independently executed native cases.
+    pub inspected_current: usize,
+    pub inspected_stale: usize,
+    /// Authored agent inspections whose exact retained native/source binding
+    /// was independently checked during this read. Not automatic native proof.
+    pub agent_current: usize,
+    pub agent_stale: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -110,7 +117,10 @@ fn status_input<T>(
     }
 }
 
-fn requirements_current(context: &VerificationRunContext, session: &Session) -> Option<bool> {
+pub(super) fn requirements_current(
+    context: &VerificationRunContext,
+    session: &Session,
+) -> Option<bool> {
     let pin = context.provenance.task_pin.as_ref()?;
     Some(
         session.plan.snapshot_id == context.provenance.snapshot
@@ -125,7 +135,7 @@ fn requirements_current(context: &VerificationRunContext, session: &Session) -> 
     )
 }
 
-fn sources_current(
+pub(super) fn sources_current(
     store: &Store,
     id: &str,
     context: &VerificationRunContext,
@@ -371,6 +381,15 @@ impl Project {
                 .map(|m| (m.task_id, &m.candidate.requirements_hash))
                 .collect::<BTreeMap<_, _>>();
             let mut freshness = BTreeMap::new();
+            let mut inspected_artifacts = BTreeMap::new();
+            let mut agent = super::status_agent::AgentFreshness::new(
+                self,
+                &store,
+                session,
+                config.as_ref().map(|(root, _)| root.as_path()),
+                inputs.as_ref(),
+                spec_current,
+            );
             for reference in &references {
                 if active.get(&reference.task_id).copied() != Some(&reference.requirements_hash)
                     || !session
@@ -378,13 +397,103 @@ impl Project {
                         .get(&reference.task_id)
                         .is_some_and(|s| s.work == WorkState::Done && s.check == CheckStatus::Pass)
                     || reference.status != "PASS"
-                    || reference.verifier != "dctx0-native-verifier"
                 {
                     continue;
                 }
-                let Some(id) = runs.get(&reference.report_hash) else {
+                if !matches!(
+                    reference.verifier.as_str(),
+                    "dctx0-native-verifier" | "dctx0-inspected-verifier"
+                ) {
+                    match agent.current(reference) {
+                        Some(true) => {
+                            report.tasks.evidence_current += 1;
+                            report.tasks.agent_current += 1;
+                        }
+                        Some(false) => {
+                            report.tasks.evidence_stale += 1;
+                            report.tasks.agent_stale += 1;
+                        }
+                        None => {}
+                    }
                     continue;
+                }
+                let inspected = reference.verifier == "dctx0-inspected-verifier";
+                let id = if inspected {
+                    reference.native_run.as_ref()
+                } else {
+                    runs.get(&reference.report_hash)
                 };
+                let Some(id) = id else { continue };
+                if !inspected
+                    && !store.verification_task_linked(
+                        &key,
+                        id,
+                        reference.task_id,
+                        &reference.requirements_hash,
+                    )?
+                {
+                    continue;
+                }
+                if inspected {
+                    let Some(hash) = &reference.inspection_artifact else {
+                        continue;
+                    };
+                    if !store.verification_inspected_task_linked(
+                        &key,
+                        id,
+                        reference.task_id,
+                        &reference.requirements_hash,
+                        &reference.report_hash,
+                    )? {
+                        continue;
+                    }
+                    let Some(context) = store.verification_run_context(&key, id)? else {
+                        continue;
+                    };
+                    if !context.artifacts.iter().any(|a| {
+                        a.hash == *hash && a.media_type == dctx0_tasks::TASK_INSPECTIONS_MEDIA_TYPE
+                    }) {
+                        continue;
+                    }
+                    let cache_key = (id.clone(), hash.clone());
+                    if !inspected_artifacts.contains_key(&cache_key) {
+                        let batch =
+                            store
+                                .verification_artifact(id, hash)
+                                .ok()
+                                .and_then(|artifact| {
+                                    (artifact.reference.hash == *hash
+                                    && artifact.reference.media_type
+                                        == dctx0_tasks::TASK_INSPECTIONS_MEDIA_TYPE)
+                                    .then(|| {
+                                        serde_json::from_slice::<dctx0_tasks::InspectedDoneBatch>(
+                                            &artifact.contents,
+                                        )
+                                        .ok()
+                                    })
+                                    .flatten()
+                                });
+                        inspected_artifacts.insert(cache_key.clone(), batch);
+                    }
+                    let Some(batch) = inspected_artifacts[&cache_key].as_ref() else {
+                        continue;
+                    };
+                    let Ok(member) = session.member(reference.task_id) else {
+                        continue;
+                    };
+                    if batch.snapshot != context.provenance.snapshot
+                        || batch.check_occurrence != context.provenance.check_occurrence
+                        || context.provenance.task_pin.as_ref() != Some(&batch.task_pin)
+                        || !batch.valid_catalog(&context.provenance.implementation)
+                        || !batch.validate_task(
+                            reference.task_id,
+                            &member.candidate,
+                            &context.provenance.implementation,
+                        )
+                    {
+                        continue;
+                    }
+                }
                 if !freshness.contains_key(id) {
                     freshness.insert(
                         id.clone(),
@@ -401,8 +510,18 @@ impl Project {
                     continue;
                 }
                 match binding.current {
-                    Some(true) => report.tasks.evidence_current += 1,
-                    Some(false) => report.tasks.evidence_stale += 1,
+                    Some(true) => {
+                        report.tasks.evidence_current += 1;
+                        if inspected {
+                            report.tasks.inspected_current += 1;
+                        }
+                    }
+                    Some(false) => {
+                        report.tasks.evidence_stale += 1;
+                        if inspected {
+                            report.tasks.inspected_stale += 1;
+                        }
+                    }
                     None => {}
                 }
             }

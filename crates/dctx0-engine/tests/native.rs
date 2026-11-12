@@ -3472,3 +3472,112 @@ for line in sys.stdin:
         worker.finish().await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn generated_nested_setup_executes_actual_bun_results_as_following_inputs() {
+    use dctx0_target_typescript::BunHarness;
+    use dctx0_verification::*;
+    let compiled = dctx0_language::compile(&[Source { file: "native-flow.dctx0".into(), text: "workspace W { surface Api { operation create() -> String\noperation link(id:String) -> String\noperation read(id:String) -> String } }".into() }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let mut plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: ["W.Api.read".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    let operation = &mut plan.operations[0];
+    operation.inputs.bindings.truncate(1);
+    let bindings = operation.inputs.bindings[0].clone();
+    let template = bindings["id"].clone();
+    operation.generated_preparations = vec![GeneratedPreparation {
+        bindings: bindings.clone(),
+        setup: vec![
+            Invocation {
+                subject: "W.Api.create".into(),
+                arguments: vec![],
+            },
+            Invocation {
+                subject: "W.Api.link".into(),
+                arguments: vec![template.clone()],
+            },
+        ],
+        argument_bindings: vec![
+            OperationArgumentBinding {
+                setup: 0,
+                source_path: vec![],
+                target_setup: Some(1),
+                parameter: "id".into(),
+                target_path: vec![],
+            },
+            OperationArgumentBinding {
+                setup: 1,
+                source_path: vec![],
+                target_setup: None,
+                parameter: "id".into(),
+                target_path: vec![],
+            },
+        ],
+    }];
+    let input = OperationCaseInput {
+        id: "W.Api.read:operation:0".into(),
+        invocation: Invocation {
+            subject: operation.operation.id.clone(),
+            arguments: vec![template],
+        },
+        setup: operation.generated_setup(&bindings),
+        argument_bindings: operation.generated_argument_bindings(&bindings),
+        mocks: vec![],
+    };
+    let temp = Temp::new();
+    let bundle = BunHarness
+        .generate(&HarnessRequest {
+            adapter_import: "./adapter.ts".into(),
+            subjects: [
+                "W.Api.create".into(),
+                "W.Api.link".into(),
+                "W.Api.read".into(),
+            ]
+            .into(),
+        })
+        .unwrap();
+    for artifact in &bundle.artifacts {
+        fs::write(temp.0.join(&artifact.path), &artifact.contents).unwrap();
+    }
+    fs::write(temp.0.join("adapter.ts"), r#"export const adapter={async describe(){return {protocol_version:1,subjects:[],artifacts:[],capabilities:[],representations:{}}},async begin(){let stage=0;return {async invoke(call){let out;if(stage===0&&call.subject==='W.Api.create')out='connection-7';else if(stage===1&&call.subject==='W.Api.link'&&call.arguments[0].value==='connection-7')out='client-9';else if(stage===2&&call.subject==='W.Api.read'&&call.arguments[0].value==='client-9')out='done';else throw Error('wrong generated dataflow');stage++;return {kind:'returned',value:{kind:'string',value:out}}},async close(){}}}};"#).unwrap();
+    let mut worker = NativeWorker::spawn(&bundle.recipe, &temp.0, NativeLimits::default())
+        .await
+        .unwrap();
+    let result = worker
+        .execute_operation_contract(
+            &ir,
+            operation,
+            &input,
+            (
+                &plan.budgets,
+                OperationObservers::default(),
+                &NativeCancellation::default(),
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        result.assessment.result,
+        VerificationResult::Pass,
+        "{result:?}"
+    );
+    assert_eq!(
+        result.observed.unwrap().invocation.arguments,
+        vec![VerificationValue::String("client-9".into())]
+    );
+    worker.finish().await.unwrap();
+}

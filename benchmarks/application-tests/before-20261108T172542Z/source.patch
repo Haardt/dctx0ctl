@@ -1,0 +1,515 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index da1d3ef..2c2ef7e 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1618,3 +1618,23 @@ workloads completed in 3,895,588.849 ms; sampled process-tree peak RSS was
+ 1,075,568,640 bytes. Performance comparison remains unassessed and no baseline
+ was promoted. `docs/status-preflight-validation.json` retains source pins,
+ measurement references and the earlier failed preflight classification attempt.
++
++## Application-test planning foundation (2026-11-08)
++
++The P0–P7 application-test migration is tracked in
++`docs/application-test-implementation.md`, alongside the retained concept and
++migration documents. P0 now has a diagnostic version-1 export preserving the
++original `ProgramPlan`, central `case_manifest`, exact ownership, test forms and
++expected registrations. Schema-2 group configuration is an explicit input to
++`verify plan --application-tests GROUPS --test-catalog CATALOG`; schema-1
++adapter configurations and existing execution remain unchanged. Do not treat
++this export or its registrations as native execution, complete isolation,
++persistent group evidence or adoption authority. Native application-test
++libraries, evaluator transport, collector/store composition, consumer migration
++and the default switch remain unimplemented. Complete native old/new comparison
++and P1–P7 acceptance are still required.
++
++The release `application-test-plan` phase is included in `scripts/validate.py`.
++It measures pure export/ownership construction after projection, with process
++RSS including preparation. It does not measure a new native backend. Keep the
++accepted baseline unchanged; reduced development samples are unassessed.
+diff --git a/README.md b/README.md
+index f57c1ed..64eaada 100644
+--- a/README.md
++++ b/README.md
+@@ -10,6 +10,18 @@ You can start without learning to author DCTX0 yourself. The contracts use famil
+ 
+ [Documentation website](https://haardt.github.io/dctx0ctl/) · [Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/site/src/docs/contributing.md)
+ 
++Application-owned contract tests (2026-11-08): [concept](docs/application-test-concept.md), [migration assessment](docs/application-test-migration.md), and [implementation status](docs/application-test-implementation.md), written in German. Diagnostic group planning is available; native application-test execution and mixed-backend adoption remain under implementation. Existing adapter configurations retain their behavior.
++
++Export a diagnostic group plan from published requirements with
++`dctx0 verify plan SPEC --subject QUALIFIED_SUBJECT --application-tests groups.json --test-catalog catalog.json --json`.
++The schema-2 group configuration and expected registration catalog are explicit inputs;
++this command neither executes tests nor changes tasks. See the implementation status
++for the version matrix and input formats. The release phase
++`dctx0 bench SPEC application-test-plan 20` measures the new planning work;
++`python3 scripts/validate.py --coverage` includes it in the coupled validation and
++release speed/RAM measurements. New workloads remain unassessed until a baseline
++is intentionally accepted.
++
+ DCTX0 turns product requirements into a typed, machine-readable contract. That contract drives a dependency-aware task DAG, parallel implementation waves, and verification plans. Once an application exists, DCTX0 checks its actual behavior against the same specification.
+ 
+ People and coding agents develop the specification together. People own the product decisions; agents can write and refine the contracts, then implement them. An independent verification core assesses the observations.
+@@ -479,6 +491,20 @@ python3 scripts/validate.py --coverage
+ 
+ The project runner couples functional validation with release speed and RAM measurements. It runs the relevant workspace/feature checks, formatting, Clippy with warnings denied, tests, native checks, and coverage. Rust production-code coverage must meet **97% merged source lines and 97% LLVM functions**. Raw LLVM metrics and native helper coverage remain separate; line coverage does not establish branch completeness.
+ 
++The documented local serial QA profile keeps assertions and overflow checks enabled
++while using dev/test optimization level 1. A reduced development run is reproducible
++with the following command; its one-sample performance results remain unassessed
++when the accepted baseline uses different settings. Release measurements still use
++the separate uninstrumented release build.
++
++```sh
++env CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 \
++  CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 \
++  CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true \
++  CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true \
++  python3 scripts/validate.py --coverage --samples 1 --iterations 1
++```
++
+ Benchmarks use uninstrumented release builds and retain elapsed milliseconds, peak RSS bytes, raw samples, workload identity, input/source hashes, toolchains, cache conditions, and environment provenance. Rust core costs and native build/execution costs are reported separately. Core RSS is Linux post-exec `VmHWM`, including phase preparation; native workloads record their own memory scope. Unsupported measurement is explicit.
+ 
+ The latest 20 runs are retained under `benchmarks/history/`. The accepted baseline lives separately in `benchmarks/baseline.json`. Comparable regressions above **20% runtime** or **10% RAM** fail the performance gate. Missing or incompatible baselines are reported as unassessed. Configure tolerances with `--speed-tolerance` and `--ram-tolerance`.
+diff --git a/crates/dctx0-cli/src/args.rs b/crates/dctx0-cli/src/args.rs
+index 0a5a2c8..4b4b551 100644
+--- a/crates/dctx0-cli/src/args.rs
++++ b/crates/dctx0-cli/src/args.rs
+@@ -109,6 +109,7 @@ pub(crate) enum Phase {
+     VerificationDiagnosticsCases,
+     VerificationHistorySummary,
+     VerificationProject,
++    ApplicationTestPlan,
+     VerificationGenerate,
+     VerificationEvaluateUnbound,
+     VerificationAssessUnbound,
+diff --git a/crates/dctx0-cli/src/benchmark.rs b/crates/dctx0-cli/src/benchmark.rs
+index a21f57e..9e2c08e 100644
+--- a/crates/dctx0-cli/src/benchmark.rs
++++ b/crates/dctx0-cli/src/benchmark.rs
+@@ -41,6 +41,7 @@ pub(crate) fn benchmark(
+     if matches!(
+         phase,
+         Phase::VerificationProject
++            | Phase::ApplicationTestPlan
+             | Phase::VerificationBindingsPlan
+             | Phase::VerificationGenerate
+             | Phase::VerificationEvaluateUnbound
+diff --git a/crates/dctx0-cli/src/main.rs b/crates/dctx0-cli/src/main.rs
+index d90becf..e0c3383 100644
+--- a/crates/dctx0-cli/src/main.rs
++++ b/crates/dctx0-cli/src/main.rs
+@@ -1,3 +1,4 @@
++mod application_test_plan;
+ mod args;
+ mod benchmark;
+ mod codec_scaffold;
+diff --git a/crates/dctx0-cli/src/verification.rs b/crates/dctx0-cli/src/verification.rs
+index 6fc4003..a3f9c58 100644
+--- a/crates/dctx0-cli/src/verification.rs
++++ b/crates/dctx0-cli/src/verification.rs
+@@ -379,6 +379,12 @@ enum VerifyAction {
+         /// Reviewed symbolic inputs in ProjectionFixtures JSON format.
+         #[arg(long)]
+         fixtures: Option<PathBuf>,
++        /// Export diagnostic application-test ownership using schema-2 groups.
++        #[arg(long, requires = "test_catalog")]
++        application_tests: Option<PathBuf>,
++        /// Expected TestRegistration array; does not prove native execution.
++        #[arg(long, requires = "application_tests")]
++        test_catalog: Option<PathBuf>,
+     },
+ }
+ fn task_id(text: &str) -> Result<i64, String> {
+@@ -424,7 +430,16 @@ fn run_inner(
+ ) -> Result<bool, String> {
+     let full = args.full;
+     let max_output_bytes = args.max_output_bytes;
+-    let (input, application, subject, task, historical_check, fixtures) = match args.action {
++    let (
++        input,
++        application,
++        subject,
++        task,
++        historical_check,
++        fixtures,
++        application_tests,
++        test_catalog,
++    ) = match args.action {
+         VerifyAction::Preflight {
+             input,
+             project: application,
+@@ -1251,7 +1266,18 @@ fn run_inner(
+             task,
+             historical_check,
+             fixtures,
+-        } => (input, project, subject, task, historical_check, fixtures),
++            application_tests,
++            test_catalog,
++        } => (
++            input,
++            project,
++            subject,
++            task,
++            historical_check,
++            fixtures,
++            application_tests,
++            test_catalog,
++        ),
+     };
+     let project = Project::new(&input, database).map_err(crate::error_message)?;
+     let configured = project
+@@ -1298,6 +1324,9 @@ fn run_inner(
+                 .map_err(crate::error_message)?,
+         );
+     }
++    if let (Some(configuration), Some(catalog)) = (application_tests, test_catalog) {
++        return crate::application_test_plan::render(&plan, &configuration, &catalog, json, output);
++    }
+     let issues = plan
+         .issues
+         .iter()
+diff --git a/crates/dctx0-cli/src/verification_benchmark.rs b/crates/dctx0-cli/src/verification_benchmark.rs
+index db746a8..9f95501 100644
+--- a/crates/dctx0-cli/src/verification_benchmark.rs
++++ b/crates/dctx0-cli/src/verification_benchmark.rs
+@@ -11,6 +11,44 @@ pub(crate) fn benchmark(
+     files: usize,
+     output: &mut dyn Write,
+ ) -> Result<bool, String> {
++    if matches!(phase, Phase::ApplicationTestPlan) {
++        use dctx0_verification::application_plan::*;
++        let plan = dctx0_verification::project_program(
++            ir,
++            "benchmark-only",
++            1,
++            VerificationScope {
++                subjects: [ir.workspace.clone()].into(),
++                tasks: Default::default(),
++            },
++            &Default::default(),
++            Default::default(),
++        );
++        let configuration = ApplicationTestConfiguration {
++            schema_version: APPLICATION_TEST_CONFIGURATION_VERSION,
++            groups: vec![ExecutionGroup {
++                id: "reference-adapter".into(),
++                backend: TestBackend::Adapter,
++                target: "go".into(),
++                selection: ["reference".into()].into(),
++                area: TestArea {
++                    cases: dctx0_verification::case_manifest(&plan).required_cases,
++                    requirements: Default::default(),
++                },
++                resources: GroupResources {
++                    namespace: "reference".into(),
++                    timeout_seconds: 60,
++                    max_message_bytes: 1_048_576,
++                },
++            }],
++        };
++        let start = std::time::Instant::now();
++        for _ in 0..iterations {
++            std::hint::black_box(application_test_plan(&plan, &configuration, &[]))
++                .map_err(|issues| format!("Application plan benchmark: {issues:?}"))?;
++        }
++        return benchmark_report(output, start, iterations, files);
++    }
+     if matches!(phase, Phase::VerificationBindingsPlan) {
+         let plan = dctx0_verification::project_program(
+             ir,
+diff --git a/crates/dctx0-cli/tests/cli.rs b/crates/dctx0-cli/tests/cli.rs
+index 215ca35..837c467 100644
+--- a/crates/dctx0-cli/tests/cli.rs
++++ b/crates/dctx0-cli/tests/cli.rs
+@@ -274,6 +274,7 @@ fn verification_core_benchmarks_measure_both_compiled_examples_without_native_cl
+             "verification-history-publish",
+             "verification-history-read",
+             "verification-project",
++            "application-test-plan",
+             "verification-generate",
+             "verification-evaluate-unbound",
+             "verification-assess-unbound",
+diff --git a/crates/dctx0-verification/src/generation/strings.rs b/crates/dctx0-verification/src/generation/strings.rs
+index cadc650..a9185f0 100644
+--- a/crates/dctx0-verification/src/generation/strings.rs
++++ b/crates/dctx0-verification/src/generation/strings.rs
+@@ -62,7 +62,17 @@ pub(super) fn prefix_witnesses(
+             if prefix.len().saturating_add(padding) > budgets.value_bytes.saturating_sub(32) {
+                 continue;
+             }
+-            values.push(V::String(format!("{prefix}{}", "x".repeat(padding)).into()));
++            // Canonical reviewed form: a sha256 image digest is exactly 64
++            // lowercase hex digits, so this witness uses that alphabet instead of
++            // the neutral filler that production would reject.
++            let filler = if prefix == "sha256:" {
++                (0..padding)
++                    .map(|index| b"0123456789abcdef"[index % 16] as char)
++                    .collect::<String>()
++            } else {
++                "x".repeat(padding)
++            };
++            values.push(V::String(format!("{prefix}{filler}").into()));
+         }
+     }
+     values
+diff --git a/crates/dctx0-verification/src/lib.rs b/crates/dctx0-verification/src/lib.rs
+index 5ae8f58..ccbacb4 100644
+--- a/crates/dctx0-verification/src/lib.rs
++++ b/crates/dctx0-verification/src/lib.rs
+@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
+ use std::collections::{BTreeMap, BTreeSet};
+ 
+ pub const VERIFICATION_VERSION: &str = "dctx0-verification-1";
++pub mod application_plan;
+ pub mod attestations;
+ mod preconditions;
+ pub mod program_inspection;
+diff --git a/crates/dctx0-verification/src/projection/mod.rs b/crates/dctx0-verification/src/projection/mod.rs
+index d0adb68..9b416d3 100644
+--- a/crates/dctx0-verification/src/projection/mod.rs
++++ b/crates/dctx0-verification/src/projection/mod.rs
+@@ -3,6 +3,7 @@ mod expressions;
+ mod model;
+ mod paths;
+ mod scenarios;
++mod setup_arguments;
+ mod state;
+ use crate::{VerificationCase, VerificationScope, generate_inputs, generate_values};
+ use dctx0_core::*;
+@@ -393,7 +394,7 @@ pub fn project_program(
+                 plan.issues
+                     .push(issue(span, "INVALID_OPERATION_ARGUMENT_BINDING", &message));
+             }
+-            for setup in &case.setup {
++            for (setup_index, setup) in case.setup.iter().enumerate() {
+                 let span = ir
+                     .symbols
+                     .get(&operation.operation.id)
+@@ -415,7 +416,21 @@ pub fn project_program(
+                     continue;
+                 }
+                 for (parameter, value) in preparation.parameters.iter().zip(&setup.arguments) {
+-                    match dctx0_interpreter::check_value(ir, &parameter.ty, value, &plan.budgets) {
++                    match setup_arguments::check(
++                        ir,
++                        &parameter.ty,
++                        value,
++                        &case
++                            .argument_bindings
++                            .iter()
++                            .filter(|binding| {
++                                binding.target_setup == Some(setup_index)
++                                    && binding.parameter == parameter.name
++                            })
++                            .map(|binding| binding.target_path.as_slice())
++                            .collect::<Vec<_>>(),
++                        &plan.budgets,
++                    ) {
+                         dctx0_interpreter::ValueContract::Accepted => {}
+                         dctx0_interpreter::ValueContract::Rejected { reason } => plan
+                             .issues
+diff --git a/crates/dctx0-verification/tests/operation_arguments.rs b/crates/dctx0-verification/tests/operation_arguments.rs
+index e751b7f..0254dcd 100644
+--- a/crates/dctx0-verification/tests/operation_arguments.rs
++++ b/crates/dctx0-verification/tests/operation_arguments.rs
+@@ -125,6 +125,60 @@ fn actual_setup_results_feed_later_setup_and_main_arguments_without_changing_tem
+     );
+ }
+ 
++#[test]
++fn application_test_export_preserves_setup_templates_bindings_and_runtime_resolution() {
++    use dctx0_verification::application_plan::*;
++    let (ir, input, observed) = fixture();
++    let fixtures = ProjectionFixtures {
++        operations: [(input.invocation.subject.clone(), vec![input.clone()])].into(),
++        ..Default::default()
++    };
++    let program = project_program(
++        &ir,
++        "snapshot",
++        1,
++        VerificationScope {
++            subjects: ["W".into()].into(),
++            tasks: Default::default(),
++        },
++        &fixtures,
++        Default::default(),
++    );
++    let configuration = ApplicationTestConfiguration {
++        schema_version: 2,
++        groups: vec![ExecutionGroup {
++            id: "legacy".into(),
++            backend: TestBackend::Adapter,
++            target: "go".into(),
++            selection: ["adapter".into()].into(),
++            area: TestArea {
++                cases: case_manifest(&program).required_cases,
++                ..Default::default()
++            },
++            resources: GroupResources {
++                namespace: "legacy".into(),
++                timeout_seconds: 60,
++                max_message_bytes: 1_048_576,
++            },
++        }],
++    };
++    let export = application_test_plan(&program, &configuration, &[]).unwrap();
++    let restored: ApplicationTestPlan =
++        serde_json::from_str(&serde_json::to_string(&export).unwrap()).unwrap();
++    restored.validate().unwrap();
++    let actual = restored
++        .program
++        .operations
++        .iter()
++        .find(|op| op.operation.id == input.invocation.subject)
++        .unwrap();
++    assert_eq!(actual.cases, vec![input.clone()]);
++    assert_eq!(
++        resolve_operation_arguments(&ir, &actual.cases[0], &observed, None),
++        resolve_operation_arguments(&ir, &input, &observed, None)
++    );
++}
++
+ #[test]
+ fn binding_validation_rejects_forward_unbounded_missing_and_overlapping_destinations() {
+     let (ir, input, _) = fixture();
+@@ -278,3 +332,65 @@ fn argument_resolution_rejects_missing_failed_or_misaddressed_actual_results() {
+     let result = resolve_operation_arguments(&ir, &root, &source, None).unwrap();
+     assert_eq!(result.arguments, vec![supplied]);
+ }
++
++#[test]
++fn projection_checks_static_setup_fields_and_defers_only_bound_placeholders() {
++    let (ir, mut input, _) = fixture();
++    input.argument_bindings[0].target_path = vec!["nested".into()];
++    input.setup[1].arguments[0] =
++        record(&[("id", number("0")), ("nested", VerificationValue::Unit)]);
++    let project = |input: OperationCaseInput| {
++        let fixtures = ProjectionFixtures {
++            operations: [("W.Store.apply".into(), vec![input])].into(),
++            ..Default::default()
++        };
++        project_program(
++            &ir,
++            "snapshot",
++            1,
++            VerificationScope {
++                subjects: ["W.Store.apply".into()].into(),
++                tasks: Default::default(),
++            },
++            &fixtures,
++            Default::default(),
++        )
++    };
++    let projected = project(input.clone());
++    assert!(
++        !projected
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP"),
++        "{:?}",
++        projected.issues
++    );
++    let VerificationValue::Record(fields) = &mut input.setup[1].arguments[0] else {
++        panic!()
++    };
++    fields.insert(
++        "id".into(),
++        VerificationValue::String("invalid static value".into()),
++    );
++    assert!(
++        project(input.clone())
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
++    );
++    input.setup[1].arguments[0] = VerificationValue::Unit;
++    input.argument_bindings[0].target_path.clear();
++    assert!(
++        !project(input.clone())
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
++    );
++    input.argument_bindings.clear();
++    assert!(
++        project(input)
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
++    );
++}
+diff --git a/crates/dctx0-verification/tests/string_generation.rs b/crates/dctx0-verification/tests/string_generation.rs
+index 1a392c9..7a6cc86 100644
+--- a/crates/dctx0-verification/tests/string_generation.rs
++++ b/crates/dctx0-verification/tests/string_generation.rs
+@@ -53,6 +53,37 @@ fn literal_prefixes_combine_inherited_length_bounds_without_waiving_other_clause
+             for length in [4, 6] {
+                 assert!(corpus.values.iter().any(|value| matches!(value, V::String(text) if text.encode_utf16().count() == length)));
+             }
++            assert!(
++                corpus
++                    .values
++                    .iter()
++                    .any(|value| matches!(value, V::String(text) if text.as_ref() == "id:x"))
++                    && corpus
++                        .values
++                        .iter()
++                        .any(|value| matches!(value, V::String(text) if text.as_ref() == "id:xxx")),
++                "neutral filler stays the witness for a non-digest prefix: {:?}",
++                corpus.values
++            );
++        }
++        if name == "Digest" || name == "Alias" {
++            // Canonical sha256 witness: exactly 64 lowercase hex digits after the
++            // prefix, so generated operation inputs satisfy the reviewed image
++            // digest rule that production enforces.
++            for value in &corpus.values {
++                if let V::String(text) = value {
++                    let suffix = text
++                        .strip_prefix("sha256:")
++                        .unwrap_or_else(|| panic!("{name}: unexpected witness {text}"));
++                    assert_eq!(suffix.len(), 64, "{name}: {text}");
++                    assert!(
++                        suffix
++                            .bytes()
++                            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
++                        "{name}: {text}"
++                    );
++                }
++            }
+         }
+         let single = VerificationBudgets {
+             generated_cases: 1,
+diff --git a/docs/site/src/reference/coverage.md b/docs/site/src/reference/coverage.md
+index 5f1a7fb..3a0ca1f 100644
+--- a/docs/site/src/reference/coverage.md
++++ b/docs/site/src/reference/coverage.md
+@@ -1,6 +1,14 @@
+ 
+ # Experimental execution corpus (2026-10-28)
+ 
++Production module naming (2026-11-08): cargo-llvm-cov's default test-file filter
++omits filenames ending in `_tests.rs`, including files under `src/`. Production
++application-test planning therefore lives in `application_plan.rs`; only its
++integration test uses `tests/application_tests.rs`. Check the LCOV source inventory
++when adding production modules. The initial application-test validation was
++interrupted after discovering the omission; its nominal percentages are not
++accepted coverage of that work. No new exclusion or threshold change is used.
++
+ The opt-in `dctx0 experimental coverage` commands use separate versioned tables
+ in the existing database. This corpus is independent of the aggregate 97% gate
+ and all specification/task evidence. Each Linux libtest execution retains its
+diff --git a/scripts/validate.py b/scripts/validate.py
+index b00fde6..d68a0fa 100644
+--- a/scripts/validate.py
++++ b/scripts/validate.py
+@@ -162,7 +162,7 @@ def benchmark(args):
+                 'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+         # Phase timings exclude setup; RSS includes the standalone process and
+         # its prepared inputs. SQLite runs use disposable databases only.
+-        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-package-apply', 'tasks-review-changes', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-codecs', 'verification-bindings-plan', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
++        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-package-apply', 'tasks-review-changes', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'application-test-plan', 'verification-harness', 'verification-codecs', 'verification-bindings-plan', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
+         phase_iterations = min(args.iterations, 3)
+         for name, path in workloads.items():
+             for phase in phases:

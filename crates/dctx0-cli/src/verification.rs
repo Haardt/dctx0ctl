@@ -155,6 +155,7 @@ pub(crate) struct VerifyArgs {
     max_output_bytes: u64,
 }
 #[derive(serde::Serialize)]
+#[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
 struct PreflightedRun<'a> {
     #[serde(flatten)]
     report: &'a dctx0_engine::NativeVerificationReport,
@@ -162,6 +163,8 @@ struct PreflightedRun<'a> {
 }
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Diagnostic application-owned tests with central Rust assessment.
+    ApplicationTests(crate::application_testing::ApplicationTestingArgs),
     /// Check scope, task pins, planned cases and declared bindings without execution.
     Preflight {
         input: PathBuf,
@@ -269,6 +272,17 @@ enum VerifyAction {
         #[arg(long)]
         project: Option<PathBuf>,
     },
+    /// Compare saved evidence with current inputs without executing or adopting tests.
+    IncrementalPlan {
+        input: PathBuf,
+        run_id: String,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        #[arg(long)]
+        subject: Vec<String>,
+        #[arg(long, value_parser = task_id)]
+        task: Vec<i64>,
+    },
     /// Execute the selected published plan and store actual observations.
     Run {
         input: PathBuf,
@@ -284,6 +298,12 @@ enum VerifyAction {
         no_adopt: bool,
         #[arg(long)]
         bindings: Option<String>,
+        /// Explicit deterministic scopes and snapshot/revision inputs for historical reuse.
+        #[arg(long)]
+        reuse_inputs: Option<String>,
+        /// Same-project saved native run; requires the same input declaration.
+        #[arg(long, requires = "reuse_inputs")]
+        reuse_from: Option<String>,
     },
     /// List compact historical outcomes; never loads case corpora.
     History {
@@ -379,6 +399,12 @@ enum VerifyAction {
         /// Reviewed symbolic inputs in ProjectionFixtures JSON format.
         #[arg(long)]
         fixtures: Option<PathBuf>,
+        /// Export diagnostic application-test ownership using schema-2 groups.
+        #[arg(long, requires = "test_catalog")]
+        application_tests: Option<PathBuf>,
+        /// Expected TestRegistration array; does not prove native execution.
+        #[arg(long, requires = "application_tests")]
+        test_catalog: Option<PathBuf>,
     },
 }
 fn task_id(text: &str) -> Result<i64, String> {
@@ -424,7 +450,67 @@ fn run_inner(
 ) -> Result<bool, String> {
     let full = args.full;
     let max_output_bytes = args.max_output_bytes;
-    let (input, application, subject, task, historical_check, fixtures) = match args.action {
+    let (
+        input,
+        application,
+        subject,
+        task,
+        historical_check,
+        fixtures,
+        application_tests,
+        test_catalog,
+    ) = match args.action {
+        VerifyAction::IncrementalPlan {
+            input,
+            run_id,
+            project: application,
+            subject,
+            task,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let report = project
+                .verification_incremental_plan(
+                    application.as_deref(),
+                    VerificationSelection {
+                        subjects: subject.into_iter().collect(),
+                        tasks: task.into_iter().collect(),
+                        historical_check: None,
+                    },
+                    &run_id,
+                )
+                .map_err(crate::error_message)?;
+            if json {
+                crate::render::json(output, &report)?;
+            } else {
+                writeln!(
+                    output,
+                    "# Incremental verification comparison\n\nParent: `{}`\nRequired: {}; reused: {}; fresh execution required: {}.\n\nThis comparison grants no test PASS or task delivery.\n\n| Condition | Match |\n| --- | --- |",
+                    report.parent_run, report.required_cases, report.actual_reused_cases, report.rerun_cases
+                )
+                .map_err(crate::error_message)?;
+                for comparison in &report.comparisons {
+                    writeln!(
+                        output,
+                        "| {} | {} |",
+                        comparison.component,
+                        match comparison.matches {
+                            Some(true) => "yes",
+                            Some(false) => "no",
+                            None => "unknown",
+                        }
+                    )
+                    .map_err(crate::error_message)?;
+                }
+                for reason in &report.reasons {
+                    writeln!(output, "\n- {}: {}", reason.code, reason.message)
+                        .map_err(crate::error_message)?;
+                }
+            }
+            return Ok(true);
+        }
+        VerifyAction::ApplicationTests(args) => {
+            return crate::application_testing::run(args, database, json, output);
+        }
         VerifyAction::Preflight {
             input,
             project: application,
@@ -807,6 +893,8 @@ fn run_inner(
             historical_check,
             no_adopt,
             bindings,
+            reuse_inputs,
+            reuse_from,
         } => {
             #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
@@ -860,15 +948,32 @@ fn run_inner(
                     .enable_all()
                     .build()
                     .map_err(crate::error_message)?;
-                let report = runtime
-                    .block_on(project.run_verification_preflighted(
+                let cancellation = dctx0_engine::NativeCancellation::default();
+                let report = if let Some(inputs) = reuse_inputs {
+                    runtime.block_on(
+                        project.run_verification_incremental_preflighted_with_adoption(
+                            application.as_deref(),
+                            selection,
+                            generator,
+                            &cancellation,
+                            &dctx0_engine::NativeReuseOptions {
+                                inputs,
+                                parent: reuse_from,
+                            },
+                            preflight,
+                            no_adopt,
+                        ),
+                    )
+                } else {
+                    runtime.block_on(project.run_verification_preflighted(
                         application.as_deref(),
                         selection,
                         generator,
-                        &dctx0_engine::NativeCancellation::default(),
+                        &cancellation,
                         preflight,
                     ))
-                    .map_err(crate::error_message)?;
+                }
+                .map_err(crate::error_message)?;
                 let pass = matches!(
                     report.evidence.run.result,
                     dctx0_core::VerificationResult::Pass
@@ -886,7 +991,7 @@ fn run_inner(
                         compact_run(
                             output,
                             &report.evidence,
-                            serde_json::json!({"adopted_tasks":report.adopted_tasks,"adoption_issues":report.adoption_issues,"preflight":preflight_summary}),
+                            serde_json::json!({"adopted_tasks":report.adopted_tasks,"adoption_issues":report.adoption_issues,"preflight":preflight_summary,"incremental":report.incremental}),
                             max_output_bytes,
                         )?;
                     }
@@ -894,6 +999,9 @@ fn run_inner(
                     writeln!(output,"# Native verification\n\nRun: `{}`\nSnapshot: `{}`; check occurrence: {}\nResult: {:?}\n\n{} mandatory cases; {} recorded cases; {} open obligations.\n",report.evidence.id,report.evidence.run.provenance.snapshot,report.evidence.run.provenance.check_occurrence,report.evidence.run.result,report.evidence.run.required_cases.len(),report.evidence.run.cases.len(),report.evidence.run.open_obligations.len()).map_err(crate::error_message)?;
                     if let Some(supervision) = &report.supervision {
                         writeln!(output, "Process-tree supervision: {}; detached descendants: {}; collective memory limit: {}.\n", supervision.process_tree, supervision.detached_descendants, supervision.collective_memory_limit).map_err(crate::error_message)?;
+                    }
+                    if let Some(summary) = &report.incremental {
+                        writeln!(output,"Historical reuse: {} cases; fresh execution: {} cases. Parent: {:?}. No task delivery authority.",summary.reused_cases,summary.executed_cases,summary.parent_run).map_err(crate::error_message)?;
                     }
                     outcome_summary(output, &report.evidence.run)?;
                     for issue in report
@@ -919,6 +1027,8 @@ fn run_inner(
                     historical_check,
                     no_adopt,
                     bindings,
+                    reuse_inputs,
+                    reuse_from,
                 );
                 return Err("No executable TypeScript testing target is enabled".into());
             }
@@ -1251,7 +1361,18 @@ fn run_inner(
             task,
             historical_check,
             fixtures,
-        } => (input, project, subject, task, historical_check, fixtures),
+            application_tests,
+            test_catalog,
+        } => (
+            input,
+            project,
+            subject,
+            task,
+            historical_check,
+            fixtures,
+            application_tests,
+            test_catalog,
+        ),
     };
     let project = Project::new(&input, database).map_err(crate::error_message)?;
     let configured = project
@@ -1297,6 +1418,9 @@ fn run_inner(
                 .verification_lifecycle_input_issues(root, &config.adapter, &plan)
                 .map_err(crate::error_message)?,
         );
+    }
+    if let (Some(configuration), Some(catalog)) = (application_tests, test_catalog) {
+        return crate::application_test_plan::render(&plan, &configuration, &catalog, json, output);
     }
     let issues = plan
         .issues

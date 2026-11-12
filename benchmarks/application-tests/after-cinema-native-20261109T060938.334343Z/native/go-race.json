@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "started_at_unix_ns": "1794197360872285903",
+  "source_hash_before": "20256181a15b51ef07ba52bda15efeaa7893aed28bfbaeb415235d3bfb52fdc3",
+  "checks": [
+    {
+      "name": "toolchain",
+      "command": [
+        "/usr/bin/go",
+        "env",
+        "-json",
+        "GOVERSION",
+        "GOROOT",
+        "GOOS",
+        "GOARCH",
+        "GOHOSTOS",
+        "GOHOSTARCH",
+        "CGO_ENABLED"
+      ],
+      "measurement": {
+        "elapsed_ms": 10.752264002803713,
+        "peak_rss_bytes": 20918272,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "output": "{\n\t\"CGO_ENABLED\": \"1\",\n\t\"GOARCH\": \"amd64\",\n\t\"GOHOSTARCH\": \"amd64\",\n\t\"GOHOSTOS\": \"linux\",\n\t\"GOOS\": \"linux\",\n\t\"GOROOT\": \"/usr/lib/go\",\n\t\"GOVERSION\": \"go1.27.3-X:nodwarf5\"\n}\n"
+    },
+    {
+      "name": "positive-build",
+      "command": [
+        "/usr/bin/go",
+        "build",
+        "-race",
+        "-p",
+        "1",
+        "-o",
+        "/home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/positive",
+        "/home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/positive.go"
+      ],
+      "measurement": {
+        "elapsed_ms": 142.3330350080505,
+        "peak_rss_bytes": 76578816,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "output": ""
+    },
+    {
+      "name": "positive-execution",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/positive"
+      ],
+      "measurement": {
+        "elapsed_ms": 1015.7395279966295,
+        "peak_rss_bytes": 26255360,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "output": "RACE_PROBE_OK\n"
+    },
+    {
+      "name": "negative-build",
+      "command": [
+        "/usr/bin/go",
+        "build",
+        "-race",
+        "-p",
+        "1",
+        "-o",
+        "/home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/negative",
+        "/home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/negative.go"
+      ],
+      "measurement": {
+        "elapsed_ms": 132.2046919958666,
+        "peak_rss_bytes": 77307904,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "output": ""
+    },
+    {
+      "name": "negative-execution",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/negative"
+      ],
+      "measurement": {
+        "elapsed_ms": 10.444423998706043,
+        "peak_rss_bytes": 27324416,
+        "exit_code": 66,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "output": "==================\nWARNING: DATA RACE\nWrite at 0x000000605158 by goroutine 8:\n  main.main.func1()\n      /home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/negative.go:6 +0x30\n\nPrevious write at 0x000000605158 by main goroutine:\n  main.main()\n      /home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/negative.go:7 +0xa5\n\nGoroutine 8 (running) created at:\n  main.main()\n      /home/held/workspaces/compinion/dctx0ctl/target/go-cinema/go-race-probe-8wckwqtb/negative.go:6 +0x99\n==================\n"
+    },
+    {
+      "name": "cinema-race",
+      "command": [
+        "/usr/bin/go",
+        "test",
+        "-race",
+        "-count=1",
+        "-mod=readonly",
+        "-p",
+        "1",
+        "./..."
+      ],
+      "measurement": {
+        "elapsed_ms": 7799.90255201119,
+        "peak_rss_bytes": 430891008,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      "output": "ok  \tcinema/application\t1.006s\n?   \tcinema/cmd/cinema\t[no test files]\nok  \tcinema/contracttests\t1.008s\nok  \tcinema/domain\t1.006s\nok  \tcinema/ginapi\t1.063s\nok  \tcinema/httpapi\t1.041s\nok  \tcinema/persistence\t1.164s\n"
+    }
+  ],
+  "host": {
+    "platform": "Linux-7.3.1-1-cachyos-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "CGO_ENABLED": "1",
+    "GOARCH": "amd64",
+    "GOHOSTARCH": "amd64",
+    "GOHOSTOS": "linux",
+    "GOOS": "linux",
+    "GOROOT": "/usr/lib/go",
+    "GOVERSION": "go1.27.3-X:nodwarf5"
+  },
+  "memory_scope": "Per-command wait4 peak child/reaped descendants; not aggregate simultaneous RSS. Outer Linux guard caps sampled process-tree RSS at one third startup MemAvailable.",
+  "scope": "Native race detector qualification and uncached Go Cinema package tests; no imported PASS or plain-test fallback",
+  "source_hash_after": "20256181a15b51ef07ba52bda15efeaa7893aed28bfbaeb415235d3bfb52fdc3",
+  "elapsed_ms": 9165.636656
+}

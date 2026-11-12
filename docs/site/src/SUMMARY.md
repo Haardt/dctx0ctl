@@ -33,6 +33,7 @@
   - [Configure and extend profiles](docs/profiles.md)
   - [HTTP frameworks: Gin and Axum](docs/http-frameworks.md)
 - [TypeScript adapters](docs/typescript-adapters.md)
+- [Application-owned tests and task delivery](docs/application-tests.md)
 - [Evidence and replay](docs/evidence.md)
 - [Agent evidence and reviews](docs/agent-evidence.md)
 - [History and sharing](docs/sharing.md)

@@ -1,0 +1,1036 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261109T204715.458022Z",
+  "status": "complete",
+  "scope": "release status/preflight only",
+  "source_hash_before": "c4ce7edd5216f6a345d56603328ee356f339679392ef92fc94611fc6234e5b7d",
+  "revision": "789454f22f8fb8bda3d203759ebfb28d3d10be92",
+  "dirty_worktree": true,
+  "platform": "Linux-7.3.1-1-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "machine": "x86_64",
+    "cpu_count": 16
+  },
+  "toolchains": {
+    "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+    "bun": "1.4.4"
+  },
+  "settings": {
+    "samples": 3,
+    "warmup_runs": 1,
+    "cache": "warm OS/tool caches; fresh isolated history",
+    "seed": 42,
+    "profile": "release CLI; tests measured separately"
+  },
+  "baseline": {
+    "status": "unassessed",
+    "reason": "new workloads; no automatic promotion"
+  },
+  "commands": [
+    {
+      "label": "cinema-check",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 413,
+      "elapsed_ms": 243.49071801407263,
+      "peak_rss_bytes": 72429568,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-profiles",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "profile",
+        "typescript",
+        "create",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--default",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 2188,
+      "elapsed_ms": 202.54203298827633,
+      "peak_rss_bytes": 72429568,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-tasks",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "tasks",
+        "plan",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 477040,
+      "elapsed_ms": 364.6879460429773,
+      "peak_rss_bytes": 93671424,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-init",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "init",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--target",
+        "typescript",
+        "--subject",
+        "HomeCinema.MovieNight.ReleaseYear",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1154,
+      "elapsed_ms": 40.896214020904154,
+      "peak_rss_bytes": 72429568,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-status-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1183,
+      "elapsed_ms": 132.31701898621395,
+      "peak_rss_bytes": 88375296,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-status-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1183,
+      "elapsed_ms": 111.7147239856422,
+      "peak_rss_bytes": 88158208,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-status-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1183,
+      "elapsed_ms": 111.65638599777594,
+      "peak_rss_bytes": 88166400,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-status-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1183,
+      "elapsed_ms": 111.37212399626151,
+      "peak_rss_bytes": 88748032,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-preflight-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 192.3356249462813,
+      "peak_rss_bytes": 95125504,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-preflight-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 192.270164960064,
+      "peak_rss_bytes": 95047680,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-preflight-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 192.08442803937942,
+      "peak_rss_bytes": 92995584,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-preflight-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 192.0859099482186,
+      "peak_rss_bytes": 93171712,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-diagnostic-preflight-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 191.91297300858423,
+      "peak_rss_bytes": 95641600,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-diagnostic-preflight-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 192.04148999415338,
+      "peak_rss_bytes": 95424512,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-diagnostic-preflight-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 192.06766702700406,
+      "peak_rss_bytes": 95449088,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-diagnostic-preflight-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 191.8498839950189,
+      "peak_rss_bytes": 93155328,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-whole-plan-preflight-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 453.8488949765451,
+      "peak_rss_bytes": 113029120,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-whole-plan-preflight-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 455.43532498413697,
+      "peak_rss_bytes": 113881088,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-whole-plan-preflight-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 455.58106200769544,
+      "peak_rss_bytes": 113545216,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-whole-plan-preflight-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 455.3563009831123,
+      "peak_rss_bytes": 113913856,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-check",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "check",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 413,
+      "elapsed_ms": 232.71166603080928,
+      "peak_rss_bytes": 72429568,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-profiles",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "profile",
+        "go",
+        "create",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--default",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1871,
+      "elapsed_ms": 202.0368889789097,
+      "peak_rss_bytes": 72429568,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-tasks",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "tasks",
+        "plan",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 477040,
+      "elapsed_ms": 364.5789439906366,
+      "peak_rss_bytes": 95612928,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-init",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "init",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--target",
+        "go",
+        "--subject",
+        "HomeCinema.MovieNight.ReleaseYear",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1082,
+      "elapsed_ms": 50.927472999319434,
+      "peak_rss_bytes": 72429568,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-status-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1186,
+      "elapsed_ms": 91.51824202854186,
+      "peak_rss_bytes": 87953408,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-status-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1186,
+      "elapsed_ms": 81.24544896418229,
+      "peak_rss_bytes": 87834624,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-status-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1186,
+      "elapsed_ms": 81.33195602567866,
+      "peak_rss_bytes": 88342528,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-status-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "status",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1186,
+      "elapsed_ms": 80.99594799568877,
+      "peak_rss_bytes": 88244224,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-preflight-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 141.6013080161065,
+      "peak_rss_bytes": 93110272,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-preflight-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 141.62307098740712,
+      "peak_rss_bytes": 93212672,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-preflight-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 141.58448902890086,
+      "peak_rss_bytes": 95113216,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-preflight-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 1889,
+      "elapsed_ms": 141.85044902842492,
+      "peak_rss_bytes": 95023104,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-diagnostic-preflight-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 141.87026803847402,
+      "peak_rss_bytes": 93114368,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-diagnostic-preflight-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 141.6737429681234,
+      "peak_rss_bytes": 93184000,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-diagnostic-preflight-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 131.60795002477244,
+      "peak_rss_bytes": 95092736,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-diagnostic-preflight-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--diagnostic",
+        "--json"
+      ],
+      "expected_exit": 0,
+      "stdout_bytes": 1890,
+      "elapsed_ms": 141.85353298671544,
+      "peak_rss_bytes": 95293440,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-whole-plan-preflight-warmup",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 303.11612802324817,
+      "peak_rss_bytes": 113569792,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-whole-plan-preflight-0",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 303.2232830300927,
+      "peak_rss_bytes": 113913856,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-whole-plan-preflight-1",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 303.8376119802706,
+      "peak_rss_bytes": 113807360,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    {
+      "label": "cinema-go-whole-plan-preflight-2",
+      "command": [
+        "/home/held/workspaces/compinion/dctx0ctl/target/release/dctx0",
+        "verify",
+        "preflight",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go/dctx0",
+        "--project",
+        "/home/held/workspaces/compinion/dctx0ctl/target/status-acceptance/20261109T204715.458022Z/cinema-go",
+        "--subject",
+        "HomeCinema.MovieNight",
+        "--json"
+      ],
+      "expected_exit": 1,
+      "stdout_bytes": 6921,
+      "elapsed_ms": 304.8247629776597,
+      "peak_rss_bytes": 112992256,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  ],
+  "measurements": {
+    "cinema/status": {
+      "samples": [
+        {
+          "elapsed_ms": 111.7147239856422,
+          "peak_rss_bytes": 88158208,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 111.65638599777594,
+          "peak_rss_bytes": 88166400,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 111.37212399626151,
+          "peak_rss_bytes": 88748032,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 111.65638599777594,
+      "peak_rss_bytes": 88748032,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema/preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 192.270164960064,
+          "peak_rss_bytes": 95047680,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 192.08442803937942,
+          "peak_rss_bytes": 92995584,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 192.0859099482186,
+          "peak_rss_bytes": 93171712,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 192.0859099482186,
+      "peak_rss_bytes": 95047680,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema/diagnostic-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 192.04148999415338,
+          "peak_rss_bytes": 95424512,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 192.06766702700406,
+          "peak_rss_bytes": 95449088,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 191.8498839950189,
+          "peak_rss_bytes": 93155328,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 192.04148999415338,
+      "peak_rss_bytes": 95449088,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema/whole-plan-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 455.43532498413697,
+          "peak_rss_bytes": 113881088,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 455.58106200769544,
+          "peak_rss_bytes": 113545216,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 455.3563009831123,
+          "peak_rss_bytes": 113913856,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 455.43532498413697,
+      "peak_rss_bytes": 113913856,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/status": {
+      "samples": [
+        {
+          "elapsed_ms": 81.24544896418229,
+          "peak_rss_bytes": 87834624,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 81.33195602567866,
+          "peak_rss_bytes": 88342528,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 80.99594799568877,
+          "peak_rss_bytes": 88244224,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 81.24544896418229,
+      "peak_rss_bytes": 88342528,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 141.62307098740712,
+          "peak_rss_bytes": 93212672,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 141.58448902890086,
+          "peak_rss_bytes": 95113216,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 141.85044902842492,
+          "peak_rss_bytes": 95023104,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 141.62307098740712,
+      "peak_rss_bytes": 95113216,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/diagnostic-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 141.6737429681234,
+          "peak_rss_bytes": 93184000,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 131.60795002477244,
+          "peak_rss_bytes": 95092736,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 141.85353298671544,
+          "peak_rss_bytes": 95293440,
+          "exit_code": 0,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 141.6737429681234,
+      "peak_rss_bytes": 95293440,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    },
+    "cinema-go/whole-plan-preflight": {
+      "samples": [
+        {
+          "elapsed_ms": 303.2232830300927,
+          "peak_rss_bytes": 113913856,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 303.8376119802706,
+          "peak_rss_bytes": 113807360,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        },
+        {
+          "elapsed_ms": 304.8247629776597,
+          "peak_rss_bytes": 112992256,
+          "exit_code": 1,
+          "memory_status": "measured",
+          "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+        }
+      ],
+      "elapsed_ms": 303.8376119802706,
+      "peak_rss_bytes": 113913856,
+      "scope": "unchanged complete Cinema specs; unavailable adapter; no application execution"
+    }
+  },
+  "binary_hash": "57afda584f13fc35e39627431855ac9d42069a5c2478374a1f87fb976158b212",
+  "source_hash_after": "c4ce7edd5216f6a345d56603328ee356f339679392ef92fc94611fc6234e5b7d",
+  "history_retention": "preserve-all"
+}

@@ -66,3 +66,31 @@ fn generated_go_codecs_execute_independent_values_and_failures() {
     };
     assert!(generate_codecs(&declarations, &unsupported, "pin").is_err());
 }
+
+#[test]
+fn go_type_overrides_accept_native_numbers_and_reject_undefined_options() {
+    use dctx0_core::CodecRepresentation;
+    let declarations: BTreeMap<String, DataIr> = serde_json::from_str(include_str!(
+        "../../../fixtures/conformance/codecs/declarations.json"
+    ))
+    .unwrap();
+    for (name, representation, supported) in [
+        ("W.Id", CodecRepresentation::Number, true),
+        ("W.NestedOption", CodecRepresentation::Undefined, false),
+    ] {
+        let options = CodecOptions {
+            types: BTreeMap::from([(name.into(), representation)]),
+            ..Default::default()
+        };
+        assert!(options.validate(&declarations).is_ok());
+        let generated = generate_codecs(&declarations, &options, "pin");
+        assert_eq!(generated.is_ok(), supported, "{name}: {generated:?}");
+        if let Err(error) = generated {
+            assert!(
+                error
+                    .to_string()
+                    .contains("undefined has no Go representation")
+            );
+        }
+    }
+}

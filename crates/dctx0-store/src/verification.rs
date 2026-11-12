@@ -12,6 +12,10 @@ mod summaries;
 pub use context::*;
 pub use maintenance::*;
 pub use summaries::*;
+/// An immutable retention hold grants no testing or task authority. Once linked
+/// to a saved run, publication and GC preserve every detail in that database.
+pub const HISTORY_PRESERVATION_MEDIA_TYPE: &str = "application/vnd.dctx0.history-preservation+json";
+
 pub(crate) const STORAGE_MIGRATION: &str = "
 CREATE TABLE verification_corpora(hash TEXT PRIMARY KEY,bytes BLOB NOT NULL,raw_length INTEGER NOT NULL);
 ALTER TABLE verification_runs ADD COLUMN corpus_hash TEXT REFERENCES verification_corpora(hash);
@@ -133,6 +137,211 @@ fn validate(run: &VerificationRun, artifacts: &[VerificationArtifact]) -> Result
     }
     Ok(())
 }
+
+pub(crate) fn validate_incremental(
+    c: &Connection,
+    project: &str,
+    run: &VerificationRun,
+    artifacts: &[VerificationArtifact],
+) -> Result<Option<String>> {
+    use dctx0_verification::incremental::{self, ExternalInputReceipt, IncrementalProof};
+    fn unique<'a>(
+        artifacts: &'a [VerificationArtifact],
+        media: &str,
+    ) -> Result<Option<&'a VerificationArtifact>> {
+        let mut matching = artifacts.iter().filter(|a| a.reference.media_type == media);
+        let first = matching.next();
+        if matching.next().is_some() {
+            return Err(invalid("Duplicate incremental evidence artifact"));
+        }
+        Ok(first)
+    }
+    let receipt_artifact = unique(artifacts, incremental::INCREMENTAL_INPUTS_MEDIA_TYPE)?;
+    let proof_artifact = unique(artifacts, incremental::INCREMENTAL_PROOF_MEDIA_TYPE)?;
+    if receipt_artifact.is_none() && proof_artifact.is_none() {
+        return Ok(None);
+    }
+    let receipt_artifact = receipt_artifact
+        .ok_or_else(|| invalid("Incremental proof requires an external-input receipt"))?;
+    let receipt: ExternalInputReceipt = serde_json::from_slice(&receipt_artifact.contents)?;
+    let plan_artifact = unique(artifacts, "application/vnd.dctx0.plan+json")?
+        .ok_or_else(|| invalid("Incremental evidence requires a program plan"))?;
+    if plan_artifact.reference.hash != run.provenance.plan_hash {
+        return Err(invalid("Incremental plan is not the run's pinned plan"));
+    }
+    let plan: dctx0_verification::ProgramPlan = serde_json::from_slice(&plan_artifact.contents)?;
+    if plan.snapshot != run.provenance.snapshot
+        || plan.check_occurrence as i64 != run.provenance.check_occurrence
+        || plan.budgets != run.budgets
+        || dctx0_verification::case_manifest(&plan).required_cases != run.required_cases
+        || plan.scope.subjects != run.selected_subjects
+        || plan.closure != run.required_subjects
+    {
+        return Err(invalid("Incremental plan does not match run provenance"));
+    }
+    let units = incremental::receipt_units(&plan, &receipt)
+        .ok_or_else(|| invalid("Invalid deterministic input receipt or units"))?;
+    let Some(proof_artifact) = proof_artifact else {
+        return Ok(None);
+    };
+    let proof: IncrementalProof = serde_json::from_slice(&proof_artifact.contents)?;
+    let parent = codec::read_run(c, project, &proof.parent_run)?;
+    let old = &parent.run;
+    let old_plan_ref = old
+        .artifacts
+        .iter()
+        .find(|a| {
+            a.hash == old.provenance.plan_hash && a.media_type == "application/vnd.dctx0.plan+json"
+        })
+        .ok_or_else(|| invalid("Parent has no pinned program plan"))?;
+    let old_receipts: Vec<_> = old
+        .artifacts
+        .iter()
+        .filter(|a| a.media_type == incremental::INCREMENTAL_INPUTS_MEDIA_TYPE)
+        .collect();
+    if old_receipts.len() != 1 || old_receipts[0] != &receipt_artifact.reference {
+        return Err(invalid("Parent and current input receipts differ"));
+    }
+    let old_plan_artifact = codec::read_artifact(c, &parent.id, &old_plan_ref.hash)?;
+    let old_receipt_artifact = codec::read_artifact(c, &parent.id, &old_receipts[0].hash)?;
+    if old_plan_artifact.reference != *old_plan_ref || old_receipt_artifact != *receipt_artifact {
+        return Err(invalid("Parent incremental artifacts differ"));
+    }
+    let old_plan: dctx0_verification::ProgramPlan =
+        serde_json::from_slice(&old_plan_artifact.contents)?;
+    if old_plan.snapshot != old.provenance.snapshot
+        || old_plan.check_occurrence as i64 != old.provenance.check_occurrence
+        || old_plan.budgets != old.budgets
+        || dctx0_verification::case_manifest(&old_plan).required_cases != old.required_cases
+        || old_plan.scope.subjects != old.selected_subjects
+        || old_plan.closure != old.required_subjects
+        || incremental::receipt_units(&old_plan, &receipt).as_ref() != Some(&units)
+    {
+        return Err(invalid("Parent incremental plan or units differ"));
+    }
+    const APP_RECEIPT: &str = "application/vnd.dctx0.application-native-receipt+json";
+    let current_app = unique(artifacts, APP_RECEIPT)?;
+    let old_app: Vec<_> = old
+        .artifacts
+        .iter()
+        .filter(|a| a.media_type == APP_RECEIPT)
+        .collect();
+    let application_protocol =
+        dctx0_verification::application_evidence::APPLICATION_EXECUTION_PROTOCOL_VERSION;
+    let old_application = old.provenance.protocol_version == application_protocol;
+    let current_application = run.provenance.protocol_version == application_protocol;
+    let (prior, current) = if !old_application && !current_application {
+        (
+            incremental::binding(
+                &old_plan,
+                old.provenance.clone(),
+                receipt_artifact.reference.hash.clone(),
+            )?,
+            incremental::binding(
+                &plan,
+                run.provenance.clone(),
+                receipt_artifact.reference.hash.clone(),
+            )?,
+        )
+    } else {
+        match (
+            old_application,
+            current_application,
+            old_app.as_slice(),
+            current_app,
+        ) {
+            (true, true, [old_ref], Some(current_app)) => {
+                let old_app = codec::read_artifact(c, &parent.id, &old_ref.hash)?;
+                if old_app.reference != **old_ref {
+                    return Err(invalid(
+                        "Parent application receipt differs from its reference",
+                    ));
+                }
+                let bundle_media =
+                    dctx0_verification::application_reuse::APPLICATION_BUNDLE_MEDIA_TYPE;
+                let current_bundle = unique(artifacts, bundle_media)?;
+                let old_bundles: Vec<_> = old
+                    .artifacts
+                    .iter()
+                    .filter(|a| a.media_type == bundle_media)
+                    .collect();
+                let (prior, current) = match (old_bundles.as_slice(), current_bundle) {
+                    ([], None) => (
+                        dctx0_verification::application_reuse::binding(
+                            &old_plan,
+                            old,
+                            receipt_artifact.reference.hash.clone(),
+                            &old_app.contents,
+                        ),
+                        dctx0_verification::application_reuse::binding(
+                            &plan,
+                            run,
+                            receipt_artifact.reference.hash.clone(),
+                            &current_app.contents,
+                        ),
+                    ),
+                    ([old_bundle_ref], Some(current_bundle)) => {
+                        let old_bundle = codec::read_artifact(c, &parent.id, &old_bundle_ref.hash)?;
+                        if old_bundle.reference != **old_bundle_ref {
+                            return Err(invalid(
+                                "Parent application bundle differs from its reference",
+                            ));
+                        }
+                        (
+                            dctx0_verification::application_reuse::binding_with_bundle(
+                                &old_plan,
+                                old,
+                                receipt_artifact.reference.hash.clone(),
+                                &old_app.contents,
+                                &old_bundle.contents,
+                            ),
+                            dctx0_verification::application_reuse::binding_with_bundle(
+                                &plan,
+                                run,
+                                receipt_artifact.reference.hash.clone(),
+                                &current_app.contents,
+                                &current_bundle.contents,
+                            ),
+                        )
+                    }
+                    _ => {
+                        return Err(invalid(
+                            "Application bundle receipts must be present exactly once on both incremental runs",
+                        ));
+                    }
+                };
+                let prior = prior.ok_or_else(|| {
+                    invalid("Parent application receipt does not bind its provenance")
+                })?;
+                let current = current.ok_or_else(|| {
+                    invalid("Current application receipt does not bind its provenance")
+                })?;
+                (prior, current)
+            }
+            _ => {
+                return Err(invalid(
+                    "Application receipts must be present exactly once on both incremental runs",
+                ));
+            }
+        }
+    };
+    if proof.plan.reused.is_empty()
+        || !incremental::validate_proof_projected(
+            &proof,
+            &parent.id,
+            &prior,
+            &current,
+            old,
+            &units,
+            run,
+            &old.provenance,
+            &run.provenance,
+        )
+    {
+        return Err(invalid("Invalid incremental proof or copied case evidence"));
+    }
+    Ok(Some(parent.id))
+}
 pub(crate) fn register_parents(
     c: &Connection,
     project: &str,
@@ -221,6 +430,13 @@ impl Store {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let incremental_parent = validate_incremental(&tx, project, run, artifacts)?;
+        if incremental_parent
+            .as_deref()
+            .is_some_and(|p| parent.is_some_and(|given| given != p))
+        {
+            return Err(invalid("Incremental proof conflicts with supplied parent"));
+        }
         let check: Option<(String, Option<String>, String)> = tx
             .query_row(
                 "SELECT project,snapshot_id,status FROM checks WHERE id=?1",
@@ -297,7 +513,13 @@ impl Store {
             )?;
         }
         cases::store(&tx, &id, run)?;
-        register_parents(&tx, project, &id, artifacts, parent)?;
+        register_parents(
+            &tx,
+            project,
+            &id,
+            artifacts,
+            incremental_parent.as_deref().or(parent),
+        )?;
         maintenance::prune(&tx, project)?;
         tx.commit()?;
         let created_at = self.connection.query_row(

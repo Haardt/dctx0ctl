@@ -192,21 +192,36 @@ impl Evaluator<'_> {
                         "Actual collaborator calls were not observed",
                     )
                 })?;
-                if !self.ir.operations.contains_key(target) {
-                    return Err(self.issue(
-                        e,
-                        "TRACE_TARGET",
-                        "Call trace has no declared operation",
-                    ));
-                }
+                let operation = self.ir.operations.get(target).ok_or_else(|| {
+                    self.issue(e, "TRACE_TARGET", "Call trace has no declared operation")
+                })?;
                 for call in calls {
                     self.trace_step(e)?;
+                    if call.invocation.subject.as_str() == target && values.is_empty() {
+                        if call.invocation.arguments.len() != operation.parameters.len() {
+                            return Err(self.bad(e, "Observed call has wrong argument count"));
+                        }
+                        for (parameter, actual) in
+                            operation.parameters.iter().zip(&call.invocation.arguments)
+                        {
+                            match check_value(self.ir, &parameter.ty, actual, self.budgets) {
+                                ValueContract::Accepted => {}
+                                ValueContract::Rejected { .. } => {
+                                    return Err(self.bad(e, "Observed call has invalid argument"));
+                                }
+                                ValueContract::Unknown { issue } => {
+                                    return Err(Evaluation::Unknown(issue));
+                                }
+                            }
+                        }
+                    }
                     if call.invocation.subject.as_str() == target
-                        && self.equal(
-                            e,
-                            &V::List(call.invocation.arguments.clone()),
-                            &V::List(values.clone()),
-                        )?
+                        && (values.is_empty()
+                            || self.equal(
+                                e,
+                                &V::List(call.invocation.arguments.clone()),
+                                &V::List(values.clone()),
+                            )?)
                     {
                         actual += 1;
                     }

@@ -23,7 +23,13 @@ mod rename;
 mod self_verification;
 mod tasks;
 pub use self_verification::*;
+mod application_library;
+mod application_test_junit;
+mod application_testing;
+pub use application_library::{ApplicationLibraryPublication, publish_application_test_library};
+mod application_testing_service;
 mod verification;
+pub use application_testing::*;
 mod verification_gc;
 pub use verification_gc::VerificationMaintenanceReport;
 mod verification_complete;
@@ -49,11 +55,14 @@ use std::{
 pub use verification::VerificationSelection;
 pub use verification_discovery::*;
 pub use verification_run::{
-    AdoptionPreviewTask, BindingTestPin, BindingTestReport, InspectedVerificationReport,
-    NativeVerificationReport, ProjectStatus, ReplayChange, ReviewChangesReport, StatusCause,
-    StatusProgress, StatusRun, StatusRunSummary, StatusTaskCounts, TaskAttestation,
-    VerificationAdoptionPreview, VerificationIntent, VerificationLifecycleFixtures,
-    VerificationPreflight, VerificationPreflightPin, VerificationReplayReport,
+    AdoptionPreviewTask, ApplicationNativeLimits, ApplicationNativePhase, ApplicationNativeRecipe,
+    ApplicationNativeReport, ApplicationNativeRuntime, BindingTestPin, BindingTestReport,
+    HybridVerificationOptions, IncrementalComparison, InspectedVerificationReport,
+    NativeReuseOptions, NativeReuseSummary, NativeVerificationReport, ProjectStatus, ReplayChange,
+    ReviewChangesReport, StatusCause, StatusProgress, StatusRun, StatusRunSummary,
+    StatusTaskCounts, TaskAttestation, VerificationAdoptionPreview, VerificationIncrementalReport,
+    VerificationIntent, VerificationLifecycleFixtures, VerificationPreflight,
+    VerificationPreflightPin, VerificationReplayReport,
 };
 pub use verification_setup::*;
 

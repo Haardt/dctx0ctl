@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Couple research checks with six release speed/RSS workloads; never promote a baseline."""
+import history_retention
 import argparse
 import datetime
 import hashlib
@@ -170,9 +171,8 @@ def main():
     HISTORY.mkdir(parents=True, exist_ok=True)
     with validate.locked():
         destination = HISTORY / f'{stamp}-{os.getpid()}.json'
-        validate.atomic(destination, report)
-        for old in sorted(HISTORY.glob('*.json'))[:-20]:
-            old.unlink()
+        validate.atomic(destination, history_retention.mark(report))
+        history_retention.prune(HISTORY)
     print(destination, flush=True)
     return 0 if report['status'] == 'complete' else 1
 

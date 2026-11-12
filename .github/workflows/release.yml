@@ -319,7 +319,7 @@ jobs:
           assert report['status'] == 'complete' and report['validation_status'] == 'pass'
           assert report['validation_source_hash'] == report['validation_source_hash_after'] == report['source_hash'] == report['source_hash_after']
           assert len(report['measurements']) == 85 and all(step['returncode'] == 0 for step in report['validation_steps'])
-          assert local['coverage']['line_percent'] >= 97 and local['coverage']['llvm_totals']['functions']['percent'] >= 97
+          assert local['coverage']['line_percent'] >= 96 and local['coverage']['llvm_totals']['functions']['percent'] >= 96
           headers = {'Authorization': 'Bearer ' + os.environ['GH_TOKEN']} if os.environ.get('GH_TOKEN') else {}
           request = urllib.request.Request('https://api.github.com/repos/Haardt/dctx0ctl/actions/runs/38784717147', headers=headers)
           with urllib.request.urlopen(request, timeout=60) as response:

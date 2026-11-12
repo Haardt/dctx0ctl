@@ -20,6 +20,7 @@ pub struct VerificationReplayReport {
 fn only(
     plan: &mut ProgramPlan,
     case: &VerificationCaseRecord,
+    ir: Option<&dctx0_core::WorkspaceIr>,
 ) -> Result<VerificationLifecycleFixtures> {
     let mut lifecycles = VerificationLifecycleFixtures::default();
     plan.scope.subjects = BTreeSet::from([case.subject.clone()]);
@@ -193,10 +194,7 @@ fn only(
                 .first_mut()
                 .ok_or_else(|| Error::Invalid("Saved operation is absent from its plan".into()))?;
             if let Some(input) = operation.cases.iter().find(|c| c.id == case.id).cloned() {
-                if input.setup != case.setup
-                    || case.arguments != vec![input.invocation.arguments.clone()]
-                    || !case.bindings.is_empty()
-                {
+                if !record_matches_input(ir, &input, case) || !case.bindings.is_empty() {
                     return Err(Error::Invalid(
                         "Saved operation input differs from its plan".into(),
                     ));
@@ -214,12 +212,20 @@ fn only(
                     .iter()
                     .map(|parameter| case.bindings.get(&parameter.name).cloned())
                     .collect::<Option<Vec<_>>>();
+                let input = dctx0_verification::OperationCaseInput {
+                    id: case.id.clone(),
+                    invocation: Invocation {
+                        subject: case.subject.clone(),
+                        arguments: arguments.clone().unwrap_or_default(),
+                    },
+                    setup: operation.generated_setup(&case.bindings),
+                    argument_bindings: operation.generated_argument_bindings(&case.bindings),
+                    mocks: vec![],
+                };
                 if index.and_then(|index| operation.inputs.bindings.get(index))
                     != Some(&case.bindings)
-                    || case.setup != operation.generated_setup(&case.bindings)
-                    || arguments
-                        .as_ref()
-                        .is_none_or(|arguments| case.arguments != vec![arguments.clone()])
+                    || arguments.is_none()
+                    || !record_matches_input(ir, &input, case)
                 {
                     return Err(Error::Invalid(
                         "Saved generated operation input differs from its plan".into(),
@@ -266,6 +272,96 @@ fn only(
     }
     Ok(lifecycles)
 }
+// A failed setup may leave a managed template record without a final observation.
+// Resolved application records must be independently reconstructed from observations.
+fn record_matches_input(
+    ir: Option<&dctx0_core::WorkspaceIr>,
+    input: &dctx0_verification::OperationCaseInput,
+    case: &VerificationCaseRecord,
+) -> bool {
+    if case.setup == input.setup && case.arguments == vec![input.invocation.arguments.clone()] {
+        return true;
+    }
+    ir.and_then(|ir| dctx0_verification::recorded_operation_invocation(ir, input, case))
+        .is_some()
+}
+// Replay must keep the executed backend. A native-owned observation cannot
+// become evidence of an adapter call merely because both use the same case ID.
+fn require_adapter_replay_owner(
+    store: &dctx0_store::Store,
+    run_id: &str,
+    run: &VerificationRun,
+    plan: &ProgramPlan,
+    case: &VerificationCaseRecord,
+) -> Result<()> {
+    if run.provenance.protocol_version
+        == dctx0_verification::application_evidence::APPLICATION_EXECUTION_PROTOCOL_VERSION
+    {
+        return Err(Error::Invalid(
+            "Application-owned cases require verify application-tests replay with the saved native group report".into(),
+        ));
+    }
+    let proofs = run
+        .artifacts
+        .iter()
+        .filter(|artifact| {
+            artifact.media_type == dctx0_verification::hybrid_evidence::HYBRID_EXECUTION_MEDIA_TYPE
+        })
+        .collect::<Vec<_>>();
+    if proofs.is_empty() {
+        return Ok(());
+    }
+    let [reference] = proofs.as_slice() else {
+        return Err(Error::Invalid(
+            "Hybrid replay ownership proof is ambiguous".into(),
+        ));
+    };
+    let artifact = store.verification_artifact(run_id, &reference.hash)?;
+    if artifact.reference != **reference {
+        return Err(Error::Invalid(
+            "Hybrid replay ownership artifact is invalid".into(),
+        ));
+    }
+    let proof: dctx0_verification::hybrid_evidence::HybridExecutionProof =
+        serde_json::from_slice(&artifact.contents)?;
+    if proof.application.plan.program != *plan {
+        return Err(Error::Invalid(
+            "Hybrid replay ownership does not match its saved program".into(),
+        ));
+    }
+    let owner = proof
+        .application
+        .plan
+        .case_groups
+        .get(&case.id)
+        .ok_or_else(|| Error::Invalid("Saved hybrid case has no assigned backend".into()))?;
+    if owner == &proof.application.assessment.group {
+        return Err(Error::Invalid(format!(
+            "Application-owned case requires verify application-tests replay for group {} with its saved native report",
+            proof.application.assessment.group,
+        )));
+    }
+    if owner != &proof.adapter_group {
+        return Err(Error::Invalid(
+            "Saved hybrid case has an unknown backend".into(),
+        ));
+    }
+    if case.kind == VerificationCaseKind::EntityIdentity {
+        if let Some(VerificationValue::List(sources)) = case.bindings.get("source_cases") {
+            if sources.iter().any(|source| {
+                matches!(source, VerificationValue::String(id)
+                    if proof.application.plan.case_groups.get(id.as_ref())
+                        == Some(&proof.application.assessment.group))
+            }) {
+                return Err(Error::Invalid(
+                    "Cross-group identity replay requires a fresh complete hybrid execution; source cases must retain their assigned backends".into(),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 impl Project {
     pub async fn replay_verification(
         &self,
@@ -330,7 +426,9 @@ impl Project {
                 ));
             }
         }
-        let mut lifecycles = only(&mut plan, case)?;
+        require_adapter_replay_owner(&store, run_id, &original.run, &plan, case)?;
+        let snapshot = self.load(&plan.snapshot)?;
+        let mut lifecycles = only(&mut plan, case, Some(&snapshot.ir))?;
         if minimized && case.kind == VerificationCaseKind::Lifecycle {
             let mut selected = None;
             for reference in &original.run.artifacts {
@@ -599,6 +697,84 @@ impl Project {
 mod tests {
     use super::*;
     #[test]
+    fn entity_identity_replay_requires_declared_key_and_pinned_source_cases() {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "w.dctx0".into(),
+            text: "workspace W { value Number = Int { range 1..2 } entity Row { id:Number\nvalue:Number\nkey id } port Store { operation put(row:Row) -> Row { state upserts Row from row\nensures result == row } } }".into(),
+        }]);
+        assert!(
+            compiled.diagnostics.is_empty(),
+            "{:?}",
+            compiled.diagnostics
+        );
+        let plan = dctx0_verification::project_program(
+            &compiled.ir.unwrap(),
+            "snapshot",
+            1,
+            dctx0_verification::VerificationScope {
+                subjects: ["W.Row".into(), "W.Store.put".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let operation = plan
+            .operations
+            .iter()
+            .find(|op| op.operation.id == "W.Store.put")
+            .unwrap();
+        assert!(!operation.inputs.bindings.is_empty());
+        let source_id = format!("{}:operation:0", operation.operation.id);
+        let mut case = VerificationCaseRecord {
+            id: "W.Row:identity".into(),
+            subject: "W.Row".into(),
+            kind: VerificationCaseKind::EntityIdentity,
+            bindings: Default::default(),
+            setup: vec![],
+            arguments: vec![],
+            observations: vec![],
+            events: None,
+            resources: None,
+            states: vec![],
+            result: VerificationResult::Pass,
+            elapsed_us: 0,
+        };
+        let check = |case: &VerificationCaseRecord, text: &str| {
+            let error = only(&mut plan.clone(), case, None).unwrap_err();
+            assert!(error.to_string().contains(text), "{error}");
+        };
+        let mut absent = case.clone();
+        absent.subject = "W.Missing".into();
+        check(&absent, "absent from its plan");
+        let mut wrong_id = case.clone();
+        wrong_id.id = "W.Row:identity:extra".into();
+        check(&wrong_id, "no declared key requirement");
+        check(&case, "source cases are missing");
+        case.bindings
+            .insert("source_cases".into(), VerificationValue::Unit);
+        check(&case, "source cases are missing");
+        for values in [vec![], vec![VerificationValue::Boolean(true)]] {
+            case.bindings
+                .insert("source_cases".into(), VerificationValue::List(values));
+            check(&case, "source cases are invalid");
+        }
+        case.bindings.insert(
+            "source_cases".into(),
+            VerificationValue::List(vec![VerificationValue::String(
+                "W.Store.put:operation:999".into(),
+            )]),
+        );
+        check(&case, "absent from the pinned plan");
+        case.bindings.insert(
+            "source_cases".into(),
+            VerificationValue::List(vec![VerificationValue::String(source_id.into())]),
+        );
+        let mut selected = plan.clone();
+        assert!(only(&mut selected, &case, None).unwrap().paths.is_empty());
+        assert_eq!(selected.contracts.len(), 1);
+        assert_eq!(selected.operations.len(), 1);
+    }
+    #[test]
     fn cinema_assertion_and_example_replay_bindings_are_pinned_and_isolate_one_subject() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/cinema/dctx0");
         let sources = ["workspace.dctx0", "movie-night.dctx0"].map(|file| Source {
@@ -654,7 +830,7 @@ mod tests {
                 elapsed_us: 0,
             };
             let mut selected = plan.clone();
-            assert!(only(&mut selected, &case).unwrap().paths.is_empty());
+            assert!(only(&mut selected, &case, None).unwrap().paths.is_empty());
             assert_eq!(selected.scope.subjects, [subject].into());
             assert!(
                 selected.contracts.is_empty()
@@ -672,13 +848,13 @@ mod tests {
                 let mut renamed = case.clone();
                 renamed.id.push_str(":other");
                 assert!(
-                    matches!(only(&mut plan.clone(), &renamed), Err(Error::Invalid(message)) if message.contains("case ID differs"))
+                    matches!(only(&mut plan.clone(), &renamed, None), Err(Error::Invalid(message)) if message.contains("case ID differs"))
                 );
             }
             case.bindings
                 .insert("__corrupt_binding__".into(), VerificationValue::Unit);
             assert!(
-                matches!(only(&mut plan.clone(), &case), Err(Error::Invalid(message)) if message.contains("bindings differ"))
+                matches!(only(&mut plan.clone(), &case, None), Err(Error::Invalid(message)) if message.contains("bindings differ"))
             );
         }
         let fixtures: VerificationLifecycleFixtures = serde_json::from_slice(
@@ -702,7 +878,7 @@ mod tests {
                 elapsed_us: 0,
             };
             let mut selected = plan.clone();
-            let replayed = only(&mut selected, &case).unwrap();
+            let replayed = only(&mut selected, &case, None).unwrap();
             assert_eq!(replayed.paths[&path.id], *input);
             assert_eq!(selected.lifecycles.len(), 1);
             assert_eq!(selected.lifecycles[0].paths.len(), 1);
@@ -722,7 +898,7 @@ mod tests {
                     case.bindings.insert("keys".into(), keys);
                 }
                 assert!(
-                    matches!(only(&mut plan.clone(), &case), Err(Error::Invalid(message)) if message.contains("lifecycle keys are missing"))
+                    matches!(only(&mut plan.clone(), &case, None), Err(Error::Invalid(message)) if message.contains("lifecycle keys are missing"))
                 );
             }
         }
@@ -765,7 +941,7 @@ mod tests {
             elapsed_us: 0,
         };
         let mut selected = plan.clone();
-        assert!(only(&mut selected, &case).unwrap().paths.is_empty());
+        assert!(only(&mut selected, &case, None).unwrap().paths.is_empty());
         assert_eq!(
             selected.operations[0].inputs.bindings,
             vec![case.bindings.clone()]
@@ -786,7 +962,7 @@ mod tests {
                 _ => corrupt.id = "W.Api.calculate:operation:invalid".into(),
             }
             assert!(
-                matches!(only(&mut plan.clone(), &corrupt), Err(Error::Invalid(message)) if message.contains("differs from its plan")),
+                matches!(only(&mut plan.clone(), &corrupt, None), Err(Error::Invalid(message)) if message.contains("differs from its plan")),
                 "Corruption {corruption} must never reach native execution"
             );
         }
@@ -816,6 +992,7 @@ mod tests {
         }];
         plan.operations[0].generated_preparations =
             vec![dctx0_verification::GeneratedPreparation {
+                argument_bindings: vec![],
                 bindings: bindings.clone(),
                 setup: setup.clone(),
             }];
@@ -834,13 +1011,52 @@ mod tests {
             elapsed_us: 0,
         };
         let mut selected = plan.clone();
-        only(&mut selected, &case).unwrap();
+        only(&mut selected, &case, None).unwrap();
         assert_eq!(
             selected.operations[0].generated_setup(&case.bindings),
             case.setup
         );
         case.setup.clear();
-        assert!(only(&mut plan.clone(), &case).is_err());
+        assert!(only(&mut plan.clone(), &case, None).is_err());
+
+        // Application sessions record actual resolved arguments; replay keeps
+        // the reviewed template and dataflow, not that prior runtime ID.
+        let setup = plan.operations[0].generated_preparations[0].setup[0].clone();
+        let actual = VerificationValue::Integer("73".into());
+        let binding = dctx0_verification::OperationArgumentBinding {
+            setup: 0,
+            source_path: vec![],
+            target_setup: None,
+            parameter: "input".into(),
+            target_path: vec![],
+        };
+        plan.operations[0].generated_preparations[0].argument_bindings = vec![binding.clone()];
+        let final_call = Invocation {
+            subject: case.subject.clone(),
+            arguments: vec![actual.clone()],
+        };
+        case.setup = vec![setup.clone()];
+        case.arguments = vec![vec![actual.clone()]];
+        case.observations = vec![
+            InvocationObservation {
+                invocation: setup,
+                observation: Observation::Returned {
+                    value: actual.clone(),
+                },
+            },
+            InvocationObservation {
+                invocation: final_call,
+                observation: Observation::Returned { value: actual },
+            },
+        ];
+        let mut selected = plan.clone();
+        only(&mut selected, &case, Some(&ir)).unwrap();
+        assert_eq!(
+            selected.operations[0].generated_argument_bindings(&case.bindings),
+            vec![binding]
+        );
+        case.arguments[0][0] = VerificationValue::Integer("74".into());
+        assert!(only(&mut plan.clone(), &case, Some(&ir)).is_err());
     }
     #[test]
     fn reviewed_operation_replay_keeps_setup_and_rejects_extra_bindings() {
@@ -898,7 +1114,7 @@ mod tests {
                 mocks: vec![],
             });
         let mut selected = plan.clone();
-        assert!(only(&mut selected, &case).unwrap().paths.is_empty());
+        assert!(only(&mut selected, &case, None).unwrap().paths.is_empty());
         assert_eq!(selected.operations[0].cases.len(), 1);
         assert_eq!(selected.operations[0].cases[0].setup, case.setup);
         assert!(selected.operations[0].inputs.bindings.is_empty());
@@ -914,7 +1130,7 @@ mod tests {
                 }
             }
             assert!(
-                matches!(only(&mut plan.clone(), &corrupt), Err(Error::Invalid(message)) if message.contains("Saved operation input differs"))
+                matches!(only(&mut plan.clone(), &corrupt, None), Err(Error::Invalid(message)) if message.contains("Saved operation input differs"))
             );
         }
     }
@@ -951,7 +1167,7 @@ mod tests {
             elapsed_us: 0,
         };
         assert!(
-            matches!(only(&mut plan, &case), Err(Error::Invalid(message)) if message.contains("absent from its plan"))
+            matches!(only(&mut plan, &case, None), Err(Error::Invalid(message)) if message.contains("absent from its plan"))
         );
     }
     #[test]
@@ -994,7 +1210,7 @@ mod tests {
                 elapsed_us: 0,
             };
             assert!(matches!(
-                only(&mut plan.clone(), &case),
+                only(&mut plan.clone(), &case, None),
                 Err(Error::Invalid(_))
             ));
         }
@@ -1013,7 +1229,7 @@ mod tests {
             elapsed_us: 0,
         };
         assert!(
-            matches!(only(&mut plan.clone(), &case), Err(Error::Invalid(message)) if message.contains("input is missing"))
+            matches!(only(&mut plan.clone(), &case, None), Err(Error::Invalid(message)) if message.contains("input is missing"))
         );
         case.bindings
             .insert("value".into(), plan.contracts[0].corpus.values[0].clone());
@@ -1027,7 +1243,7 @@ mod tests {
                 case.bindings.insert("expect_rejection".into(), marker);
             }
             assert!(
-                matches!(only(&mut plan.clone(), &case), Err(Error::Invalid(message)) if message.contains("rejection marker"))
+                matches!(only(&mut plan.clone(), &case, None), Err(Error::Invalid(message)) if message.contains("rejection marker"))
             );
         }
         case.bindings
@@ -1035,7 +1251,7 @@ mod tests {
         case.bindings
             .insert("value".into(), VerificationValue::Integer("999".into()));
         assert!(
-            matches!(only(&mut plan.clone(), &case), Err(Error::Invalid(message)) if message.contains("differs from its pinned plan"))
+            matches!(only(&mut plan.clone(), &case, None), Err(Error::Invalid(message)) if message.contains("differs from its pinned plan"))
         );
         case.bindings
             .insert("value".into(), plan.contracts[0].corpus.values[0].clone());
@@ -1048,11 +1264,11 @@ mod tests {
             let mut corrupt = case.clone();
             corrupt.id = changed_id.into();
             assert!(
-                matches!(only(&mut plan.clone(), &corrupt), Err(Error::Invalid(message)) if message.contains("differs from its pinned plan"))
+                matches!(only(&mut plan.clone(), &corrupt, None), Err(Error::Invalid(message)) if message.contains("differs from its pinned plan"))
             );
         }
         let mut selected = plan.clone();
-        assert!(only(&mut selected, &case).unwrap().paths.is_empty());
+        assert!(only(&mut selected, &case, None).unwrap().paths.is_empty());
         assert_eq!(
             selected.contracts[0].corpus.values,
             vec![case.bindings["value"].clone()]
@@ -1066,7 +1282,7 @@ mod tests {
             plan.contracts[0].rejection_corpus.values[0].clone(),
         );
         let mut selected = plan.clone();
-        assert!(only(&mut selected, &case).unwrap().paths.is_empty());
+        assert!(only(&mut selected, &case, None).unwrap().paths.is_empty());
         assert!(selected.contracts[0].corpus.values.is_empty());
         assert_eq!(
             selected.contracts[0].rejection_corpus.values,

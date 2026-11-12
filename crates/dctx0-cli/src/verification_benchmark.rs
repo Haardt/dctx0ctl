@@ -11,6 +11,44 @@ pub(crate) fn benchmark(
     files: usize,
     output: &mut dyn Write,
 ) -> Result<bool, String> {
+    if matches!(phase, Phase::ApplicationTestPlan) {
+        use dctx0_verification::application_plan::*;
+        let plan = dctx0_verification::project_program(
+            ir,
+            "benchmark-only",
+            1,
+            VerificationScope {
+                subjects: [ir.workspace.clone()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let configuration = ApplicationTestConfiguration {
+            schema_version: APPLICATION_TEST_CONFIGURATION_VERSION,
+            groups: vec![ExecutionGroup {
+                id: "reference-adapter".into(),
+                backend: TestBackend::Adapter,
+                target: "go".into(),
+                selection: ["reference".into()].into(),
+                area: TestArea {
+                    cases: dctx0_verification::case_manifest(&plan).required_cases,
+                    requirements: Default::default(),
+                },
+                resources: GroupResources {
+                    namespace: "reference".into(),
+                    timeout_seconds: 60,
+                    max_message_bytes: 1_048_576,
+                },
+            }],
+        };
+        let start = std::time::Instant::now();
+        for _ in 0..iterations {
+            std::hint::black_box(application_test_plan(&plan, &configuration, &[]))
+                .map_err(|issues| format!("Application plan benchmark: {issues:?}"))?;
+        }
+        return benchmark_report(output, start, iterations, files);
+    }
     if matches!(phase, Phase::VerificationBindingsPlan) {
         let plan = dctx0_verification::project_program(
             ir,

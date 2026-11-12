@@ -1,6 +1,6 @@
 ---
 name: dctx0-implementation
-description: Implement or repair dctx0 task requirements and testing-only adapters using pinned task context, editable profiles and actual native verification.
+description: Build dctx0 application-test connections to real production code, retain legacy adapters in mixed projects, and repair requirements using current native evidence.
 ---
 
 # dctx0 implementation
@@ -9,8 +9,12 @@ Start from the supplied task or the user's explicit application scope. Read
 `tasks show`, required paginated `tasks context`, actual prerequisites and the
 selected profiles before editing. Inspect relevant command help; do not translate
 old Runatron task envelopes or tool names into invented Rust commands.
-Read [references/implementation.md](references/implementation.md) for target and
-evidence details when implementing adapters or interpreting incomplete verification.
+For new Go or TypeScript/Bun connections, read
+[application tests](references/application-tests.md): native test ownership,
+direct calls, fixtures, observers, recipes and hybrid execution. Keep existing
+adapter scopes compatible; migration is explicit and can be partial.
+Read [legacy adapters](references/implementation.md) when maintaining the
+existing worker interface or its representation codecs.
 For project configuration and resource-limit diagnosis, use `$dctx0-config` when
 available; keep configuration changes distinct from implementation repairs.
 
@@ -30,7 +34,7 @@ expand a task to unrelated application changes. Ask only for genuinely missing
 requirements or authorization not already supplied by the user.
 
 Production uses its own types, frameworks, files and constructors. It imports no
-dctx0 runtime, spec or generated harness. A reviewed testing-only adapter calls
+dctx0 runtime, spec or generated harness. A testing-only connection calls
 actual production, translates representations, creates/cleans sessions and
 replaces declared collaborators through real dependency boundaries. Do not rebuild
 business logic or constant expected responses inside the adapter.

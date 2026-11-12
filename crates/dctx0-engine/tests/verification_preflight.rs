@@ -302,6 +302,16 @@ fn authored_pass_and_done_without_pass_remain_distinct_from_current_native_evide
     assert_eq!(status.tasks.evidence_current, 0);
     assert_eq!(status.tasks.evidence_unknown, 1);
     assert_eq!(status.progress.unwrap().newly_done, 1);
+    f.project.task_action(Action::RecordCheck { task: id, evidence: CheckEvidence {
+        requirements_hash: member.candidate.requirements_hash.clone(), implementation: "authored-revision".into(),
+        verifier: "dctx0-inspected-verifier".into(), verifier_version: "forged".into(), command: "manual".into(),
+        started_at: "1".into(), finished_at: "2".into(),
+        report: serde_json::json!({"basis":"INSPECTED + actual native", "native_run":"missing", "inspection_artifact":"missing"}).to_string(),
+        status: CheckStatus::Pass,
+    }}).unwrap();
+    let forged = f.project.status(Some(&f.app), None).unwrap();
+    assert_eq!(forged.tasks.evidence_unknown, 1);
+    assert_eq!(forged.tasks.inspected_current, 0);
 }
 
 #[tokio::test]
@@ -650,4 +660,89 @@ fn lifecycle_inputs_and_explicit_missing_bindings_are_reported_without_runtime_e
     );
     assert_eq!(before, fs::read(&f.project.database).unwrap());
     assert!(f.project.verification_history(0, 20).unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn fabricated_native_check_without_publication_link_is_unknown() {
+    use dctx0_tasks::{Action, CheckEvidence, CheckStatus, TaskResult};
+    let f = Fixture::new(SPEC, "W.A");
+    fs::write(f.app.join("app.ts"), "export function factory(n){if(!Number.isInteger(n)||n<1||n>2)throw Error('invalid');return n;}").unwrap();
+    fs::write(f.app.join(".dctx0/testing/typescript/adapter.ts"), ADAPTER).unwrap();
+    f.prepare();
+    let before = f.project.task_session(None, None).unwrap();
+    let member = &before.plan.members[0];
+    let id = member.task_id;
+    let native = f
+        .project
+        .run_verification(
+            Some(&f.app),
+            Default::default(),
+            &BunHarness,
+            &NativeCancellation::default(),
+            true,
+        )
+        .await
+        .unwrap();
+    assert!(native.adopted_tasks.is_empty());
+    let run = &native.evidence.run;
+    let identities = run
+        .artifacts
+        .iter()
+        .filter(|a| {
+            matches!(
+                a.media_type.as_str(),
+                "application/vnd.dctx0.verifier-identity+json"
+                    | "application/vnd.dctx0.runtime-identity+json"
+                    | "application/vnd.dctx0.assessment-version+json"
+                    | "application/vnd.dctx0.native-limits+json"
+                    | "application/vnd.dctx0.dependency-resolution-limits+json"
+            )
+        })
+        .map(|a| (&a.media_type, &a.hash))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let implementation = dctx0_changes::hash(&(&run.provenance, identities));
+    let started = f
+        .project
+        .task_action(Action::Start {
+            task: id,
+            actor: "author".into(),
+            reservation: None,
+        })
+        .unwrap()
+        .state
+        .unwrap();
+    f.project
+        .task_action(Action::Complete {
+            task: id,
+            actor: "author".into(),
+            claim: started.claim.unwrap(),
+            version: started.version,
+            result: TaskResult {
+                summary: "Manual result".into(),
+                artifacts: vec!["app.ts".into()],
+                decisions: vec![],
+                implementation: Some(implementation.clone()),
+            },
+        })
+        .unwrap();
+    f.project
+        .task_action(Action::RecordCheck {
+            task: id,
+            evidence: CheckEvidence {
+                requirements_hash: member.candidate.requirements_hash.clone(),
+                implementation,
+                verifier: "dctx0-native-verifier".into(),
+                verifier_version: "forged".into(),
+                command: "manual".into(),
+                started_at: "1".into(),
+                finished_at: "2".into(),
+                report: native.evidence.id,
+                status: CheckStatus::Pass,
+            },
+        })
+        .unwrap();
+    let status = f.project.status(Some(&f.app), None).unwrap();
+    assert_eq!(status.tasks.done_pass, 1);
+    assert_eq!(status.tasks.evidence_current, 0);
+    assert_eq!(status.tasks.evidence_unknown, 1);
 }

@@ -62,7 +62,17 @@ pub(super) fn prefix_witnesses(
             if prefix.len().saturating_add(padding) > budgets.value_bytes.saturating_sub(32) {
                 continue;
             }
-            values.push(V::String(format!("{prefix}{}", "x".repeat(padding)).into()));
+            // Canonical reviewed form: a sha256 image digest is exactly 64
+            // lowercase hex digits, so this witness uses that alphabet instead of
+            // the neutral filler that production would reject.
+            let filler = if prefix == "sha256:" {
+                (0..padding)
+                    .map(|index| b"0123456789abcdef"[index % 16] as char)
+                    .collect::<String>()
+            } else {
+                "x".repeat(padding)
+            };
+            values.push(V::String(format!("{prefix}{filler}").into()));
         }
     }
     values

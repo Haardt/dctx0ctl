@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Compare a compacted copy with a consistent old-schema reference, including speed/RSS."""
+import history_retention
 import argparse
 import datetime
 import fcntl
@@ -171,13 +172,12 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX)
             destination = history / f'{stamp}-{os.getpid()}.json'
             with tempfile.NamedTemporaryFile('w', dir=history, delete=False) as out:
-                json.dump(report, out, indent=2)
+                json.dump(history_retention.mark(report), out, indent=2)
                 out.write('\n')
                 out.flush()
                 os.fsync(out.fileno())
             os.replace(out.name, destination)
-            for previous in sorted(history.glob('*.json'))[:-20]:
-                previous.unlink()
+            history_retention.prune(history)
         print('Compaction evidence:', destination.relative_to(ROOT), flush=True)
     return 0 if report['status'] == 'complete' else 1
 

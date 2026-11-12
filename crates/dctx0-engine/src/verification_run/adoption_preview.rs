@@ -79,9 +79,10 @@ impl Project {
                         &a.contents,
                     )?)
                 }) {
-                    Ok(inputs) => match Capture::inventory_with_budget(
+                    Ok(inputs) => match Capture::proof_inventory(
                         &application,
                         config.capture_budgets(),
+                        run,
                     ) {
                         Ok(current) if current == inputs => {}
                         Ok(_) => report.issues.push(issue(

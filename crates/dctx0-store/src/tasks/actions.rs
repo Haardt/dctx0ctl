@@ -32,6 +32,48 @@ pub struct TaskDeliveryPublicationReceipt {
     pub event_sequence: i64,
     pub deliveries: Vec<Receipt>,
 }
+fn native_evidence(
+    run: &dctx0_core::VerificationRun,
+    run_id: &str,
+    requirements_hash: &str,
+) -> Result<CheckEvidence> {
+    let identities = run
+        .artifacts
+        .iter()
+        .filter(|artifact| {
+            matches!(
+                artifact.media_type.as_str(),
+                "application/vnd.dctx0.verifier-identity+json"
+                    | "application/vnd.dctx0.runtime-identity+json"
+                    | "application/vnd.dctx0.assessment-version+json"
+                    | "application/vnd.dctx0.native-limits+json"
+                    | "application/vnd.dctx0.dependency-resolution-limits+json"
+            )
+        })
+        .map(|artifact| (&artifact.media_type, &artifact.hash))
+        .collect::<BTreeMap<_, _>>();
+    let finished = run
+        .started_at_unix_ns
+        .parse::<u128>()
+        .ok()
+        .and_then(|started| started.checked_add(u128::from(run.elapsed_us) * 1000))
+        .ok_or_else(|| invalid("Invalid native run timing"))?;
+    if run.provenance.interpreter_version.trim().is_empty() {
+        return Err(invalid("Native run has no interpreter version"));
+    }
+    let evidence = CheckEvidence {
+        requirements_hash: requirements_hash.into(),
+        implementation: dctx0_changes::hash(&(&run.provenance, identities)),
+        verifier: "dctx0-native-verifier".into(),
+        verifier_version: run.provenance.interpreter_version.clone(),
+        command: "dctx0 native verification".into(),
+        started_at: run.started_at_unix_ns.clone(),
+        finished_at: finished.to_string(),
+        report: run_id.into(),
+        status: CheckStatus::Pass,
+    };
+    Ok(evidence)
+}
 fn bind(
     tx: &Connection,
     session: &Session,
@@ -435,7 +477,7 @@ impl Store {
         project: &str,
         request: TaskDeliveryPublication<'_>,
     ) -> Result<TaskDeliveryPublicationReceipt> {
-        self.publish_deliveries(project, request, &BTreeMap::new())
+        self.publish_deliveries(project, request, &BTreeMap::new(), None, false)
     }
 
     /// Explicit inspected delivery, including ordinary guarded review events.
@@ -451,7 +493,39 @@ impl Store {
                 "Inspected delivery is separate from automatic native adoption",
             ));
         }
-        self.publish_deliveries(project, request, reviews)
+        self.publish_deliveries(project, request, reviews, None, false)
+    }
+
+    /// Atomically publish one native run for open deliveries and previously completed
+    /// tasks. The engine must independently check source and runtime freshness.
+    /// Done task values are their expected state versions, captured before execution.
+    pub fn publish_native_task_batch(
+        &mut self,
+        project: &str,
+        request: TaskDeliveryPublication<'_>,
+        done_tasks: &BTreeMap<i64, i64>,
+    ) -> Result<TaskDeliveryPublicationReceipt> {
+        if request.run_id.is_none() || done_tasks.is_empty() {
+            return Err(invalid("Native batch requires a run and completed tasks"));
+        }
+        self.publish_deliveries(project, request, &BTreeMap::new(), Some(done_tasks), false)
+    }
+
+    /// Publish explicitly inspected historical tasks together with this fresh
+    /// native run. The inspection artifact is loaded from the run in the same
+    /// transaction; callers cannot supply a detached or imported approval.
+    pub fn publish_inspected_native_task_batch(
+        &mut self,
+        project: &str,
+        request: TaskDeliveryPublication<'_>,
+        done_tasks: &BTreeMap<i64, i64>,
+    ) -> Result<TaskDeliveryPublicationReceipt> {
+        if request.run_id.is_none() || done_tasks.is_empty() {
+            return Err(invalid(
+                "Inspected native batch requires a run and completed tasks",
+            ));
+        }
+        self.publish_deliveries(project, request, &BTreeMap::new(), Some(done_tasks), true)
     }
 
     fn publish_deliveries(
@@ -459,6 +533,8 @@ impl Store {
         project: &str,
         request: TaskDeliveryPublication<'_>,
         reviews: &BTreeMap<i64, dctx0_tasks::ReviewReport>,
+        done_tasks: Option<&BTreeMap<i64, i64>>,
+        inspected: bool,
     ) -> Result<TaskDeliveryPublicationReceipt> {
         let TaskDeliveryPublication {
             actor,
@@ -468,7 +544,9 @@ impl Store {
             run_id,
         } = request;
         self.require_write()?;
-        if actor.trim().is_empty() || deliveries.is_empty() {
+        if actor.trim().is_empty()
+            || (deliveries.is_empty() && done_tasks.is_none_or(BTreeMap::is_empty))
+        {
             return Err(invalid("An actor and nonempty result batch are required"));
         }
         if reviews
@@ -482,7 +560,22 @@ impl Store {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let request_hash = if reviews.is_empty() {
+        let request_hash = if let Some(done_tasks) = done_tasks {
+            dctx0_changes::hash(&(
+                if inspected {
+                    "inspected-done-batch-v1"
+                } else {
+                    "native-done-batch-v1"
+                },
+                project,
+                actor,
+                pin,
+                deliveries,
+                profiles,
+                run_id,
+                done_tasks,
+            ))
+        } else if reviews.is_empty() {
             dctx0_changes::hash(&(project, actor, pin, deliveries, profiles, run_id))
         } else {
             dctx0_changes::hash(&(project, actor, pin, deliveries, profiles, run_id, reviews))
@@ -509,6 +602,7 @@ impl Store {
                 .map(|c| c.id.clone())
                 .collect::<BTreeSet<_>>();
             if run.origin != dctx0_core::VerificationRunOrigin::Native
+                || (done_tasks.is_some() && run.result != dctx0_core::VerificationResult::Pass)
                 || !run.permits_task_specific_proof()
                 || !run.provenance.incomplete.is_empty()
                 || run.provenance.task_pin.as_ref() != Some(pin)
@@ -570,6 +664,53 @@ impl Store {
         } else {
             None
         };
+        let inspected_batch = if inspected {
+            let run = associated_run
+                .as_ref()
+                .ok_or_else(|| invalid("Native run required"))?;
+            let run_id = run_id.ok_or_else(|| invalid("Native run required"))?;
+            if !run.artifacts.iter().any(|item| {
+                item.media_type == dctx0_verification::hybrid_evidence::HYBRID_EXECUTION_MEDIA_TYPE
+            }) {
+                return Err(invalid(
+                    "Inspected task evidence requires the complete hybrid proof",
+                ));
+            }
+            let (_, inventory): (_, BTreeMap<String, String>) = super::native_proof::artifact(
+                &tx,
+                run_id,
+                run,
+                "application/vnd.dctx0.captured-input-inventory+json",
+            )?;
+            if inventory != run.provenance.implementation {
+                return Err(invalid(
+                    "Inspected hybrid source inventory does not match native provenance",
+                ));
+            }
+            let (hash, batch): (_, dctx0_tasks::InspectedDoneBatch) =
+                super::native_proof::artifact(
+                    &tx,
+                    run_id,
+                    run,
+                    dctx0_tasks::TASK_INSPECTIONS_MEDIA_TYPE,
+                )?;
+            if batch.snapshot != run.provenance.snapshot
+                || batch.check_occurrence != run.provenance.check_occurrence
+                || &batch.task_pin != pin
+                || !batch.valid_catalog(&run.provenance.implementation)
+                || batch
+                    .tasks
+                    .keys()
+                    .any(|id| !done_tasks.is_some_and(|tasks| tasks.contains_key(id)))
+            {
+                return Err(invalid(
+                    "Inspected task batch does not match the fresh run and task pin",
+                ));
+            }
+            Some((hash, batch))
+        } else {
+            None
+        };
         let initial = session(&tx, project, None, None)?;
         let (check, snapshot_id) = latest_check(&tx, project)?;
         if initial.plan.id != pin.plan_id
@@ -588,16 +729,57 @@ impl Store {
         )?;
         let snapshot: Snapshot = storage::load(&tx, &data)?;
         let inputs = Some((profiles.0, profiles.1, &snapshot));
+        // Build the reverse mapping once: a large hybrid manifest may contain
+        // tens of thousands of cases shared by many inspected tasks.
+        let inspected_facts = inspected_batch
+            .as_ref()
+            .map(|(_, batch)| {
+                batch
+                    .tasks
+                    .values()
+                    .flat_map(|task| task.facts.iter().cloned())
+                    .collect::<BTreeSet<_>>()
+            })
+            .unwrap_or_default();
+        let mut native_fact_cases = BTreeMap::<String, BTreeSet<String>>::new();
+        if !inspected_facts.is_empty() {
+            if let Some(manifest) = &associated_manifest {
+                for (case, requirements) in &manifest.case_requirements {
+                    for fact in requirements.intersection(&inspected_facts) {
+                        native_fact_cases
+                            .entry(fact.clone())
+                            .or_default()
+                            .insert(case.clone());
+                    }
+                }
+            }
+        }
         let mut seen = BTreeSet::new();
         let mut receipts = vec![];
-        for delivery in deliveries {
-            let id = delivery.task;
+        for (id, delivery) in deliveries
+            .iter()
+            .map(|delivery| (delivery.task, Some(delivery)))
+            .chain(
+                done_tasks
+                    .into_iter()
+                    .flat_map(|tasks| tasks.keys().map(|id| (*id, None))),
+            )
+        {
             let current = session(&tx, project, None, None)?;
             let member = current.member(id)?;
             let state = &current.states[&id];
             if !seen.insert(id)
                 || pin.requirements.get(&id) != Some(&member.candidate.requirements_hash)
-                || state.work != WorkState::Open
+                || match delivery {
+                    Some(_) => state.work != WorkState::Open,
+                    None => {
+                        state.work != WorkState::Done
+                            || state.check != CheckStatus::Unverified
+                            || state.result.is_none()
+                            || done_tasks.and_then(|tasks| tasks.get(&id)) != Some(&state.version)
+                            || current.definitions[&id].is_adjustment()
+                    }
+                }
                 || state.actor.is_some()
                 || state.claim.is_some()
                 || state.reservation.is_some()
@@ -606,13 +788,22 @@ impl Store {
                     "Result batch requires distinct pinned, open and unreserved tasks",
                 ));
             }
+            let task_inspection = inspected_batch
+                .as_ref()
+                .and_then(|(_, batch)| batch.tasks.get(&id));
             if let Some(run) = &associated_run {
                 let requirements = member
                     .candidate
                     .subjects
                     .iter()
                     .chain(&member.candidate.types)
-                    .chain(&member.candidate.facts)
+                    .chain(
+                        member
+                            .candidate
+                            .facts
+                            .iter()
+                            .filter(|_| task_inspection.is_none()),
+                    )
                     .filter(|id| {
                         !snapshot.ir.nodes.iter().any(|node| {
                             node.id == **id && node.kind == dctx0_core::StatementKind::Intent
@@ -629,40 +820,129 @@ impl Store {
                     task_case_coverage(&requirements, &manifest.case_requirements, &outcomes).result
                         == dctx0_core::VerificationResult::Pass
                 });
-                if !matches!(
+                if !(matches!(
                     member.candidate.kind,
                     TaskKind::Contract | TaskKind::Operation
-                ) || !covered
+                ) || (task_inspection.is_some() && member.candidate.kind == TaskKind::Adapter))
+                    || !covered
+                    || (done_tasks.is_some() && current.definitions[&id].is_adjustment())
                     || run.provenance.snapshot != snapshot_id
                     || run.provenance.check_occurrence != check
-                    || delivery.evidence.report != run_id.unwrap()
-                    || delivery.evidence.status != CheckStatus::Pass
+                    || (done_tasks.is_none()
+                        && delivery.is_some_and(|delivery| {
+                            delivery.evidence.report != run_id.unwrap()
+                                || delivery.evidence.status != CheckStatus::Pass
+                        }))
                     || member
                         .candidate
                         .subjects
                         .iter()
                         .chain(&member.candidate.types)
                         .any(|subject| !run.required_subjects.contains(subject))
-                    || member.candidate.facts.iter().any(|fact| {
-                        !snapshot.ir.nodes.iter().any(|node| {
-                            node.id == *fact && node.kind == dctx0_core::StatementKind::Intent
-                        }) && !associated_manifest.as_ref().is_some_and(|manifest| {
-                            manifest
-                                .case_requirements
-                                .values()
-                                .any(|requirements| requirements.contains(fact))
-                        })
+                    || (task_inspection.is_none()
+                        && member.candidate.facts.iter().any(|fact| {
+                            !snapshot.ir.nodes.iter().any(|node| {
+                                node.id == *fact && node.kind == dctx0_core::StatementKind::Intent
+                            }) && !associated_manifest.as_ref().is_some_and(|manifest| {
+                                manifest
+                                    .case_requirements
+                                    .values()
+                                    .any(|requirements| requirements.contains(fact))
+                            })
+                        }))
+                    || run.provenance.implementation.is_empty()
+                    || delivery.is_some_and(|delivery| {
+                        delivery.result.artifacts.is_empty()
+                            || delivery
+                                .result
+                                .artifacts
+                                .iter()
+                                .any(|path| !run.provenance.implementation.contains_key(path))
                     })
-                    || delivery.result.artifacts.is_empty()
-                    || delivery
-                        .result
-                        .artifacts
-                        .iter()
-                        .any(|path| !run.provenance.implementation.contains_key(path))
                 {
                     return Err(invalid(
                         "Delivery is not covered by the exact stored run and implementation artifacts",
                     ));
+                }
+            }
+            if let Some(inspection) = task_inspection {
+                let (_, batch) = inspected_batch.as_ref().unwrap();
+                let run = associated_run.as_ref().unwrap();
+                if inspection.state_version != state.version {
+                    return Err(conflict("Inspected historical task version changed"));
+                }
+                if !batch.validate_task(id, &member.candidate, &run.provenance.implementation) {
+                    return Err(invalid(
+                        "Inspected task findings or source bindings do not match",
+                    ));
+                }
+                if member.candidate.kind == TaskKind::Adapter {
+                    let run_id = run_id.unwrap();
+                    let (_, hybrid): (
+                        _,
+                        dctx0_verification::hybrid_evidence::HybridExecutionProof,
+                    ) = super::native_proof::artifact(
+                        &tx,
+                        run_id,
+                        run,
+                        dctx0_verification::hybrid_evidence::HYBRID_EXECUTION_MEDIA_TYPE,
+                    )?;
+                    let manifest = associated_manifest.as_ref().unwrap();
+                    let adapter_subjects = member
+                        .candidate
+                        .subjects
+                        .iter()
+                        .filter(|subject| {
+                            manifest
+                                .case_requirements
+                                .iter()
+                                .any(|(case, requirements)| {
+                                    requirements.contains(*subject)
+                                        && hybrid.application.plan.case_groups.get(case)
+                                            == Some(&hybrid.adapter_group)
+                                })
+                        })
+                        .collect::<Vec<_>>();
+                    if !adapter_subjects.is_empty() {
+                        let (_, description): (_, serde_json::Value) =
+                            super::native_proof::artifact(
+                                &tx,
+                                run_id,
+                                run,
+                                "application/vnd.dctx0.adapter-description+json",
+                            )?;
+                        let entries = description
+                            .get("subjects")
+                            .and_then(serde_json::Value::as_array)
+                            .ok_or_else(|| invalid("Adapter description is missing subjects"))?;
+                        for subject in adapter_subjects {
+                            let matching = entries
+                                .iter()
+                                .filter(|entry| {
+                                    entry["subject"] == **subject && entry["role"] == "port"
+                                })
+                                .collect::<Vec<_>>();
+                            let [entry] = matching.as_slice() else {
+                                return Err(invalid(
+                                    "Inspected adapter requires one matching port binding",
+                                ));
+                            };
+                            let path = entry["artifact"]
+                                .as_str()
+                                .filter(|path| !path.is_empty())
+                                .ok_or_else(|| {
+                                invalid("Adapter binding artifact is missing")
+                            })?;
+                            if !inspection.sources.contains(path)
+                                || !run.provenance.implementation.contains_key(path)
+                                || entry["entry_point"].as_str().is_none_or(str::is_empty)
+                            {
+                                return Err(invalid(
+                                    "Inspected adapter must review the actual bound implementation source",
+                                ));
+                            }
+                        }
+                    }
                 }
             }
             let selection = select_profiles(&snapshot, &member.candidate, profiles.0, profiles.1);
@@ -670,6 +950,75 @@ impl Store {
             if pin.profile_bundles.get(&id) != Some(&selection.bundle.hash) {
                 return Err(conflict("Result batch profile bundle changed"));
             }
+            let Some(delivery) = delivery else {
+                let run = associated_run
+                    .as_ref()
+                    .ok_or_else(|| invalid("Native run required"))?;
+                let mut evidence =
+                    native_evidence(run, run_id.unwrap(), &member.candidate.requirements_hash)?;
+                if let Some(inspection) = task_inspection {
+                    let (hash, batch) = inspected_batch.as_ref().unwrap();
+                    evidence.verifier = "dctx0-inspected-verifier".into();
+                    evidence.command =
+                        "dctx0 verify complete hybrid (INSPECTED + actual native)".into();
+                    let task_native_fact_cases = member
+                        .candidate
+                        .facts
+                        .iter()
+                        .filter_map(|fact| native_fact_cases.get(fact).map(|cases| (fact, cases)))
+                        .collect::<BTreeMap<_, _>>();
+                    evidence.report = serde_json::to_string(&serde_json::json!({
+                        "basis": "INSPECTED + actual native", "native_run": run_id.unwrap(), "actor": batch.actor,
+                        "inspection_artifact": hash,
+                        "native_fact_cases": task_native_fact_cases,
+                        "manual_fact_reviews": inspection.fact_reviews,
+                        "limitations": "Finite native case coverage and explicit manual findings are separate evidence bases",
+                    }))?;
+                }
+                let mut next = state.clone();
+                next.check = CheckStatus::Pass;
+                next.evidence.push(evidence);
+                next.version += 1;
+                event(
+                    &tx,
+                    project,
+                    Some(id),
+                    "native-check",
+                    if task_inspection.is_some() {
+                        "INSPECTED + actual native evidence recorded; manual findings and finite execution have separate scopes"
+                    } else {
+                        "Native run evidence recorded; source and runtime freshness require engine verification"
+                    },
+                    Some(&next),
+                )?;
+                receipts.push(Receipt {
+                    task_id: Some(id),
+                    group_id: None,
+                    state: Some(next),
+                    message: if task_inspection.is_some() {
+                        "INSPECTED + actual native evidence recorded"
+                    } else {
+                        "Native check evidence recorded"
+                    }
+                    .into(),
+                });
+                continue;
+            };
+            let generated_evidence = if done_tasks.is_some() {
+                let evidence = native_evidence(
+                    associated_run.as_ref().unwrap(),
+                    run_id.unwrap(),
+                    &member.candidate.requirements_hash,
+                )?;
+                if delivery.result.implementation.as_ref() != Some(&evidence.implementation) {
+                    return Err(invalid(
+                        "Open delivery must identify the stored native run provenance",
+                    ));
+                }
+                Some(evidence)
+            } else {
+                None
+            };
             let started = apply_action(
                 &tx,
                 &current,
@@ -726,7 +1075,7 @@ impl Store {
                 &current,
                 Action::RecordCheck {
                     task: id,
-                    evidence: delivery.evidence.clone(),
+                    evidence: generated_evidence.unwrap_or_else(|| delivery.evidence.clone()),
                 },
                 inputs,
                 None,
@@ -739,8 +1088,12 @@ impl Store {
             deliveries: receipts,
         };
         if let Some(run_id) = run_id {
-            for delivery in deliveries {
-                tx.execute("INSERT INTO verification_task_links(run_id,task_id,requirements_hash) VALUES(?1,?2,?3)", params![run_id, delivery.task, pin.requirements[&delivery.task]])?;
+            for id in deliveries.iter().map(|delivery| delivery.task).chain(
+                done_tasks
+                    .into_iter()
+                    .flat_map(|tasks| tasks.keys().copied()),
+            ) {
+                tx.execute("INSERT INTO verification_task_links(run_id,task_id,requirements_hash) VALUES(?1,?2,?3)", params![run_id, id, pin.requirements[&id]])?;
             }
             tx.execute(
                 "INSERT INTO verification_adoptions(run_id,data) VALUES(?1,?2)",

@@ -72,7 +72,7 @@ impl Project {
             ));
         }
         let captured: BTreeMap<String, String> = serde_json::from_slice(&artifact.contents)?;
-        if Capture::inventory_with_budget(&application, config.capture_budgets())? != captured {
+        if Capture::proof_inventory(&application, config.capture_budgets(), run)? != captured {
             return Err(Error::Invalid(
                 "Inspected implementation or dependencies changed since native verification".into(),
             ));

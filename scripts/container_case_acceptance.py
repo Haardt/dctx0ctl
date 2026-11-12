@@ -3,6 +3,7 @@
 Requires Docker and the locally available golang:1.25.5 image. No host credentials
 or project directories are mounted. Evidence includes child speed/RAM samples.
 """
+import history_retention
 import argparse
 import json
 from pathlib import Path
@@ -64,18 +65,17 @@ def main():
         if summary.exists():
             report['acceptance'] = json.loads(summary.read_text())
         report['measurement_sets'] = {path.name: json.loads(path.read_text()) for path in output.glob('*measurements.json')}
-        (output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
+        (output / 'report.json').write_text(json.dumps(history_retention.mark(report), indent=2) + '\n')
         history = ROOT / 'benchmarks/history/container-case'
         history.mkdir(parents=True, exist_ok=True)
         with locked(history.parent / '.container-case.lock'):
             destination = history / (datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '.json')
             with tempfile.NamedTemporaryFile(mode='w', dir=history, delete=False) as staged_report:
-                staged_report.write(json.dumps(report, indent=2) + '\n')
+                staged_report.write(json.dumps(history_retention.mark(report), indent=2) + '\n')
                 staged_report.flush()
                 os.fsync(staged_report.fileno())
             os.replace(staged_report.name, destination)
-            for old in sorted(history.glob('*.json'))[:-20]:
-                old.unlink()
+            history_retention.prune(history)
         if not args.keep_running:
             subprocess.run(['docker', 'stop', args.name], check=True)
     print(json.dumps({'container': args.name, 'evidence': str(output)}, indent=2))

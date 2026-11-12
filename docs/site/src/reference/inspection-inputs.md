@@ -71,3 +71,68 @@ runner defect: `cargo fmt` on the reference adapter manifest required `worker.rs
 which exists only inside captured native builds. The format stage now checks both
 the authored adapter and the shipped worker template directly with Rustfmt.
 Framework acceptance and complete CI must still pass before release.
+
+## Inspected historical Done tasks in a complete hybrid run
+
+An optional `done_inspections` object in the authored `verify complete` notes
+can request new evidence for historical Done/Unverified Contract, Operation and
+Adapter tasks. It has schema version 1, the same `actor` as the original notes,
+`snapshot`, `check_occurrence`, the full `task_pin` (including plan/event,
+requirements and profile bundles), a `sources` map, a shared `facts` map and a
+`tasks` map keyed by task ID. Obtain the pin from the read-only verification
+preflight and the task state version and requirements from task inspection; a
+stale pin or version rejects the transaction. Each source path/hash must be in
+the original author's `reviewed_hashes` as well as the current hybrid capture.
+The engine does not turn inventory discovery into an authored review.
+
+Each task entry explicitly includes its `state_version`, `requirements_hash`,
+`profile_bundle`, exact `subjects`, `types` and `facts` sets, `fact_reviews`
+(shared-fact keys), task-specific `implementation_finding`, `profile_finding`,
+source paths and limitations. Adapter tasks also require an
+`adapter_binding_finding`. Each shared fact entry names the fact, the exact task
+IDs that reference it, a finding, reviewed sources and limitations. The current
+format requires a reviewed finding for every task fact; one explicit shared
+finding can cover multiple tasks. A finding is an author's judgement, not an
+inference or a manufactured approval. When a task subject has adapter-assigned
+cases, its reviewed sources must include the source artifact in the actual
+adapter description.
+
+Only a fresh, complete managed hybrid run with all mandatory cases PASS can
+publish these checks. The store checks the saved hybrid proof, captured source
+inventory, task state/version, latest check, task events and selected profiles
+again in one transaction with any other delivered work. The original Done
+result and reviews remain intact. Appended evidence is labeled `INSPECTED +
+actual native`; its report links the actual run and inspection artifact and
+separately lists native cases mapped to facts and manual fact reviews. Neither
+basis expands the finite coverage into a general proof.
+
+`status` counts this evidence in the regular current/stale totals and also in
+`inspected_current`/`inspected_stale`. These freshness counts compare current
+source, specification and pinned requirements, not a newly executed runtime
+identity check. Native status additionally requires a guarded publication's
+run/task/requirements link. Inspected status requires that link and the exact
+store-created check event and report, so a freely recorded or imported check is
+not treated as native authority. The linked inspected run and artifact are held
+by verification retention; no source, historical result, review or prior
+verification is rewritten. On schema 6, the receipt index needed to establish
+inspected-current status is absent: the lookup returns unknown, and retention
+preserves linked inspected artifacts without implicitly migrating the database.
+Schema 7 can verify the private check event and report binding. A source or spec
+change makes the earlier binding stale; a Runner toolchain pin change also changes
+the captured Host bundle inputs. Preserve and regenerate the bundle, review the
+changed source pins and obtain a fresh complete hybrid cohort for the new inputs.
+
+Compatibility correction: a Review task in complete verification now needs an
+explicit structured `review` in the authored note for that review task's own
+subject, even when it has no listed review obligations. An unrelated or general
+note never supplies approval. If multiple task subjects have structured reviews,
+all must approve without unresolved high findings, and all findings are retained.
+Rejected reviews and reviews with unresolved high findings cannot be delivered as
+approved; supply an actual reviewed decision instead of relying on the former
+implicit approval fallback.
+
+Newly merged authored notes retain the original actor and scope in each imported
+subject report. When they are combined with stored source-bound reviews, the
+report identifies the acting account as an aggregator and names the authored
+source; when no stored subjects are present, the imported actor and scope remain
+the acting identity. Previously recorded reports are left unchanged.

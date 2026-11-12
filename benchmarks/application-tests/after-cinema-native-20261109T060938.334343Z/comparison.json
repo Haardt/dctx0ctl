@@ -1,0 +1,1476 @@
+{
+  "schema_version": 1,
+  "before_reference": "benchmarks/application-tests/before-20261108T172542Z",
+  "after_measurements": "benchmarks/history/20261109T060938.334343Z-3865530.json",
+  "global_baseline_promoted": false,
+  "accepted_baseline_unchanged": true,
+  "comparable_environment": true,
+  "scope": "Informational before/after comparison of equal existing workloads; new native phases have no equivalent before workload value. One sample/iteration is not a statistical no-regression claim.",
+  "common_workloads": {
+    "cinema": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 1.55783,
+        "after": 1.241066,
+        "absolute_delta": -0.31676400000000005,
+        "percent_delta": -20.333669270716314
+      },
+      "peak_rss_bytes": {
+        "before": 5054464,
+        "after": 5120000,
+        "absolute_delta": 65536,
+        "percent_delta": 1.296596434359798
+      }
+    },
+    "cinema/compile": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 4.154141,
+        "after": 4.015282999999999,
+        "absolute_delta": -0.13885800000000081,
+        "percent_delta": -3.3426405122021774
+      },
+      "peak_rss_bytes": {
+        "before": 11055104,
+        "after": 12046336,
+        "absolute_delta": 991232,
+        "percent_delta": 8.966283808818076
+      }
+    },
+    "cinema/graph": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.688782,
+        "after": 0.5943539999999999,
+        "absolute_delta": -0.09442800000000007,
+        "percent_delta": -13.709417493488518
+      },
+      "peak_rss_bytes": {
+        "before": 11653120,
+        "after": 12173312,
+        "absolute_delta": 520192,
+        "percent_delta": 4.463971880492101
+      }
+    },
+    "cinema/snapshot": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 16.276599,
+        "after": 14.921864,
+        "absolute_delta": -1.3547350000000016,
+        "percent_delta": -8.32320683209067
+      },
+      "peak_rss_bytes": {
+        "before": 20017152,
+        "after": 20561920,
+        "absolute_delta": 544768,
+        "percent_delta": 2.7215060364231602
+      }
+    },
+    "cinema/diff": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.224792,
+        "after": 0.144817,
+        "absolute_delta": -0.07997499999999999,
+        "percent_delta": -35.57733371294351
+      },
+      "peak_rss_bytes": {
+        "before": 17117184,
+        "after": 17715200,
+        "absolute_delta": 598016,
+        "percent_delta": 3.4936587700406863
+      }
+    },
+    "cinema/diff-changed": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.554555,
+        "after": 0.519299,
+        "absolute_delta": -0.035256000000000065,
+        "percent_delta": -6.357529911370385
+      },
+      "peak_rss_bytes": {
+        "before": 21061632,
+        "after": 21864448,
+        "absolute_delta": 802816,
+        "percent_delta": 3.81174640217814
+      }
+    },
+    "cinema/persist": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 73.035928,
+        "after": 69.444457,
+        "absolute_delta": -3.5914709999999985,
+        "percent_delta": -4.917403116997432
+      },
+      "peak_rss_bytes": {
+        "before": 94015488,
+        "after": 95535104,
+        "absolute_delta": 1519616,
+        "percent_delta": 1.6163464470875244
+      }
+    },
+    "cinema/check": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 87.871319,
+        "after": 81.697651,
+        "absolute_delta": -6.173668000000006,
+        "percent_delta": -7.0258055418514935
+      },
+      "peak_rss_bytes": {
+        "before": 96292864,
+        "after": 99594240,
+        "absolute_delta": 3301376,
+        "percent_delta": 3.428474201369691
+      }
+    },
+    "cinema/check-changed": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 85.633567,
+        "after": 82.19956,
+        "absolute_delta": -3.434006999999994,
+        "percent_delta": -4.010117901546706
+      },
+      "peak_rss_bytes": {
+        "before": 103018496,
+        "after": 103251968,
+        "absolute_delta": 233472,
+        "percent_delta": 0.22663114786687366
+      }
+    },
+    "cinema/tasks-plan": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 7.2732730000000005,
+        "after": 6.978628,
+        "absolute_delta": -0.29464500000000093,
+        "percent_delta": -4.051064768227464
+      },
+      "peak_rss_bytes": {
+        "before": 93511680,
+        "after": 94314496,
+        "absolute_delta": 802816,
+        "percent_delta": 0.8585194918966366
+      }
+    },
+    "cinema/tasks-reconcile": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.849785,
+        "after": 0.6456930000000001,
+        "absolute_delta": -0.20409199999999994,
+        "percent_delta": -24.016898391946196
+      },
+      "peak_rss_bytes": {
+        "before": 93487104,
+        "after": 94597120,
+        "absolute_delta": 1110016,
+        "percent_delta": 1.187346652646326
+      }
+    },
+    "cinema/tasks-publish": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 126.036282,
+        "after": 117.74596700000001,
+        "absolute_delta": -8.290314999999993,
+        "percent_delta": -6.577721008939308
+      },
+      "peak_rss_bytes": {
+        "before": 104423424,
+        "after": 105500672,
+        "absolute_delta": 1077248,
+        "percent_delta": 1.031615282027154
+      }
+    },
+    "cinema/tasks-list": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.166409,
+        "after": 0.164641,
+        "absolute_delta": -0.0017679999999999918,
+        "percent_delta": -1.0624425361609013
+      },
+      "peak_rss_bytes": {
+        "before": 93507584,
+        "after": 94625792,
+        "absolute_delta": 1118208,
+        "percent_delta": 1.19584738709535
+      }
+    },
+    "cinema/tasks-context-md": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 4.801479,
+        "after": 4.214242,
+        "absolute_delta": -0.587237,
+        "percent_delta": -12.230335694480809
+      },
+      "peak_rss_bytes": {
+        "before": 93548544,
+        "after": 94601216,
+        "absolute_delta": 1052672,
+        "percent_delta": 1.1252681816191545
+      }
+    },
+    "cinema/tasks-context-json": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 4.59823,
+        "after": 4.246153,
+        "absolute_delta": -0.3520770000000004,
+        "percent_delta": -7.656794027267022
+      },
+      "peak_rss_bytes": {
+        "before": 93507584,
+        "after": 94654464,
+        "absolute_delta": 1146880,
+        "percent_delta": 1.2265101406106371
+      }
+    },
+    "cinema/tasks-slice": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.265627,
+        "after": 0.234312,
+        "absolute_delta": -0.03131500000000001,
+        "percent_delta": -11.78908770569257
+      },
+      "peak_rss_bytes": {
+        "before": 93384704,
+        "after": 94572544,
+        "absolute_delta": 1187840,
+        "percent_delta": 1.2719856134040919
+      }
+    },
+    "cinema/tasks-claim": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 11.153573,
+        "after": 10.557183,
+        "absolute_delta": -0.5963899999999995,
+        "percent_delta": -5.347075775628129
+      },
+      "peak_rss_bytes": {
+        "before": 93376512,
+        "after": 94453760,
+        "absolute_delta": 1077248,
+        "percent_delta": 1.1536605693731605
+      }
+    },
+    "cinema/tasks-package": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 6.060945,
+        "after": 6.10909,
+        "absolute_delta": 0.04814499999999988,
+        "percent_delta": 0.7943480760838506
+      },
+      "peak_rss_bytes": {
+        "before": 92069888,
+        "after": 94609408,
+        "absolute_delta": 2539520,
+        "percent_delta": 2.7582525135688263
+      }
+    },
+    "cinema/tasks-package-delta": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 6.126356,
+        "after": 6.235068,
+        "absolute_delta": 0.1087119999999997,
+        "percent_delta": 1.774496944023496
+      },
+      "peak_rss_bytes": {
+        "before": 93741056,
+        "after": 94396416,
+        "absolute_delta": 655360,
+        "percent_delta": 0.6991173643275284
+      }
+    },
+    "cinema/tasks-package-apply": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.853545,
+        "after": 0.8016679999999999,
+        "absolute_delta": -0.05187700000000006,
+        "percent_delta": -6.0778283511707105
+      },
+      "peak_rss_bytes": {
+        "before": 93503488,
+        "after": 94384128,
+        "absolute_delta": 880640,
+        "percent_delta": 0.9418258279306091
+      }
+    },
+    "cinema/tasks-review-changes": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.004145,
+        "after": 0.007106,
+        "absolute_delta": 0.002961,
+        "percent_delta": 71.43546441495778
+      },
+      "peak_rss_bytes": {
+        "before": 93102080,
+        "after": 94449664,
+        "absolute_delta": 1347584,
+        "percent_delta": 1.4474263088429362
+      }
+    },
+    "cinema/tasks-progress": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.182173,
+        "after": 0.186221,
+        "absolute_delta": 0.004047999999999996,
+        "percent_delta": 2.2220636428010643
+      },
+      "peak_rss_bytes": {
+        "before": 93315072,
+        "after": 94568448,
+        "absolute_delta": 1253376,
+        "percent_delta": 1.3431656570977113
+      }
+    },
+    "cinema/verification-diagnostics-summary": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.134444,
+        "after": 0.13291,
+        "absolute_delta": -0.0015340000000000076,
+        "percent_delta": -1.1409955074231704
+      },
+      "peak_rss_bytes": {
+        "before": 61628416,
+        "after": 62861312,
+        "absolute_delta": 1232896,
+        "percent_delta": 2.000531702778141
+      }
+    },
+    "cinema/verification-diagnostics-cases": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.178242,
+        "after": 0.13250800000000001,
+        "absolute_delta": -0.045734,
+        "percent_delta": -25.65837456940564
+      },
+      "peak_rss_bytes": {
+        "before": 61702144,
+        "after": 62472192,
+        "absolute_delta": 770048,
+        "percent_delta": 1.2480084970791339
+      }
+    },
+    "cinema/verification-evaluate-unbound": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.030957999999999996,
+        "after": 0.028557000000000003,
+        "absolute_delta": -0.0024009999999999934,
+        "percent_delta": -7.755668970863727
+      },
+      "peak_rss_bytes": {
+        "before": 11751424,
+        "after": 12701696,
+        "absolute_delta": 950272,
+        "percent_delta": 8.086441268734745
+      }
+    },
+    "cinema/verification-assess-unbound": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.149342,
+        "after": 0.13655199999999998,
+        "absolute_delta": -0.012790000000000024,
+        "percent_delta": -8.564235111355156
+      },
+      "peak_rss_bytes": {
+        "before": 12382208,
+        "after": 13012992,
+        "absolute_delta": 630784,
+        "percent_delta": 5.094277208071452
+      }
+    },
+    "cinema/verification-generate": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 42.240274,
+        "after": 40.90507,
+        "absolute_delta": -1.3352039999999974,
+        "percent_delta": -3.1609738137588717
+      },
+      "peak_rss_bytes": {
+        "before": 16150528,
+        "after": 16830464,
+        "absolute_delta": 679936,
+        "percent_delta": 4.20999239158002
+      }
+    },
+    "cinema/verification-project": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 95.04936699999999,
+        "after": 88.88326,
+        "absolute_delta": -6.1661069999999825,
+        "percent_delta": -6.487267821573162
+      },
+      "peak_rss_bytes": {
+        "before": 24797184,
+        "after": 25702400,
+        "absolute_delta": 905216,
+        "percent_delta": 3.6504790221341343
+      }
+    },
+    "cinema/application-test-plan": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 50.767851,
+        "after": 49.336776,
+        "absolute_delta": -1.4310749999999999,
+        "percent_delta": -2.818860699855108
+      },
+      "peak_rss_bytes": {
+        "before": 39628800,
+        "after": 40402944,
+        "absolute_delta": 774144,
+        "percent_delta": 1.9534883720930152
+      }
+    },
+    "cinema/verification-harness": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.019767,
+        "after": 0.020336,
+        "absolute_delta": 0.0005690000000000001,
+        "percent_delta": 2.8785349319573106
+      },
+      "peak_rss_bytes": {
+        "before": 11063296,
+        "after": 11993088,
+        "absolute_delta": 929792,
+        "percent_delta": 8.404294705664572
+      }
+    },
+    "cinema/verification-codecs": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.10466199999999999,
+        "after": 0.087825,
+        "absolute_delta": -0.01683699999999999,
+        "percent_delta": -16.087022988286094
+      },
+      "peak_rss_bytes": {
+        "before": 11210752,
+        "after": 11812864,
+        "absolute_delta": 602112,
+        "percent_delta": 5.3708439897698135
+      }
+    },
+    "cinema/verification-bindings-plan": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.232227,
+        "after": 0.217916,
+        "absolute_delta": -0.01431099999999999,
+        "percent_delta": -6.162504790571289
+      },
+      "peak_rss_bytes": {
+        "before": 23715840,
+        "after": 24494080,
+        "absolute_delta": 778240,
+        "percent_delta": 3.2815198618307395
+      }
+    },
+    "cinema/verification-init": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.29783899999999996,
+        "after": 0.289342,
+        "absolute_delta": -0.008496999999999977,
+        "percent_delta": -2.8528836049006245
+      },
+      "peak_rss_bytes": {
+        "before": 12144640,
+        "after": 13156352,
+        "absolute_delta": 1011712,
+        "percent_delta": 8.330522765598648
+      }
+    },
+    "cinema/verification-history-publish": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 3.5439410000000002,
+        "after": 3.486723,
+        "absolute_delta": -0.05721800000000021,
+        "percent_delta": -1.6145302644711146
+      },
+      "peak_rss_bytes": {
+        "before": 62152704,
+        "after": 62799872,
+        "absolute_delta": 647168,
+        "percent_delta": 1.0412547779095727
+      }
+    },
+    "cinema/verification-history-read": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.096256,
+        "after": 0.08701400000000001,
+        "absolute_delta": -0.009241999999999986,
+        "percent_delta": -9.601479388297863
+      },
+      "peak_rss_bytes": {
+        "before": 61759488,
+        "after": 62582784,
+        "absolute_delta": 823296,
+        "percent_delta": 1.3330680461599576
+      }
+    },
+    "cinema/verification-discover": {
+      "comparable": false,
+      "reason": "measurement environment/settings/scope incompatible",
+      "elapsed_ms": {
+        "before": 52.271636,
+        "after": 51.909528,
+        "absolute_delta": -0.3621079999999992,
+        "percent_delta": -0.6927428098864152
+      },
+      "peak_rss_bytes": {
+        "before": 94973952,
+        "after": 96464896,
+        "absolute_delta": 1490944,
+        "percent_delta": 1.5698451718635376
+      }
+    },
+    "cinema/profiles/typescript/create": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.840943,
+        "after": 0.827872,
+        "absolute_delta": -0.013070999999999944,
+        "percent_delta": -1.5543265120228078
+      },
+      "peak_rss_bytes": {
+        "before": 9043968,
+        "after": 10133504,
+        "absolute_delta": 1089536,
+        "percent_delta": 12.047101449275367
+      }
+    },
+    "cinema/profiles/typescript/load": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.316834,
+        "after": 0.29199,
+        "absolute_delta": -0.024843999999999977,
+        "percent_delta": -7.841330160273197
+      },
+      "peak_rss_bytes": {
+        "before": 9740288,
+        "after": 10797056,
+        "absolute_delta": 1056768,
+        "percent_delta": 10.849453322119418
+      }
+    },
+    "cinema/profiles/typescript/context-md": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 6.5069289999999995,
+        "after": 5.513731,
+        "absolute_delta": -0.9931979999999996,
+        "percent_delta": -15.263698128564174
+      },
+      "peak_rss_bytes": {
+        "before": 100184064,
+        "after": 101187584,
+        "absolute_delta": 1003520,
+        "percent_delta": 1.001676274581964
+      }
+    },
+    "cinema/profiles/typescript/context-json": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 5.977023,
+        "after": 5.566930999999999,
+        "absolute_delta": -0.41009200000000057,
+        "percent_delta": -6.86114140768741
+      },
+      "peak_rss_bytes": {
+        "before": 100421632,
+        "after": 99520512,
+        "absolute_delta": -901120,
+        "percent_delta": -0.8973365419912671
+      }
+    },
+    "cinema/profiles/typescript/claim": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 69.187312,
+        "after": 71.116073,
+        "absolute_delta": 1.9287609999999944,
+        "percent_delta": 2.787738017629593
+      },
+      "peak_rss_bytes": {
+        "before": 100397056,
+        "after": 101621760,
+        "absolute_delta": 1224704,
+        "percent_delta": 1.21986047080902
+      }
+    },
+    "cinema/profiles/java/create": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.822313,
+        "after": 0.837219,
+        "absolute_delta": 0.014906000000000086,
+        "percent_delta": 1.8126917609231574
+      },
+      "peak_rss_bytes": {
+        "before": 8826880,
+        "after": 10100736,
+        "absolute_delta": 1273856,
+        "percent_delta": 14.431554524361957
+      }
+    },
+    "cinema/profiles/java/load": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.29288699999999995,
+        "after": 0.28667200000000004,
+        "absolute_delta": -0.006214999999999915,
+        "percent_delta": -2.1219787836264214
+      },
+      "peak_rss_bytes": {
+        "before": 9338880,
+        "after": 10792960,
+        "absolute_delta": 1454080,
+        "percent_delta": 15.57017543859649
+      }
+    },
+    "cinema/profiles/java/context-md": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 9.040114,
+        "after": 5.509100999999999,
+        "absolute_delta": -3.5310130000000015,
+        "percent_delta": -39.059385755533626
+      },
+      "peak_rss_bytes": {
+        "before": 100433920,
+        "after": 101068800,
+        "absolute_delta": 634880,
+        "percent_delta": 0.6321370309951169
+      }
+    },
+    "cinema/profiles/java/context-json": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 5.776576,
+        "after": 5.620153999999999,
+        "absolute_delta": -0.15642200000000095,
+        "percent_delta": -2.7078670825070206
+      },
+      "peak_rss_bytes": {
+        "before": 101937152,
+        "after": 101507072,
+        "absolute_delta": -430080,
+        "percent_delta": -0.421907019729173
+      }
+    },
+    "cinema/profiles/java/claim": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 69.055395,
+        "after": 67.265694,
+        "absolute_delta": -1.789701000000008,
+        "percent_delta": -2.5916888897674184
+      },
+      "peak_rss_bytes": {
+        "before": 100184064,
+        "after": 101105664,
+        "absolute_delta": 921600,
+        "percent_delta": 0.9199067827793561
+      }
+    },
+    "cinema/profiles/go/create": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.8253670000000001,
+        "after": 0.8521730000000001,
+        "absolute_delta": 0.026805999999999996,
+        "percent_delta": 3.247767356824305
+      },
+      "peak_rss_bytes": {
+        "before": 8814592,
+        "after": 9703424,
+        "absolute_delta": 888832,
+        "percent_delta": 10.083643122676577
+      }
+    },
+    "cinema/profiles/go/load": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.31575400000000003,
+        "after": 0.302725,
+        "absolute_delta": -0.013029000000000013,
+        "percent_delta": -4.126313522552372
+      },
+      "peak_rss_bytes": {
+        "before": 9617408,
+        "after": 10645504,
+        "absolute_delta": 1028096,
+        "percent_delta": 10.689948892674629
+      }
+    },
+    "cinema/profiles/go/context-md": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 5.901079,
+        "after": 5.575676,
+        "absolute_delta": -0.32540300000000055,
+        "percent_delta": -5.514296622702397
+      },
+      "peak_rss_bytes": {
+        "before": 100196352,
+        "after": 103329792,
+        "absolute_delta": 3133440,
+        "percent_delta": 3.127299484915369
+      }
+    },
+    "cinema/profiles/go/context-json": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 6.60918,
+        "after": 5.678624999999999,
+        "absolute_delta": -0.9305550000000009,
+        "percent_delta": -14.079734551033575
+      },
+      "peak_rss_bytes": {
+        "before": 100343808,
+        "after": 101580800,
+        "absolute_delta": 1236992,
+        "percent_delta": 1.2327536941791228
+      }
+    },
+    "cinema/profiles/go/claim": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 73.937343,
+        "after": 68.26559,
+        "absolute_delta": -5.671752999999995,
+        "percent_delta": -7.671026263413328
+      },
+      "peak_rss_bytes": {
+        "before": 100237312,
+        "after": 101355520,
+        "absolute_delta": 1118208,
+        "percent_delta": 1.1155606407322605
+      }
+    },
+    "cinema/profiles/rust/create": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.84469,
+        "after": 0.8170430000000001,
+        "absolute_delta": -0.027646999999999977,
+        "percent_delta": -3.2730350779575867
+      },
+      "peak_rss_bytes": {
+        "before": 8802304,
+        "after": 9764864,
+        "absolute_delta": 962560,
+        "percent_delta": 10.93531875290832
+      }
+    },
+    "cinema/profiles/rust/load": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 0.29893200000000003,
+        "after": 0.290045,
+        "absolute_delta": -0.008887000000000034,
+        "percent_delta": -2.9729169175598535
+      },
+      "peak_rss_bytes": {
+        "before": 9625600,
+        "after": 10846208,
+        "absolute_delta": 1220608,
+        "percent_delta": 12.68085106382979
+      }
+    },
+    "cinema/profiles/rust/context-md": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 6.23604,
+        "after": 5.839886,
+        "absolute_delta": -0.3961540000000001,
+        "percent_delta": -6.352653286380461
+      },
+      "peak_rss_bytes": {
+        "before": 100519936,
+        "after": 101515264,
+        "absolute_delta": 995328,
+        "percent_delta": 0.9901796992787482
+      }
+    },
+    "cinema/profiles/rust/context-json": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 5.52033,
+        "after": 6.052375,
+        "absolute_delta": 0.5320449999999992,
+        "percent_delta": 9.63792019679981
+      },
+      "peak_rss_bytes": {
+        "before": 98164736,
+        "after": 99622912,
+        "absolute_delta": 1458176,
+        "percent_delta": 1.4854377034131616
+      }
+    },
+    "cinema/profiles/rust/claim": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 70.08539900000001,
+        "after": 69.605331,
+        "absolute_delta": -0.4800680000000028,
+        "percent_delta": -0.6849757679199375
+      },
+      "peak_rss_bytes": {
+        "before": 100208640,
+        "after": 101310464,
+        "absolute_delta": 1101824,
+        "percent_delta": 1.0995299407316583
+      }
+    },
+    "cinema-go/check": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 118.44667201512493,
+        "after": 114.66332300915383,
+        "absolute_delta": -3.783349005971104,
+        "percent_delta": -3.1941370252158596
+      },
+      "peak_rss_bytes": {
+        "before": 64782336,
+        "after": 67620864,
+        "absolute_delta": 2838528,
+        "percent_delta": 4.381638846737479
+      }
+    },
+    "cinema-go/discovery": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 86.92290299222805,
+        "after": 85.49269998911768,
+        "absolute_delta": -1.430203003110364,
+        "percent_delta": -1.6453695791064926
+      },
+      "peak_rss_bytes": {
+        "before": 87285760,
+        "after": 88727552,
+        "absolute_delta": 1441792,
+        "percent_delta": 1.6518066635382356
+      }
+    },
+    "cinema-go/planning": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 401.3142399780918,
+        "after": 405.7592759781983,
+        "absolute_delta": 4.445036000106484,
+        "percent_delta": 1.107619804457749
+      },
+      "peak_rss_bytes": {
+        "before": 100761600,
+        "after": 104505344,
+        "absolute_delta": 3743744,
+        "percent_delta": 3.7154471544715406
+      }
+    },
+    "cinema-go/harness-setup": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 2.438241004711017,
+        "after": 2.2956730099394917,
+        "absolute_delta": -0.14256799477152526,
+        "percent_delta": -5.847165825530142
+      },
+      "peak_rss_bytes": {
+        "before": 87846912,
+        "after": 87805952,
+        "absolute_delta": -40960,
+        "percent_delta": -0.04662656781834196
+      }
+    },
+    "cinema-go/first-project-build": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 9278.388203005306,
+        "after": 8844.440284010489,
+        "absolute_delta": -433.9479189948179,
+        "percent_delta": -4.676975240745596
+      },
+      "peak_rss_bytes": {
+        "before": 420966400,
+        "after": 421236736,
+        "absolute_delta": 270336,
+        "percent_delta": 0.06421795183653156
+      }
+    },
+    "cinema-go/warm-build": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 17554.337545007,
+        "after": 16727.52599301748,
+        "absolute_delta": -826.8115519895218,
+        "percent_delta": -4.710012837964895
+      },
+      "peak_rss_bytes": {
+        "before": 421625856,
+        "after": 421130240,
+        "absolute_delta": -495616,
+        "percent_delta": -0.11754876816663096
+      }
+    },
+    "cinema-go/source-bound-review-and-delivery": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 75126.92151300143,
+        "after": 67201.64057798684,
+        "absolute_delta": -7925.280935014598,
+        "percent_delta": -10.54918899298044
+      },
+      "peak_rss_bytes": {
+        "before": 424837120,
+        "after": 423202816,
+        "absolute_delta": -1634304,
+        "percent_delta": -0.3846895487851887
+      }
+    },
+    "cinema-go/complete-and-adoption": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 72917.28155399323,
+        "after": 62951.4812839916,
+        "absolute_delta": -9965.800270001637,
+        "percent_delta": -13.667267974906927
+      },
+      "peak_rss_bytes": {
+        "before": 419778560,
+        "after": 421015552,
+        "absolute_delta": 1236992,
+        "percent_delta": 0.2946772698443567
+      }
+    },
+    "cinema-go/counterexample-and-shrink": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 47001.31070401403,
+        "after": 44354.94334899704,
+        "absolute_delta": -2646.3673550169915,
+        "percent_delta": -5.630411823368542
+      },
+      "peak_rss_bytes": {
+        "before": 423383040,
+        "after": 426373120,
+        "absolute_delta": 2990080,
+        "percent_delta": 0.7062351859913996
+      }
+    },
+    "cinema-go/broken-replay": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 14611.639424983878,
+        "after": 14391.780400997959,
+        "absolute_delta": -219.8590239859186,
+        "percent_delta": -1.5046841602865624
+      },
+      "peak_rss_bytes": {
+        "before": 419287040,
+        "after": 424112128,
+        "absolute_delta": 4825088,
+        "percent_delta": 1.1507839593611013
+      }
+    },
+    "cinema-go/repaired-replay": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 14513.492052996298,
+        "after": 13836.974910984281,
+        "absolute_delta": -676.5171420120168,
+        "percent_delta": -4.661298187518903
+      },
+      "peak_rss_bytes": {
+        "before": 418877440,
+        "after": 421818368,
+        "absolute_delta": 2940928,
+        "percent_delta": 0.7020974918104939
+      }
+    },
+    "cinema-rust/check": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 120.87173498002812,
+        "after": 116.06497198226862,
+        "absolute_delta": -4.806762997759506,
+        "percent_delta": -3.9767469198268235
+      },
+      "peak_rss_bytes": {
+        "before": 64909312,
+        "after": 67444736,
+        "absolute_delta": 2535424,
+        "percent_delta": 3.9061021013441
+      }
+    },
+    "cinema-rust/discovery": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 84.56591097638011,
+        "after": 80.81678301095963,
+        "absolute_delta": -3.7491279654204845,
+        "percent_delta": -4.433379741474841
+      },
+      "peak_rss_bytes": {
+        "before": 87035904,
+        "after": 88551424,
+        "absolute_delta": 1515520,
+        "percent_delta": 1.7412584121605734
+      }
+    },
+    "cinema-rust/planning": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 419.53167598694563,
+        "after": 401.1847819783725,
+        "absolute_delta": -18.346894008573145,
+        "percent_delta": -4.37318444797099
+      },
+      "peak_rss_bytes": {
+        "before": 101224448,
+        "after": 105234432,
+        "absolute_delta": 4009984,
+        "percent_delta": 3.9614777647392074
+      }
+    },
+    "cinema-rust/harness-setup": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 2.3321349872276187,
+        "after": 2.476724999723956,
+        "absolute_delta": 0.1445900124963373,
+        "percent_delta": 6.199898946167859
+      },
+      "peak_rss_bytes": {
+        "before": 87707648,
+        "after": 87838720,
+        "absolute_delta": 131072,
+        "percent_delta": 0.14944192780086407
+      }
+    },
+    "cinema-rust/first-project-build": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 14102.06886898959,
+        "after": 12870.909229008248,
+        "absolute_delta": -1231.1596399813425,
+        "percent_delta": -8.730347663303917
+      },
+      "peak_rss_bytes": {
+        "before": 346804224,
+        "after": 347291648,
+        "absolute_delta": 487424,
+        "percent_delta": 0.1405473077513708
+      }
+    },
+    "cinema-rust/warm-build": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 23808.18042199826,
+        "after": 20924.838702980196,
+        "absolute_delta": -2883.3417190180626,
+        "percent_delta": -12.110718534180442
+      },
+      "peak_rss_bytes": {
+        "before": 350277632,
+        "after": 350679040,
+        "absolute_delta": 401408,
+        "percent_delta": 0.11459709765309078
+      }
+    },
+    "cinema-rust/source-bound-review-and-delivery": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 85508.42008000473,
+        "after": 76866.40792398248,
+        "absolute_delta": -8642.012156022247,
+        "percent_delta": -10.106621251961467
+      },
+      "peak_rss_bytes": {
+        "before": 348827648,
+        "after": 349581312,
+        "absolute_delta": 753664,
+        "percent_delta": 0.21605626856733284
+      }
+    },
+    "cinema-rust/complete-and-adoption": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 79178.47935599275,
+        "after": 68459.11755101406,
+        "absolute_delta": -10719.36180497869,
+        "percent_delta": -13.538226412234543
+      },
+      "peak_rss_bytes": {
+        "before": 345911296,
+        "after": 346755072,
+        "absolute_delta": 843776,
+        "percent_delta": 0.24392843187173163
+      }
+    },
+    "cinema-rust/counterexample-and-shrink": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 68892.6030099974,
+        "after": 50134.066511003766,
+        "absolute_delta": -18758.536498993635,
+        "percent_delta": -27.22866560328905
+      },
+      "peak_rss_bytes": {
+        "before": 345202688,
+        "after": 345403392,
+        "absolute_delta": 200704,
+        "percent_delta": 0.058140914592175186
+      }
+    },
+    "cinema-rust/broken-replay": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 19528.396613983205,
+        "after": 18165.701824007556,
+        "absolute_delta": -1362.6947899756487,
+        "percent_delta": -6.978016766619222
+      },
+      "peak_rss_bytes": {
+        "before": 349466624,
+        "after": 347967488,
+        "absolute_delta": -1499136,
+        "percent_delta": -0.4289783049496565
+      }
+    },
+    "cinema-rust/repaired-replay": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 19475.202445988543,
+        "after": 18328.211750020273,
+        "absolute_delta": -1146.9906959682703,
+        "percent_delta": -5.88949305738552
+      },
+      "peak_rss_bytes": {
+        "before": 347979776,
+        "after": 347844608,
+        "absolute_delta": -135168,
+        "percent_delta": -0.03884363670605406
+      }
+    },
+    "cinema-editor/initialize": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 1.4858230133540928,
+        "after": 1.176261983346194,
+        "absolute_delta": -0.3095610300078988,
+        "percent_delta": -20.83431386010751
+      },
+      "peak_rss_bytes": {
+        "before": 7651328,
+        "after": 8581120,
+        "absolute_delta": 929792,
+        "percent_delta": 12.152034261241962
+      }
+    },
+    "cinema-editor/analysis-and-symbols": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 47.35382899525575,
+        "after": 67.95222900109366,
+        "absolute_delta": 20.598400005837902,
+        "percent_delta": 43.49891116070381
+      },
+      "peak_rss_bytes": {
+        "before": 17641472,
+        "after": 18653184,
+        "absolute_delta": 1011712,
+        "percent_delta": 5.734850243789191
+      }
+    },
+    "cinema-editor/semantic-colors": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 7.074062013998628,
+        "after": 9.538918995531276,
+        "absolute_delta": 2.464856981532648,
+        "percent_delta": 34.843587413497715
+      },
+      "peak_rss_bytes": {
+        "before": 18784256,
+        "after": 19791872,
+        "absolute_delta": 1007616,
+        "percent_delta": 5.3641517662450955
+      }
+    },
+    "cinema-editor/unsaved-change": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 74.16866198764183,
+        "after": 80.40557798813097,
+        "absolute_delta": 6.2369160004891455,
+        "percent_delta": 8.409098712780283
+      },
+      "peak_rss_bytes": {
+        "before": 25481216,
+        "after": 26324992,
+        "absolute_delta": 843776,
+        "percent_delta": 3.311364732358135
+      }
+    },
+    "cinema-editor/workspace-navigation": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 6.956507015274838,
+        "after": 10.307627992006019,
+        "absolute_delta": 3.351120976731181,
+        "percent_delta": 48.17246600014799
+      },
+      "peak_rss_bytes": {
+        "before": 25481216,
+        "after": 26324992,
+        "absolute_delta": 843776,
+        "percent_delta": 3.311364732358135
+      }
+    },
+    "test-analysis/catalog": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 685.6981670134701,
+        "after": 686.9527350063436,
+        "absolute_delta": 1.2545679928734899,
+        "percent_delta": 0.18296213308222065
+      },
+      "peak_rss_bytes": {
+        "before": 158986240,
+        "after": 156872704,
+        "absolute_delta": -2113536,
+        "percent_delta": -1.3293829705010918
+      }
+    },
+    "test-analysis/collection": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 1291.380278998986,
+        "after": 1278.233993012691,
+        "absolute_delta": -13.14628598629497,
+        "percent_delta": -1.018002690616071
+      },
+      "peak_rss_bytes": {
+        "before": 156725248,
+        "after": 156749824,
+        "absolute_delta": 24576,
+        "percent_delta": 0.01568094503827666
+      }
+    },
+    "test-analysis/prediction": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 2.0416869956534356,
+        "after": 1.8342680123168975,
+        "absolute_delta": -0.20741898333653808,
+        "percent_delta": -10.159195987343505
+      },
+      "peak_rss_bytes": {
+        "before": 28397568,
+        "after": 28479488,
+        "absolute_delta": 81920,
+        "percent_delta": 0.28847540747152234
+      }
+    },
+    "test-analysis/evaluation": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 1.3893450086470693,
+        "after": 1.4441940002143383,
+        "absolute_delta": 0.05484899156726897,
+        "percent_delta": 3.9478309005968493
+      },
+      "peak_rss_bytes": {
+        "before": 28397568,
+        "after": 28479488,
+        "absolute_delta": 81920,
+        "percent_delta": 0.28847540747152234
+      }
+    },
+    "test-analysis/replay": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 3754.7462900110986,
+        "after": 3773.224816977745,
+        "absolute_delta": 18.478526966646314,
+        "percent_delta": 0.4921378314110214
+      },
+      "peak_rss_bytes": {
+        "before": 157016064,
+        "after": 158793728,
+        "absolute_delta": 1777664,
+        "percent_delta": 1.132154223404802
+      }
+    },
+    "test-analysis/export": {
+      "comparable": true,
+      "reason": "same recorded environment, settings and measurement scope; single sample only",
+      "elapsed_ms": {
+        "before": 3.882635006448254,
+        "after": 3.4592479933053255,
+        "absolute_delta": -0.4233870131429285,
+        "percent_delta": -10.904630809740556
+      },
+      "peak_rss_bytes": {
+        "before": 28397568,
+        "after": 28479488,
+        "absolute_delta": 81920,
+        "percent_delta": 0.28847540747152234
+      }
+    }
+  },
+  "new_workloads": [
+    "cinema-application/go/all/assessment-service",
+    "cinema-application/go/all/build-native",
+    "cinema-application/go/all/native-tests",
+    "cinema-application/go/all/prepare",
+    "cinema-application/go/assertion/assessment-service",
+    "cinema-application/go/assertion/build-native",
+    "cinema-application/go/assertion/native-tests",
+    "cinema-application/go/assertion/prepare",
+    "cinema-application/go/decoder/assessment-service",
+    "cinema-application/go/decoder/build-native",
+    "cinema-application/go/decoder/native-tests",
+    "cinema-application/go/decoder/prepare",
+    "cinema-application/go/managed/full",
+    "cinema-application/go/operation/assessment-service",
+    "cinema-application/go/operation/build-native",
+    "cinema-application/go/operation/native-tests",
+    "cinema-application/go/operation/prepare",
+    "cinema-application/go/state-change/assessment-service",
+    "cinema-application/go/state-change/build-native",
+    "cinema-application/go/state-change/native-tests",
+    "cinema-application/go/state-change/prepare",
+    "cinema-application/typescript/all/native",
+    "cinema-application/typescript/all/prepare",
+    "cinema-application/typescript/all/service",
+    "cinema-application/typescript/assertion/native",
+    "cinema-application/typescript/assertion/prepare",
+    "cinema-application/typescript/assertion/service",
+    "cinema-application/typescript/constructor/native",
+    "cinema-application/typescript/constructor/prepare",
+    "cinema-application/typescript/constructor/service",
+    "cinema-application/typescript/managed/full",
+    "cinema-application/typescript/operation/native",
+    "cinema-application/typescript/operation/prepare",
+    "cinema-application/typescript/operation/service",
+    "cinema-application/typescript/state-change/native",
+    "cinema-application/typescript/state-change/prepare",
+    "cinema-application/typescript/state-change/service"
+  ],
+  "native_cases_per_language": 5766,
+  "remaining_legacy_cases": 0
+}

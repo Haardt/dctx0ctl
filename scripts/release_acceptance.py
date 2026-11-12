@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Couple release/installer checks with release packaging and CLI speed/RSS."""
+import history_retention
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -40,14 +41,13 @@ def save(record):
     HISTORY.mkdir(parents=True, exist_ok=True)
     with locked(HISTORY.parent / '.release.lock'):
         with tempfile.NamedTemporaryFile(mode='w', dir=HISTORY, prefix='.write-', delete=False) as staged:
-            json.dump(record, staged, indent=2)
+            json.dump(history_retention.mark(record), staged, indent=2)
             staged.write('\n')
             staged.flush()
             os.fsync(staged.fileno())
         path = HISTORY / (record['id'] + '.json')
         os.replace(staged.name, path)
-        for old in sorted(HISTORY.glob('*.json'))[:-20]:
-            old.unlink()
+        history_retention.prune(HISTORY)
     return path
 
 

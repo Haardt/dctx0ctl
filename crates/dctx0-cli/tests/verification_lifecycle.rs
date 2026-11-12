@@ -252,6 +252,44 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         minimized.case_result,
         Some(VerificationResult::Fail { .. })
     ));
+    // A retained replay still needs its original evidence and all ancestors.
+    assert!(
+        project
+            .verification_summary(&report.evidence.id)
+            .unwrap()
+            .details_available
+    );
+    assert_eq!(
+        project.saved_verification_run(&report.evidence.id).unwrap(),
+        original
+    );
+    assert!(
+        project
+            .saved_verification_run(&failed.evidence.evidence.id)
+            .is_ok()
+    );
+    assert!(
+        project
+            .saved_verification_run(&minimized.evidence.evidence.id)
+            .is_ok()
+    );
+
+    // An independent failing run replaces both retention roots (newest and
+    // latest problem); the old replay chain is now eligible for collection.
+    let independent = call(&["verify", "run", input, "--no-adopt", "--json", "--full"]);
+    assert!(!independent.status.success());
+    let independent: dctx0_engine::NativeVerificationReport =
+        serde_json::from_slice(&independent.stdout).unwrap();
+    assert!(matches!(
+        independent.evidence.run.result,
+        VerificationResult::Fail { .. }
+    ));
+    assert_eq!(
+        project
+            .saved_verification_run(&independent.evidence.id)
+            .unwrap(),
+        independent.evidence
+    );
     let summary = project.verification_summary(&report.evidence.id).unwrap();
     assert!(!summary.details_available);
     assert_eq!(summary.result, original.run.result);

@@ -63,6 +63,92 @@ const VALUE_ADAPTER: &str = r#"import {factory} from '../../../app.ts';
 export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.A',role:'contract',artifact:'app.ts',entry_point:'factory'}],artifacts:['app.ts'],capabilities:['sessions','values','events'],representations:{Int:'safe integer'}};},async begin(){return {async invoke(){throw Error('No operation');},async validate(subject,value){let result;try{result=factory(value.kind==='integer'||value.kind==='float'?Number(value.value):value.kind==='unit'?undefined:value.value);}catch(error){return {kind:'rejected',reason:String(error)};}return {kind:'accepted',value:{kind:'integer',value:String(result)}};},async close(){}};}};"#;
 
 #[tokio::test]
+async fn incremental_comparison_tracks_saved_plan_and_sources_without_authorizing_reuse() {
+    let fixture = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    fixture.adapter(VALUE_ADAPTER);
+    fs::write(fixture.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
+    let saved = fixture.run(true).await.evidence;
+    let compare = || {
+        fixture
+            .project
+            .verification_incremental_plan(Some(&fixture.app), Default::default(), &saved.id)
+            .unwrap()
+    };
+    let value = |report: &VerificationIncrementalReport, component: &str| {
+        report
+            .comparisons
+            .iter()
+            .find(|c| c.component == component)
+            .unwrap()
+            .matches
+    };
+    let database = fixture.root.join("spec/.dctx0ctl/state.sqlite3");
+    let before = fs::read(&database).unwrap();
+    let first = compare();
+    assert_eq!(fs::read(&database).unwrap(), before);
+    assert_eq!(value(&first, "program-plan"), Some(true));
+    assert_eq!(value(&first, "captured-input-inventory"), Some(true));
+    assert_eq!(first.rerun_cases, first.required_cases);
+    assert!(
+        first
+            .reasons
+            .iter()
+            .any(|r| r.code == "INCREMENTAL_EXTERNAL_INPUTS_UNAVAILABLE")
+    );
+    fs::write(
+        fixture.app.join("app.ts"),
+        "export function factory(value:number){return value;}",
+    )
+    .unwrap();
+    let changed = compare();
+    assert_eq!(value(&changed, "captured-input-inventory"), Some(false));
+    let config_path = fixture.app.join(".dctx0/testing/verification.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&fs::read(&config_path).unwrap()).unwrap();
+    config["dependency_resolution"] = serde_json::json!({"max_references": 1});
+    fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let changed = compare();
+    assert_eq!(value(&changed, "configuration"), Some(false));
+    fs::write(
+        fixture.root.join("spec/w.dctx0"),
+        "workspace W { value A = Int { range 1..3 } }",
+    )
+    .unwrap();
+    assert!(fixture.project.check().unwrap().ok);
+    let changed = compare();
+    assert_eq!(value(&changed, "program-plan"), Some(false));
+    assert_eq!(changed.rerun_cases, changed.required_cases);
+    let artifacts = {
+        let store =
+            dctx0_store::Store::open(&fixture.project.database, AccessMode::ReadOnly).unwrap();
+        saved
+            .run
+            .artifacts
+            .iter()
+            .map(|reference| {
+                store
+                    .verification_artifact(&saved.id, &reference.hash)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+    };
+    let mut imported = saved.run.clone();
+    imported.origin = VerificationRunOrigin::Imported;
+    imported.started_at_unix_ns = "1".into();
+    let imported_id = dctx0_store::Store::open(&fixture.project.database, AccessMode::ReadWrite)
+        .unwrap()
+        .record_verification_run(&fixture.project.key(), &imported, &artifacts)
+        .unwrap()
+        .id;
+    let imported_report = fixture
+        .project
+        .verification_incremental_plan(Some(&fixture.app), Default::default(), &imported_id)
+        .unwrap();
+    assert_eq!(imported_report.potentially_reusable_cases, 0);
+    assert_eq!(imported_report.rerun_cases, imported_report.required_cases);
+}
+
+#[tokio::test]
 async fn explicit_native_limits_reject_generation_and_observer_failures_without_publishing_evidence()
  {
     struct Unavailable(bool);
@@ -4360,5 +4446,374 @@ async fn adoption_preview_uses_native_proofs_and_never_publishes_or_rebases_stal
             .issues
             .iter()
             .any(|i| i.code == "ADOPTION_STALE_TASK_PIN")
+    );
+}
+
+#[tokio::test]
+async fn assigned_adapter_group_executes_only_its_unchanged_cases_and_never_adopts_partial_proof() {
+    use dctx0_verification::application_plan::{TestBackend, TestForm};
+    use dctx0_verification::application_session::ApplicationValueBoundary;
+    // Retain this new isolated history and all observations for hybrid diagnosis.
+    let f = std::mem::ManuallyDrop::new(Fixture::new(
+        "workspace W { value A = Int { range 1..2 } value B = Int { range 10..11 } }",
+        "W",
+    ));
+    fs::write(f.app.join("app.ts"), "export function factory(value){if(!Number.isSafeInteger(value)||value<1||value>2)throw new TypeError('A rejected');return value;}").unwrap();
+    f.adapter(&VALUE_ADAPTER.replace("async validate(subject,value){", "async validate(subject,value){if(subject!=='W.A')throw new Error('Native-owned decoder reached the old adapter');"));
+    let config_path = f.app.join(".dctx0/testing/verification.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&fs::read(&config_path).unwrap()).unwrap();
+    config["history_retention"] = serde_json::json!("preserve-all");
+    fs::write(&config_path, serde_json::to_vec_pretty(&config).unwrap()).unwrap();
+    let bundle = f
+        .project
+        .prepare_application_tests(
+            &f.app,
+            &ApplicationTestingPreparation {
+                plan: ".dctx0/application-tests/hybrid.json",
+                group: "native",
+                test: "TestB",
+                form: TestForm::Decoder,
+                boundary: ApplicationValueBoundary::ValueConstructor,
+                group_seconds: None,
+                subjects: ["W.B".into()].into(),
+            },
+        )
+        .unwrap();
+    let original = dctx0_verification::case_manifest(&bundle.plan.program);
+    let expected = bundle
+        .plan
+        .case_groups
+        .iter()
+        .filter(|(_, group)| group.as_str() == "legacy")
+        .map(|(id, _)| id.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(expected.iter().all(|id| id.starts_with("W.A:")));
+    let report = f
+        .project
+        .run_adapter_execution_group(
+            &f.app,
+            &bundle.plan,
+            "legacy",
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.evidence.run.required_cases, expected);
+    assert_eq!(
+        report
+            .evidence
+            .run
+            .cases
+            .iter()
+            .map(|case| case.id.clone())
+            .collect::<std::collections::BTreeSet<_>>(),
+        expected
+    );
+    assert!(
+        report
+            .evidence
+            .run
+            .cases
+            .iter()
+            .all(|case| case.result == VerificationResult::Pass)
+    );
+    assert!(expected.len() < original.required_cases.len());
+    assert!(report.adopted_tasks.is_empty());
+    assert!(report.adoption_proposal.is_none());
+    assert!(
+        report
+            .evidence
+            .run
+            .provenance
+            .incomplete
+            .iter()
+            .any(|issue| issue.code == "HYBRID_COHORT_REQUIRED")
+    );
+    assert_ne!(report.evidence.run.result, VerificationResult::Pass);
+    assert_eq!(
+        original,
+        dctx0_verification::case_manifest(&bundle.plan.program)
+    );
+    for group in ["missing", "native"] {
+        let error = f
+            .project
+            .run_adapter_execution_group(
+                &f.app,
+                &bundle.plan,
+                group,
+                &BunHarness,
+                &NativeCancellation::default(),
+            )
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("current complete program"), "{error}");
+    }
+    let mut changed = bundle.plan.clone();
+    changed.program.budgets.seed += 1;
+    assert!(
+        f.project
+            .run_adapter_execution_group(
+                &f.app,
+                &changed,
+                "legacy",
+                &BunHarness,
+                &NativeCancellation::default()
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        bundle
+            .plan
+            .configuration
+            .groups
+            .iter()
+            .filter(|group| group.backend == TestBackend::Adapter)
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn hybrid_execution_runs_both_real_backends_with_one_complete_current_case_inventory() {
+    use dctx0_verification::application_plan::TestForm;
+    use dctx0_verification::application_session::ApplicationValueBoundary;
+    let f = std::mem::ManuallyDrop::new(Fixture::new(
+        "workspace W { value A = Int { range 1..2 } value B = Int { range 10..11 } }",
+        "W",
+    ));
+    fs::write(f.app.join("app.ts"),"export function factory(value){if(!Number.isSafeInteger(value)||value<1||value>2)throw TypeError('A rejected');return value;} export function decodeB(raw){const value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));if(!Number.isSafeInteger(value)||value<10||value>11)throw TypeError('B rejected');return value;}").unwrap();
+    f.adapter(&VALUE_ADAPTER.replace("async validate(subject,value){","async validate(subject,value){if(subject!=='W.A')throw Error('native-owned B reached legacy');"));
+    publish_application_test_library(&f.app, &dctx0_target_typescript::application_test_library())
+        .unwrap();
+    let directory = f.app.join(".dctx0/application-tests");
+    fs::write(directory.join("native-b.test.ts"),r#"import {test} from 'bun:test';
+import {AssessmentClient,decoderTest} from './library/index.ts';
+import {decodeB} from '../../app.ts';
+test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env.DCTX0_APPLICATION_SOCKET!);try{await decoderTest(client,'NativeB',(raw)=>{try{return {kind:'accepted',value:decodeB(raw)};}catch(error){if(error instanceof TypeError||error instanceof SyntaxError)return {kind:'rejected',reason:error.message};throw error;}},value=>({kind:'integer',value:String(value)}));await client.finish();}finally{client.close();}});"#).unwrap();
+    let recipe = serde_json::json!({"schema_version":1,"runtime":"bun","root_test":"NativeB","test_directory":"root","entrypoint":".dctx0/application-tests/native-b.test.ts","prepare":[],"build":[{"program":"bun","arguments":["build","--target=bun","--external=bun:test","--outdir","{artifacts}/build",".dctx0/application-tests/native-b.test.ts"]}],"catalog":{"program":"bun","arguments":[".dctx0/application-tests/library/catalog.ts",".dctx0/application-tests/native-b.test.ts"]},"run":{"program":"bun","arguments":["test","--reporter","junit","--reporter-outfile","{artifacts}/native.junit.xml","./.dctx0/application-tests/native-b.test.ts"]},"junit":".dctx0ctl/application-tests/native.junit.xml"});
+    fs::write(
+        directory.join("recipe.json"),
+        serde_json::to_vec(&recipe).unwrap(),
+    )
+    .unwrap();
+    let config_path = f.app.join(".dctx0/testing/verification.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&fs::read(&config_path).unwrap()).unwrap();
+    config["history_retention"] = serde_json::json!("preserve-all");
+    fs::write(config_path, serde_json::to_vec(&config).unwrap()).unwrap();
+    let bundle = f
+        .project
+        .prepare_application_tests(
+            &f.app,
+            &ApplicationTestingPreparation {
+                plan: ".dctx0/application-tests/hybrid.json",
+                group: "native",
+                test: "NativeB",
+                form: TestForm::Decoder,
+                boundary: ApplicationValueBoundary::JsonDecoder,
+                group_seconds: Some(30),
+                subjects: ["W.B".into()].into(),
+            },
+        )
+        .unwrap();
+    let report = f
+        .project
+        .run_hybrid_verification(
+            &f.app,
+            &HybridVerificationOptions {
+                plan: ".dctx0/application-tests/hybrid.json",
+                application_group: "native",
+                recipe: ".dctx0/application-tests/recipe.json",
+                native_report: ".dctx0ctl/application-tests/fresh-native.json",
+            },
+            &BunHarness,
+            &NativeCancellation::default(),
+            true,
+        )
+        .await
+        .unwrap();
+    let run = &report.evidence.run;
+    assert_eq!(run.required_cases, bundle.plan.manifest.required_cases);
+    assert_eq!(run.cases.len(), run.required_cases.len());
+    assert!(
+        run.cases
+            .iter()
+            .all(|case| case.result == VerificationResult::Pass),
+        "{:?}",
+        run.cases
+            .iter()
+            .filter(|case| case.result != VerificationResult::Pass)
+            .collect::<Vec<_>>()
+    );
+    assert!(
+        run.provenance.incomplete.is_empty(),
+        "{:?}",
+        run.provenance.incomplete
+    );
+    assert_eq!(
+        run.result,
+        VerificationResult::Pass,
+        "{:?}",
+        run.open_obligations
+    );
+    assert!(report.adopted_tasks.is_empty());
+    assert!(run.artifacts.iter().any(|artifact| artifact.media_type
+        == dctx0_verification::hybrid_evidence::HYBRID_EXECUTION_MEDIA_TYPE));
+    assert!(!run.artifacts.iter().any(|artifact| artifact.media_type
+        == dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE));
+    let native: ApplicationNativeReport = serde_json::from_slice(
+        &fs::read(f.app.join(".dctx0ctl/application-tests/fresh-native.json")).unwrap(),
+    )
+    .unwrap();
+    assert!(native.evidence.is_none());
+    assert!(
+        native
+            .assessment
+            .unwrap()
+            .cases
+            .iter()
+            .all(|case| case.subject == "W.B")
+    );
+    let native_case = run.cases.iter().find(|case| case.subject == "W.B").unwrap();
+    let wrong_backend = f
+        .project
+        .replay_verification(
+            Some(&f.app),
+            &report.evidence.id,
+            &native_case.id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        wrong_backend.contains("verify application-tests replay"),
+        "{wrong_backend}"
+    );
+    let correct_backend = f
+        .project
+        .replay_application_test(
+            &f.app,
+            ".dctx0/application-tests/hybrid.json",
+            "native",
+            ".dctx0/application-tests/recipe.json",
+            ".dctx0ctl/application-tests/fresh-native.json",
+            &native_case.id,
+            ".dctx0ctl/application-tests/native-replay.json",
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(correct_backend.result, VerificationResult::Pass);
+    assert!(correct_backend.adopted_tasks.is_empty());
+    let legacy_case = run.cases.iter().find(|case| case.subject == "W.A").unwrap();
+    let legacy_replay = f
+        .project
+        .replay_verification(
+            Some(&f.app),
+            &report.evidence.id,
+            &legacy_case.id,
+            &BunHarness,
+            &NativeCancellation::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(legacy_replay.case_result, Some(VerificationResult::Pass));
+    assert!(legacy_replay.evidence.adopted_tasks.is_empty());
+
+    // A second fresh cohort must cross the Store proof guard before either
+    // backend may deliver its tasks. The native subject is absent from the
+    // legacy adapter description, so its authority must come from this cohort.
+    create_profiles(
+        &f.app,
+        &dctx0_target_typescript::Provider,
+        true,
+        false,
+        false,
+    )
+    .unwrap();
+    f.project.task_plan("latest").unwrap();
+    let delivered = f
+        .project
+        .run_hybrid_verification(
+            &f.app,
+            &HybridVerificationOptions {
+                plan: ".dctx0/application-tests/hybrid.json",
+                application_group: "native",
+                recipe: ".dctx0/application-tests/recipe.json",
+                native_report: ".dctx0ctl/application-tests/fresh-delivery.json",
+            },
+            &BunHarness,
+            &NativeCancellation::default(),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(delivered.evidence.run.result, VerificationResult::Pass);
+    assert!(
+        !delivered.adopted_tasks.is_empty(),
+        "{:?}",
+        delivered.adoption_issues
+    );
+    let session = f.project.task_session(None, None).unwrap();
+    for subject in ["W.A", "W.B"] {
+        let member = session.plan.members.iter().find(|member| {
+            member.candidate.subjects.contains(&subject.to_string())
+                && delivered.adopted_tasks.contains(&member.task_id)
+        });
+        assert!(
+            member.is_some(),
+            "No actual delivery for {subject}: {:?}",
+            delivered.adoption_issues
+        );
+    }
+    let before_mutation = session.event_seq;
+    let source = fs::read_to_string(f.app.join("app.ts")).unwrap();
+    fs::write(
+        f.app.join("app.ts"),
+        source.replace(
+            "return value;} export function decodeB",
+            "return 99;} export function decodeB",
+        ),
+    )
+    .unwrap();
+    let rejected = f
+        .project
+        .run_hybrid_verification(
+            &f.app,
+            &HybridVerificationOptions {
+                plan: ".dctx0/application-tests/hybrid.json",
+                application_group: "native",
+                recipe: ".dctx0/application-tests/recipe.json",
+                native_report: ".dctx0ctl/application-tests/fresh-mutant.json",
+            },
+            &BunHarness,
+            &NativeCancellation::default(),
+            false,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        rejected.evidence.run.result,
+        VerificationResult::Fail { .. }
+    ));
+    assert!(rejected.adopted_tasks.is_empty());
+    assert_eq!(
+        f.project.task_session(None, None).unwrap().event_seq,
+        before_mutation
+    );
+    assert!(
+        rejected
+            .evidence
+            .run
+            .cases
+            .iter()
+            .filter(|case| case.subject == "W.B")
+            .all(|case| case.result == VerificationResult::Pass)
     );
 }

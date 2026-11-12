@@ -2,7 +2,8 @@
 use super::*;
 use dctx0_interpreter::{ValueContract, check_value};
 use dctx0_verification::{
-    VerificationPlan, VerificationScope, supports_generated_operation as supported_operation,
+    VerificationPlan, VerificationScope, constructor_value_equality,
+    supports_generated_operation as supported_operation,
 };
 struct Pending {
     id: String,
@@ -128,6 +129,9 @@ pub(super) struct Input<'a> {
     pub adapter: &'a str,
     pub generated: &'a BTreeSet<String>,
     pub plan: &'a ProgramPlan,
+    pub assigned_cases: Option<&'a BTreeSet<String>>,
+    pub reuse: Option<&'a mut super::reuse_execution::PreparedReuse>,
+    pub complete_cohort: bool,
     pub lifecycles: &'a VerificationLifecycleFixtures,
     pub cancel: &'a NativeCancellation,
     pub limits: NativeLimits,
@@ -153,13 +157,27 @@ pub(super) async fn execute(
         adapter,
         generated,
         plan,
+        assigned_cases,
+        reuse,
+        complete_cohort,
         lifecycles,
         cancel,
         limits,
         dependency_budget,
     } = input;
     let manifest = dctx0_verification::case_manifest(plan);
-    run.required_cases = manifest.required_cases.clone();
+    if assigned_cases
+        .is_some_and(|cases| cases.is_empty() || !cases.is_subset(&manifest.required_cases))
+    {
+        return Err(Error::Invalid(
+            "Adapter assignment must select nonempty central mandatory cases".into(),
+        ));
+    }
+    run.required_cases = if complete_cohort {
+        manifest.required_cases.clone()
+    } else {
+        assigned_cases.unwrap_or(&manifest.required_cases).clone()
+    };
     run.open_obligations
         .extend(manifest.open_obligations.clone());
     run.bounded_obligations
@@ -286,6 +304,23 @@ pub(super) async fn execute(
         cancel,
     )
     .await?;
+    let mut reused = BTreeSet::new();
+    if let Some(state) = reuse {
+        let selection = state.select(plan, run)?;
+        reused = selection.reused;
+        if let Some(parent) = &state.parent {
+            run.cases.extend(
+                parent
+                    .run
+                    .cases
+                    .iter()
+                    .filter(|case| reused.contains(&case.id))
+                    .cloned(),
+            );
+        }
+    }
+    let selected =
+        |id: &str| assigned_cases.is_none_or(|cases| cases.contains(id)) && !reused.contains(id);
     for contract in &plan.contracts {
         for (rejection, index, value) in contract
             .corpus
@@ -307,6 +342,9 @@ pub(super) async fn execute(
                 contract.subject,
                 if rejection { "rejection" } else { "value" }
             );
+            if !selected(&id) {
+                continue;
+            }
             let mut pending = Pending::new(
                 id.clone(),
                 &contract.subject,
@@ -337,23 +375,18 @@ pub(super) async fn execute(
                     ),
                 },
                 Ok(ValueCheck::Accepted { value: actual }) => {
-                    let unchanged = &actual == value;
-                    pending.bindings.insert(
-                        "native_value".into(),
-                        if unchanged {
-                            value.clone()
-                        } else {
-                            actual.clone()
-                        },
-                    );
+                    pending
+                        .bindings
+                        .insert("native_value".into(), actual.clone());
                     match check_value(ir, &contract.ty, &actual, &plan.budgets) {
-                        ValueContract::Accepted if unchanged => VerificationResult::Pass,
-                        ValueContract::Accepted => VerificationResult::Fail {
-                            issue: issue(
-                                "NATIVE_VALUE_CHANGED",
-                                "Adapter changed a canonical input",
-                            ),
-                        },
+                        ValueContract::Accepted => constructor_value_equality(
+                            ir,
+                            &contract.subject,
+                            &contract.ty,
+                            value,
+                            &actual,
+                            &plan.budgets,
+                        ),
                         ValueContract::Rejected { reason } => VerificationResult::Fail {
                             issue: issue("NATIVE_VALUE_CONTRACT", reason),
                         },
@@ -391,6 +424,9 @@ pub(super) async fn execute(
     };
     for operation in &plan.operations {
         for input in &operation.cases {
+            if !selected(&input.id) {
+                continue;
+            }
             let mut pending = Pending::new(
                 input.id.clone(),
                 &operation.operation.id,
@@ -438,6 +474,9 @@ pub(super) async fn execute(
     for operation in plan.operations.iter().filter(|o| supported_operation(o)) {
         for (index, bindings) in operation.inputs.bindings.iter().enumerate() {
             let id = format!("{}:operation:{index}", operation.operation.id);
+            if !selected(&id) {
+                continue;
+            }
             let arguments = operation
                 .operation
                 .parameters
@@ -457,7 +496,9 @@ pub(super) async fn execute(
             pending.setup = operation.generated_setup(bindings);
             pending.arguments.push(arguments);
             let started = Instant::now();
-            let pure = operation.operation.pure && operation.operation.failures.is_empty();
+            let pure = operation.operation.pure
+                && operation.operation.failures.is_empty()
+                && pending.setup.is_empty();
             let result = if pure {
                 worker
                     .execute_pure_operation(
@@ -470,7 +511,7 @@ pub(super) async fn execute(
                     .await
             } else {
                 let input = dctx0_verification::OperationCaseInput {
-                    argument_bindings: vec![],
+                    argument_bindings: operation.generated_argument_bindings(bindings),
                     id: id.clone(),
                     invocation: invocation.clone(),
                     setup: pending.setup.clone(),
@@ -538,6 +579,9 @@ pub(super) async fn execute(
     for property in &plan.properties {
         for assertion in &property.assertions {
             for case in &assertion.cases {
+                if !selected(&case.id) {
+                    continue;
+                }
                 let mut pending = Pending::new(
                     case.id.clone(),
                     &property.subject,
@@ -560,6 +604,9 @@ pub(super) async fn execute(
         }
     }
     for example in &plan.examples {
+        if !selected(&example.subject) {
+            continue;
+        }
         if !events_supported
             && example
                 .expectations
@@ -600,6 +647,9 @@ pub(super) async fn execute(
     }
     for lifecycle in &plan.lifecycles {
         for path in &lifecycle.paths {
+            if !selected(&path.id) {
+                continue;
+            }
             let Some(input) = lifecycles.paths.get(&path.id) else {
                 run.open_obligations
                     .push(issue("LIFECYCLE_FIXTURE_REQUIRED", &path.id));
@@ -671,7 +721,9 @@ pub(super) async fn execute(
         }
     }
     for contract in &plan.contracts {
-        if !contract.identity_requirements.is_empty() {
+        if !contract.identity_requirements.is_empty()
+            && selected(&format!("{}:identity", contract.subject))
+        {
             run.cases.push(dctx0_verification::entity_identity_case(
                 ir,
                 &contract.subject,

@@ -4,6 +4,42 @@ pub struct NativeCommand {
     pub(super) worker: NativeWorker,
 }
 impl NativeCommand {
+    pub(crate) fn stdout_bytes(&self) -> Vec<u8> {
+        self.worker.stdout.lock().expect("stdout guard").clone()
+    }
+    pub fn runtime_identity(&self) -> NativeRuntimeIdentity {
+        self.worker.launch_identity.clone()
+    }
+    pub(crate) async fn spawn_application_test(
+        recipe: &ExecutionRecipe,
+        directory: &Path,
+        limits: NativeLimits,
+        socket: &str,
+        plan: &Path,
+        root: &Path,
+    ) -> Result<Self, NativeFailure> {
+        let environment = BTreeMap::from([
+            ("DCTX0_APPLICATION_SOCKET".into(), socket.into()),
+            (
+                "DCTX0_APPLICATION_ROOT".into(),
+                root.to_string_lossy().into_owned(),
+            ),
+            (
+                "DCTX0_APPLICATION_PLAN".into(),
+                plan.to_string_lossy().into_owned(),
+            ),
+        ]);
+        Ok(Self {
+            worker: NativeWorker::spawn_streams_with_environment(
+                recipe,
+                directory,
+                limits,
+                false,
+                &environment,
+            )
+            .await?,
+        })
+    }
     pub async fn spawn(
         recipe: &ExecutionRecipe,
         directory: &Path,
@@ -87,6 +123,48 @@ impl NativeCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn go_build_ignores_git_metadata_outside_captured_application() {
+        struct Directory(std::path::PathBuf);
+        impl Drop for Directory {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let directory = Directory(std::env::temp_dir().join(format!(
+            "dctx0-go-captured-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        )));
+        std::fs::create_dir(&directory.0).unwrap();
+        std::fs::write(directory.0.join(".git"), "gitdir: missing\n").unwrap();
+        let application = directory.0.join("application");
+        std::fs::create_dir(&application).unwrap();
+        std::fs::write(
+            application.join("go.mod"),
+            "module captured.example/app\n\ngo 1.25.0\n",
+        )
+        .unwrap();
+        std::fs::write(
+            application.join("main.go"),
+            "package main\nimport (\"fmt\"; \"os\")\nfunc main(){fmt.Print(os.Getenv(\"GOFLAGS\"))}\n",
+        )
+        .unwrap();
+        let recipe = ExecutionRecipe {
+            program: "go".into(),
+            arguments: vec!["run".into(), ".".into()],
+        };
+        let mut command = NativeCommand::spawn(&recipe, &application, NativeLimits::default())
+            .await
+            .unwrap();
+        let audit = command.wait(&NativeCancellation::default()).await.unwrap();
+        assert_eq!(audit.stdout, "-mod=readonly -buildvcs=false");
+        assert_eq!(audit.exit_code, Some(0));
+    }
+
     #[tokio::test]
     async fn command_status_preserves_separate_streams_and_nonzero_exit() {
         let recipe = python_fixture(

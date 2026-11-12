@@ -28,7 +28,7 @@ pub fn skill_catalog() -> Vec<SkillDescription> {
             name,
             version: match *name {
                 "dctx0-config" | "dctx0-delivery" => 1,
-                "dctx0" | "dctx0-implementation" => 4,
+                "dctx0" | "dctx0-implementation" => 5,
                 _ => 2,
             },
             files: bundle(name)
@@ -74,6 +74,12 @@ fn bundle(name: &str) -> Result<BTreeMap<&'static str, &'static str>> {
             (
                 "references/implementation.md",
                 include_str!("../../../skills/dctx0-implementation/references/implementation.md"),
+            ),
+            (
+                "references/application-tests.md",
+                include_str!(
+                    "../../../skills/dctx0-implementation/references/application-tests.md"
+                ),
             ),
             (
                 "references/work-packages.md",

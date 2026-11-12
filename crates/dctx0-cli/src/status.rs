@@ -51,6 +51,14 @@ pub(crate) fn run(
             report.tasks.evidence_unknown
         )
         .map_err(crate::error_message)?;
+        if report.tasks.inspected_current + report.tasks.inspected_stale > 0 {
+            writeln!(output, "INSPECTED + actual native: {} current; {} stale (finite cases and authored findings)", report.tasks.inspected_current, report.tasks.inspected_stale)
+                .map_err(crate::error_message)?;
+        }
+        if report.tasks.agent_current + report.tasks.agent_stale > 0 {
+            writeln!(output, "Agent inspection + actual native: {} current; {} stale (checked source/requirement/profile binding, not automatic proof)", report.tasks.agent_current, report.tasks.agent_stale)
+                .map_err(crate::error_message)?;
+        }
         writeln!(
             output,
             "Specification current: {:?}; task plan current: {:?}",

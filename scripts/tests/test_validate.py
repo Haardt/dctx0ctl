@@ -4,10 +4,15 @@ import copy
 import importlib.util
 import io
 import json
+import os
+import subprocess
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 spec = importlib.util.spec_from_file_location('validate', Path(__file__).resolve().parents[1] / 'validate.py')
 validate = importlib.util.module_from_spec(spec)
@@ -44,6 +49,14 @@ class PerformanceTests(unittest.TestCase):
                 self.assertNotEqual(validate.digest(inventory()), before)
 
     def setUp(self):
+        # These tests isolate validation/performance behavior; receipt behavior
+        # has its own integration suite and must not probe real host toolchains.
+        self.cache_patch = patch.object(validate, 'cache_eligible', return_value=False)
+        self.cache_patch.start()
+        self.environment = patch.dict(os.environ)
+        self.environment.start()
+        os.environ.pop('DCTX0_PRESERVE_BENCHMARK_HISTORY', None)
+        os.environ.pop('DCTX0_VALIDATION_ARTIFACT_ROOT', None)
         self.temporary = tempfile.TemporaryDirectory()
         self.store = Path(self.temporary.name) / 'benchmarks'
         self.patch = patch.object(validate, 'STORE', self.store)
@@ -55,10 +68,156 @@ class PerformanceTests(unittest.TestCase):
         self.output.__enter__()
 
     def tearDown(self):
+        self.cache_patch.stop()
         self.output.__exit__(None, None, None)
         self.analysis_patch.stop()
         self.patch.stop()
         self.temporary.cleanup()
+        self.environment.stop()
+
+    def test_explicit_history_hold_keeps_failed_and_successful_runs_and_never_updates_baseline(self):
+        history = self.store / 'history'
+        history.mkdir(parents=True)
+        originals = {}
+        for index in range(25):
+            previous = record()
+            if index % 2:
+                previous['status'] = 'incomplete'
+            path = history / f'20000101T0000{index:02d}.json'
+            path.write_text(json.dumps(previous))
+            originals[path] = path.read_bytes()
+        baseline = self.store / 'baseline.json'
+        baseline.write_text(json.dumps(record()))
+        baseline_bytes = baseline.read_bytes()
+        self.args.preserve_history = True
+        current = record()
+        self.assertTrue(validate.save(current, self.args))
+        self.assertEqual(current['history_retention'], 'preserve-all')
+        failed = record()
+        failed['status'] = 'incomplete'
+        self.assertFalse(validate.save(failed, self.args))
+        self.assertEqual(len(list(history.glob('*.json'))), 27)
+        for path, contents in originals.items():
+            self.assertEqual(path.read_bytes(), contents)
+        self.assertEqual(baseline.read_bytes(), baseline_bytes)
+
+    def test_held_functional_cache_is_private_short_unique_and_keeps_inherited_provenance(self):
+        root = Path(self.temporary.name)
+        base = root / 'v'
+        artifacts = root / ('long-artifact-root-' * 6)
+        artifacts.mkdir()
+        old = artifacts / 'older-report.json'
+        old.write_bytes(b'untouched historical evidence')
+        os.environ['DCTX0_VALIDATION_TEMP_ROOT'] = str(base)
+        os.environ['DCTX0_VALIDATION_ARTIFACT_ROOT'] = str(artifacts)
+        os.environ['DCTX0_PRESERVE_BENCHMARK_HISTORY'] = '1'
+        first = Path(validate.create_held_functional_cache(artifacts))
+        recorded = json.loads((artifacts / 'run.json').read_text())
+        self.assertEqual(recorded, {'status': 'incomplete', 'artifact_root': str(artifacts.resolve()), 'functional_cache': str(first)})
+        self.assertEqual(first.parent, base.resolve())
+        self.assertEqual(first.stat().st_mode & 0o777, 0o700)
+        self.assertLessEqual(len(os.fsencode(first / 'dctx0-ipc-ffffffff-ffffffffffffffff' / 's')), 100)
+        environment = {**os.environ, 'TMPDIR': str(first)}
+        child = subprocess.run([sys.executable, '-c', "import json,os; print(json.dumps({k:os.environ[k] for k in ('TMPDIR','DCTX0_VALIDATION_ARTIFACT_ROOT','DCTX0_PRESERVE_BENCHMARK_HISTORY')}))"], env=environment, text=True, capture_output=True, check=True)
+        self.assertEqual(json.loads(child.stdout), {k:environment[k] for k in ('TMPDIR','DCTX0_VALIDATION_ARTIFACT_ROOT','DCTX0_PRESERVE_BENCHMARK_HISTORY')})
+        other_artifacts = root / 'next-report'
+        other_artifacts.mkdir()
+        second = Path(validate.create_held_functional_cache(other_artifacts))
+        self.assertNotEqual(first, second)
+        self.assertTrue(first.is_dir())
+        self.assertEqual(old.read_bytes(), b'untouched historical evidence')
+        self.assertEqual(json.loads((artifacts/'run.json').read_text()), recorded)
+
+    def test_held_main_isolates_long_artifacts_and_inherits_short_cache(self):
+        root = Path(self.temporary.name)
+        project = root / ('long-artifact-parent-' * 5)
+        project.mkdir()
+        old = project / 'old-evidence.json'
+        old.write_bytes(b'keep')
+        environments = []
+        def run(command, **kwargs):
+            if 'env' in kwargs:
+                environments.append(kwargs['env'].copy())
+            return argparse.Namespace(stdout='', returncode=0)
+        argv = ['validate.py', '--focus', 'verification', '--preserve-history', '--skip-performance']
+        with patch.dict(validate.os.environ, {'DCTX0_VALIDATION_TEMP_ROOT': str(root/'v')}), \
+             patch.object(validate, 'ROOT', project), patch.object(validate.sys, 'argv', argv), \
+             patch.object(validate.subprocess, 'run', side_effect=run), \
+             patch.object(validate, 'validation_sources', return_value=[]), \
+             patch.object(validate, 'digest', return_value='fixed'):
+            self.assertEqual(validate.main(), 0)
+            first_count = len(environments)
+            self.assertEqual(validate.main(), 0)
+        runs = list((project/'target/validation-runs').glob('*/run.json'))
+        self.assertEqual(len(runs), 2)
+        records = [json.loads(path.read_text()) for path in runs]
+        self.assertEqual(len({record['functional_cache'] for record in records}), 2)
+        self.assertTrue(all(record['status'] == 'incomplete' for record in records))
+        self.assertTrue(all(Path(record['functional_cache']).is_dir() for record in records))
+        self.assertEqual(old.read_bytes(), b'keep')
+        self.assertGreater(first_count, 0)
+        self.assertGreater(len(environments), first_count)
+        for environment in environments:
+            self.assertEqual(environment['DCTX0_PRESERVE_BENCHMARK_HISTORY'], '1')
+            self.assertTrue(Path(environment['DCTX0_VALIDATION_ARTIFACT_ROOT']).is_relative_to(project))
+            self.assertTrue(Path(environment['TMPDIR']).is_relative_to(root/'v'))
+        self.assertNotEqual(environments[0]['DCTX0_VALIDATION_ARTIFACT_ROOT'], environments[first_count]['DCTX0_VALIDATION_ARTIFACT_ROOT'])
+        self.assertNotEqual(environments[0]['TMPDIR'], environments[first_count]['TMPDIR'])
+
+    def test_interrupted_hold_retains_recorded_cache_and_existing_artifacts(self):
+        root = Path(self.temporary.name)
+        artifacts = root / 'interrupted'
+        artifacts.mkdir()
+        previous = artifacts / 'old-report.json'
+        previous.write_bytes(b'unchanged')
+        environment = {**os.environ, 'DCTX0_VALIDATION_TEMP_ROOT': str(root/'v'),
+                       'DCTX0_VALIDATION_ARTIFACT_ROOT': str(artifacts),
+                       'DCTX0_PRESERVE_BENCHMARK_HISTORY': '1',
+                       'PYTHONPATH': str(Path(__file__).resolve().parents[1])}
+        code = "import os,pathlib,time,validate; print(validate.create_held_functional_cache(pathlib.Path(os.environ['DCTX0_VALIDATION_ARTIFACT_ROOT'])),flush=True); time.sleep(30)"
+        child = subprocess.Popen([sys.executable, '-c', code], env=environment, stdout=subprocess.PIPE, text=True)
+        try:
+            cache = Path(child.stdout.readline().strip())
+            self.assertTrue(cache.is_dir())
+        finally:
+            child.terminate()
+            child.wait(timeout=5)
+            child.stdout.close()
+        record = json.loads((artifacts/'run.json').read_text())
+        self.assertEqual(record['status'], 'incomplete')
+        self.assertEqual(record['functional_cache'], str(cache))
+        self.assertTrue(cache.is_dir())
+        self.assertEqual(previous.read_bytes(), b'unchanged')
+
+    def test_validation_cache_requires_absolute_socket_safe_override(self):
+        os.environ['DCTX0_VALIDATION_TEMP_ROOT'] = 'relative'
+        with self.assertRaisesRegex(ValueError, 'absolute'):
+            validate.functional_cache_root()
+        os.environ['DCTX0_VALIDATION_TEMP_ROOT'] = '/home/' + 'too-long-' * 10
+        with self.assertRaisesRegex(ValueError, 'too long'):
+            validate.functional_cache_root()
+
+    def test_application_helper_coverage_unions_source_identical_blocks_and_rejects_stale_maps(self):
+        root = Path(self.temporary.name)
+        source = root / 'targets/go/applicationtests/client.go'
+        source.parent.mkdir(parents=True)
+        source.write_text('package applicationtests\n')
+        a, b = root / 'unit.coverage', root / 'native.coverage'
+        first = 'github.com/Haardt/dctx0ctl/applicationtests/go/client.go:1.1,2.1'
+        second = 'github.com/Haardt/dctx0ctl/applicationtests/go/client.go:3.1,4.1'
+        a.write_text(f'mode: set\n{first} 1 1\n{second} 3 0\n')
+        b.write_text(f'mode: atomic\n{first} 1 0\n{second} 3 4\n')
+        with patch.object(validate, 'ROOT', root):
+            merged = validate.application_go_coverage([a, b])
+            self.assertEqual((merged['statements'], merged['covered_statements']), (4, 4))
+            self.assertEqual(merged['statement_percent'], 100)
+            for content in (f'mode: atomic\n{first} 2 1\n{second} 3 0\n',
+                            f'mode: atomic\n{first} 1 1\n',
+                            f'mode: set\n{first} 1 1\n{first} 1 0\n',
+                            'mode: set\nforeign/client.go:1.1,2.1 1 1\n'):
+                b.write_text(content)
+                with self.assertRaises(ValueError):
+                    validate.application_go_coverage([a, b])
 
     def test_speed_and_ram_regressions_fail_independently(self):
         baseline = record()
@@ -178,7 +337,11 @@ class PerformanceTests(unittest.TestCase):
 
     def test_functional_checks_use_owned_disk_temporary_space_without_changing_release_environment(self):
         environments = []
-        cache = Path(self.temporary.name) / 'cache'
+        short_base = Path.home() / '.cache'
+        short_base.mkdir(parents=True, exist_ok=True)
+        short_cache = tempfile.TemporaryDirectory(prefix='t-', dir=short_base)
+        self.addCleanup(short_cache.cleanup)
+        cache = Path(short_cache.name)
         def run(command, **kwargs):
             environment = kwargs.get('env')
             if environment is not None:

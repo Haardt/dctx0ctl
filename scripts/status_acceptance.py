@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Couple status/preflight regressions with isolated release CLI speed/RSS samples."""
+import history_retention
 import argparse
 import datetime
 import hashlib
@@ -52,7 +53,7 @@ def main():
 
     try:
         if not args.skip_tests:
-            run('engine-regressions', ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'verification_preflight', '--locked'])
+            run('engine-regressions', ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'verification_preflight', '--test', 'agent_freshness', '--locked'])
             run('cli-regressions', ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'status', '--test', 'verification_run', '--test', 'verification_lifecycle', '--test', 'verification_complete', '--all-features', '--locked'])
             run('cli-without-targets', ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'status', '--no-default-features', '--locked'])
         if not args.skip_build:
@@ -118,12 +119,11 @@ def main():
         history.mkdir(parents=True, exist_ok=True)
         with locked(history / '.lock'):
             with tempfile.NamedTemporaryFile(mode='w', dir=history, delete=False) as staged:
-                json.dump(report, staged, indent=2)
+                json.dump(history_retention.mark(report), staged, indent=2)
                 staged.write('\n'); staged.flush(); os.fsync(staged.fileno())
             destination = history / f'{stamp}-{os.getpid()}.json'
             os.replace(staged.name, destination)
-            for old in sorted(history.glob('*.json'))[:-20]:
-                old.unlink()
+            history_retention.prune(history)
         print(json.dumps({'status': report['status'], 'report': str(destination), 'error': report.get('error')}))
     return 0 if report['status'] == 'complete' else 1
 

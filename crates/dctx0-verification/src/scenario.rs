@@ -321,9 +321,27 @@ impl<'a> Scenario<'a> {
             .filter(|(_, mock)| &mock.invocation == invocation)
             .map(|(i, _)| i)
             .collect::<Vec<_>>();
-        let observation = match matching.as_slice() {
-            [index] => {
-                let mock = &mut self.mocks[*index];
+        // Repeated identical preparations are not conflicting behaviors. Give
+        // each preparation an actual call before reusing an exercised one;
+        // conflicting outcomes remain ambiguous and unused givens stay open.
+        let selected = matching
+            .first()
+            .copied()
+            .filter(|first| {
+                matching
+                    .iter()
+                    .all(|index| self.mocks[*index].observation == self.mocks[*first].observation)
+            })
+            .map(|first| {
+                matching
+                    .iter()
+                    .copied()
+                    .find(|index| self.mocks[*index].calls == 0)
+                    .unwrap_or(first)
+            });
+        let observation = match selected {
+            Some(index) => {
+                let mock = &mut self.mocks[index];
                 mock.calls += 1;
                 mock.observation.clone()
             }
@@ -342,6 +360,16 @@ impl<'a> Scenario<'a> {
             observation: observation.clone(),
         });
         observation
+    }
+    /// Only subjects are exposed to native fixtures. Outcomes stay in Rust and
+    /// are delivered solely in response to an actual injected collaborator call.
+    pub fn collaborator_subjects(&self) -> Vec<String> {
+        self.mocks
+            .iter()
+            .map(|mock| mock.invocation.subject.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
     }
     pub fn deliver(&mut self, observation: Observation, events: Vec<VerificationEvent>) {
         self.deliver_observed(observation, events, None);

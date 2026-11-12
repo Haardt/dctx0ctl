@@ -83,3 +83,12 @@ coverage-*/
 /benchmarks/history/compaction/.lock
 /benchmarks/history/generators/.lock
 /benchmarks/history/status/.lock
+
+# Rebuildable application assessment plans; retained acceptance belongs in benchmarks.
+**/.dctx0/application-tests/plan.json
+**/.dctx0/application-tests/managed-plan.json
+**/.dctx0/application-tests/report.json
+**/.dctx0/application-tests/suite-report.json
+
+# Interrupted acceptance may retain scratch compilers locally; keep reports, not build caches.
+/benchmarks/artifacts/**/functional-cache/

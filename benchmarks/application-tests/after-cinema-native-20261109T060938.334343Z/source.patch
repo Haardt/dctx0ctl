@@ -1,0 +1,2104 @@
+diff --git a/.gitignore b/.gitignore
+index d93326e..2c2e224 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -83,3 +83,9 @@ coverage-*/
+ /benchmarks/history/compaction/.lock
+ /benchmarks/history/generators/.lock
+ /benchmarks/history/status/.lock
++
++# Rebuildable application assessment plans; retained acceptance belongs in benchmarks.
++**/.dctx0/application-tests/plan.json
++**/.dctx0/application-tests/managed-plan.json
++**/.dctx0/application-tests/report.json
++**/.dctx0/application-tests/suite-report.json
+diff --git a/AGENTS.md b/AGENTS.md
+index da1d3ef..0bb824e 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1618,3 +1618,93 @@ workloads completed in 3,895,588.849 ms; sampled process-tree peak RSS was
+ 1,075,568,640 bytes. Performance comparison remains unassessed and no baseline
+ was promoted. `docs/status-preflight-validation.json` retains source pins,
+ measurement references and the earlier failed preflight classification attempt.
++
++## Application-test planning foundation (2026-11-08)
++
++The P0–P7 application-test migration is tracked in
++`docs/application-test-implementation.md`, alongside the retained concept and
++migration documents. P0 now has a diagnostic version-1 export preserving the
++original `ProgramPlan`, central `case_manifest`, exact ownership, test forms and
++expected registrations. Schema-2 group configuration is an explicit input to
++`verify plan --application-tests GROUPS --test-catalog CATALOG`; schema-1
++adapter configurations and existing execution remain unchanged. Do not treat
++this export or its registrations as native execution, complete isolation,
++persistent group evidence or adoption authority. Native application-test
++libraries, evaluator transport, collector/store composition, consumer migration
++and the default switch remain unimplemented. Complete native old/new comparison
++and P1–P7 acceptance are still required.
++
++The release `application-test-plan` phase is included in `scripts/validate.py`.
++It measures pure export/ownership construction after projection, with process
++RSS including preparation. It does not measure a new native backend. Keep the
++accepted baseline unchanged; reduced development samples are unassessed.
++
++Application-test native pilot (2026-11-08, in progress): separate application
++protocol 1 and pure `ApplicationSession` now support Go/Bun decoder or native
++constructor tests, direct operation/state tests and existing pure assertions.
++Each language's real Cinema pilot covers 4,165 unchanged finite cases: 3,862
++contracts, 100 winner calls, 102 actual SQLite saves (including the original API
++setup), and 101 assertions. The full manifest remains 5,766; remaining 1,601
++cases stay assigned to the old backend. This is diagnostic execution without
++mixed-group adoption authority, complete build/source proof or full Cinema
++migration. The common runner now includes the pilots/probes and their separate
++release measurements. Full post-change coverage is pending; do not reuse the
++97.08%/97.12% pre-migration coverage as proof of the new code. The frozen prior
++validation/source/native evidence is under
++`benchmarks/application-tests/before-20261108T172542Z/`; baseline unchanged.
++
++## Native application-test continuation (2026-11-08)
++
++The working tree adds application protocol 2 and testing libraries 0.2.0 for Go
++and Bun, separate from target SDK 2 and the existing worker protocol. Both native
++Cinema suites execute the same 5,766 original cases, including scenarios,
++lifecycles and centrally derived identity. `verify application-tests run` builds
++from captured sources and independently collects Go test2json / Bun JUnit;
++`replay` reruns saved inputs. `library` publishes the embedded testing-only SDK
++without overwriting authored tests or silently replacing edited pinned files.
++These are diagnostic execution reports, not transactional task-adoption evidence.
++The full current-tree coverage/performance acceptance is still pending; retain
++the successful before-reference and every failed/incomplete after-attempt. See
++`docs/application-test-implementation.md`. Never certify this change using the
++older 97% measurements, lower the thresholds, or promote the benchmark baseline.
++
++
++## Guarded application-test task delivery (2026-11-09)
++
++The new Go/Bun application-test path uses protocol 2 and testing libraries 0.2.0
++with the unchanged 5,766-case Cinema manifest. Fresh managed
++`verify application-tests run` stores native evidence and attempts task delivery
++through transactional native guards; `--no-adopt` requests diagnostics without
++task delivery. `verify application-tests complete` uses the prepared check,
++current profiles and source-bound authored inspection notes, then applies the
++same completion logic as the established adapter workflow. Preparation, service
++sessions, imported reports, replay and library finalization alone cannot authorize
++adoption. `adoption_authority` requires actual task delivery.
++
++Actual Go and Bun `complete` runs have each delivered all 105 Cinema tasks as Done/PASS,
++including four source-bound authored review attestations. An explicit native-backed
++TaskAttestation supplies testing evidence for those reviews; plain review approval
++or manual completion still does not set PASS. Existing Done/Unverified reviews are
++preserved. This supersedes earlier blanket diagnostic-only descriptions of the
++new managed command, not the status of their historical reports. Full current-tree
++coverage and functional validation now pass; reduced release measurements remain
++unassessed against the accepted baseline. Keep the frozen before-reference,
++failed/incomplete attempts, 97% Rust thresholds and accepted benchmark baseline
++unchanged. See `docs/site/src/docs/application-tests.md` for the current workflow.
++
++
++## Cinema application-test release acceptance (2026-11-09)
++
++Both actual Cinema Go/Bun project stores contain 105 Done/PASS tasks. Fresh
++managed completions independently reproduce all 5,766 finite cases and all 105
++Done/PASS, including 4 explicitly inspected source-bound reviews. Plain review
++approval/manual completion and replay still have no independent PASS authority.
++The complete source-stable runner passes 99 steps, 773 all-feature Rust tests,
++47 Python tests and all 7 Go/18 Bun full-suite mutations. Rust coverage is
++47,437/48,889 merged source lines (97.0300%) and 3,798/3,914 LLVM functions
++(97.0363%); raw LLVM line/region metrics are preserved separately.
++All 126 release speed/RAM workloads completed with reduced single samples;
++the performance gate is explicitly unassessed and the accepted baseline remains
++unchanged. See `benchmarks/application-tests/after-cinema-native-20261109T060938.334343Z/`
++for raw evidence/comparison and `docs/site/src/docs/application-tests.md` for the
++procedure, helper-coverage limits and remaining cross-backend/consumer stages.
+diff --git a/Cargo.lock b/Cargo.lock
+index 20fb9c2..90655e1 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -369,6 +369,7 @@ dependencies = [
+  "dctx0-verification",
+  "flate2",
+  "fs2",
++ "quick-xml",
+  "rusqlite",
+  "rustix",
+  "serde",
+@@ -1164,6 +1165,15 @@ dependencies = [
+  "cc",
+ ]
+ 
++[[package]]
++name = "quick-xml"
++version = "0.39.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cdcc8dd4e2f670d309a5f0e83fe36dfdc05af317008fea29144da1a2ac858e5e"
++dependencies = [
++ "memchr",
++]
++
+ [[package]]
+ name = "quote"
+ version = "1.0.47"
+diff --git a/Cargo.toml b/Cargo.toml
+index 7c3dab8..616aaa4 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -33,6 +33,7 @@ rusqlite = { version = "0.38", features = ["bundled", "hooks", "limits", "extra_
+ thiserror = "2"
+ clap = { version = "4", features = ["derive"] }
+ fs2 = "0.4"
++quick-xml = "=0.39.4"
+ dctx0-graph = { path = "crates/dctx0-graph" }
+ dctx0-changes = { path = "crates/dctx0-changes" }
+ dctx0-store = { path = "crates/dctx0-store" }
+diff --git a/README.md b/README.md
+index f57c1ed..b274587 100644
+--- a/README.md
++++ b/README.md
+@@ -10,6 +10,70 @@ You can start without learning to author DCTX0 yourself. The contracts use famil
+ 
+ [Documentation website](https://haardt.github.io/dctx0ctl/) · [Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/site/src/docs/contributing.md)
+ 
++Application-owned contract tests (2026-11-09): [workflow](docs/site/src/docs/application-tests.md), [concept](docs/application-test-concept.md), and [implementation status](docs/application-test-implementation.md). Go and Bun connect real production calls, persistence, HTTP, scenarios and lifecycle paths to the same central Rust assessment and original 5,766-case Cinema manifest. Existing adapter configurations retain their meaning. Guarded task delivery and complete acceptance are being integrated and validated; no successful final validation is claimed here.
++
++Publish the shipped testing-only library with
++`dctx0 verify application-tests library --project APP --target typescript`
++(or `--target go`). Edited owned files are protected by pins. Production
++imports and authored tests are not rewritten. The CLI includes the libraries;
++no checkout-specific publisher is required.
++
++For the authored Bun Cinema suite, prepare the current finite plan and complete
++its native and source-bound review obligations:
++
++```sh
++dctx0 verify application-tests prepare examples/cinema/dctx0 \
++  --project examples/cinema --plan .dctx0/application-tests/plan.json \
++  --group cinema-native --test-name CinemaSuite --form all \
++  --boundary value-constructor --group-seconds 300
++dctx0 verify application-tests complete examples/cinema/dctx0 \
++  --project examples/cinema --plan .dctx0/application-tests/plan.json \
++  --group cinema-native --recipe .dctx0/application-tests/native-run.json \
++  --report .dctx0ctl/application-tests/complete-native.json
++```
++
++`complete` uses the prepared check/snapshot, creates missing target profiles and
++plans tasks, executes from captured sources, then applies the existing
++source-bound inspection/review and transactional task guards. Cinema's target is
++105 Done/PASS tasks, including four separately reported source-bound review
++tasks. Actual Go and Bun Cinema projects have each reached all 105 Done/PASS. Their PASS requires the explicit native-backed inspection attestation;
++review approval or manual completion alone still leaves testing Unverified.
++Previously completed Done/Unverified review tasks are preserved rather than
++silently upgraded. The full source-stable validation now passes: 99 steps, 773 all-feature Rust tests, 97.03% merged Rust source lines and 97.04% LLVM functions.
++
++`verify application-tests run` stores a native run and attempts guarded delivery
++of eligible tasks by default. Use `--no-adopt` for diagnostics. Only actual
++nonempty task delivery sets `adoption_authority`; inspect `evidence`,
++`adopted_tasks`, `adoption_issues` and `adoption_proposal` separately from the
++central result. Claims, reservations, stale requirements/profiles/reviews,
++incomplete provenance or missing mandatory cases prevent unjustified delivery.
++`prepare`, `serve`, replay, imported reports and saved diagnostic PASS do not
++independently authorize adoption. The legacy `verify complete` remains available
++with its existing adapter workflow.
++
++The [frozen before reference](benchmarks/application-tests/before-20261108T172542Z/reference.json)
++retains raw coverage, native reports and source reconstruction. The [validated after reference](benchmarks/application-tests/after-cinema-native-20261109T060938.334343Z/reference.json) retains the new evidence and a compatible-workload before/after comparison. All 126 speed/RAM workloads completed; reduced one-sample settings remain unassessed against the accepted baseline, which is unchanged. Native diagnostics
++and managed acceptance have separate reproducible runners:
++
++```sh
++python3 scripts/application_test_acceptance.py --form all
++python3 examples/cinema/scripts/application-acceptance.py --form all
++python3 scripts/application_test_managed_acceptance.py --target go --replay --report target/application-go/result.json
++python3 scripts/application_test_managed_acceptance.py --target typescript --replay --report target/application-bun/result.json
++```
++
++These scripts retain elapsed time/RSS and do not promote the accepted benchmark
++baseline. Replay reexecutes saved inputs in the owning native tests and remains
++diagnostic. New application-test native acceptance is Linux-only so far; the
++existing adapter platform evidence is separate. See the workflow for cold-cache
++dependency prerequisites and the distinction between task delivery, complete
++acceptance and repository release validation.
++
++`dctx0 bench SPEC application-test-plan 20` measures the new planning work;
++`python3 scripts/validate.py --coverage` includes it in the coupled validation and
++release speed/RAM measurements. New workloads remain unassessed until a baseline
++is intentionally accepted.
++
+ DCTX0 turns product requirements into a typed, machine-readable contract. That contract drives a dependency-aware task DAG, parallel implementation waves, and verification plans. Once an application exists, DCTX0 checks its actual behavior against the same specification.
+ 
+ People and coding agents develop the specification together. People own the product decisions; agents can write and refine the contracts, then implement them. An independent verification core assesses the observations.
+@@ -150,7 +214,7 @@ $env:PATH = "$env:LOCALAPPDATA\DCTX0\bin;$env:PATH"
+ dctx0 --version
+ ```
+ 
+-The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **Managed native verification, replay and guarded automatic adoption are verified on all five release platforms** for TypeScript/Bun, Go and Rust. The native CI matrix exercises successful applications, real failures, repaired replay, task/review guards and Cinema persistence/HTTP.
++The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **The established adapter path’s managed native verification, replay and guarded automatic adoption are verified on all five release platforms** for TypeScript/Bun, Go and Rust. The native CI matrix exercises successful applications, real failures, repaired replay, task/review guards and Cinema persistence/HTTP.
+ 
+ ### Install your application toolchains
+ 
+@@ -358,11 +422,11 @@ dctx0 verify attest <spec-root> <run-id> --project <app-root> --file <task-repor
+ 
+ ### Cinema acceptance
+ 
+-The documented complete TypeScript, Go, and Rust Cinema acceptances each cover **5,674 mandatory finite cases**. Current planning assigns 25 manual/suite obligations to four Review tasks; a fresh Cinema plan has **105 tasks**. Source-bound reviews are reported separately from testing PASS. Actual persistence and HTTP checks, deliberate production mutations, and broken/repaired replay exercise the implementation and its wiring.
++The current Cinema manifest and frozen before-reference cover **5,766 mandatory finite cases**. Current planning assigns 25 manual/suite obligations to four Review tasks; a fresh Cinema plan has **105 tasks**. Go and Bun application-test `complete` runs have each delivered all 105 as Done/PASS, including four source-bound authored review attestations. Review approval or manual completion alone does not set testing PASS, and existing Done/Unverified reviews retain their status. The full current-tree validation passes with 97.03% merged Rust source lines and 97.04% LLVM functions. Actual persistence and HTTP checks, deliberate production mutations, and broken/repaired replay exercise the implementation and its wiring.
+ 
+ Native reports retain unresolved manual/suite obligations. Authored source-bound inspections produce a separate effective assessment. These results establish the documented Cinema scope, not unrestricted proof for arbitrary applications.
+ 
+-Evidence: TypeScript (historical evidence removed during repository cleanup), Go (historical evidence removed during repository cleanup), Rust (historical evidence removed during repository cleanup).
++The immutable [before-reference](benchmarks/application-tests/before-20261108T172542Z/reference.json) preserves the pre-migration validation and its provenance. Older dated acceptance descriptions retain their original scope; their historical artifacts were removed during repository cleanup and are not current execution evidence.
+ 
+ ## Track changes and coordinate work
+ 
+@@ -479,6 +543,20 @@ python3 scripts/validate.py --coverage
+ 
+ The project runner couples functional validation with release speed and RAM measurements. It runs the relevant workspace/feature checks, formatting, Clippy with warnings denied, tests, native checks, and coverage. Rust production-code coverage must meet **97% merged source lines and 97% LLVM functions**. Raw LLVM metrics and native helper coverage remain separate; line coverage does not establish branch completeness.
+ 
++The documented local serial QA profile keeps assertions and overflow checks enabled
++while using dev/test optimization level 1. A reduced development run is reproducible
++with the following command; its one-sample performance results remain unassessed
++when the accepted baseline uses different settings. Release measurements still use
++the separate uninstrumented release build.
++
++```sh
++env CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 \
++  CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 \
++  CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true \
++  CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true \
++  python3 scripts/validate.py --coverage --samples 1 --iterations 1
++```
++
+ Benchmarks use uninstrumented release builds and retain elapsed milliseconds, peak RSS bytes, raw samples, workload identity, input/source hashes, toolchains, cache conditions, and environment provenance. Rust core costs and native build/execution costs are reported separately. Core RSS is Linux post-exec `VmHWM`, including phase preparation; native workloads record their own memory scope. Unsupported measurement is explicit.
+ 
+ The latest 20 runs are retained under `benchmarks/history/`. The accepted baseline lives separately in `benchmarks/baseline.json`. Comparable regressions above **20% runtime** or **10% RAM** fail the performance gate. Missing or incompatible baselines are reported as unassessed. Configure tolerances with `--speed-tolerance` and `--ram-tolerance`.
+diff --git a/crates/dctx0-cli/src/args.rs b/crates/dctx0-cli/src/args.rs
+index 0a5a2c8..4b4b551 100644
+--- a/crates/dctx0-cli/src/args.rs
++++ b/crates/dctx0-cli/src/args.rs
+@@ -109,6 +109,7 @@ pub(crate) enum Phase {
+     VerificationDiagnosticsCases,
+     VerificationHistorySummary,
+     VerificationProject,
++    ApplicationTestPlan,
+     VerificationGenerate,
+     VerificationEvaluateUnbound,
+     VerificationAssessUnbound,
+diff --git a/crates/dctx0-cli/src/benchmark.rs b/crates/dctx0-cli/src/benchmark.rs
+index a21f57e..9e2c08e 100644
+--- a/crates/dctx0-cli/src/benchmark.rs
++++ b/crates/dctx0-cli/src/benchmark.rs
+@@ -41,6 +41,7 @@ pub(crate) fn benchmark(
+     if matches!(
+         phase,
+         Phase::VerificationProject
++            | Phase::ApplicationTestPlan
+             | Phase::VerificationBindingsPlan
+             | Phase::VerificationGenerate
+             | Phase::VerificationEvaluateUnbound
+diff --git a/crates/dctx0-cli/src/main.rs b/crates/dctx0-cli/src/main.rs
+index d90becf..6f2aec7 100644
+--- a/crates/dctx0-cli/src/main.rs
++++ b/crates/dctx0-cli/src/main.rs
+@@ -1,3 +1,5 @@
++mod application_test_plan;
++mod application_testing;
+ mod args;
+ mod benchmark;
+ mod codec_scaffold;
+diff --git a/crates/dctx0-cli/src/verification.rs b/crates/dctx0-cli/src/verification.rs
+index 6fc4003..2aebd39 100644
+--- a/crates/dctx0-cli/src/verification.rs
++++ b/crates/dctx0-cli/src/verification.rs
+@@ -162,6 +162,8 @@ struct PreflightedRun<'a> {
+ }
+ #[derive(Subcommand)]
+ enum VerifyAction {
++    /// Diagnostic application-owned tests with central Rust assessment.
++    ApplicationTests(crate::application_testing::ApplicationTestingArgs),
+     /// Check scope, task pins, planned cases and declared bindings without execution.
+     Preflight {
+         input: PathBuf,
+@@ -379,6 +381,12 @@ enum VerifyAction {
+         /// Reviewed symbolic inputs in ProjectionFixtures JSON format.
+         #[arg(long)]
+         fixtures: Option<PathBuf>,
++        /// Export diagnostic application-test ownership using schema-2 groups.
++        #[arg(long, requires = "test_catalog")]
++        application_tests: Option<PathBuf>,
++        /// Expected TestRegistration array; does not prove native execution.
++        #[arg(long, requires = "application_tests")]
++        test_catalog: Option<PathBuf>,
+     },
+ }
+ fn task_id(text: &str) -> Result<i64, String> {
+@@ -424,7 +432,19 @@ fn run_inner(
+ ) -> Result<bool, String> {
+     let full = args.full;
+     let max_output_bytes = args.max_output_bytes;
+-    let (input, application, subject, task, historical_check, fixtures) = match args.action {
++    let (
++        input,
++        application,
++        subject,
++        task,
++        historical_check,
++        fixtures,
++        application_tests,
++        test_catalog,
++    ) = match args.action {
++        VerifyAction::ApplicationTests(args) => {
++            return crate::application_testing::run(args, database, json, output);
++        }
+         VerifyAction::Preflight {
+             input,
+             project: application,
+@@ -1251,7 +1271,18 @@ fn run_inner(
+             task,
+             historical_check,
+             fixtures,
+-        } => (input, project, subject, task, historical_check, fixtures),
++            application_tests,
++            test_catalog,
++        } => (
++            input,
++            project,
++            subject,
++            task,
++            historical_check,
++            fixtures,
++            application_tests,
++            test_catalog,
++        ),
+     };
+     let project = Project::new(&input, database).map_err(crate::error_message)?;
+     let configured = project
+@@ -1298,6 +1329,9 @@ fn run_inner(
+                 .map_err(crate::error_message)?,
+         );
+     }
++    if let (Some(configuration), Some(catalog)) = (application_tests, test_catalog) {
++        return crate::application_test_plan::render(&plan, &configuration, &catalog, json, output);
++    }
+     let issues = plan
+         .issues
+         .iter()
+diff --git a/crates/dctx0-cli/src/verification_benchmark.rs b/crates/dctx0-cli/src/verification_benchmark.rs
+index db746a8..9f95501 100644
+--- a/crates/dctx0-cli/src/verification_benchmark.rs
++++ b/crates/dctx0-cli/src/verification_benchmark.rs
+@@ -11,6 +11,44 @@ pub(crate) fn benchmark(
+     files: usize,
+     output: &mut dyn Write,
+ ) -> Result<bool, String> {
++    if matches!(phase, Phase::ApplicationTestPlan) {
++        use dctx0_verification::application_plan::*;
++        let plan = dctx0_verification::project_program(
++            ir,
++            "benchmark-only",
++            1,
++            VerificationScope {
++                subjects: [ir.workspace.clone()].into(),
++                tasks: Default::default(),
++            },
++            &Default::default(),
++            Default::default(),
++        );
++        let configuration = ApplicationTestConfiguration {
++            schema_version: APPLICATION_TEST_CONFIGURATION_VERSION,
++            groups: vec![ExecutionGroup {
++                id: "reference-adapter".into(),
++                backend: TestBackend::Adapter,
++                target: "go".into(),
++                selection: ["reference".into()].into(),
++                area: TestArea {
++                    cases: dctx0_verification::case_manifest(&plan).required_cases,
++                    requirements: Default::default(),
++                },
++                resources: GroupResources {
++                    namespace: "reference".into(),
++                    timeout_seconds: 60,
++                    max_message_bytes: 1_048_576,
++                },
++            }],
++        };
++        let start = std::time::Instant::now();
++        for _ in 0..iterations {
++            std::hint::black_box(application_test_plan(&plan, &configuration, &[]))
++                .map_err(|issues| format!("Application plan benchmark: {issues:?}"))?;
++        }
++        return benchmark_report(output, start, iterations, files);
++    }
+     if matches!(phase, Phase::VerificationBindingsPlan) {
+         let plan = dctx0_verification::project_program(
+             ir,
+diff --git a/crates/dctx0-cli/tests/cli.rs b/crates/dctx0-cli/tests/cli.rs
+index 215ca35..837c467 100644
+--- a/crates/dctx0-cli/tests/cli.rs
++++ b/crates/dctx0-cli/tests/cli.rs
+@@ -274,6 +274,7 @@ fn verification_core_benchmarks_measure_both_compiled_examples_without_native_cl
+             "verification-history-publish",
+             "verification-history-read",
+             "verification-project",
++            "application-test-plan",
+             "verification-generate",
+             "verification-evaluate-unbound",
+             "verification-assess-unbound",
+diff --git a/crates/dctx0-engine/Cargo.toml b/crates/dctx0-engine/Cargo.toml
+index b18128e..804cff1 100644
+--- a/crates/dctx0-engine/Cargo.toml
++++ b/crates/dctx0-engine/Cargo.toml
+@@ -27,6 +27,7 @@ serde_json.workspace = true
+ serde_stacker.workspace = true
+ thiserror.workspace = true
+ fs2.workspace = true
++quick-xml.workspace = true
+ [lints]
+ workspace = true
+ 
+diff --git a/crates/dctx0-engine/src/lib.rs b/crates/dctx0-engine/src/lib.rs
+index fbed00b..d92fb34 100644
+--- a/crates/dctx0-engine/src/lib.rs
++++ b/crates/dctx0-engine/src/lib.rs
+@@ -23,7 +23,13 @@ mod rename;
+ mod self_verification;
+ mod tasks;
+ pub use self_verification::*;
++mod application_library;
++mod application_test_junit;
++mod application_testing;
++pub use application_library::{ApplicationLibraryPublication, publish_application_test_library};
++mod application_testing_service;
+ mod verification;
++pub use application_testing::*;
+ mod verification_gc;
+ pub use verification_gc::VerificationMaintenanceReport;
+ mod verification_complete;
+@@ -49,7 +55,8 @@ use std::{
+ pub use verification::VerificationSelection;
+ pub use verification_discovery::*;
+ pub use verification_run::{
+-    AdoptionPreviewTask, BindingTestPin, BindingTestReport, InspectedVerificationReport,
++    AdoptionPreviewTask, ApplicationNativePhase, ApplicationNativeRecipe, ApplicationNativeReport,
++    ApplicationNativeRuntime, BindingTestPin, BindingTestReport, InspectedVerificationReport,
+     NativeVerificationReport, ProjectStatus, ReplayChange, ReviewChangesReport, StatusCause,
+     StatusProgress, StatusRun, StatusRunSummary, StatusTaskCounts, TaskAttestation,
+     VerificationAdoptionPreview, VerificationIntent, VerificationLifecycleFixtures,
+diff --git a/crates/dctx0-engine/src/native/command.rs b/crates/dctx0-engine/src/native/command.rs
+index 6a6c36c..5b2b8a7 100644
+--- a/crates/dctx0-engine/src/native/command.rs
++++ b/crates/dctx0-engine/src/native/command.rs
+@@ -4,6 +4,39 @@ pub struct NativeCommand {
+     pub(super) worker: NativeWorker,
+ }
+ impl NativeCommand {
++    pub fn runtime_identity(&self) -> NativeRuntimeIdentity {
++        self.worker.launch_identity.clone()
++    }
++    pub(crate) async fn spawn_application_test(
++        recipe: &ExecutionRecipe,
++        directory: &Path,
++        limits: NativeLimits,
++        socket: &str,
++        plan: &Path,
++        root: &Path,
++    ) -> Result<Self, NativeFailure> {
++        let environment = BTreeMap::from([
++            ("DCTX0_APPLICATION_SOCKET".into(), socket.into()),
++            (
++                "DCTX0_APPLICATION_ROOT".into(),
++                root.to_string_lossy().into_owned(),
++            ),
++            (
++                "DCTX0_APPLICATION_PLAN".into(),
++                plan.to_string_lossy().into_owned(),
++            ),
++        ]);
++        Ok(Self {
++            worker: NativeWorker::spawn_streams_with_environment(
++                recipe,
++                directory,
++                limits,
++                false,
++                &environment,
++            )
++            .await?,
++        })
++    }
+     pub async fn spawn(
+         recipe: &ExecutionRecipe,
+         directory: &Path,
+@@ -87,6 +120,48 @@ impl NativeCommand {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[tokio::test]
++    async fn go_build_ignores_git_metadata_outside_captured_application() {
++        struct Directory(std::path::PathBuf);
++        impl Drop for Directory {
++            fn drop(&mut self) {
++                let _ = std::fs::remove_dir_all(&self.0);
++            }
++        }
++        let directory = Directory(std::env::temp_dir().join(format!(
++            "dctx0-go-captured-{}-{}",
++            std::process::id(),
++            std::time::SystemTime::now()
++                .duration_since(std::time::UNIX_EPOCH)
++                .unwrap()
++                .as_nanos()
++        )));
++        std::fs::create_dir(&directory.0).unwrap();
++        std::fs::write(directory.0.join(".git"), "gitdir: missing\n").unwrap();
++        let application = directory.0.join("application");
++        std::fs::create_dir(&application).unwrap();
++        std::fs::write(
++            application.join("go.mod"),
++            "module captured.example/app\n\ngo 1.25.0\n",
++        )
++        .unwrap();
++        std::fs::write(
++            application.join("main.go"),
++            "package main\nimport (\"fmt\"; \"os\")\nfunc main(){fmt.Print(os.Getenv(\"GOFLAGS\"))}\n",
++        )
++        .unwrap();
++        let recipe = ExecutionRecipe {
++            program: "go".into(),
++            arguments: vec!["run".into(), ".".into()],
++        };
++        let mut command = NativeCommand::spawn(&recipe, &application, NativeLimits::default())
++            .await
++            .unwrap();
++        let audit = command.wait(&NativeCancellation::default()).await.unwrap();
++        assert_eq!(audit.stdout, "-mod=readonly -buildvcs=false");
++        assert_eq!(audit.exit_code, Some(0));
++    }
++
+     #[tokio::test]
+     async fn command_status_preserves_separate_streams_and_nonzero_exit() {
+         let recipe = python_fixture(
+diff --git a/crates/dctx0-engine/src/native/mod.rs b/crates/dctx0-engine/src/native/mod.rs
+index ccd1b89..0928441 100644
+--- a/crates/dctx0-engine/src/native/mod.rs
++++ b/crates/dctx0-engine/src/native/mod.rs
+@@ -22,7 +22,7 @@ use dctx0_target_sdk::*;
+ use serde::{Deserialize, Serialize};
+ #[cfg(target_os = "linux")]
+ use std::os::unix::process::CommandExt;
+-use std::{path::Path, process::Stdio, time::Duration};
++use std::{collections::BTreeMap, path::Path, process::Stdio, time::Duration};
+ use tokio::{
+     io::AsyncWriteExt,
+     process::{Child, ChildStdin, Command},
+@@ -83,6 +83,9 @@ impl NativeCancellation {
+     pub fn cancel(&self) {
+         self.signal.send_replace(true);
+     }
++    pub(crate) fn is_cancelled(&self) -> bool {
++        *self.signal.borrow()
++    }
+     pub(crate) async fn cancelled(&self) {
+         let mut receiver = self.signal.subscribe();
+         let _ = receiver.wait_for(|value| *value).await;
+@@ -219,6 +222,16 @@ impl NativeWorker {
+         directory: &Path,
+         limits: NativeLimits,
+         protocol: bool,
++    ) -> Result<Self, NativeFailure> {
++        Self::spawn_streams_with_environment(recipe, directory, limits, protocol, &BTreeMap::new())
++            .await
++    }
++    async fn spawn_streams_with_environment(
++        recipe: &ExecutionRecipe,
++        directory: &Path,
++        limits: NativeLimits,
++        protocol: bool,
++        environment: &BTreeMap<String, String>,
+     ) -> Result<Self, NativeFailure> {
+         limits.validate()?;
+         let supervised = limits.supervision_capabilities().process_tree;
+@@ -230,6 +243,7 @@ impl NativeWorker {
+         }
+         let program = identity::resolve_program(&recipe.program, directory)?;
+         let mut command = Command::new(&program);
++        command.envs(environment);
+         if recipe.program == "cargo" {
+             command
+                 .env("CARGO_NET_OFFLINE", "true")
+@@ -253,7 +267,7 @@ impl NativeWorker {
+                 .env("GOPROXY", "off")
+                 .env("GOWORK", "off")
+                 .env("CGO_ENABLED", "0")
+-                .env("GOFLAGS", "-mod=readonly");
++                .env("GOFLAGS", "-mod=readonly -buildvcs=false");
+         }
+         // An inherited ownership chain also identifies detached descendants after
+         // their original parent exits, when /proc's PPid relationship is lost.
+diff --git a/crates/dctx0-engine/src/verification_complete.rs b/crates/dctx0-engine/src/verification_complete.rs
+index 1cb9c3d..c376bce 100644
+--- a/crates/dctx0-engine/src/verification_complete.rs
++++ b/crates/dctx0-engine/src/verification_complete.rs
+@@ -252,6 +252,125 @@ pub struct CompleteVerificationReport {
+ }
+ 
+ impl Project {
++    fn complete_imported_inspections(
++        &self,
++        application: &Path,
++        notes_file: &Path,
++        max_input_bytes: u64,
++    ) -> Result<Option<AuthoredInspections>> {
++        Ok(match fs::metadata(notes_file) {
++            Ok(_) => {
++                let notes: AuthoredInspections =
++                    crate::read_review_input(notes_file, max_input_bytes, "Inspection notes")?;
++                notes.validate(application)?;
++                notes.validate_spec(self, application)?;
++                Some(notes)
++            }
++            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
++            Err(error) => return Err(error.into()),
++        })
++    }
++
++    fn complete_inspection_notes(
++        &self,
++        application: &Path,
++        imported: Option<AuthoredInspections>,
++    ) -> Result<AuthoredInspections> {
++        let mut notes = self.stored_conformance_notes(application)?;
++        if let Some(imported) = imported {
++            let session = self.task_session(None, None)?;
++            let snapshot = self.load(&session.plan.snapshot_id)?;
++            let authoritative = session
++                .plan
++                .members
++                .iter()
++                .filter(|member| {
++                    session.states[&member.task_id]
++                        .reviews
++                        .last()
++                        .is_some_and(|review| {
++                            review.conformance.is_some() || review.judgement != "approved"
++                        })
++                })
++                .flat_map(|member| {
++                    dctx0_tasks::conformance_subjects(&snapshot.ir, &member.candidate)
++                })
++                .collect::<BTreeSet<_>>();
++            for (subject, note) in imported.subjects {
++                if !authoritative.contains(&subject) {
++                    notes.subjects.entry(subject).or_insert(note);
++                }
++            }
++        }
++        Ok(notes)
++    }
++
++    /// Complete the existing prepared native application-test scope and deliver
++    /// eligible work through the same source-bound inspection/task guards.
++    /// Unlike preparation, this does not publish another check occurrence.
++    #[allow(clippy::too_many_arguments)]
++    pub async fn complete_application_tests(
++        &self,
++        application: &Path,
++        plan: &str,
++        group: &str,
++        recipe: &str,
++        output: &str,
++        notes_file: &Path,
++        provider: &dyn TargetProfileProvider,
++        cancellation: &NativeCancellation,
++    ) -> Result<CompleteVerificationReport> {
++        let application = fs::canonicalize(application)?;
++        let imported = self.complete_imported_inspections(
++            &application,
++            notes_file,
++            crate::DEFAULT_REVIEW_INPUT_BYTES,
++        )?;
++        let (_, config) = self.verification_configuration(Some(&application))?;
++        if config.target != provider.manifest().target {
++            return Err(Error::Invalid(
++                "Configured verification target and profile provider differ".into(),
++            ));
++        }
++        if config.scope.subjects.is_empty() && config.scope.tasks.is_empty() {
++            return Err(Error::Invalid(
++                "Complete verification requires an explicitly configured scope".into(),
++            ));
++        }
++        let (_, bundle, _) = self.read_application_testing_bundle(&application, plan)?;
++        create_profiles(&application, provider, true, false, false)?;
++        self.task_plan(&bundle.plan.program.snapshot)?;
++        let notes = self.complete_inspection_notes(&application, imported)?;
++        let managed = self
++            .verify_application_tests(
++                &application,
++                plan,
++                group,
++                recipe,
++                output,
++                cancellation,
++                false,
++            )
++            .await?;
++        let evidence = managed.evidence.ok_or_else(|| {
++            Error::Invalid(
++                "Complete native evidence unavailable; inspect the managed application-test report"
++                    .into(),
++            )
++        })?;
++        self.finish_complete_verification(
++            &application,
++            notes,
++            NativeVerificationReport {
++                supervision: None,
++                evidence,
++                adopted_tasks: managed.adopted_tasks,
++                adoption_issues: managed.adoption_issues,
++                adoption_proposal: managed.adoption_proposal,
++            },
++        )
++    }
++
+     /// Check, publish requirements, execute configured scope and bind explicit reviews.
+     /// Each phase retains its normal transaction boundaries and historical evidence.
+     pub async fn complete_verification(
+@@ -284,17 +403,8 @@ impl Project {
+         max_input_bytes: u64,
+     ) -> Result<CompleteVerificationReport> {
+         let application = fs::canonicalize(application)?;
+-        let imported = match fs::metadata(notes_file) {
+-            Ok(_) => {
+-                let notes: AuthoredInspections =
+-                    crate::read_review_input(notes_file, max_input_bytes, "Inspection notes")?;
+-                notes.validate(&application)?;
+-                notes.validate_spec(self, &application)?;
+-                Some(notes)
+-            }
+-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+-            Err(error) => return Err(error.into()),
+-        };
++        let imported =
++            self.complete_imported_inspections(&application, notes_file, max_input_bytes)?;
+         let (_, config) = self.verification_configuration(Some(&application))?;
+         if config.target != provider.manifest().target {
+             return Err(Error::Invalid(
+@@ -320,32 +430,7 @@ impl Project {
+                 .as_deref()
+                 .ok_or(Error::Invalid("Successful check has no snapshot".into()))?,
+         )?;
+-        let mut notes = self.stored_conformance_notes(&application)?;
+-        if let Some(imported) = imported {
+-            let session = self.task_session(None, None)?;
+-            let snapshot = self.load(&session.plan.snapshot_id)?;
+-            let authoritative = session
+-                .plan
+-                .members
+-                .iter()
+-                .filter(|member| {
+-                    session.states[&member.task_id]
+-                        .reviews
+-                        .last()
+-                        .is_some_and(|review| {
+-                            review.conformance.is_some() || review.judgement != "approved"
+-                        })
+-                })
+-                .flat_map(|member| {
+-                    dctx0_tasks::conformance_subjects(&snapshot.ir, &member.candidate)
+-                })
+-                .collect::<BTreeSet<_>>();
+-            for (subject, note) in imported.subjects {
+-                if !authoritative.contains(&subject) {
+-                    notes.subjects.entry(subject).or_insert(note);
+-                }
+-            }
+-        }
++        let notes = self.complete_inspection_notes(&application, imported)?;
+         let mut preflight = self.verification_preflight(
+             Some(&application),
+             Default::default(),
+@@ -411,6 +496,15 @@ impl Project {
+                 preflight,
+             )
+             .await?;
++        self.finish_complete_verification(&application, notes, native)
++    }
++
++    fn finish_complete_verification(
++        &self,
++        application: &Path,
++        mut notes: AuthoredInspections,
++        native: NativeVerificationReport,
++    ) -> Result<CompleteVerificationReport> {
+         let run = &native.evidence.run;
+         if !run.permits_task_specific_proof()
+             || !run.provenance.incomplete.is_empty()
+@@ -434,9 +528,9 @@ impl Project {
+         }
+         // Empty/missing reviews remain UNKNOWN in the effective assessment.
+         if !notes.subjects.is_empty() {
+-            notes.validate(&application)?;
++            notes.validate(application)?;
+         }
+-        notes.validate_spec(self, &application)?;
++        notes.validate_spec(self, application)?;
+         // Read the exact plan retained by this run rather than projecting a new scope.
+         let artifact = run
+             .artifacts
+@@ -487,11 +581,8 @@ impl Project {
+                 });
+             }
+         }
+-        let inspected = self.publish_program_inspections(
+-            Some(&application),
+-            &native.evidence.id,
+-            &inspections,
+-        )?;
++        let inspected =
++            self.publish_program_inspections(Some(application), &native.evidence.id, &inspections)?;
+         if inspected.assessment.result != VerificationResult::Pass
+             || !inspected.assessment.open_obligations.is_empty()
+         {
+@@ -515,9 +606,9 @@ impl Project {
+         let reports = notes.task_reports(&session, run)?;
+         let inspected_tasks = reports.iter().map(|report| report.task).collect();
+         if !reports.is_empty() {
+-            notes.validate(&application)?;
+-            notes.validate_spec(self, &application)?;
+-            self.publish_task_attestations(Some(&application), &native.evidence.id, &reports)?;
++            notes.validate(application)?;
++            notes.validate_spec(self, application)?;
++            self.publish_task_attestations(Some(application), &native.evidence.id, &reports)?;
+         }
+         let session = self.task_session(None, None)?;
+         let open_tasks = session
+diff --git a/crates/dctx0-engine/src/verification_run/adoption.rs b/crates/dctx0-engine/src/verification_run/adoption.rs
+index 14f838f..9d92515 100644
+--- a/crates/dctx0-engine/src/verification_run/adoption.rs
++++ b/crates/dctx0-engine/src/verification_run/adoption.rs
+@@ -150,6 +150,18 @@ pub(super) fn evaluate(
+         .find(|a| a.reference.media_type == "application/vnd.dctx0.adapter-description+json")
+         .map(|a| serde_json::from_slice::<AdapterDescription>(&a.contents))
+         .transpose()?;
++    let application_proof = artifacts
++        .iter()
++        .find(|artifact| {
++            artifact.reference.media_type
++                == dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE
++        })
++        .map(|artifact| {
++            serde_json::from_slice::<
++                dctx0_verification::application_evidence::ApplicationExecutionProof,
++            >(&artifact.contents)
++        })
++        .transpose()?;
+     let outcomes = run
+         .cases
+         .iter()
+@@ -220,11 +232,29 @@ pub(super) fn evaluate(
+             incomplete.push("TASK_CASES_NOT_PASS".into())
+         }
+         let mut actual_artifacts = BTreeSet::new();
+-        let representations = description
++        let mut representations = description
+             .as_ref()
+             .map(|d| d.representations.clone())
+             .unwrap_or_default();
+-        if let Some(description) = &description {
++        if let Some(proof) = &application_proof {
++            if proof.validates(run) {
++                // The whole captured application, native tests and dependencies
++                // jointly implement this finite proof. Do not fabricate an old
++                // adapter description or claim a per-file semantic analysis.
++                actual_artifacts.extend(proof.source_inputs.keys().cloned());
++                representations.insert(
++                    "application-test-protocol".into(),
++                    dctx0_target_sdk::application_protocol::APPLICATION_PROTOCOL_VERSION
++                        .to_string(),
++                );
++                representations.insert(
++                    "assessment".into(),
++                    proof.assessment.assessment_version.clone(),
++                );
++            } else {
++                incomplete.push("APPLICATION_NATIVE_PROOF_INVALID".into());
++            }
++        } else if let Some(description) = &description {
+             for subject in &member.candidate.subjects {
+                 if let Some(entry) = description
+                     .subjects
+@@ -339,7 +369,12 @@ pub(super) fn evaluate(
+                     implementation: proof.implementation.clone(),
+                     verifier: "dctx0-native-verifier".into(),
+                     verifier_version: dctx0_verification::VERIFICATION_VERSION.into(),
+-                    command: "dctx0 verify run".into(),
++                    command: if application_proof.is_some() {
++                        "dctx0 verify application-tests run"
++                    } else {
++                        "dctx0 verify run"
++                    }
++                    .into(),
+                     started_at: run.started_at_unix_ns.clone(),
+                     finished_at: SystemTime::now()
+                         .duration_since(UNIX_EPOCH)
+diff --git a/crates/dctx0-engine/src/verification_run/adoption_preview.rs b/crates/dctx0-engine/src/verification_run/adoption_preview.rs
+index 7878f05..cc70ab2 100644
+--- a/crates/dctx0-engine/src/verification_run/adoption_preview.rs
++++ b/crates/dctx0-engine/src/verification_run/adoption_preview.rs
+@@ -79,9 +79,10 @@ impl Project {
+                         &a.contents,
+                     )?)
+                 }) {
+-                    Ok(inputs) => match Capture::inventory_with_budget(
++                    Ok(inputs) => match Capture::proof_inventory(
+                         &application,
+                         config.capture_budgets(),
++                        run,
+                     ) {
+                         Ok(current) if current == inputs => {}
+                         Ok(_) => report.issues.push(issue(
+diff --git a/crates/dctx0-engine/src/verification_run/attestations.rs b/crates/dctx0-engine/src/verification_run/attestations.rs
+index f3f9335..a3950bb 100644
+--- a/crates/dctx0-engine/src/verification_run/attestations.rs
++++ b/crates/dctx0-engine/src/verification_run/attestations.rs
+@@ -72,7 +72,7 @@ impl Project {
+             ));
+         }
+         let captured: BTreeMap<String, String> = serde_json::from_slice(&artifact.contents)?;
+-        if Capture::inventory_with_budget(&application, config.capture_budgets())? != captured {
++        if Capture::proof_inventory(&application, config.capture_budgets(), run)? != captured {
+             return Err(Error::Invalid(
+                 "Inspected implementation or dependencies changed since native verification".into(),
+             ));
+diff --git a/crates/dctx0-engine/src/verification_run/capture.rs b/crates/dctx0-engine/src/verification_run/capture.rs
+index f14a15c..c0ecc55 100644
+--- a/crates/dctx0-engine/src/verification_run/capture.rs
++++ b/crates/dctx0-engine/src/verification_run/capture.rs
+@@ -11,6 +11,7 @@ pub(super) struct Capture {
+     copy_files: bool,
+     entries_remaining: usize,
+     helper_remaining: u64,
++    application_tests: bool,
+ }
+ #[derive(Clone, Copy)]
+ struct Limits {
+@@ -19,6 +20,55 @@ struct Limits {
+     count: usize,
+ }
+ impl Capture {
++    pub fn proof_inventory(
++        application: &Path,
++        budgets: crate::verification_setup::VerificationCaptureBudgets,
++        run: &VerificationRun,
++    ) -> Result<BTreeMap<String, String>> {
++        if run.artifacts.iter().any(|reference| {
++            reference.media_type
++                == dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE
++        }) {
++            Self::application_inventory(application, budgets)
++        } else {
++            Self::inventory_with_budget(application, budgets)
++        }
++    }
++    pub fn application_tests(
++        application: &Path,
++        budgets: crate::verification_setup::VerificationCaptureBudgets,
++    ) -> Result<Self> {
++        // Dependencies are materialized by the frozen native build in the new
++        // capture. An ambient node_modules (including executable symlinks) is
++        // neither executed nor mistaken for a project source dependency.
++        Self::scan_application(
++            application,
++            Limits {
++                file: budgets.max_file_bytes,
++                tree: budgets.max_tree_bytes,
++                count: 20_000,
++            },
++            true,
++            true,
++        )
++    }
++    pub fn application_inventory(
++        application: &Path,
++        budgets: crate::verification_setup::VerificationCaptureBudgets,
++    ) -> Result<BTreeMap<String, String>> {
++        Ok(Self::scan_application(
++            application,
++            Limits {
++                file: budgets.max_file_bytes,
++                tree: budgets.max_tree_bytes,
++                count: 20_000,
++            },
++            false,
++            true,
++        )?
++        .files
++        .clone())
++    }
+     /// Historical default limits; test and fixture paths only. Production paths
+     /// pass the configured budgets explicitly through the *_with_budget forms.
+     #[cfg(test)]
+@@ -71,6 +121,14 @@ impl Capture {
+         Ok(capture.files.clone())
+     }
+     fn scan(application: &Path, limits: Limits, copy_files: bool) -> Result<Self> {
++        Self::scan_application(application, limits, copy_files, false)
++    }
++    fn scan_application(
++        application: &Path,
++        limits: Limits,
++        copy_files: bool,
++        application_tests: bool,
++    ) -> Result<Self> {
+         let root = std::env::temp_dir().join(format!(
+             "dctx0-verification-capture-{}-{}",
+             std::process::id(),
+@@ -85,6 +143,7 @@ impl Capture {
+             copy_files,
+             entries_remaining: 40_000,
+             helper_remaining: 268_435_456,
++            application_tests,
+         };
+         capture.directory(application, Path::new(""))?;
+         Ok(capture)
+@@ -108,6 +167,9 @@ impl Capture {
+         entries.sort_by_key(|e| e.file_name());
+         for entry in entries {
+             let name = entry.file_name();
++            if self.application_tests && relative.as_os_str().is_empty() && name == "node_modules" {
++                continue;
++            }
+             if matches!(
+                 name.to_str(),
+                 Some(".git" | ".runatron" | ".dctx0ctl" | "target" | ".bin")
+diff --git a/crates/dctx0-engine/src/verification_run/mod.rs b/crates/dctx0-engine/src/verification_run/mod.rs
+index d59968b..2f943a1 100644
+--- a/crates/dctx0-engine/src/verification_run/mod.rs
++++ b/crates/dctx0-engine/src/verification_run/mod.rs
+@@ -1,5 +1,7 @@
+ //! Managed native execution from a published snapshot, with immutable reports.
+ mod adoption;
++mod application_run;
++pub use application_run::*;
+ mod adoption_preview;
+ pub use adoption_preview::{AdoptionPreviewTask, VerificationAdoptionPreview};
+ mod attestations;
+diff --git a/crates/dctx0-engine/src/verification_run/program_inspection.rs b/crates/dctx0-engine/src/verification_run/program_inspection.rs
+index 90cce29..8c971a0 100644
+--- a/crates/dctx0-engine/src/verification_run/program_inspection.rs
++++ b/crates/dctx0-engine/src/verification_run/program_inspection.rs
+@@ -71,7 +71,7 @@ impl Project {
+         let inputs: BTreeMap<String, String> = serde_json::from_slice(
+             &unique("application/vnd.dctx0.captured-input-inventory+json")?.contents,
+         )?;
+-        if Capture::inventory_with_budget(&application, config.capture_budgets())? != inputs {
++        if Capture::proof_inventory(&application, config.capture_budgets(), run)? != inputs {
+             return Err(Error::Invalid(
+                 "Program inspection sources or dependencies changed since execution".into(),
+             ));
+diff --git a/crates/dctx0-store/src/tasks/native_proof.rs b/crates/dctx0-store/src/tasks/native_proof.rs
+index f75cb0f..0e0a56e 100644
+--- a/crates/dctx0-store/src/tasks/native_proof.rs
++++ b/crates/dctx0-store/src/tasks/native_proof.rs
+@@ -38,6 +38,47 @@ pub(super) fn validate_open_obligations(
+     run: &VerificationRun,
+     manifest: &VerificationCaseManifest,
+ ) -> Result<()> {
++    let application_kind =
++        dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE;
++    if run
++        .artifacts
++        .iter()
++        .any(|reference| reference.media_type == application_kind)
++    {
++        let (_, proof): (
++            _,
++            dctx0_verification::application_evidence::ApplicationExecutionProof,
++        ) = artifact(tx, run_id, run, application_kind)?;
++        let (receipt_hash, receipt): (_, serde_json::Value) = artifact(
++            tx,
++            run_id,
++            run,
++            "application/vnd.dctx0.application-native-receipt+json",
++        )?;
++        let (plan_hash, plan): (_, dctx0_verification::ProgramPlan) =
++            artifact(tx, run_id, run, "application/vnd.dctx0.plan+json")?;
++        if !proof.validates(run)
++            || proof.receipt_hash != receipt_hash
++            || receipt["backend"] != "application-tests"
++            || receipt["result"]["status"] != "PASS"
++            || receipt["plan_hash"] != run.provenance.adapter_hash
++            || !receipt["replay_of"].is_null()
++            || !receipt["requested_case"].is_null()
++            || receipt["issues"] != serde_json::json!([])
++            || receipt["assessment"] != serde_json::to_value(&proof.assessment)?
++            || receipt["source_inputs"] != serde_json::to_value(&proof.source_inputs)?
++            || receipt["build_inputs"] != serde_json::to_value(&proof.build_inputs)?
++            || receipt["materialized_inputs"] != serde_json::to_value(&proof.materialized_inputs)?
++            || receipt["toolchain_inputs"] != serde_json::to_value(&proof.toolchain_inputs)?
++            || plan_hash != run.provenance.plan_hash
++            || serde_json::to_vec(&plan)? != serde_json::to_vec(&proof.plan.program)?
++            || dctx0_verification::case_manifest(&plan) != *manifest
++        {
++            return Err(invalid(
++                "Application task delivery requires the exact complete native group, plan and bound receipt",
++            ));
++        }
++    }
+     if run
+         .cases
+         .iter()
+diff --git a/crates/dctx0-store/src/tasks/tests.rs b/crates/dctx0-store/src/tasks/tests.rs
+index 1184cd1..428b021 100644
+--- a/crates/dctx0-store/src/tasks/tests.rs
++++ b/crates/dctx0-store/src/tasks/tests.rs
+@@ -1563,3 +1563,63 @@ fn discharged_state_hints_are_recomputed_from_immutable_plan_and_actual_before_s
+             .unwrap();
+     }
+ }
++
++#[test]
++fn malformed_application_receipts_cannot_publish_tasks_or_create_delivery_links() {
++    for bytes in [b"null".as_slice(), b"{}", br#"{"schema_version":99}"#] {
++        let (mut store, input, _) = prepared();
++        let (pin, mut deliveries, run_id) = linked_delivery_fixture(&mut store, &input);
++        let saved = store.verification_run("p", &run_id).unwrap();
++        let mut run = saved.run.clone();
++        let mut artifacts = run
++            .artifacts
++            .iter()
++            .map(|reference| {
++                store
++                    .verification_artifact(&run_id, &reference.hash)
++                    .unwrap()
++            })
++            .collect::<Vec<_>>();
++        let forged = crate::VerificationArtifact::new(
++            dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE,
++            bytes.to_vec(),
++        );
++        run.artifacts.push(forged.reference.clone());
++        artifacts.push(forged);
++        let forged_run = store
++            .record_verification_run("p", &run, &artifacts)
++            .unwrap();
++        for delivery in &mut deliveries {
++            delivery.evidence.report = forged_run.id.clone();
++        }
++        let before = store.task_session("p", None, None).unwrap();
++        let (manifest, docs) = profile_catalog();
++        assert!(
++            store
++                .publish_task_deliveries(
++                    "p",
++                    TaskDeliveryPublication {
++                        actor: "native-publisher",
++                        pin: &pin,
++                        deliveries: &deliveries,
++                        profiles: (&manifest, &docs),
++                        run_id: Some(&forged_run.id),
++                    }
++                )
++                .is_err()
++        );
++        assert_eq!(
++            serde_json::to_value(store.task_session("p", None, None).unwrap()).unwrap(),
++            serde_json::to_value(before).unwrap()
++        );
++        assert!(
++            store
++                .task_delivery_publication("p", &forged_run.id)
++                .unwrap()
++                .is_none()
++        );
++        let historical = store.verification_run_summary("p", &run_id).unwrap();
++        assert_eq!(historical.result, saved.run.result);
++        assert_eq!(historical.case_count, saved.run.cases.len());
++    }
++}
+diff --git a/crates/dctx0-target-sdk/src/lib.rs b/crates/dctx0-target-sdk/src/lib.rs
+index f8683f8..a2f3bb0 100644
+--- a/crates/dctx0-target-sdk/src/lib.rs
++++ b/crates/dctx0-target-sdk/src/lib.rs
+@@ -1,4 +1,6 @@
+ //! Separate native transport contract; profile manifests remain unchanged.
++pub mod application_protocol;
++pub use application_protocol::ApplicationTestLibrary;
+ mod dependencies;
+ mod inspection;
+ use dctx0_core::{Invocation, Observation, VerificationValue};
+diff --git a/crates/dctx0-verification/src/generation/strings.rs b/crates/dctx0-verification/src/generation/strings.rs
+index cadc650..a9185f0 100644
+--- a/crates/dctx0-verification/src/generation/strings.rs
++++ b/crates/dctx0-verification/src/generation/strings.rs
+@@ -62,7 +62,17 @@ pub(super) fn prefix_witnesses(
+             if prefix.len().saturating_add(padding) > budgets.value_bytes.saturating_sub(32) {
+                 continue;
+             }
+-            values.push(V::String(format!("{prefix}{}", "x".repeat(padding)).into()));
++            // Canonical reviewed form: a sha256 image digest is exactly 64
++            // lowercase hex digits, so this witness uses that alphabet instead of
++            // the neutral filler that production would reject.
++            let filler = if prefix == "sha256:" {
++                (0..padding)
++                    .map(|index| b"0123456789abcdef"[index % 16] as char)
++                    .collect::<String>()
++            } else {
++                "x".repeat(padding)
++            };
++            values.push(V::String(format!("{prefix}{filler}").into()));
+         }
+     }
+     values
+diff --git a/crates/dctx0-verification/src/lib.rs b/crates/dctx0-verification/src/lib.rs
+index 5ae8f58..988854c 100644
+--- a/crates/dctx0-verification/src/lib.rs
++++ b/crates/dctx0-verification/src/lib.rs
+@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
+ use std::collections::{BTreeMap, BTreeSet};
+ 
+ pub const VERIFICATION_VERSION: &str = "dctx0-verification-1";
++pub mod application_plan;
++pub mod application_session;
+ pub mod attestations;
+ mod preconditions;
+ pub mod program_inspection;
+@@ -277,6 +279,7 @@ pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-24";
+ 
+ pub mod diagnostics;
+ 
++pub mod application_evidence;
+ pub mod comparison;
+ 
+ mod bindings;
+diff --git a/crates/dctx0-verification/src/projection/mod.rs b/crates/dctx0-verification/src/projection/mod.rs
+index d0adb68..9b416d3 100644
+--- a/crates/dctx0-verification/src/projection/mod.rs
++++ b/crates/dctx0-verification/src/projection/mod.rs
+@@ -3,6 +3,7 @@ mod expressions;
+ mod model;
+ mod paths;
+ mod scenarios;
++mod setup_arguments;
+ mod state;
+ use crate::{VerificationCase, VerificationScope, generate_inputs, generate_values};
+ use dctx0_core::*;
+@@ -393,7 +394,7 @@ pub fn project_program(
+                 plan.issues
+                     .push(issue(span, "INVALID_OPERATION_ARGUMENT_BINDING", &message));
+             }
+-            for setup in &case.setup {
++            for (setup_index, setup) in case.setup.iter().enumerate() {
+                 let span = ir
+                     .symbols
+                     .get(&operation.operation.id)
+@@ -415,7 +416,21 @@ pub fn project_program(
+                     continue;
+                 }
+                 for (parameter, value) in preparation.parameters.iter().zip(&setup.arguments) {
+-                    match dctx0_interpreter::check_value(ir, &parameter.ty, value, &plan.budgets) {
++                    match setup_arguments::check(
++                        ir,
++                        &parameter.ty,
++                        value,
++                        &case
++                            .argument_bindings
++                            .iter()
++                            .filter(|binding| {
++                                binding.target_setup == Some(setup_index)
++                                    && binding.parameter == parameter.name
++                            })
++                            .map(|binding| binding.target_path.as_slice())
++                            .collect::<Vec<_>>(),
++                        &plan.budgets,
++                    ) {
+                         dctx0_interpreter::ValueContract::Accepted => {}
+                         dctx0_interpreter::ValueContract::Rejected { reason } => plan
+                             .issues
+diff --git a/crates/dctx0-verification/src/scenario.rs b/crates/dctx0-verification/src/scenario.rs
+index 274ff28..b7b46e6 100644
+--- a/crates/dctx0-verification/src/scenario.rs
++++ b/crates/dctx0-verification/src/scenario.rs
+@@ -343,6 +343,16 @@ impl<'a> Scenario<'a> {
+         });
+         observation
+     }
++    /// Only subjects are exposed to native fixtures. Outcomes stay in Rust and
++    /// are delivered solely in response to an actual injected collaborator call.
++    pub fn collaborator_subjects(&self) -> Vec<String> {
++        self.mocks
++            .iter()
++            .map(|mock| mock.invocation.subject.clone())
++            .collect::<BTreeSet<_>>()
++            .into_iter()
++            .collect()
++    }
+     pub fn deliver(&mut self, observation: Observation, events: Vec<VerificationEvent>) {
+         self.deliver_observed(observation, events, None);
+     }
+diff --git a/crates/dctx0-verification/tests/operation_arguments.rs b/crates/dctx0-verification/tests/operation_arguments.rs
+index e751b7f..0254dcd 100644
+--- a/crates/dctx0-verification/tests/operation_arguments.rs
++++ b/crates/dctx0-verification/tests/operation_arguments.rs
+@@ -125,6 +125,60 @@ fn actual_setup_results_feed_later_setup_and_main_arguments_without_changing_tem
+     );
+ }
+ 
++#[test]
++fn application_test_export_preserves_setup_templates_bindings_and_runtime_resolution() {
++    use dctx0_verification::application_plan::*;
++    let (ir, input, observed) = fixture();
++    let fixtures = ProjectionFixtures {
++        operations: [(input.invocation.subject.clone(), vec![input.clone()])].into(),
++        ..Default::default()
++    };
++    let program = project_program(
++        &ir,
++        "snapshot",
++        1,
++        VerificationScope {
++            subjects: ["W".into()].into(),
++            tasks: Default::default(),
++        },
++        &fixtures,
++        Default::default(),
++    );
++    let configuration = ApplicationTestConfiguration {
++        schema_version: 2,
++        groups: vec![ExecutionGroup {
++            id: "legacy".into(),
++            backend: TestBackend::Adapter,
++            target: "go".into(),
++            selection: ["adapter".into()].into(),
++            area: TestArea {
++                cases: case_manifest(&program).required_cases,
++                ..Default::default()
++            },
++            resources: GroupResources {
++                namespace: "legacy".into(),
++                timeout_seconds: 60,
++                max_message_bytes: 1_048_576,
++            },
++        }],
++    };
++    let export = application_test_plan(&program, &configuration, &[]).unwrap();
++    let restored: ApplicationTestPlan =
++        serde_json::from_str(&serde_json::to_string(&export).unwrap()).unwrap();
++    restored.validate().unwrap();
++    let actual = restored
++        .program
++        .operations
++        .iter()
++        .find(|op| op.operation.id == input.invocation.subject)
++        .unwrap();
++    assert_eq!(actual.cases, vec![input.clone()]);
++    assert_eq!(
++        resolve_operation_arguments(&ir, &actual.cases[0], &observed, None),
++        resolve_operation_arguments(&ir, &input, &observed, None)
++    );
++}
++
+ #[test]
+ fn binding_validation_rejects_forward_unbounded_missing_and_overlapping_destinations() {
+     let (ir, input, _) = fixture();
+@@ -278,3 +332,65 @@ fn argument_resolution_rejects_missing_failed_or_misaddressed_actual_results() {
+     let result = resolve_operation_arguments(&ir, &root, &source, None).unwrap();
+     assert_eq!(result.arguments, vec![supplied]);
+ }
++
++#[test]
++fn projection_checks_static_setup_fields_and_defers_only_bound_placeholders() {
++    let (ir, mut input, _) = fixture();
++    input.argument_bindings[0].target_path = vec!["nested".into()];
++    input.setup[1].arguments[0] =
++        record(&[("id", number("0")), ("nested", VerificationValue::Unit)]);
++    let project = |input: OperationCaseInput| {
++        let fixtures = ProjectionFixtures {
++            operations: [("W.Store.apply".into(), vec![input])].into(),
++            ..Default::default()
++        };
++        project_program(
++            &ir,
++            "snapshot",
++            1,
++            VerificationScope {
++                subjects: ["W.Store.apply".into()].into(),
++                tasks: Default::default(),
++            },
++            &fixtures,
++            Default::default(),
++        )
++    };
++    let projected = project(input.clone());
++    assert!(
++        !projected
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP"),
++        "{:?}",
++        projected.issues
++    );
++    let VerificationValue::Record(fields) = &mut input.setup[1].arguments[0] else {
++        panic!()
++    };
++    fields.insert(
++        "id".into(),
++        VerificationValue::String("invalid static value".into()),
++    );
++    assert!(
++        project(input.clone())
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
++    );
++    input.setup[1].arguments[0] = VerificationValue::Unit;
++    input.argument_bindings[0].target_path.clear();
++    assert!(
++        !project(input.clone())
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
++    );
++    input.argument_bindings.clear();
++    assert!(
++        project(input)
++            .issues
++            .iter()
++            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
++    );
++}
+diff --git a/crates/dctx0-verification/tests/string_generation.rs b/crates/dctx0-verification/tests/string_generation.rs
+index 1a392c9..7a6cc86 100644
+--- a/crates/dctx0-verification/tests/string_generation.rs
++++ b/crates/dctx0-verification/tests/string_generation.rs
+@@ -53,6 +53,37 @@ fn literal_prefixes_combine_inherited_length_bounds_without_waiving_other_clause
+             for length in [4, 6] {
+                 assert!(corpus.values.iter().any(|value| matches!(value, V::String(text) if text.encode_utf16().count() == length)));
+             }
++            assert!(
++                corpus
++                    .values
++                    .iter()
++                    .any(|value| matches!(value, V::String(text) if text.as_ref() == "id:x"))
++                    && corpus
++                        .values
++                        .iter()
++                        .any(|value| matches!(value, V::String(text) if text.as_ref() == "id:xxx")),
++                "neutral filler stays the witness for a non-digest prefix: {:?}",
++                corpus.values
++            );
++        }
++        if name == "Digest" || name == "Alias" {
++            // Canonical sha256 witness: exactly 64 lowercase hex digits after the
++            // prefix, so generated operation inputs satisfy the reviewed image
++            // digest rule that production enforces.
++            for value in &corpus.values {
++                if let V::String(text) = value {
++                    let suffix = text
++                        .strip_prefix("sha256:")
++                        .unwrap_or_else(|| panic!("{name}: unexpected witness {text}"));
++                    assert_eq!(suffix.len(), 64, "{name}: {text}");
++                    assert!(
++                        suffix
++                            .bytes()
++                            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
++                        "{name}: {text}"
++                    );
++                }
++            }
+         }
+         let single = VerificationBudgets {
+             generated_cases: 1,
+diff --git a/docs/site/src/SUMMARY.md b/docs/site/src/SUMMARY.md
+index 1ba1aba..f49ff3f 100644
+--- a/docs/site/src/SUMMARY.md
++++ b/docs/site/src/SUMMARY.md
+@@ -33,6 +33,7 @@
+   - [Configure and extend profiles](docs/profiles.md)
+   - [HTTP frameworks: Gin and Axum](docs/http-frameworks.md)
+ - [TypeScript adapters](docs/typescript-adapters.md)
++- [Application-owned tests and task delivery](docs/application-tests.md)
+ - [Evidence and replay](docs/evidence.md)
+ - [Agent evidence and reviews](docs/agent-evidence.md)
+ - [History and sharing](docs/sharing.md)
+diff --git a/docs/site/src/docs/evidence.md b/docs/site/src/docs/evidence.md
+index 77ac0a3..62efa0b 100644
+--- a/docs/site/src/docs/evidence.md
++++ b/docs/site/src/docs/evidence.md
+@@ -14,7 +14,7 @@ Finite generated cases do not prove every possible input. Reports retain the sel
+ 
+ ## Observe centrally
+ 
+-Target workers report actual returns, visible failures, exceptions, calls, events, resource observations, and before/after states. The Rust core checks contracts and assertions against those observations. A worker's claim that it passed is not an accepted substitute.
++Target workers and application-owned native tests report actual returns, visible failures, exceptions, calls, events, resource observations, and before/after states. The Rust core checks contracts and assertions against those observations. A worker's claim that it passed is not an accepted substitute.
+ 
+ Actual state observations must be exposed by the adapter. Missing projections/observers and opaque trace labels remain open. Declared collaborator replies test consumer behavior; real persistence/HTTP checks assess production adapters separately.
+ 
+@@ -48,4 +48,21 @@ Current planner review assignments and ordinary task reports make these obligati
+ 
+ `verify complete` checks the current specification, executes the configured plan, revalidates authored inspections/current reviews, and requires delivered work with appropriate evidence. A nonempty task plan is mandatory. Native execution gaps, running/reserved work, failed gates, and stale/rejected reviews block success.
+ 
+-Source-bound review IDs appear separately in `reviewed_tasks`; they may be Done/Unverified. This is distinct from executable tasks that require PASS. Repository coverage and performance checks remain separate contributor acceptance.
++Source-bound review IDs appear separately in `reviewed_tasks`. A fresh authored-complete workflow can publish their explicit native-backed inspection attestations and reach Done/PASS; review approval or manual completion alone does not do so. Previously completed Done/Unverified reviews are preserved and may retain that status. Repository coverage and performance checks remain separate contributor acceptance.
++
++
++## Application-owned test completion
++
++The [application-test workflow](application-tests.md) uses direct Go/Bun tests
++with the same central requirements and assessment. `verify application-tests run`
++records native evidence and attempts guarded task delivery by default;
++`--no-adopt` keeps the run diagnostic. `verify application-tests complete` also
++binds existing source-checked inspection/review notes and checks complete task
++delivery. It reuses the established completion and transactional store guards;
++legacy `verify complete` behavior is unchanged.
++
++Application reports separate `evidence`, `adopted_tasks`, `adoption_issues` and
++`adoption_proposal`. `adoption_authority` is true only for actual nonempty native
++task delivery. Prepare/serve, replay and imported or saved diagnostic PASS cannot
++independently authorize adoption. Current integration and final validation remain
++in progress; this description is not a successful validation receipt.
+diff --git a/docs/site/src/docs/typescript-adapters.md b/docs/site/src/docs/typescript-adapters.md
+index c614a75..5c17e79 100644
+--- a/docs/site/src/docs/typescript-adapters.md
++++ b/docs/site/src/docs/typescript-adapters.md
+@@ -1,5 +1,7 @@
+ # TypeScript adapters
+ 
++Application-owned Bun tests are described in the [native application-test workflow](application-tests.md), including guarded task delivery and authored-review completion. The adapter configuration and interface documented below remain supported.
++
+ The connection to TypeScript is an external **testing adapter**, separate from the production application. The application owns its types, dependencies, composition root, and framework integration.
+ 
+ Technical configuration lives in `.dctx0/testing/verification.json`. The generated adapter contract defines the supported test interface.
+diff --git a/docs/site/src/reference/coverage.md b/docs/site/src/reference/coverage.md
+index 5f1a7fb..e9461a3 100644
+--- a/docs/site/src/reference/coverage.md
++++ b/docs/site/src/reference/coverage.md
+@@ -1,6 +1,14 @@
+ 
+ # Experimental execution corpus (2026-10-28)
+ 
++Production module naming (2026-11-08): cargo-llvm-cov's default test-file filter
++omits filenames ending in `_tests.rs`, including files under `src/`. Production
++application-test planning therefore lives in `application_plan.rs`; only its
++integration test uses `tests/application_tests.rs`. Check the LCOV source inventory
++when adding production modules. The initial application-test validation was
++interrupted after discovering the omission; its nominal percentages are not
++accepted coverage of that work. No new exclusion or threshold change is used.
++
+ The opt-in `dctx0 experimental coverage` commands use separate versioned tables
+ in the existing database. This corpus is independent of the aggregate 97% gate
+ and all specification/task evidence. Each Linux libtest execution retains its
+@@ -75,3 +83,24 @@ The emitted Cargo argv reproduces the failure, and insertion/untracked-file
+ experiments retain explicit unknowns. Raw measurement samples, the fixture,
+ commands and output are retained in `docs/coverage-affected-validation.json`.
+ This is not a full-workspace coverage acceptance or statistical recall claim.
++
++
++## Cinema application-test acceptance — 2026-11-09
++
++The complete source-stable `python3 scripts/validate.py --coverage --samples 1
++--iterations 1` run passes all 99 steps. Merged LCOV source lines are
++47,437/48,889 (97.03000675%); LLVM functions are 3,798/3,914 (97.03628002%).
++The unchanged 97% gates pass. Raw LLVM instance-line totals remain separately
++49,667/51,562 (96.3248%), and regions 73,491/78,674 (93.4121%). This is not full
++branch or region coverage; no new exclusion or threshold reduction was introduced.
++
++Go test-library helper coverage is separately 217/279 statements (77.78%).
++Bun reports 98.80% line and 98.64% function file means; child-process catalog
++execution is outside those figures and retains separate functional probes.
++These are distinct measurement methods and must not be merged with Rust metrics.
++
++Raw LLVM JSON, LCOV, source summaries, native evidence and all 126 release
++speed/RAM workloads are retained under
++`benchmarks/application-tests/after-cinema-native-20261109T060938.334343Z/`.
++The single-sample development measurement is unassessed against the accepted
++baseline, which was not promoted. Earlier failed/interrupted runs remain archived.
+diff --git a/examples/cinema-go/.dctx0/testing/go/inspection-notes.json b/examples/cinema-go/.dctx0/testing/go/inspection-notes.json
+index 1b17f68..b3fd6d2 100644
+--- a/examples/cinema-go/.dctx0/testing/go/inspection-notes.json
++++ b/examples/cinema-go/.dctx0/testing/go/inspection-notes.json
+@@ -1,7 +1,7 @@
+ {
+   "schema_version": 1,
+   "actor": "codex-go-cinema-review",
+-  "scope": "Complete unchanged Cinema specification, reviewed Go production and external adapter; finite native execution remains separate from authored inspection. Added Gin transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. 2026-10-27 focused reinspection: examples.json adds one explicit castVote preparation that saves the candidate film and opens its referenced poll. Identical preparation data is shared by TypeScript, Go and Rust; production/spec sources and existing review findings are unchanged. This inspection does not assert native PASS.",
++  "scope": "Complete unchanged Cinema specification, reviewed Go production and external adapter; finite native execution remains separate from authored inspection. Added Gin transport and configurable project adapter reviewed on 2026-10-12; previous HTTP path remains the default. 2026-10-27 focused reinspection: examples.json adds one explicit castVote preparation that saves the candidate film and opens its referenced poll. Identical preparation data is shared by TypeScript, Go and Rust; production/spec sources and existing review findings are unchanged. This inspection does not assert native PASS. 2026-11-08 focused source reinspection by codex-application-tests: go.mod adds only testing-only applicationtests/go v0.1.0 with an application-local replacement under .dctx0/application-tests/library. Existing Go/toolchain declarations, production requirements and go.sum are unchanged. Production packages do not import the test module; its published local package uses only the standard library. Existing production/adapter/spec inspection hashes and subject findings remain unchanged. This narrow build/test reinspection is not a renewed whole-source review or native PASS. Reinspection 2026-11-08 (Codex, native application-test continuation): go.mod testing-only pin is now v0.2.0 for application protocol 2; the same application-local replacement, existing production dependencies and go.sum remain unchanged. This updates only the reviewed test dependency declaration and does not approve the newly authored application-test library or claim whole-project native PASS.",
+   "reviewed_hashes": {
+     ".dctx0/testing/go/adapter.go": "27ff4e04c09cf17864bff26b1b2ea1cfd3ce84c03c3d20fb5e60445cf4568b96",
+     ".dctx0/testing/go/config.json": "2b882a80a014ec95b4ef71e4e52623d4a84697f3758ef4afabbc551a48e5eca5",
+@@ -21,7 +21,7 @@
+     "domain/json.go": "2f5287754cd1af9b63f6e8ffcca9b85877182936ca18e008bd4d7c9afb1af534",
+     "ginapi/handler.go": "55d1a4b9aa85dfbd476f189ada55e964d9cd56daed05b9a8497a2e763f82132f",
+     "ginapi/handler_test.go": "0b6ca02f68b8bbe84bca58e198974a2771551cd8a66a65981606eb608ed4384e",
+-    "go.mod": "09732edcc5cabcc056b3e1ed41fcff0c5347e989ae5071298405706387c962c7",
++    "go.mod": "8d5d4cfce1b1a3895bebc4bac95dc76020c5c92bba4128b6562160da14dd4705",
+     "go.sum": "d2ae7663ea2c1921bf7d22486e97921187ef314ac9141ec67720edb7b945a5b7",
+     "httpapi/handler.go": "1c6eb3f3009292374e0ca16c1a0e0663f0abb92b3672aba9efcd8b62b006a805",
+     "httpapi/handler_test.go": "af8efdeeb255a8cf3cab1c996c6c518d58170e6ee8905211a702b2843ecb6161",
+diff --git a/examples/cinema-go/README.md b/examples/cinema-go/README.md
+index 0d9bef8..76b316f 100644
+--- a/examples/cinema-go/README.md
++++ b/examples/cinema-go/README.md
+@@ -48,3 +48,46 @@ separately in final release measurements.
+ ## Additional Gin HTTP variant
+ 
+ The existing HTTP implementation remains the default. The additional Gin router reuses this application and its unchanged Cinema spec. See [framework setup](../../docs/site/src/docs/http-frameworks.md) for production selection, adapter configuration, optional profiles, tests and limits.
++
++
++The application-test suite lives in `contracttests/`. Its local testing-only
++module is pinned to 0.2.0/application protocol 2. `scripts/generate_application_facade.py`
++derives direct typed calls from a centrally prepared bundle; authored fixtures
++provide SQLite, HTTP and actual observations. Production imports no test library.
++From the repository root, run:
++
++```sh
++python3 scripts/application_test_acceptance.py --form all
++python3 scripts/application_test_managed_acceptance.py --target go --replay --report target/cinema-go-managed/result.json
++```
++
++The second command builds from captured sources, collects native test results
++independently and verifies original, mutated and repaired native replay. Reports
++include time/process-tree RSS. Diagnostic and replay reports alone grant no
++task-adoption authority. The complete
++release gate remains `python3 scripts/validate.py --coverage`.
++
++
++For a fresh managed application-test acceptance, run from this directory:
++
++```sh
++dctx0 verify application-tests library --project . --target go
++dctx0 verify application-tests prepare dctx0 --project . --plan .dctx0/application-tests/plan.json --group cinema-native --test-name TestCinemaSuite --form all --boundary json-decoder --group-seconds 300
++dctx0 verify application-tests complete dctx0 --project . --plan .dctx0/application-tests/plan.json --group cinema-native --recipe .dctx0/application-tests/native-run.json --report .dctx0ctl/application-tests/receipt.json
++```
++
++`complete` uses the prepared check occurrence, current editable profiles and
++source-bound authored notes in `.dctx0/testing/go/inspection-notes.json` (or
++`--notes PATH`). It executes the native suite and delivers eligible tasks through
++the store's transactional guards. A confirmed fresh Go run covers all 5,766 cases
++and leaves all 105 tasks Done/PASS, including four authored review attestations.
++An explicit native-backed attestation supplies that testing evidence; review
++approval or manual completion alone does not. Existing Done/Unverified reviews
++are preserved. Final workspace coverage and release validation remain pending.
++
++`verify application-tests run` stores fresh evidence and attempts guarded task
++delivery by default. Add `--no-adopt` for diagnostics without task delivery.
++`prepare`, `serve`, imported reports and replay cannot independently authorize
++adoption. The JSON report exposes `evidence`, `adopted_tasks`, `adoption_issues`
++and `adoption_proposal`; `adoption_authority` is true only after actual task
++delivery. See the [workflow](../../docs/site/src/docs/application-tests.md).
+diff --git a/examples/cinema-go/go.mod b/examples/cinema-go/go.mod
+index 7a94a37..854e22d 100644
+--- a/examples/cinema-go/go.mod
++++ b/examples/cinema-go/go.mod
+@@ -46,3 +46,8 @@ require (
+ 	modernc.org/mathutil v1.7.1 // indirect
+ 	modernc.org/memory v1.12.1 // indirect
+ )
++
++// Testing-only; production packages do not import this library.
++require github.com/Haardt/dctx0ctl/applicationtests/go v0.2.0
++
++replace github.com/Haardt/dctx0ctl/applicationtests/go => ./.dctx0/application-tests/library
+diff --git a/examples/cinema/.dctx0/testing/typescript/inspection-notes.json b/examples/cinema/.dctx0/testing/typescript/inspection-notes.json
+index 6c46929..fcb0b6c 100644
+--- a/examples/cinema/.dctx0/testing/typescript/inspection-notes.json
++++ b/examples/cinema/.dctx0/testing/typescript/inspection-notes.json
+@@ -15,7 +15,7 @@
+     "bun.lock": "5d9499b816c253dfcecc48d31fd9d0af2d9dc8a62e034f4ef7ac15180274b9f9",
+     "dctx0/movie-night.dctx0": "39b8c23eb49c0c2a89a62c37902c9c2722597e472b5476235100f38c35e2e88e",
+     "dctx0/workspace.dctx0": "6d363ddab2910ea5864931e28a243f721251b75adf31b98f4ecc1c6fdffd0195",
+-    "package.json": "cf5dfabcb4fe926c419383cb16d7212f423867d9af06f37347130a873d866dea",
++    "package.json": "aad9a33306a452db2b8bf70e7a395553d69ca354854dba295b191d80e35dcc2a",
+     "src/app/session.ts": "5fa6826263707edd899cfb27331c25d9936aa28d61b9008e98dc2b345ae9813e",
+     "src/application/movie-night.ts": "c7e6661e768ed6d084b90b2e4dd6c75b88c882175815ef0b2ca8d87da34a8f60",
+     "src/domain/candidate-order-winner.ts": "22cdfd6e2bb9bcda1283f345de9cef9f7292d6d059fce17e4a27f4eeebc134ba",
+@@ -31,7 +31,7 @@
+     "src/http/app.ts": "6b9d188e19704bdb6be783bdc0bb5f7dd5454694b79b78fd98b393edde43a8d9",
+     "src/persistence/sqlite.test.ts": "d09abf9304860e369e61baa9a7c627adcf43f2694724e0e7981593fc96043373",
+     "src/persistence/sqlite.ts": "5305ea4d39ee21f15d9902b6fb833208171116650ea93b031ee8409e6ac99d35",
+-    "tsconfig.json": "59f1bd6a93fe3a8e47c08ba6c24e430b3e8dc961af71ad1185b2530285530ca7"
++    "tsconfig.json": "f8fb54c1dfcbcf952d1e37d0b9086366653839f9269ea5fccec13b7569434c8f"
+   },
+   "subjects": {
+     "HomeCinema.MovieNight.Catalog.CatalogReadModel": {
+@@ -218,5 +218,5 @@
+       "review": null
+     }
+   },
+-  "scope": "Complete Cinema MovieNight specification; concrete first-party implementation and testing sources inspected. These notes must not be rebound after source changes without a new inspection. 2026-10-27 focused reinspection: examples.json adds one explicit castVote preparation that saves the candidate film and opens its referenced poll. Identical preparation data is shared by TypeScript, Go and Rust; production/spec sources and existing review findings are unchanged. This inspection does not assert native PASS."
++  "scope": "Complete Cinema MovieNight specification; concrete first-party implementation and testing sources inspected. These notes must not be rebound after source changes without a new inspection. 2026-10-27 focused reinspection: examples.json adds one explicit castVote preparation that saves the candidate film and opens its referenced poll. Identical preparation data is shared by TypeScript, Go and Rust; production/spec sources and existing review findings are unchanged. This inspection does not assert native PASS. 2026-11-08 focused reinspection by codex-typescript-application-tests: only package.json and tsconfig.json pins renewed after reading their actual diffs and referenced test entrypoints. package.json adds only the explicit test:application command; dependency versions, bun.lock and existing commands are unchanged. tsconfig.json retains identical compiler options and the src/**/*.ts include, adding only .dctx0/application-tests/**/*.ts and scripts/publish-application-library.ts. The invoked test runner uses isolated application copies; production imports no application-test library. The other 28 existing reviewed hashes match current files; original adapter, domain adapter, HTTP invocation and SQL observer bytes/imports also match the frozen pre-migration TypeScript archive. Prior subject reports, limitations, findings and original review actor are retained as historical inspection, without a fresh reassertion. This limited source reinspection does not review the new application-test path as complete, assert native or full-QA PASS, or authorize task adoption."
+ }
+diff --git a/examples/cinema/README.md b/examples/cinema/README.md
+index 8975fac..4b8ce5c 100644
+--- a/examples/cinema/README.md
++++ b/examples/cinema/README.md
+@@ -56,3 +56,47 @@ To regenerate or evolve the implementation task-by-task, run:
+ ```
+ 
+ The workflow pauses after generation so the implementation plan can be inspected before source files are created. Complete verification then uses `/dctx0 verify`, `/dctx0 test`, `/dctx0 review`, and `/dctx0 validate`.
++
++## Application-owned Bun tests
++
++The current native suite and generated typed production connections live in
++[.dctx0/application-tests](.dctx0/application-tests/README.md). CinemaSuite covers
++the original 5,766 finite-plan cases, including real SQLite/HTTP, scenarios and
++lifecycle paths. Production imports no testing library. Existing adapters and
++configuration remain compatible.
++
++From the repository root, the isolated native diagnostic runner is:
++
++```sh
++python3 examples/cinema/scripts/application-acceptance.py --cli target/debug/dctx0 --form all
++```
++
++For task delivery, use the prepared native plan and engine-owned recipe:
++
++```sh
++dctx0 verify application-tests prepare examples/cinema/dctx0 \
++  --project examples/cinema --plan .dctx0/application-tests/plan.json \
++  --group cinema-native --test-name CinemaSuite --form all \
++  --boundary value-constructor --group-seconds 300
++dctx0 verify application-tests complete examples/cinema/dctx0 \
++  --project examples/cinema --plan .dctx0/application-tests/plan.json \
++  --group cinema-native --recipe .dctx0/application-tests/native-run.json \
++  --report .dctx0ctl/application-tests/complete-native.json
++```
++
++The complete workflow retains source-bound authored inspection notes from
++`.dctx0/testing/typescript/inspection-notes.json` (override with `--notes`). It
++creates missing profiles/tasks from the prepared snapshot and uses the shared
++transactional task guards. The expected complete Cinema state is 105 Done tasks:
++all 105 with testing PASS on the fresh authored-complete path, including four
++separately reported source-bound review tasks. Review approval/manual completion
++alone does not set PASS; explicit native-backed inspection attestation does.
++Existing Done/Unverified reviews are preserved rather than silently upgraded.
++
++A plain `verify application-tests run` attempts eligible task delivery by default;
++add `--no-adopt` for diagnosis. A diagnostic, replayed, imported or merely saved
++PASS does not independently authorize delivery. Native captures, frozen builds,
++collector/central completion, current task/profile pins and review/claim guards
++remain required. Full repository validation with coverage and release speed/RSS
++is a separate release gate and is not claimed successful by these instructions.
++See the [application-test workflow](../../docs/site/src/docs/application-tests.md).
+diff --git a/examples/cinema/package.json b/examples/cinema/package.json
+index 1ea2056..6672af0 100644
+--- a/examples/cinema/package.json
++++ b/examples/cinema/package.json
+@@ -5,7 +5,8 @@
+   "type": "module",
+   "scripts": {
+     "check": "bun run typecheck",
+-    "typecheck": "tsc --noEmit"
++    "typecheck": "tsc --noEmit",
++    "test:application": "python3 scripts/application-acceptance.py"
+   },
+   "dependencies": {
+     "awilix": "13.0.5",
+diff --git a/examples/cinema/tsconfig.json b/examples/cinema/tsconfig.json
+index 1b9d03a..523c42b 100644
+--- a/examples/cinema/tsconfig.json
++++ b/examples/cinema/tsconfig.json
+@@ -8,7 +8,13 @@
+     "noEmit": true,
+     "skipLibCheck": true,
+     "ignoreDeprecations": "6.0",
+-    "types": ["bun"]
++    "types": [
++      "bun"
++    ]
+   },
+-  "include": ["src/**/*.ts"]
++  "include": [
++    "src/**/*.ts",
++    ".dctx0/application-tests/**/*.ts",
++    "scripts/publish-application-library.ts"
++  ]
+ }
+diff --git a/scripts/coverage.py b/scripts/coverage.py
+index a91505a..1d53be3 100644
+--- a/scripts/coverage.py
++++ b/scripts/coverage.py
+@@ -20,6 +20,9 @@ def source_hash():
+     # Target profiles and helpers are embedded with include_str! in Rust crates.
+     for pattern in ('**/*.md', '**/*.ts', '**/*.go'):
+         paths.extend((ROOT / 'targets').glob(pattern))
++    for pattern in ('**/go.mod', '**/go.sum'):
++        paths.extend((ROOT / 'targets').glob(pattern))
++    paths.extend(ROOT.glob("targets/*/applicationtests/package.json"))
+     paths.extend((ROOT / "skills").glob("**/*.md"))
+     paths.extend((ROOT / "skills").glob("**/*.yaml"))
+     for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
+diff --git a/scripts/tests/test_validate.py b/scripts/tests/test_validate.py
+index 2f769d9..db3dec5 100644
+--- a/scripts/tests/test_validate.py
++++ b/scripts/tests/test_validate.py
+@@ -60,6 +60,28 @@ class PerformanceTests(unittest.TestCase):
+         self.patch.stop()
+         self.temporary.cleanup()
+ 
++    def test_application_helper_coverage_unions_source_identical_blocks_and_rejects_stale_maps(self):
++        root = Path(self.temporary.name)
++        source = root / 'targets/go/applicationtests/client.go'
++        source.parent.mkdir(parents=True)
++        source.write_text('package applicationtests\n')
++        a, b = root / 'unit.coverage', root / 'native.coverage'
++        first = 'github.com/Haardt/dctx0ctl/applicationtests/go/client.go:1.1,2.1'
++        second = 'github.com/Haardt/dctx0ctl/applicationtests/go/client.go:3.1,4.1'
++        a.write_text(f'mode: set\n{first} 1 1\n{second} 3 0\n')
++        b.write_text(f'mode: atomic\n{first} 1 0\n{second} 3 4\n')
++        with patch.object(validate, 'ROOT', root):
++            merged = validate.application_go_coverage([a, b])
++            self.assertEqual((merged['statements'], merged['covered_statements']), (4, 4))
++            self.assertEqual(merged['statement_percent'], 100)
++            for content in (f'mode: atomic\n{first} 2 1\n{second} 3 0\n',
++                            f'mode: atomic\n{first} 1 1\n',
++                            f'mode: set\n{first} 1 1\n{first} 1 0\n',
++                            'mode: set\nforeign/client.go:1.1,2.1 1 1\n'):
++                b.write_text(content)
++                with self.assertRaises(ValueError):
++                    validate.application_go_coverage([a, b])
++
+     def test_speed_and_ram_regressions_fail_independently(self):
+         baseline = record()
+         self.assertTrue(validate.compare(record(), baseline, self.args))
+diff --git a/scripts/validate.py b/scripts/validate.py
+index b00fde6..e7fd721 100644
+--- a/scripts/validate.py
++++ b/scripts/validate.py
+@@ -32,8 +32,54 @@ def digest(paths):
+     return h.hexdigest()
+ 
+ 
++def application_go_coverage(profiles):
++    """Union statement blocks only when every profile names the identical source map."""
++    merged = {}
++    expected_blocks = None
++    for profile in profiles:
++        lines = profile.read_text().splitlines()
++        if not lines or lines[0] not in ('mode: set', 'mode: count', 'mode: atomic'):
++            raise ValueError('Unknown Go helper coverage format')
++        blocks = {}
++        for line in lines[1:]:
++            location, statements, count = line.rsplit(' ', 2)
++            prefix = 'github.com/Haardt/dctx0ctl/applicationtests/go/'
++            filename = location.removeprefix(prefix).split(':', 1)[0]
++            if not location.startswith(prefix) or '/' in filename or not (ROOT / 'targets/go/applicationtests' / filename).is_file():
++                raise ValueError('Go coverage names a foreign helper source')
++            if location in blocks or int(statements) < 0 or int(count) < 0:
++                raise ValueError('Invalid or duplicate Go helper coverage block')
++            blocks[location] = int(statements)
++            previous = merged.get(location, (int(statements), False))
++            if previous[0] != int(statements):
++                raise ValueError('Go helper coverage sources differ')
++            merged[location] = (int(statements), previous[1] or int(count) > 0)
++        if expected_blocks is not None and blocks != expected_blocks:
++            raise ValueError('Go helper coverage source maps differ')
++        expected_blocks = blocks
++    total = sum(count for count, _ in merged.values())
++    covered = sum(count for count, hit in merged.values() if hit)
++    if not total:
++        raise ValueError('No Go helper coverage statements')
++    return {'method': 'union of identical Go statement blocks across unit and actual native pilot profiles; not branch/function coverage',
++            'statements': total, 'covered_statements': covered, 'statement_percent': covered * 100 / total,
++            'profiles': [str(path.relative_to(ROOT)) for path in profiles],
++            'source_hashes': {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (ROOT / 'targets/go/applicationtests').glob('*.go') if not path.name.endswith('_test.go')}}
++
++
+ def validation_sources():
+     paths = [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock', *ROOT.glob('crates/**/*.rs'), *ROOT.glob('crates/**/*.py'), *ROOT.glob('crates/**/Cargo.toml'), *ROOT.glob('scripts/**/*.py'), *ROOT.glob('targets/**/*.rs'), *ROOT.glob('targets/**/Cargo.toml'), *ROOT.glob('targets/**/*.md'), *ROOT.glob('targets/**/*.ts'), *ROOT.glob('examples/cinema/src/**/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/typescript/*.ts'), *ROOT.glob('examples/cinema/.dctx0/testing/**/*.json'), ROOT / 'examples/cinema/package.json', ROOT / 'examples/cinema/bun.lock']
++    paths.extend(ROOT.glob('targets/*/applicationtests/package.json'))
++    paths.extend(ROOT.glob('examples/cinema/scripts/*.ts'))
++    paths.extend(ROOT.glob('examples/cinema/scripts/*.py'))
++    paths.extend(ROOT.glob('examples/cinema/.dctx0/application-tests/**/*.ts'))
++    paths.extend(ROOT.glob('examples/cinema/.dctx0/application-tests/library/package.json'))
++    paths.extend(ROOT.glob('examples/cinema/.dctx0/application-tests/library-pin.json'))
++    paths.extend(ROOT.glob('examples/cinema-go/.dctx0/application-tests/library/go.mod'))
++    paths.extend(ROOT.glob('examples/cinema-go/.dctx0/application-tests/library-pin.json'))
++    paths.extend(ROOT.glob('examples/cinema-go/.dctx0/application-tests/native-run.json'))
++    paths.extend(ROOT.glob('examples/cinema-go/scripts/*.py'))
++    paths.extend(ROOT.glob('examples/cinema/.dctx0/application-tests/native-run.json'))
+     adaptive = ROOT / 'fixtures/conformance/adaptive-typescript'
+     paths.extend(adaptive.glob('*/src/**/*.ts'))
+     paths.extend(adaptive.glob('*/.dctx0/testing/**/*.ts'))
+@@ -49,6 +95,8 @@ def validation_sources():
+     for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
+         paths.extend(path for path in (ROOT / "editors").glob(pattern) if "target" not in path.relative_to(ROOT / "editors").parts)
+     paths.extend(ROOT.glob('targets/**/*.go'))
++    paths.extend(ROOT.glob('targets/**/go.mod'))
++    paths.extend(ROOT.glob('targets/**/go.sum'))
+     for suffix in ('go','rs','ts'):
+         paths.extend(ROOT.glob(f'fixtures/conformance/generator/**/*.{suffix}'))
+     paths.extend(ROOT.glob('targets/rust/harness/*.toml'))
+@@ -162,7 +210,7 @@ def benchmark(args):
+                 'peak_rss_bytes': max(s['peak_rss_bytes'] for s in samples)}
+         # Phase timings exclude setup; RSS includes the standalone process and
+         # its prepared inputs. SQLite runs use disposable databases only.
+-        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-package-apply', 'tasks-review-changes', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'verification-harness', 'verification-codecs', 'verification-bindings-plan', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
++        phases = ('compile', 'graph', 'snapshot', 'diff', 'diff-changed', 'persist', 'check', 'check-changed', 'tasks-plan', 'tasks-reconcile', 'tasks-publish', 'tasks-list', 'tasks-context-md', 'tasks-context-json', 'tasks-slice', 'tasks-claim', 'tasks-package', 'tasks-package-delta', 'tasks-package-apply', 'tasks-review-changes', 'tasks-progress', 'verification-diagnostics-summary', 'verification-diagnostics-cases', 'verification-evaluate-unbound', 'verification-assess-unbound', 'verification-generate', 'verification-project', 'application-test-plan', 'verification-harness', 'verification-codecs', 'verification-bindings-plan', 'verification-init', 'verification-history-publish', 'verification-history-read', 'verification-discover')
+         phase_iterations = min(args.iterations, 3)
+         for name, path in workloads.items():
+             for phase in phases:
+@@ -228,6 +276,51 @@ def benchmark(args):
+         record['editor_performance'] = editor_performance
+         for phase, sample in editor_performance['samples'].items():
+             record['measurements'][f'cinema-editor/{phase}'] = {'samples': [sample], 'iterations': 1, 'elapsed_ms': sample['elapsed_ms'], 'peak_rss_bytes': sample['peak_rss_bytes'], 'memory_scope': editor_performance['memory_scope'], 'protocol_version': 1, 'workload_settings': {'cache': 'cold server, warm OS cache', 'project': 'cinema'}}
++        record['application_test_performance'] = {}
++        for target, forms in [('go', ('decoder', 'operation', 'state-change', 'assertion', 'all')), ('typescript', ('constructor', 'operation', 'state-change', 'assertion', 'all'))]:
++            for form in forms:
++                destination = ROOT / f'target/application-performance/{target}-{form}'
++                if target == 'go':
++                    command = [sys.executable, 'scripts/application_test_acceptance.py', '--binary', str(ROOT / 'target/release/dctx0'), '--form', form, '--report', str(destination / 'result.json')]
++                else:
++                    command = [sys.executable, 'examples/cinema/scripts/application-acceptance.py', '--cli', str(ROOT / 'target/release/dctx0'), '--form', form, '--output', str(destination)]
++                subprocess.run(command, cwd=ROOT, check=True)
++                receipt = json.loads((destination / 'result.json').read_text())
++                record['application_test_performance'][f'{target}/{form}'] = receipt
++                steps = receipt['steps'] if target == 'go' else {step['name']: step for step in receipt['steps']}
++                selected_phases = ('prepare', 'build-native', 'native-tests', 'assessment-service') if target == 'go' else ('prepare', 'native', 'service')
++                for phase in selected_phases:
++                    sample = steps[phase]
++                    rss = sample.get('peak_rss_bytes', sample.get('peak_process_tree_rss_bytes'))
++                    if sample.get('elapsed_ms') is None or rss is None:
++                        raise RuntimeError(f'Application-test performance unavailable: {target}/{form}/{phase}')
++                    record['measurements'][f'cinema-application/{target}/{form}/{phase}'] = {
++                        'samples': [sample], 'iterations': 1, 'protocol_version': 2,
++                        'elapsed_ms': sample['elapsed_ms'], 'peak_rss_bytes': rss,
++                        'memory_scope': 'Linux sampled native command/descendant RSS sum, 50 ms; shared pages counted per process; service duration includes waiting for runner',
++                        'workload_settings': {'seed': 42, 'generated_cases': 100, 'cache': 'warm toolchain/module caches; fresh isolated application copy and native test binary', 'scope': 'finite application tests; full suite when form=all; no group adoption authority'},
++                    }
++        record['application_test_managed_performance'] = {}
++        for target in ('go', 'typescript'):
++            destination = ROOT / f'target/application-performance/{target}-managed'
++            subprocess.run([sys.executable, 'scripts/application_test_managed_acceptance.py', '--replay', '--binary', str(ROOT / 'target/release/dctx0'), '--target', target, '--report', str(destination / 'result.json')], cwd=ROOT, check=True)
++            receipt = json.loads((destination / 'result.json').read_text())
++            record['application_test_managed_performance'][target] = receipt
++            sample = receipt['steps']['managed-run']
++            if sample.get('peak_rss_bytes') is None:
++                raise RuntimeError(f'Managed application-test RSS unavailable: {target}')
++            record['measurements'][f'cinema-application/{target}/managed/full'] = {
++                'samples': [sample], 'iterations': 1, 'protocol_version': 2,
++                'elapsed_ms': sample['elapsed_ms'], 'peak_rss_bytes': sample['peak_rss_bytes'],
++                'memory_scope': sample['memory_scope'],
++                'workload_settings': {'seed': 42, 'generated_cases': 100, 'scope': 'captured-source full suite, independent native collection, guarded task delivery and source-bound complete acceptance', 'cache': 'warm OS/toolchain/module caches; fresh capture, dependency materialization and native test binary'},
++            }
++        record['application_test_go_helper_coverage'] = application_go_coverage([
++            ROOT / 'target/go-application-library.coverage',
++            *[ROOT / f'target/application-performance/go-{form}/helper.coverage' for form in ('decoder', 'operation', 'state-change', 'assertion', 'all')],
++            *[ROOT / f'target/application-validation/go-probe-{probe}/helper.coverage' for probe in ('tie-break','wrong-return','missing-write','wrong-key','cleanup','operation-input-swap')],
++            *[ROOT / f'target/application-validation/go-all-probe-{probe}/helper.coverage' for probe in ('tie-break','wrong-return','operation-input-swap','missing-write','wrong-key','cleanup','unexpected-collaborator')],
++        ])
+         record['source_hash_after'] = digest(validation_sources())
+         if record['source_hash_after'] != record['source_hash']:
+             raise RuntimeError('Benchmark sources changed during measurement; rerun on a stable tree')
+@@ -451,6 +544,17 @@ def main():
+             ['go', 'vet', '-C', 'examples/cinema-go', './...'],
+             [sys.executable, 'scripts/go_race.py'],
+             ['cargo', 'build', '-p', 'dctx0-cli', '--all-features', '--locked'],
++            ['go', 'test', '-C', 'targets/go/applicationtests', '-coverprofile=' + str(ROOT / 'target/go-application-library.coverage'), './...'],
++            ['go', 'vet', '-C', 'targets/go/applicationtests', './...'],
++            ['bun', 'test', '--coverage', 'targets/typescript/applicationtests'],
++            *[[sys.executable, 'scripts/application_test_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--form', form, '--report', str(ROOT / f'target/application-validation/go-{form}/result.json')] for form in ('decoder', 'operation', 'state-change', 'assertion', 'all')],
++            *[[sys.executable, 'examples/cinema/scripts/application-acceptance.py', '--cli', str(ROOT / 'target/debug/dctx0'), '--form', form, '--output', str(ROOT / f'target/application-validation/typescript-{form}')] for form in ('constructor', 'operation', 'state-change', 'assertion', 'all')],
++            *[[sys.executable, 'scripts/application_test_managed_acceptance.py', '--replay', '--binary', str(ROOT / 'target/debug/dctx0'), '--target', target, '--report', str(ROOT / f'target/application-validation/{target}-managed/result.json')] for target in ('go', 'typescript')],
++            *[[sys.executable, 'scripts/application_test_managed_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--target', target, '--probe', probe, '--report', str(ROOT / f'target/application-validation/{target}-managed-probe-{probe}/result.json')] for target in ('go', 'typescript') for probe in ('native-assertion','missing-test','build-failure')],
++            *[[sys.executable, 'scripts/application_test_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--form', form, '--probe', probe, '--report', str(ROOT / f'target/application-validation/go-probe-{probe}/result.json')] for form, probe in (('assertion', 'tie-break'), ('operation', 'wrong-return'), ('operation', 'operation-input-swap'), ('state-change', 'missing-write'), ('state-change', 'wrong-key'), ('state-change', 'cleanup'))],
++            *[[sys.executable, 'examples/cinema/scripts/application-acceptance.py', '--cli', str(ROOT / 'target/debug/dctx0'), '--form', form, '--probe', probe, '--output', str(ROOT / f'target/application-validation/typescript-probe-{probe}')] for form, probe in (('constructor', 'catch-contract-failure'), ('constructor', 'codec-swap'), ('operation', 'operation-codec-swap'), ('constructor', 'post-verdict-assertion'), ('operation', 'wrong-return'), ('assertion', 'tie-break'), ('state-change', 'missing-write'), ('state-change', 'extra-write'), ('state-change', 'wrong-key'), ('state-change', 'cleanup'), ('state-change', 'state-scope'), ('state-change', 'missing-state-observer'))],
++            *[[sys.executable, 'scripts/application_test_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0'), '--form', 'all', '--probe', probe, '--report', str(ROOT / f'target/application-validation/go-all-probe-{probe}/result.json')] for probe in ('tie-break','wrong-return','operation-input-swap','missing-write','wrong-key','cleanup','unexpected-collaborator')],
++            *[[sys.executable, 'examples/cinema/scripts/application-acceptance.py', '--cli', str(ROOT / 'target/debug/dctx0'), '--form', 'all', '--probe', probe, '--output', str(ROOT / f'target/application-validation/typescript-all-probe-{probe}')] for probe in ('missing-write','extra-write','codec-swap','operation-codec-swap','tie-break','post-verdict-assertion','catch-contract-failure','cleanup','state-scope','missing-state-observer','wrong-key','falsy-native-throw','wrong-business-failure','technical-exception','missing-calls','empty-calls','unmodeled-resource','unexpected-mock-port')],
+             [sys.executable, 'scripts/go_cinema_acceptance.py', '--binary', str(ROOT / 'target/debug/dctx0')],
+             ['cargo', 'fetch', '--manifest-path', 'examples/cinema-rust/.dctx0/testing/rust/Cargo.toml', '--locked'],
+             ['cargo','test','--no-fail-fast','--manifest-path','examples/cinema-rust/Cargo.toml','--locked','--offline','--','--skip','verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'],
+diff --git a/targets/go/src/lib.rs b/targets/go/src/lib.rs
+index 5a7c840..6259ec3 100644
+--- a/targets/go/src/lib.rs
++++ b/targets/go/src/lib.rs
+@@ -1,5 +1,7 @@
+ //! Embedded editable defaults for go.
++mod application_library;
+ mod execution;
++pub use application_library::application_test_library;
+ mod inspection;
+ use dctx0_core::{ProfileTemplate, TargetManifest, TargetProfileProvider};
+ pub use execution::GoHarness;
+diff --git a/targets/go/tests/codecs.rs b/targets/go/tests/codecs.rs
+index 6191aca..4b029a0 100644
+--- a/targets/go/tests/codecs.rs
++++ b/targets/go/tests/codecs.rs
+@@ -66,3 +66,31 @@ fn generated_go_codecs_execute_independent_values_and_failures() {
+     };
+     assert!(generate_codecs(&declarations, &unsupported, "pin").is_err());
+ }
++
++#[test]
++fn go_type_overrides_accept_native_numbers_and_reject_undefined_options() {
++    use dctx0_core::CodecRepresentation;
++    let declarations: BTreeMap<String, DataIr> = serde_json::from_str(include_str!(
++        "../../../fixtures/conformance/codecs/declarations.json"
++    ))
++    .unwrap();
++    for (name, representation, supported) in [
++        ("W.Id", CodecRepresentation::Number, true),
++        ("W.NestedOption", CodecRepresentation::Undefined, false),
++    ] {
++        let options = CodecOptions {
++            types: BTreeMap::from([(name.into(), representation)]),
++            ..Default::default()
++        };
++        assert!(options.validate(&declarations).is_ok());
++        let generated = generate_codecs(&declarations, &options, "pin");
++        assert_eq!(generated.is_ok(), supported, "{name}: {generated:?}");
++        if let Err(error) = generated {
++            assert!(
++                error
++                    .to_string()
++                    .contains("undefined has no Go representation")
++            );
++        }
++    }
++}
+diff --git a/targets/rust/tests/codecs.rs b/targets/rust/tests/codecs.rs
+index fe83164..f51bda3 100644
+--- a/targets/rust/tests/codecs.rs
++++ b/targets/rust/tests/codecs.rs
+@@ -57,3 +57,32 @@ fn generated_rust_codecs_execute_with_exact_numbers_and_failures() {
+     };
+     assert!(dctx0_target_rust::generate_codecs(&data, &options, "pin").is_err());
+ }
++
++#[test]
++fn rust_type_overrides_require_authored_mappings_for_bigint_and_undefined() {
++    use dctx0_core::CodecRepresentation;
++    let declarations: BTreeMap<String, DataIr> = serde_json::from_str(include_str!(
++        "../../../fixtures/conformance/codecs/declarations.json"
++    ))
++    .unwrap();
++    for (name, representation, supported) in [
++        ("W.Id", CodecRepresentation::Number, true),
++        ("W.Id", CodecRepresentation::Bigint, false),
++        ("W.NestedOption", CodecRepresentation::Undefined, false),
++    ] {
++        let options = CodecOptions {
++            types: BTreeMap::from([(name.into(), representation)]),
++            ..Default::default()
++        };
++        assert!(options.validate(&declarations).is_ok());
++        let generated = dctx0_target_rust::generate_codecs(&declarations, &options, "pin");
++        assert_eq!(generated.is_ok(), supported, "{name}: {generated:?}");
++        if let Err(error) = generated {
++            assert!(
++                error
++                    .to_string()
++                    .contains("bigint/undefined need authored mappings")
++            );
++        }
++    }
++}
+diff --git a/targets/typescript/src/lib.rs b/targets/typescript/src/lib.rs
+index 6856cd4..b6dc0ff 100644
+--- a/targets/typescript/src/lib.rs
++++ b/targets/typescript/src/lib.rs
+@@ -1,4 +1,6 @@
+ //! Embedded editable defaults for typescript.
++mod application_library;
++pub use application_library::application_test_library;
+ mod dependencies;
+ mod execution;
+ pub use dependencies::TypeScriptDependencies;

@@ -408,3 +408,92 @@ fn malformed_entity_keys_and_failure_declarations_cannot_forge_state_or_failure_
         );
     }
 }
+
+#[test]
+fn empty_call_filter_counts_actual_target_calls_without_erasing_arguments() {
+    let (ir, expressions) = fixture();
+    let budgets = VerificationBudgets::default();
+    let mut wildcard = expressions[2].clone();
+    if let ExpressionKind::Trace { arguments, .. } = &mut wildcard.value {
+        arguments.clear();
+    }
+    let actual = context();
+    assert_eq!(
+        run(&ir, &wildcard, &actual, &budgets),
+        Evaluation::Complete(VerificationValue::Boolean(true))
+    );
+    let mut zero = wildcard.clone();
+    if let ExpressionKind::Trace { count, .. } = &mut zero.value {
+        count.value = ExpressionKind::Literal {
+            text: "0".into(),
+            literal_kind: "Int".into(),
+        };
+    }
+    assert_eq!(
+        run(&ir, &zero, &actual, &budgets),
+        Evaluation::Complete(VerificationValue::Boolean(false))
+    );
+    let mut absent = actual.clone();
+    absent.calls = Some(vec![]);
+    assert_eq!(
+        run(&ir, &zero, &absent, &budgets),
+        Evaluation::Complete(VerificationValue::Boolean(true))
+    );
+    absent.calls = None;
+    unknown(
+        run(&ir, &zero, &absent, &budgets),
+        "TRACE_OBSERVER_REQUIRED",
+    );
+    let mut wrong_arguments = actual.clone();
+    wrong_arguments.calls.as_mut().unwrap()[0]
+        .invocation
+        .arguments[0] = VerificationValue::String("different".into());
+    assert_eq!(
+        run(&ir, &wildcard, &wrong_arguments, &budgets),
+        Evaluation::Complete(VerificationValue::Boolean(true))
+    );
+    assert_eq!(
+        run(&ir, &expressions[2], &wrong_arguments, &budgets),
+        Evaluation::Complete(VerificationValue::Boolean(false))
+    );
+    let mut twice = actual.clone();
+    twice
+        .calls
+        .as_mut()
+        .unwrap()
+        .push(actual.calls.as_ref().unwrap()[0].clone());
+    assert_eq!(
+        run(&ir, &wildcard, &twice, &budgets),
+        Evaluation::Complete(VerificationValue::Boolean(false))
+    );
+}
+
+#[test]
+fn empty_call_filter_rejects_invalid_witnesses_and_ignores_oracle_tape() {
+    let (ir, expressions) = fixture();
+    let mut wildcard = expressions[2].clone();
+    if let ExpressionKind::Trace { arguments, .. } = &mut wildcard.value {
+        arguments.clear();
+    }
+    let budgets = VerificationBudgets::default();
+    let mut invalid = context();
+    invalid.calls.as_mut().unwrap()[0]
+        .invocation
+        .arguments
+        .pop();
+    unknown(run(&ir, &wildcard, &invalid, &budgets), "INVALID_VALUE");
+    invalid = context();
+    invalid.calls.as_mut().unwrap()[0].invocation.arguments[1] = int("invalid");
+    unknown(run(&ir, &wildcard, &invalid, &budgets), "INVALID_VALUE");
+    let mut empty = context();
+    empty.calls = Some(vec![]);
+    let oracle = context().calls.unwrap();
+    let variables = BTreeMap::from([
+        ("a".into(), VerificationValue::String("r".into())),
+        ("b".into(), int("2")),
+    ]);
+    unknown(
+        evaluate_observed(&ir, &wildcard, &variables, &oracle, &empty, &budgets),
+        "OBSERVATION_MISMATCH",
+    );
+}

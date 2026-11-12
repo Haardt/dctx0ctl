@@ -8,7 +8,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const VERIFICATION_VERSION: &str = "dctx0-verification-1";
+pub mod application_plan;
+pub mod application_reuse;
+pub mod application_session;
 pub mod attestations;
+mod constructor_equality;
+pub mod hybrid_assessment;
+pub mod hybrid_evidence;
+pub mod incremental;
+pub use constructor_equality::constructor_value_equality;
 mod preconditions;
 pub mod program_inspection;
 pub mod suites;
@@ -243,6 +251,7 @@ mod entity_identity;
 mod operation;
 mod operation_effects;
 mod operation_state;
+mod state_projection;
 pub use entity_identity::{entity_identity_case, validate_entity_identity_cases};
 pub use operation::{
     OperationAssessment, OperationCaseInput, OperationClauseCall, OperationObservers,
@@ -266,7 +275,8 @@ pub use shrinking::{
 
 mod operation_arguments;
 pub use operation_arguments::{
-    OperationArgumentBinding, resolve_operation_arguments, validate_argument_bindings,
+    OperationArgumentBinding, recorded_operation_invocation, resolve_operation_arguments,
+    validate_argument_bindings,
 };
 
 mod operation_mocks;
@@ -277,6 +287,7 @@ pub const ASSESSMENT_VERSION: &str = "dctx0-assessment-24";
 
 pub mod diagnostics;
 
+pub mod application_evidence;
 pub mod comparison;
 
 mod bindings;

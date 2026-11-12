@@ -3,9 +3,72 @@ use super::*;
 use dctx0_store::{TaskDelivery, TaskDeliveryPublication};
 use dctx0_target_sdk::AdapterDescription;
 use dctx0_tasks::{
-    AdoptionProposal, AdoptionTaskProof, CheckEvidence, CheckStatus, TaskResult, propose_adoption,
-    task_case_coverage,
+    AdoptionProposal, AdoptionTaskProof, CheckEvidence, CheckStatus, TaskKind, TaskResult,
+    WorkState, propose_adoption, task_case_coverage,
 };
+/// Capture state versions before either hybrid backend starts. The store will
+/// recheck these together with the plan, profile and event pins on publication.
+pub(super) fn capture_done_versions(
+    project: &Project,
+    pin: Option<&VerificationTaskPin>,
+) -> Result<BTreeMap<i64, i64>> {
+    let Some(pin) = pin else {
+        return Ok(BTreeMap::new());
+    };
+    let session = project.task_metadata_session(None, None)?;
+    if session.plan.id != pin.plan_id || session.event_seq != pin.event_sequence {
+        return Err(Error::Invalid(
+            "Task plan or event changed while capturing hybrid task versions".into(),
+        ));
+    }
+    let mut versions = BTreeMap::new();
+    for (id, requirements) in &pin.requirements {
+        let member = session.member(*id)?;
+        if &member.candidate.requirements_hash != requirements {
+            return Err(Error::Invalid(format!(
+                "T{id}: Requirements changed while capturing hybrid task versions"
+            )));
+        }
+        let state = &session.states[id];
+        if matches!(
+            member.candidate.kind,
+            TaskKind::Contract | TaskKind::Operation
+        ) && !session.definitions[id].is_adjustment()
+            && state.work == WorkState::Done
+            && state.check == CheckStatus::Unverified
+            && state.result.is_some()
+            && state.actor.is_none()
+            && state.claim.is_none()
+            && state.reservation.is_none()
+        {
+            versions.insert(*id, state.version);
+        }
+    }
+    Ok(versions)
+}
+
+/// The caller owns the project lock and has checked actual source and runtime
+/// freshness. Done versions must have been captured before either backend ran.
+pub(super) fn publish_hybrid(
+    project: &Project,
+    application: &Path,
+    plan: &ProgramPlan,
+    saved: &StoredVerificationRun,
+    artifacts: &[VerificationArtifact],
+    done_versions: &BTreeMap<i64, i64>,
+) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
+    evaluate_inner(
+        project,
+        application,
+        plan,
+        saved,
+        artifacts,
+        false,
+        Some(done_versions),
+        false,
+    )
+}
+
 pub(super) fn publish(
     project: &Project,
     application: &Path,
@@ -15,6 +78,25 @@ pub(super) fn publish(
 ) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
     evaluate(project, application, plan, saved, artifacts, false)
 }
+pub(super) fn publish_incremental(
+    project: &Project,
+    application: &Path,
+    plan: &ProgramPlan,
+    saved: &StoredVerificationRun,
+    artifacts: &[VerificationArtifact],
+    done_versions: &BTreeMap<i64, i64>,
+) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
+    evaluate_inner(
+        project,
+        application,
+        plan,
+        saved,
+        artifacts,
+        false,
+        Some(done_versions),
+        true,
+    )
+}
 pub(super) fn evaluate(
     project: &Project,
     application: &Path,
@@ -22,6 +104,29 @@ pub(super) fn evaluate(
     saved: &StoredVerificationRun,
     artifacts: &[VerificationArtifact],
     preview: bool,
+) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
+    evaluate_inner(
+        project,
+        application,
+        plan,
+        saved,
+        artifacts,
+        preview,
+        None,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)] // Publication pins and delivery policy are independent boundaries.
+fn evaluate_inner(
+    project: &Project,
+    application: &Path,
+    plan: &ProgramPlan,
+    saved: &StoredVerificationRun,
+    artifacts: &[VerificationArtifact],
+    preview: bool,
+    done_versions: Option<&BTreeMap<i64, i64>>,
+    incremental_delivery: bool,
 ) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
     if saved.run.origin != VerificationRunOrigin::Native {
         return Ok((
@@ -44,7 +149,8 @@ pub(super) fn evaluate(
             None,
         ));
     };
-    if !run.permits_task_specific_proof()
+    if (done_versions.is_some() && run.result != VerificationResult::Pass)
+        || !run.permits_task_specific_proof()
         || run
             .cases
             .iter()
@@ -89,7 +195,11 @@ pub(super) fn evaluate(
             None,
         ));
     }
-    let session = project.task_session(None, None)?;
+    let session = if done_versions.is_some() {
+        project.task_metadata_session(None, None)?
+    } else {
+        project.task_session(None, None)?
+    };
     if preview
         && (session.plan.id != pin.plan_id
             || session.event_seq != pin.event_sequence
@@ -150,6 +260,126 @@ pub(super) fn evaluate(
         .find(|a| a.reference.media_type == "application/vnd.dctx0.adapter-description+json")
         .map(|a| serde_json::from_slice::<AdapterDescription>(&a.contents))
         .transpose()?;
+    let application_proof = artifacts
+        .iter()
+        .find(|artifact| {
+            artifact.reference.media_type
+                == dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE
+        })
+        .map(|artifact| {
+            serde_json::from_slice::<
+                dctx0_verification::application_evidence::ApplicationExecutionProof,
+            >(&artifact.contents)
+        })
+        .transpose()?;
+    let incremental_proof = artifacts
+        .iter()
+        .find(|artifact| {
+            artifact.reference.media_type
+                == dctx0_verification::incremental::INCREMENTAL_PROOF_MEDIA_TYPE
+        })
+        .map(|artifact| {
+            serde_json::from_slice::<dctx0_verification::incremental::IncrementalProof>(
+                &artifact.contents,
+            )
+        })
+        .transpose()?;
+    let incremental_application = artifacts.iter().find(|artifact| artifact.reference.media_type == dctx0_verification::application_evidence::INCREMENTAL_APPLICATION_EXECUTION_MEDIA_TYPE)
+        .map(|artifact| serde_json::from_slice::<dctx0_verification::application_evidence::IncrementalApplicationExecutionProof>(&artifact.contents)).transpose()?;
+    let incremental_hybrid = artifacts
+        .iter()
+        .find(|artifact| {
+            artifact.reference.media_type
+                == dctx0_verification::hybrid_evidence::INCREMENTAL_HYBRID_EXECUTION_MEDIA_TYPE
+        })
+        .map(|artifact| {
+            serde_json::from_slice::<
+                dctx0_verification::hybrid_evidence::IncrementalHybridExecutionProof,
+            >(&artifact.contents)
+        })
+        .transpose()?;
+    let application_proof = application_proof.as_ref().or_else(|| {
+        incremental_application
+            .as_ref()
+            .filter(|proof| {
+                incremental_proof
+                    .as_ref()
+                    .is_some_and(|incremental| proof.validates(run, incremental))
+            })
+            .map(|proof| &proof.application)
+    });
+    let hybrid_proof = artifacts
+        .iter()
+        .find(|artifact| {
+            artifact.reference.media_type
+                == dctx0_verification::hybrid_evidence::HYBRID_EXECUTION_MEDIA_TYPE
+        })
+        .map(|artifact| {
+            serde_json::from_slice::<dctx0_verification::hybrid_evidence::HybridExecutionProof>(
+                &artifact.contents,
+            )
+        })
+        .transpose()?;
+    let hybrid_proof = hybrid_proof
+        .as_ref()
+        .filter(|proof| proof.validates(run))
+        .or_else(|| {
+            incremental_hybrid
+                .as_ref()
+                .filter(|proof| {
+                    incremental_proof
+                        .as_ref()
+                        .is_some_and(|incremental| proof.validates(run, incremental))
+                })
+                .map(|proof| &proof.cohort)
+        });
+    if done_versions.is_some() && !incremental_delivery && hybrid_proof.is_none() {
+        return Ok((
+            vec![],
+            vec![issue(
+                "HYBRID_COMPLETE_PROOF_REQUIRED",
+                "Hybrid publication requires the fresh complete cohort proof",
+            )],
+            None,
+        ));
+    }
+    let inspected_batch = artifacts
+        .iter()
+        .find(|artifact| artifact.reference.media_type == dctx0_tasks::TASK_INSPECTIONS_MEDIA_TYPE)
+        .map(|artifact| {
+            serde_json::from_slice::<dctx0_tasks::InspectedDoneBatch>(&artifact.contents)
+        })
+        .transpose()?;
+    if inspected_batch.is_some() && done_versions.is_none() {
+        return Ok((
+            vec![],
+            vec![issue(
+                "INSPECTED_HYBRID_REQUIRED",
+                "Inspected tasks require a fresh hybrid run",
+            )],
+            None,
+        ));
+    }
+    let mut native_requirements = BTreeSet::new();
+    let mut adapter_requirements = BTreeSet::new();
+    if let Some(proof) = hybrid_proof {
+        for case in &run.cases {
+            if case.result != VerificationResult::Pass {
+                continue;
+            }
+            if let Some(requirements) = manifest.case_requirements.get(&case.id) {
+                match proof.application.plan.case_groups.get(&case.id) {
+                    Some(group) if group == &proof.application.assessment.group => {
+                        native_requirements.extend(requirements.iter().cloned())
+                    }
+                    Some(group) if group == &proof.adapter_group => {
+                        adapter_requirements.extend(requirements.iter().cloned())
+                    }
+                    _ => (),
+                }
+            }
+        }
+    }
     let outcomes = run
         .cases
         .iter()
@@ -220,28 +450,62 @@ pub(super) fn evaluate(
             incomplete.push("TASK_CASES_NOT_PASS".into())
         }
         let mut actual_artifacts = BTreeSet::new();
-        let representations = description
+        let mut representations = description
             .as_ref()
             .map(|d| d.representations.clone())
             .unwrap_or_default();
-        if let Some(description) = &description {
-            for subject in &member.candidate.subjects {
-                if let Some(entry) = description
-                    .subjects
-                    .iter()
-                    .find(|entry| &entry.subject == subject)
-                {
-                    if run.provenance.implementation.contains_key(&entry.artifact) {
-                        actual_artifacts.insert(entry.artifact.clone());
-                    } else {
-                        incomplete.push(format!("UNCAPTURED_IMPLEMENTATION:{}", entry.artifact));
-                    }
-                } else {
-                    incomplete.push(format!("ADAPTER_SUBJECT_UNAVAILABLE:{subject}"));
-                }
+        if let Some(proof) = &application_proof {
+            if proof.validates(run) {
+                // The whole captured application, native tests and dependencies
+                // jointly implement this finite proof. Do not fabricate an old
+                // adapter description or claim a per-file semantic analysis.
+                actual_artifacts.extend(proof.source_inputs.keys().cloned());
+                representations.insert(
+                    "application-test-protocol".into(),
+                    dctx0_target_sdk::application_protocol::APPLICATION_PROTOCOL_VERSION
+                        .to_string(),
+                );
+                representations.insert(
+                    "assessment".into(),
+                    proof.assessment.assessment_version.clone(),
+                );
+            } else {
+                incomplete.push("APPLICATION_NATIVE_PROOF_INVALID".into());
             }
         } else {
-            incomplete.push("ADAPTER_DESCRIPTION_UNAVAILABLE".into())
+            for subject in &member.candidate.subjects {
+                let native_covered = native_requirements.contains(subject);
+                if native_covered {
+                    let proof = hybrid_proof.expect("native requirements require a hybrid proof");
+                    actual_artifacts.extend(proof.application.source_inputs.keys().cloned());
+                    representations.insert(
+                        "application-test-protocol".into(),
+                        dctx0_target_sdk::application_protocol::APPLICATION_PROTOCOL_VERSION
+                            .to_string(),
+                    );
+                    representations.insert(
+                        "assessment".into(),
+                        proof.application.assessment.assessment_version.clone(),
+                    );
+                }
+                if !native_covered || adapter_requirements.contains(subject) {
+                    if let Some(entry) = description.as_ref().and_then(|description| {
+                        description
+                            .subjects
+                            .iter()
+                            .find(|entry| &entry.subject == subject)
+                    }) {
+                        if run.provenance.implementation.contains_key(&entry.artifact) {
+                            actual_artifacts.insert(entry.artifact.clone());
+                        } else {
+                            incomplete
+                                .push(format!("UNCAPTURED_IMPLEMENTATION:{}", entry.artifact));
+                        }
+                    } else {
+                        incomplete.push(format!("ADAPTER_SUBJECT_UNAVAILABLE:{subject}"));
+                    }
+                }
+            }
         }
         let executed_cases = coverage
             .required_cases
@@ -267,6 +531,41 @@ pub(super) fn evaluate(
             },
         );
     }
+    // Preserve historical Done prerequisites while validating current versions.
+    // Each eligible Done candidate is checked separately below using the same
+    // pure adoption rules; no stored task state changes during the proposal.
+    if let Some(done_versions) = done_versions {
+        for (id, version) in done_versions {
+            let member = session.member(*id)?;
+            let state = &session.states[id];
+            if pin.requirements.get(id) != Some(&member.candidate.requirements_hash)
+                || state.version != *version
+                || state.work != WorkState::Done
+                || state.check != CheckStatus::Unverified
+                || state.result.is_none()
+                || state.actor.is_some()
+                || state.claim.is_some()
+                || state.reservation.is_some()
+                || !(matches!(
+                    member.candidate.kind,
+                    TaskKind::Contract | TaskKind::Operation
+                ) || (member.candidate.kind == TaskKind::Adapter
+                    && inspected_batch
+                        .as_ref()
+                        .is_some_and(|batch| batch.tasks.contains_key(id))))
+                || session.definitions[id].is_adjustment()
+            {
+                return Ok((
+                    vec![],
+                    vec![issue(
+                        "ADOPTION_STALE_TASK_PIN",
+                        format!("T{id}: Captured completed task changed"),
+                    )],
+                    None,
+                ));
+            }
+        }
+    }
     let mut proposal = match propose_adoption(
         &session,
         &run.provenance.snapshot,
@@ -283,6 +582,54 @@ pub(super) fn evaluate(
             ));
         }
     };
+    if let Some(done_versions) = done_versions {
+        // Open work must continue to see historical Done prerequisites as
+        // delivered even when those prerequisites cannot receive new evidence.
+        // Restrict each temporary proposal to one Done candidate for the same
+        // reason; all other historical results retain their real state.
+        let mut temporary = session.clone();
+        for id in done_versions.keys() {
+            if inspected_batch
+                .as_ref()
+                .is_some_and(|batch| batch.tasks.contains_key(id))
+            {
+                continue;
+            }
+            temporary.states.get_mut(id).unwrap().work = WorkState::Open;
+            let single_pin = VerificationTaskPin {
+                plan_id: pin.plan_id,
+                event_sequence: pin.event_sequence,
+                requirements: [(*id, pin.requirements[id].clone())].into(),
+                profile_bundles: pin
+                    .profile_bundles
+                    .get(id)
+                    .map(|hash| [(*id, hash.clone())].into())
+                    .unwrap_or_default(),
+            };
+            let single_proofs = [(*id, proofs[id].clone())].into();
+            let result = propose_adoption(
+                &temporary,
+                &run.provenance.snapshot,
+                run.provenance.check_occurrence,
+                &single_pin,
+                &single_proofs,
+            );
+            temporary.states.get_mut(id).unwrap().work = WorkState::Done;
+            let single = match result {
+                Ok(value) => value,
+                Err(error) => {
+                    return Ok((
+                        vec![],
+                        vec![issue("ADOPTION_STALE_TASK_PIN", error.to_string())],
+                        None,
+                    ));
+                }
+            };
+            proposal.blocked.retain(|blocker| blocker.task_id != *id);
+            proposal.tasks.extend(single.tasks);
+            proposal.blocked.extend(single.blocked);
+        }
+    }
     if preview {
         for blocker in &mut proposal.blocked {
             if changed_profiles.contains(&blocker.task_id)
@@ -299,7 +646,11 @@ pub(super) fn evaluate(
         .iter()
         .map(|b| issue(&b.code, format!("T{}: {}", b.task_id, b.reason)))
         .collect::<Vec<_>>();
-    if proposal.tasks.is_empty() {
+    if proposal.tasks.is_empty()
+        && inspected_batch
+            .as_ref()
+            .is_none_or(|batch| batch.tasks.is_empty())
+    {
         return Ok((vec![], issues, Some(proposal)));
     }
     let profiles = match project.profiles(Some(application), Some(&run.provenance.target)) {
@@ -322,16 +673,21 @@ pub(super) fn evaluate(
     let deliveries = proposal
         .tasks
         .iter()
+        .filter(|id| done_versions.is_none_or(|versions| !versions.contains_key(id)))
         .map(|id| {
             let proof = &proofs[id];
             TaskDelivery {
                 task: *id,
                 result: TaskResult {
-                    summary:
-                        "Actual native specification verification delivered the pinned requirements"
-                            .into(),
+                    summary: if incremental_proof.is_some() {
+                        "Native verification and validated historical cases delivered the pinned requirements".into()
+                    } else {
+                        "Actual native specification verification delivered the pinned requirements".into()
+                    },
                     artifacts: proof.artifacts.clone(),
-                    decisions: vec!["PASS is limited to the executed finite mandatory plan".into()],
+                    decisions: vec![if incremental_proof.is_some() {
+                        "PASS is limited to the finite plan and includes validated historical cases; reused cases are not fresh observations".into()
+                    } else { "PASS is limited to the executed finite mandatory plan".into() }],
                     implementation: Some(proof.implementation.clone()),
                 },
                 evidence: CheckEvidence {
@@ -339,7 +695,12 @@ pub(super) fn evaluate(
                     implementation: proof.implementation.clone(),
                     verifier: "dctx0-native-verifier".into(),
                     verifier_version: dctx0_verification::VERIFICATION_VERSION.into(),
-                    command: "dctx0 verify run".into(),
+                    command: if application_proof.is_some() {
+                        "dctx0 verify application-tests run"
+                    } else {
+                        "dctx0 verify run"
+                    }
+                    .into(),
                     started_at: run.started_at_unix_ns.clone(),
                     finished_at: SystemTime::now()
                         .duration_since(UNIX_EPOCH)
@@ -353,19 +714,60 @@ pub(super) fn evaluate(
         .collect::<Vec<_>>();
     // The caller already owns the project lock. Store rechecks the exact latest
     // occurrence, plan, event watermark, claims and profile hashes atomically.
-    match project
-        .store(AccessMode::ReadWrite)?
-        .publish_task_deliveries(
-            &project.key(),
-            TaskDeliveryPublication {
-                actor: "dctx0-verifier",
-                pin,
-                deliveries: &deliveries,
-                profiles: (&profiles.manifest, &profiles.documents),
-                run_id: Some(&saved.id),
-            },
-        ) {
-        Ok(_) => Ok((proposal.tasks.clone(), issues, Some(proposal))),
+    let mut store = project.store(AccessMode::ReadWrite)?;
+    let request = TaskDeliveryPublication {
+        actor: "dctx0-verifier",
+        pin,
+        deliveries: &deliveries,
+        profiles: (&profiles.manifest, &profiles.documents),
+        run_id: Some(&saved.id),
+    };
+    let mut selected_done = proposal
+        .tasks
+        .iter()
+        .filter_map(|id| {
+            done_versions.and_then(|versions| versions.get(id).map(|version| (*id, *version)))
+        })
+        .collect::<BTreeMap<_, _>>();
+    if let Some(batch) = &inspected_batch {
+        for id in batch.tasks.keys() {
+            let Some(version) = done_versions.and_then(|versions| versions.get(id)) else {
+                return Ok((
+                    vec![],
+                    vec![issue(
+                        "INSPECTED_STATE_NOT_CAPTURED",
+                        format!("T{id}: state was not captured before execution"),
+                    )],
+                    Some(proposal),
+                ));
+            };
+            selected_done.insert(*id, *version);
+        }
+    }
+    let publication = if selected_done.is_empty() {
+        store.publish_task_deliveries(&project.key(), request)
+    } else if inspected_batch.is_some() {
+        store.publish_inspected_native_task_batch(&project.key(), request, &selected_done)
+    } else {
+        store.publish_native_task_batch(&project.key(), request, &selected_done)
+    };
+    match publication {
+        Ok(_) => {
+            let mut published = proposal.tasks.clone();
+            if let Some(batch) = inspected_batch {
+                for id in batch.tasks.keys() {
+                    if !published.contains(id) {
+                        published.push(*id);
+                    }
+                    issues.retain(|entry| !entry.message.starts_with(&format!("T{id}:")));
+                    proposal.blocked.retain(|blocker| blocker.task_id != *id);
+                    if !proposal.tasks.contains(id) {
+                        proposal.tasks.push(*id);
+                    }
+                }
+            }
+            Ok((published, issues, Some(proposal)))
+        }
         Err(error) => {
             issues.push(issue("ADOPTION_PUBLICATION_REJECTED", error.to_string()));
             Ok((vec![], issues, Some(proposal)))
@@ -515,5 +917,82 @@ mod tests {
             !root.exists(),
             "Rejected proofs must not create task history or artifacts"
         );
+    }
+    #[test]
+    fn hybrid_done_versions_are_captured_only_from_matching_current_task_state() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("dctx0-done-pin-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join("w.dctx0"),
+            "workspace W { value A = Int { range 1..2 } value B = Int { range 1..2 } }",
+        )
+        .unwrap();
+        let project = Project::new(&root, None).unwrap();
+        assert!(project.check().unwrap().ok);
+        project.task_plan("latest").unwrap();
+        let session = project.task_session(None, None).unwrap();
+        let id = session.next(&Default::default(), None).unwrap().task_id;
+        let started = project
+            .task_action(dctx0_tasks::Action::Start {
+                task: id,
+                actor: "author".into(),
+                reservation: None,
+            })
+            .unwrap()
+            .state
+            .unwrap();
+        let completed = project
+            .task_action(dctx0_tasks::Action::Complete {
+                task: id,
+                actor: "author".into(),
+                claim: started.claim.unwrap(),
+                version: started.version,
+                result: TaskResult {
+                    summary: "Original".into(),
+                    artifacts: vec![],
+                    decisions: vec![],
+                    implementation: None,
+                },
+            })
+            .unwrap()
+            .state
+            .unwrap();
+        let session = project.task_session(None, None).unwrap();
+        let pin = VerificationTaskPin {
+            plan_id: session.plan.id,
+            event_sequence: session.event_seq,
+            requirements: session
+                .plan
+                .members
+                .iter()
+                .map(|m| (m.task_id, m.candidate.requirements_hash.clone()))
+                .collect(),
+            profile_bundles: Default::default(),
+        };
+        assert_eq!(
+            capture_done_versions(&project, Some(&pin)).unwrap(),
+            [(id, completed.version)].into()
+        );
+        assert!(capture_done_versions(&project, None).unwrap().is_empty());
+        let mut wrong = pin.clone();
+        wrong.requirements.insert(id, "changed".into());
+        assert!(capture_done_versions(&project, Some(&wrong)).is_err());
+        project
+            .task_action(dctx0_tasks::Action::Note {
+                task: id,
+                note: "later event".into(),
+            })
+            .unwrap();
+        assert!(capture_done_versions(&project, Some(&pin)).is_err());
+        assert_eq!(
+            project.task_session(None, None).unwrap().states[&id].work,
+            WorkState::Done
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 }

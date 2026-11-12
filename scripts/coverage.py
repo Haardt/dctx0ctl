@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enforce 97% merged source-line and LLVM function coverage."""
+"""Enforce the temporarily user-approved 96% merged source-line and LLVM function coverage."""
 import argparse
 import hashlib
 import json
@@ -11,6 +11,9 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Temporary gate explicitly authorized by the user on 2026-11-09.
+MIN_COVERAGE_PERCENT = 96
+
 
 def source_hash():
     paths = [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock']
@@ -20,6 +23,9 @@ def source_hash():
     # Target profiles and helpers are embedded with include_str! in Rust crates.
     for pattern in ('**/*.md', '**/*.ts', '**/*.go'):
         paths.extend((ROOT / 'targets').glob(pattern))
+    for pattern in ('**/go.mod', '**/go.sum'):
+        paths.extend((ROOT / 'targets').glob(pattern))
+    paths.extend(ROOT.glob("targets/*/applicationtests/package.json"))
     paths.extend((ROOT / "skills").glob("**/*.md"))
     paths.extend((ROOT / "skills").glob("**/*.yaml"))
     for pattern in ("**/*.js", "**/*.cjs", "**/*.json", "**/*.scm", "**/*.toml", "**/*.rs", "**/*.c", "**/*.h", "**/*.txt", "**/Cargo.lock"):
@@ -64,9 +70,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--skip-performance', action='store_true', help='partial development coverage; defer benchmark conformance')
     args = parser.parse_args()
-    output = ROOT / 'target/coverage'
+    output = Path(os.environ.get('DCTX0_VALIDATION_ARTIFACT_ROOT', ROOT / 'target')) / 'coverage'
     output.mkdir(parents=True, exist_ok=True)
-    # The user-approved threshold is 97% for lines and functions. LCOV counts merge source lines
+    # The temporary user-approved threshold is 96% for lines and functions. LCOV counts merge source lines
     # across separately instrumented cfg(test)/library instantiations.
     lcov = output / 'workspace.lcov'
     raw = output / 'llvm.json'
@@ -83,7 +89,7 @@ def main():
         environment = {**os.environ, 'CARGO_TARGET_DIR': build,
                        'CARGO_LLVM_COV_TARGET_DIR': build}
         instrumented = subprocess.run(['cargo', 'llvm-cov', '--no-fail-fast', '--workspace', '--all-features', '--locked',
-                        '--fail-under-functions', '97'] + (['--', '--skip', 'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'] if args.skip_performance else []), cwd=ROOT, env=environment)
+                        '--fail-under-functions', str(MIN_COVERAGE_PERCENT)] + (['--', '--skip', 'verification_core_benchmarks_measure_both_compiled_examples_without_native_claims'] if args.skip_performance else []), cwd=ROOT, env=environment)
         for format, path in [('lcov', lcov), ('json', raw)]:
             subprocess.run(['cargo', 'llvm-cov', 'report', f'--{format}', '--output-path', str(path)], cwd=ROOT, env=environment, check=True)
     after = source_hash()
@@ -100,7 +106,7 @@ def main():
         print(f"UNCOVERED {missing['file']}:{missing['line']}", file=sys.stderr)
     if before != after:
         print('Rust compilation inputs changed during coverage; final-tree coverage is unproven', file=sys.stderr)
-    return 1 if before != after or instrumented.returncode or result['line_percent'] < 97 or result['llvm_totals']['functions']['percent'] < 97 else 0
+    return 1 if before != after or instrumented.returncode or result['line_percent'] < MIN_COVERAGE_PERCENT or result['llvm_totals']['functions']['percent'] < MIN_COVERAGE_PERCENT else 0
 
 
 if __name__ == '__main__':

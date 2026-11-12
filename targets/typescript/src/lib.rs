@@ -1,4 +1,6 @@
 //! Embedded editable defaults for typescript.
+mod application_library;
+pub use application_library::application_test_library;
 mod dependencies;
 mod execution;
 pub use dependencies::TypeScriptDependencies;

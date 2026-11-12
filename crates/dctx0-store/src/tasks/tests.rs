@@ -1138,12 +1138,46 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
         "unsupported-open-obligation",
         "manual-primary-mismatch",
         "unmapped-subject",
+        "manifest-reference-size",
+        "manifest-invalid-version",
     ] {
         let (mut store, input, _) = prepared();
         let (pin, mut deliveries, run_id) = linked_delivery_fixture(&mut store, &input);
         let (manifest, docs) = profile_catalog();
         let mut run = store.verification_run("p", &run_id).unwrap().run;
         match reason {
+            "manifest-reference-size" => {
+                let reference = run
+                    .artifacts
+                    .iter_mut()
+                    .find(|artifact| {
+                        artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                    })
+                    .unwrap();
+                reference.bytes += 1;
+            }
+            "manifest-invalid-version" => {
+                let reference = run
+                    .artifacts
+                    .iter_mut()
+                    .find(|artifact| {
+                        artifact.media_type == "application/vnd.dctx0.case-manifest+json"
+                    })
+                    .unwrap();
+                let stored = store
+                    .verification_artifact(&run_id, &reference.hash)
+                    .unwrap();
+                let mut mapping: dctx0_core::VerificationCaseManifest =
+                    serde_json::from_slice(&stored.contents).unwrap();
+                mapping.schema_version += 1;
+                let changed = crate::VerificationArtifact::new(
+                    &reference.media_type,
+                    serde_json::to_vec(&mapping).unwrap(),
+                );
+                store.connection.execute("INSERT INTO verification_artifacts(hash,media_type,bytes) VALUES(?1,?2,?3)", params![changed.reference.hash, changed.reference.media_type, changed.contents]).unwrap();
+                store.connection.execute("INSERT INTO verification_run_artifacts(run_id,artifact_hash) VALUES(?1,?2)", params![run_id, changed.reference.hash]).unwrap();
+                *reference = changed.reference;
+            }
             "unmapped-subject" => {
                 let reference = run
                     .artifacts
@@ -1307,6 +1341,22 @@ fn incomplete_or_imported_runs_cannot_be_linked_by_explicit_publication() {
                 },
             )
             .unwrap_err();
+        if reason == "manifest-reference-size" {
+            assert!(
+                rejected
+                    .to_string()
+                    .contains("Mandatory case manifest artifact integrity"),
+                "{rejected}"
+            );
+        }
+        if reason == "manifest-invalid-version" {
+            assert!(
+                rejected
+                    .to_string()
+                    .contains("Stored mandatory case manifest does not match"),
+                "{rejected}"
+            );
+        }
         if reason == "malformed-manifest" {
             assert!(
                 rejected
@@ -1441,6 +1491,26 @@ fn discharged_state_hints_are_recomputed_from_immutable_plan_and_actual_before_s
         .unwrap();
     super::native_proof::validate_open_obligations(&store.connection, &saved.id, &run, &manifest)
         .unwrap();
+    // Incremental ancestors use this same nonrecursive check after their own
+    // native cohort and identity proof has been validated.
+    super::native_proof::validate_remaining_obligations(
+        &store.connection,
+        &saved.id,
+        &run,
+        &manifest,
+    )
+    .unwrap();
+    let mut missing_before = run.clone();
+    missing_before.cases[0].states.clear();
+    assert!(
+        super::native_proof::validate_remaining_obligations(
+            &store.connection,
+            &saved.id,
+            &missing_before,
+            &manifest
+        )
+        .is_err()
+    );
     for mutation in 0..8 {
         let mut invalid = run.clone();
         match mutation {
@@ -1562,4 +1632,526 @@ fn discharged_state_hints_are_recomputed_from_immutable_plan_and_actual_before_s
             )
             .unwrap();
     }
+}
+
+#[test]
+fn malformed_application_receipts_cannot_publish_tasks_or_create_delivery_links() {
+    for bytes in [b"null".as_slice(), b"{}", br#"{"schema_version":99}"#] {
+        let (mut store, input, _) = prepared();
+        let (pin, mut deliveries, run_id) = linked_delivery_fixture(&mut store, &input);
+        let saved = store.verification_run("p", &run_id).unwrap();
+        let mut run = saved.run.clone();
+        let mut artifacts = run
+            .artifacts
+            .iter()
+            .map(|reference| {
+                store
+                    .verification_artifact(&run_id, &reference.hash)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
+        let forged = crate::VerificationArtifact::new(
+            dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE,
+            bytes.to_vec(),
+        );
+        run.artifacts.push(forged.reference.clone());
+        artifacts.push(forged);
+        let forged_run = store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+        for delivery in &mut deliveries {
+            delivery.evidence.report = forged_run.id.clone();
+        }
+        let before = store.task_session("p", None, None).unwrap();
+        let (manifest, docs) = profile_catalog();
+        assert!(
+            store
+                .publish_task_deliveries(
+                    "p",
+                    TaskDeliveryPublication {
+                        actor: "native-publisher",
+                        pin: &pin,
+                        deliveries: &deliveries,
+                        profiles: (&manifest, &docs),
+                        run_id: Some(&forged_run.id),
+                    }
+                )
+                .is_err()
+        );
+        assert_eq!(
+            serde_json::to_value(store.task_session("p", None, None).unwrap()).unwrap(),
+            serde_json::to_value(before).unwrap()
+        );
+        assert!(
+            store
+                .task_delivery_publication("p", &forged_run.id)
+                .unwrap()
+                .is_none()
+        );
+        let historical = store.verification_run_summary("p", &run_id).unwrap();
+        assert_eq!(historical.result, saved.run.result);
+        assert_eq!(historical.case_count, saved.run.cases.len());
+    }
+}
+
+#[test]
+fn native_batch_preserves_completed_result_and_commits_open_and_done_together() {
+    let (mut store, input, _) = prepared();
+    let (_, initial) = batch_inputs(&store, &input);
+    let id = initial[0].task;
+    let started = store
+        .task_action(
+            "p",
+            Action::Start {
+                task: id,
+                actor: "author".into(),
+                reservation: None,
+            },
+        )
+        .unwrap()
+        .state
+        .unwrap();
+    store
+        .task_action(
+            "p",
+            Action::Complete {
+                task: id,
+                actor: "author".into(),
+                claim: started.claim.unwrap(),
+                version: started.version,
+                result: TaskResult {
+                    summary: "Historical result".into(),
+                    artifacts: vec![],
+                    decisions: vec!["Preserve".into()],
+                    implementation: None,
+                },
+            },
+        )
+        .unwrap();
+    // Seed a historical review to verify that arbitrary existing review content survives.
+    let mut historical = store.task_session("p", None, None).unwrap().states[&id].clone();
+    historical.reviews.push(dctx0_tasks::ReviewReport {
+        reviewer: "historical reviewer".into(),
+        judgement: "approved".into(),
+        summary: "Retained review".into(),
+        findings: vec![],
+        conformance: None,
+    });
+    super::read::event(
+        &store.connection,
+        "p",
+        Some(id),
+        "legacy-review-fixture",
+        "Existing review",
+        Some(&historical),
+    )
+    .unwrap();
+    let before = store.task_session("p", None, None).unwrap();
+    let (pin, deliveries, run_id) = linked_delivery_fixture(&mut store, &input);
+    let open = deliveries
+        .iter()
+        .filter(|d| d.task != id)
+        .take(1)
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_eq!(open.len(), 1);
+    let run = store.verification_run("p", &run_id).unwrap().run;
+    let identities: BTreeMap<&String, &String> = BTreeMap::new();
+    let mut open = open;
+    open[0].result.implementation = Some(dctx0_changes::hash(&(&run.provenance, identities)));
+    let done = [(id, before.states[&id].version)].into();
+    let (manifest, docs) = profile_catalog();
+    let publish = |store: &mut Store, versions: &BTreeMap<i64, i64>| {
+        store.publish_native_task_batch(
+            "p",
+            TaskDeliveryPublication {
+                actor: "verifier",
+                pin: &pin,
+                deliveries: &open,
+                profiles: (&manifest, &docs),
+                run_id: Some(&run_id),
+            },
+            versions,
+        )
+    };
+    let bad = [(id, before.states[&id].version + 1)].into();
+    assert!(publish(&mut store, &bad).is_err());
+    assert_eq!(store.task_sequence("p").unwrap(), before.event_seq);
+    let receipt = publish(&mut store, &done).unwrap();
+    let after = store.task_session("p", None, None).unwrap();
+    assert_eq!(
+        serde_json::to_vec(&before.states[&id].result).unwrap(),
+        serde_json::to_vec(&after.states[&id].result).unwrap()
+    );
+    assert_eq!(before.states[&id].reviews, after.states[&id].reviews);
+    assert_eq!(
+        serde_json::to_vec(&before.definitions).unwrap(),
+        serde_json::to_vec(&after.definitions).unwrap()
+    );
+    assert_eq!(after.states[&id].work, WorkState::Done);
+    assert_eq!(after.states[&id].check, CheckStatus::Pass);
+    assert_ne!(
+        after.states[&id].evidence.last().unwrap().implementation,
+        ""
+    );
+    assert_eq!(after.states[&open[0].task].check, CheckStatus::Pass);
+    assert_eq!(
+        serde_json::to_vec(&receipt).unwrap(),
+        serde_json::to_vec(&publish(&mut store, &done).unwrap()).unwrap()
+    );
+    assert!(publish(&mut store, &bad).is_err());
+    assert_eq!(store.task_sequence("p").unwrap(), receipt.event_sequence);
+    let links: i64 = store
+        .connection
+        .query_row(
+            "SELECT count(*) FROM verification_task_links WHERE run_id=?1",
+            [&run_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(links, 2);
+    let file = std::env::temp_dir().join(format!(
+        "dctx0-native-reopen-{}-{}.sqlite3",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    store
+        .connection
+        .execute("VACUUM INTO ?1", [file.to_str().unwrap()])
+        .unwrap();
+    drop(store);
+    let reader = Store::open(&file, AccessMode::ReadOnly).unwrap();
+    let reopened = reader.task_session("p", None, None).unwrap();
+    assert_eq!(
+        serde_json::to_vec(&after.states[&id]).unwrap(),
+        serde_json::to_vec(&reopened.states[&id]).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_vec(&before.states[&id].result).unwrap(),
+        serde_json::to_vec(&reopened.states[&id].result).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_vec(&before.states[&id].reviews).unwrap(),
+        serde_json::to_vec(&reopened.states[&id].reviews).unwrap()
+    );
+    assert!(
+        reopened
+            .events
+            .iter()
+            .any(|event| event.task_id == Some(id) && event.kind == "native-check")
+    );
+    let old = reader
+        .task_session("p", Some(pin.plan_id), Some(pin.event_sequence))
+        .unwrap();
+    assert_eq!(
+        serde_json::to_vec(&before.states[&id]).unwrap(),
+        serde_json::to_vec(&old.states[&id]).unwrap()
+    );
+    let metadata = reader.task_metadata_session("p", None, None).unwrap();
+    assert_eq!(metadata.states[&id].work, WorkState::Done);
+    assert_eq!(metadata.states[&id].check, CheckStatus::Pass);
+    let references = reader
+        .task_evidence_references("p", reopened.event_seq)
+        .unwrap()
+        .unwrap();
+    let reference = references
+        .iter()
+        .find(|reference| reference.task_id == id)
+        .unwrap();
+    assert_eq!(
+        reference.implementation,
+        reopened.states[&id].evidence.last().unwrap().implementation
+    );
+    assert_eq!(reference.requirements_hash, pin.requirements[&id]);
+    assert_eq!(reference.status, "PASS");
+    assert_eq!(reference.verifier, "dctx0-native-verifier");
+    let cached: String = reader
+        .connection
+        .query_row(
+            "SELECT data FROM task_states WHERE task_id=?1",
+            [id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let cached: State = storage::load(&reader.connection, &cached).unwrap();
+    assert_eq!(
+        serde_json::to_vec(&reopened.states[&id]).unwrap(),
+        serde_json::to_vec(&cached).unwrap()
+    );
+    drop(reader);
+    fs::remove_file(file).unwrap();
+}
+
+#[test]
+fn native_done_batch_rejects_untrusted_and_incomplete_runs_without_mutation() {
+    for failure in 0..7 {
+        let (mut store, input, _) = prepared();
+        let (_, deliveries) = batch_inputs(&store, &input);
+        let id = deliveries[0].task;
+        let started = store
+            .task_action(
+                "p",
+                Action::Start {
+                    task: id,
+                    actor: "author".into(),
+                    reservation: None,
+                },
+            )
+            .unwrap()
+            .state
+            .unwrap();
+        store
+            .task_action(
+                "p",
+                Action::Complete {
+                    task: id,
+                    actor: "author".into(),
+                    claim: started.claim.unwrap(),
+                    version: started.version,
+                    result: TaskResult {
+                        summary: "Original".into(),
+                        artifacts: vec![],
+                        decisions: vec![],
+                        implementation: None,
+                    },
+                },
+            )
+            .unwrap();
+        let before = store.task_session("p", None, None).unwrap();
+        let (pin, _, run_id) = linked_delivery_fixture(&mut store, &input);
+        let mut run = store.verification_run("p", &run_id).unwrap().run;
+        let artifacts = run
+            .artifacts
+            .iter()
+            .map(|a| store.verification_artifact(&run_id, &a.hash).unwrap())
+            .collect::<Vec<_>>();
+        match failure {
+            0 => run.origin = dctx0_core::VerificationRunOrigin::Imported,
+            1 => run.cases.clear(),
+            2 => run.cases.push(run.cases[0].clone()),
+            3 => run.provenance.implementation.clear(),
+            4 => run.provenance.task_pin.as_mut().unwrap().event_sequence += 1,
+            5 | 6 => {
+                let issue = dctx0_core::VerificationIssue {
+                    code: "TEST_FAILURE".into(),
+                    message: "failed".into(),
+                    span: None,
+                };
+                let result = if failure == 5 {
+                    dctx0_core::VerificationResult::Fail { issue }
+                } else {
+                    dctx0_core::VerificationResult::Unknown { issue }
+                };
+                run.result = result.clone();
+                run.cases[0].result = result;
+            }
+            _ => unreachable!(),
+        }
+        let invalid_run = match store.record_verification_run("p", &run, &artifacts) {
+            Ok(saved) => saved.id,
+            Err(_) => {
+                assert_eq!(
+                    serde_json::to_vec(&before).unwrap(),
+                    serde_json::to_vec(&store.task_session("p", None, None).unwrap()).unwrap()
+                );
+                continue;
+            }
+        };
+        let (manifest, docs) = profile_catalog();
+        let versions = [(id, before.states[&id].version)].into();
+        assert!(
+            store
+                .publish_native_task_batch(
+                    "p",
+                    TaskDeliveryPublication {
+                        actor: "verifier",
+                        pin: &pin,
+                        deliveries: &[],
+                        profiles: (&manifest, &docs),
+                        run_id: Some(&invalid_run)
+                    },
+                    &versions
+                )
+                .is_err(),
+            "failure {failure}"
+        );
+        assert_eq!(
+            serde_json::to_vec(&before).unwrap(),
+            serde_json::to_vec(&store.task_session("p", None, None).unwrap()).unwrap(),
+            "failure {failure}"
+        );
+        assert!(
+            store
+                .task_delivery_publication("p", &invalid_run)
+                .unwrap()
+                .is_none()
+        );
+    }
+}
+
+#[test]
+fn native_batch_rejects_unrepresentable_proof_timing_without_mutating_history() {
+    for (started_at, elapsed_us, interpreter, message) in [
+        ("invalid", 1, "1", "Invalid native run timing"),
+        (
+            "340282366920938463463374607431768211455",
+            1,
+            "1",
+            "Invalid native run timing",
+        ),
+        ("1", 1, " ", "Native run has no interpreter version"),
+    ] {
+        let (mut store, input, _) = prepared();
+        let (_, deliveries) = batch_inputs(&store, &input);
+        let task = deliveries[0].task;
+        let started = store
+            .task_action(
+                "p",
+                Action::Start {
+                    task,
+                    actor: "author".into(),
+                    reservation: None,
+                },
+            )
+            .unwrap()
+            .state
+            .unwrap();
+        store
+            .task_action(
+                "p",
+                Action::Complete {
+                    task,
+                    actor: "author".into(),
+                    claim: started.claim.unwrap(),
+                    version: started.version,
+                    result: TaskResult {
+                        summary: "Historical implementation".into(),
+                        artifacts: vec![],
+                        decisions: vec![],
+                        implementation: None,
+                    },
+                },
+            )
+            .unwrap();
+        let (pin, _, run_id) = linked_delivery_fixture(&mut store, &input);
+        let mut run = store.verification_run("p", &run_id).unwrap().run;
+        // Simulate a legacy/corrupt saved row: normal recording remains immutable.
+        run.started_at_unix_ns = started_at.into();
+        run.elapsed_us = elapsed_us;
+        run.provenance.interpreter_version = interpreter.into();
+        store
+            .connection
+            .execute(
+                "UPDATE verification_runs SET data=?1,corpus_hash=NULL WHERE id=?2",
+                params![serde_json::to_string(&run).unwrap(), run_id],
+            )
+            .unwrap();
+        store
+            .connection
+            .execute(
+                "DELETE FROM verification_case_projections WHERE run_id=?1",
+                [&run_id],
+            )
+            .unwrap();
+        let before = store.task_session("p", None, None).unwrap();
+        let original = store.verification_run("p", &run_id).unwrap();
+        let (manifest, docs) = profile_catalog();
+        let error = store
+            .publish_native_task_batch(
+                "p",
+                TaskDeliveryPublication {
+                    actor: "verifier",
+                    pin: &pin,
+                    deliveries: &[],
+                    profiles: (&manifest, &docs),
+                    run_id: Some(&run_id),
+                },
+                &[(task, before.states[&task].version)].into(),
+            )
+            .unwrap_err();
+        assert!(error.to_string().contains(message), "{error}");
+        assert_eq!(
+            serde_json::to_vec(&before).unwrap(),
+            serde_json::to_vec(&store.task_session("p", None, None).unwrap()).unwrap()
+        );
+        assert_eq!(store.verification_run("p", &run_id).unwrap(), original);
+        assert!(
+            store
+                .task_delivery_publication("p", &run_id)
+                .unwrap()
+                .is_none()
+        );
+        let links: i64 = store
+            .connection
+            .query_row(
+                "SELECT count(*) FROM verification_task_links WHERE run_id=?1",
+                [&run_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(links, 0);
+    }
+}
+
+#[test]
+fn manual_and_native_publication_modes_reject_mixed_or_missing_authority() {
+    let (mut store, input, _) = prepared();
+    let (pin, deliveries, run_id) = linked_delivery_fixture(&mut store, &input);
+    let before = store.task_session("p", None, None).unwrap();
+    let run = store.verification_run("p", &run_id).unwrap();
+    let (manifest, docs) = profile_catalog();
+    let request = |run_id| TaskDeliveryPublication {
+        actor: "reviewer",
+        pin: &pin,
+        deliveries: &deliveries,
+        profiles: (&manifest, &docs),
+        run_id,
+    };
+    assert!(
+        store
+            .publish_inspected_task_deliveries("p", request(Some(&run_id)), &BTreeMap::new())
+            .unwrap_err()
+            .to_string()
+            .contains("separate from automatic native adoption")
+    );
+    let versions = [(
+        deliveries[0].task,
+        before.states[&deliveries[0].task].version,
+    )]
+    .into();
+    for inspected in [false, true] {
+        for (run_id, versions) in [(None, &versions), (Some(run_id.as_str()), &BTreeMap::new())] {
+            let result = if inspected {
+                store.publish_inspected_native_task_batch("p", request(run_id), versions)
+            } else {
+                store.publish_native_task_batch("p", request(run_id), versions)
+            };
+            assert!(
+                result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("requires a run and completed tasks")
+            );
+        }
+    }
+    assert_eq!(
+        serde_json::to_vec(&before).unwrap(),
+        serde_json::to_vec(&store.task_session("p", None, None).unwrap()).unwrap()
+    );
+    assert_eq!(store.verification_run("p", &run_id).unwrap(), run);
+    assert!(
+        store
+            .task_delivery_publication("p", &run_id)
+            .unwrap()
+            .is_none()
+    );
+    let links: i64 = store
+        .connection
+        .query_row(
+            "SELECT count(*) FROM verification_task_links WHERE run_id=?1",
+            [&run_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(links, 0);
 }

@@ -38,12 +38,30 @@ For multi-task implementation, follow the implementation skill's pinned package,
 context-delta and evidence-to-task closure routine. Save the starting plan/event
 pin when measuring progress; current task totals do not measure this run's yield.
 
+For current evidence, use `status SPEC --project APP --json`; distinguish spec
+compilation, current native cases, task states and source freshness. Validate the
+user's requested scope; do not substitute an unrequested small green subset.
+Diagnose the concrete blocker. Missing or stale proof is not a newly observed
+failure.
+
 `verify plan <spec-root>` projects the selected published requirements without
 running production. `verify run` executes the configured finite scope and stores
 actual evidence. `--no-adopt` preserves task progress. `verify show` reads a saved
 run; `verify replay` executes saved inputs as a new comparison. `verify complete
 <spec-root> --project <app-root>` explicitly checks, executes the configured scope,
 binds authored inspections and requires finished/PASS active tasks.
+
+New Go and TypeScript/Bun connections use `verify application-tests`: publish
+the testing library, author native tests calling real production, prepare from
+the current spec, then execute with a captured native recipe. Read the
+implementation skill's application-test reference for the actual connection.
+Existing adapters keep `verify run` / `verify complete`. Mixed projects use
+`application-tests hybrid` / `hybrid-complete` with explicit case assignment.
+There is no universal CLI `--legacy` flag; inspect project wrapper help.
+Regenerate an ordinary execution plan from the current spec with the existing
+bindings and assignment. Do not require equality to an old reference plan.
+Explicitly frozen executions still verify their requested hash. Never edit
+generated case inputs to preserve an old PASS.
 
 PASS applies to the declared mandatory finite plan. UNKNOWN, missing observers,
 unsupported capabilities and resource aborts remain open. Free-text constraints,

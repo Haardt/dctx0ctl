@@ -55,6 +55,216 @@ fn observed(result: VerificationValue) -> InvocationObservation {
         observation: Observation::Returned { value: result },
     }
 }
+
+#[test]
+fn authority_observation_and_keyed_write_check_the_return_against_the_written_entity() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "mixed-state.dctx0".into(),
+        text: "workspace W { entity Authority { id:Int\nkey id } entity Item { id:Int\namount:Int\nkey id } message View { key:Int\namount:Int } port Store { operation apply(item:Item) -> View { state observes Authority by 9\nstate upserts Item from Item { id = result.key amount = result.amount }\nensures success implies result.amount == item.amount\nensures success implies result == View { key = after.Item(result.key).id amount = after.Item(result.key).amount } } } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let program = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: ["W.Store.apply".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    let authority =
+        VerificationValue::Record([("id".into(), VerificationValue::Integer("9".into()))].into());
+    let receipt = |key: &str, amount: &str| {
+        VerificationValue::Record(
+            [
+                ("key".into(), VerificationValue::Integer(key.into())),
+                ("amount".into(), VerificationValue::Integer(amount.into())),
+            ]
+            .into(),
+        )
+    };
+    for (actual, rows, authority_after, pass) in [
+        (
+            receipt("1", "2"),
+            vec![row("1", "2")],
+            vec![authority.clone()],
+            true,
+        ),
+        (
+            receipt("1", "3"),
+            vec![row("1", "2")],
+            vec![authority.clone()],
+            false,
+        ),
+        (
+            receipt("2", "2"),
+            vec![row("1", "2")],
+            vec![authority.clone()],
+            false,
+        ),
+        (receipt("1", "2"), vec![], vec![authority.clone()], false),
+        (receipt("1", "2"), vec![row("1", "2")], vec![], false),
+    ] {
+        let context = ObservationContext {
+            before: Some(
+                [
+                    ("W.Authority".into(), vec![authority.clone()]),
+                    ("W.Item".into(), vec![]),
+                ]
+                .into(),
+            ),
+            after: Some(
+                [
+                    ("W.Authority".into(), authority_after),
+                    ("W.Item".into(), rows),
+                ]
+                .into(),
+            ),
+            ..Default::default()
+        };
+        let assessment = assess_operation(
+            &ir,
+            &program.operations[0],
+            &observed(actual),
+            &context,
+            &Default::default(),
+        );
+        assert_eq!(
+            assessment.result == VerificationResult::Pass,
+            pass,
+            "{assessment:?}"
+        );
+    }
+}
+
+#[test]
+fn collection_input_can_return_an_independently_constrained_acknowledgement() {
+    for (postcondition, extra_fields, supported) in [
+        ("success implies result.accepted == request.id", "", true),
+        (
+            "success implies result.accepted == request.id",
+            "items:List<Item>",
+            false,
+        ),
+        (
+            "success implies result.accepted == request.id",
+            "items:Option<List<Item>>",
+            false,
+        ),
+        (
+            "success implies result.accepted == request.id",
+            "items:List<ItemView>",
+            false,
+        ),
+        (
+            "success implies result.accepted == request.id or true",
+            "",
+            false,
+        ),
+        (
+            "success implies all(row in before.Item where result.accepted == row.id)",
+            "",
+            false,
+        ),
+    ] {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "collection-ack.dctx0".into(),
+            text: format!(
+                "workspace W {{ entity Item {{ id:Int\namount:Int\nkey id }} message ItemView {{ id:Int\namount:Int }} message Receipt {{ accepted:Int\n{extra_fields} }} port Store {{ operation apply(request:Item) -> Receipt {{ state lists Item\nensures {postcondition} }} }} }}"
+            ),
+        }]);
+        assert!(
+            compiled.diagnostics.is_empty(),
+            "{:?}",
+            compiled.diagnostics
+        );
+        let ir = compiled.ir.unwrap();
+        let program = project_program(
+            &ir,
+            "pinned",
+            1,
+            VerificationScope {
+                subjects: ["W.Store.apply".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let invocation = |id: &str| InvocationObservation {
+            invocation: Invocation {
+                subject: "W.Store.apply".into(),
+                arguments: vec![row("1", "2")],
+            },
+            observation: Observation::Returned {
+                value: VerificationValue::Record({
+                    let mut fields = BTreeMap::from([(
+                        "accepted".into(),
+                        VerificationValue::Integer(id.into()),
+                    )]);
+                    if !extra_fields.is_empty() {
+                        fields.insert(
+                            "items".into(),
+                            if extra_fields.contains("Option") {
+                                VerificationValue::Option(None)
+                            } else {
+                                VerificationValue::List(vec![])
+                            },
+                        );
+                    }
+                    fields
+                }),
+            },
+        };
+        for rows in [vec![], vec![row("2", "3")]] {
+            let result = assess_operation(
+                &ir,
+                &program.operations[0],
+                &invocation("1"),
+                &context(rows.clone(), rows.clone()),
+                &Default::default(),
+            );
+            assert_eq!(
+                result.result == VerificationResult::Pass,
+                supported,
+                "{postcondition}: {result:?}"
+            );
+            assert_ne!(
+                assess_operation(
+                    &ir,
+                    &program.operations[0],
+                    &invocation("2"),
+                    &context(rows.clone(), rows),
+                    &Default::default()
+                )
+                .result,
+                VerificationResult::Pass
+            );
+        }
+        for context in [
+            ObservationContext::default(),
+            context(vec![], vec![row("1", "2")]),
+        ] {
+            assert_ne!(
+                assess_operation(
+                    &ir,
+                    &program.operations[0],
+                    &invocation("1"),
+                    &context,
+                    &Default::default()
+                )
+                .result,
+                VerificationResult::Pass
+            );
+        }
+    }
+}
 #[test]
 fn incomplete_pinned_state_contracts_never_certify_unchanged_observations() {
     let compiled = dctx0_language::compile(&[Source {
@@ -1388,6 +1598,449 @@ fn constructive_result_projections_follow_conjunctions_but_never_conditional_alt
                     VerificationResult::Unknown { .. }
                 ));
             }
+        }
+    }
+}
+
+#[test]
+fn independent_result_constraints_do_not_turn_observed_authority_into_the_result() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "observed-authority.dctx0".into(),
+        text: "workspace W { entity Item { id:Int\namount:Int\nkey id } message Receipt { id:Int } port Store { operation apply(item:Item) -> Receipt { state observes Item by item.id\nensures success implies result.id == item.id } } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: ["W.Store.apply".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    )
+    .operations
+    .remove(0);
+    let receipt = |id: &str| {
+        VerificationValue::Record(BTreeMap::from([(
+            "id".into(),
+            VerificationValue::Integer(id.into()),
+        )]))
+    };
+    let before = vec![row("1", "2")];
+    let valid = context(before.clone(), before.clone());
+    assert_eq!(
+        assess_operation(
+            &ir,
+            &plan,
+            &observed(receipt("1")),
+            &valid,
+            &Default::default()
+        )
+        .result,
+        VerificationResult::Pass
+    );
+    assert!(matches!(
+        assess_operation(
+            &ir,
+            &plan,
+            &observed(receipt("2")),
+            &valid,
+            &Default::default()
+        )
+        .result,
+        VerificationResult::Fail { .. }
+    ));
+    for rows in [vec![], vec![row("3", "2")]] {
+        let missing = context(rows.clone(), rows);
+        assert!(matches!(
+            assess_operation(
+                &ir,
+                &plan,
+                &observed(receipt("1")),
+                &missing,
+                &Default::default()
+            )
+            .result,
+            VerificationResult::Unknown { .. } | VerificationResult::Fail { .. }
+        ));
+    }
+    let multiple = vec![row("1", "2"), row("3", "2")];
+    assert_eq!(
+        assess_operation(
+            &ir,
+            &plan,
+            &observed(receipt("1")),
+            &context(multiple.clone(), multiple),
+            &Default::default()
+        )
+        .result,
+        VerificationResult::Pass
+    );
+    assert!(
+        matches!(assess_operation(&ir, &plan, &observed(receipt("1")), &context(before, vec![row("1", "3")]), &Default::default()).result, VerificationResult::Fail { issue } if issue.code == "STATE_EFFECT_VIOLATED")
+    );
+    let mut absent = valid;
+    absent.after = None;
+    assert!(
+        matches!(assess_operation(&ir, &plan, &observed(receipt("1")), &absent, &Default::default()).result, VerificationResult::Unknown { issue } if issue.code == "STATE_OBSERVER_REQUIRED")
+    );
+}
+
+#[test]
+fn observed_selected_authority_can_bind_result_inside_nonempty_all() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "selected-authority.dctx0".into(),
+        text: "workspace W { entity Item { id:Int\namount:Int\nkey id } message Receipt { id:Int\namount:Int\nmarker:Int } port Store { operation apply(item:Item) -> Receipt { state observes Item by item.id\nensures success implies all(gate in before.Item where result.id == gate.id and result.amount == gate.amount) } } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: ["W.Store.apply".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    )
+    .operations
+    .remove(0);
+    let receipt = |id: &str, amount: &str| {
+        VerificationValue::Record(BTreeMap::from([
+            ("id".into(), VerificationValue::Integer(id.into())),
+            ("amount".into(), VerificationValue::Integer(amount.into())),
+            ("marker".into(), VerificationValue::Integer("0".into())),
+        ]))
+    };
+    let selected = vec![row("1", "2")];
+    let valid = context(selected.clone(), selected.clone());
+    let assess = |result, state: &ObservationContext| {
+        assess_operation(&ir, &plan, &observed(result), state, &Default::default()).result
+    };
+    assert_eq!(assess(receipt("1", "2"), &valid), VerificationResult::Pass);
+    assert!(matches!(
+        assess(receipt("9", "2"), &valid),
+        VerificationResult::Fail { .. }
+    ));
+    assert!(matches!(
+        assess(receipt("1", "9"), &valid),
+        VerificationResult::Fail { .. }
+    ));
+    assert!(matches!(
+        assess(receipt("1", "2"), &context(vec![], vec![])),
+        VerificationResult::Unknown { .. }
+    ));
+    let mut missing = valid.clone();
+    missing.before = None;
+    assert!(matches!(
+        assess(receipt("1", "2"), &missing),
+        VerificationResult::Unknown { .. }
+    ));
+    assert!(matches!(
+        assess(
+            receipt("1", "2"),
+            &context(selected.clone(), vec![row("1", "9")])
+        ),
+        VerificationResult::Fail { .. }
+    ));
+    let small = VerificationBudgets {
+        evaluation_steps: 1,
+        ..Default::default()
+    };
+    assert!(matches!(
+        assess_operation(&ir, &plan, &observed(receipt("1", "2")), &valid, &small).result,
+        VerificationResult::Unknown { .. }
+    ));
+    assert!(matches!(
+        assess(
+            receipt("1", "2"),
+            &context(vec![row("3", "2")], vec![row("3", "2")])
+        ),
+        VerificationResult::Unknown { .. } | VerificationResult::Fail { .. }
+    ));
+    assert!(matches!(
+        assess(
+            receipt("1", "2"),
+            &context(
+                vec![row("1", "2"), row("3", "2")],
+                vec![row("1", "2"), row("3", "2")]
+            )
+        ),
+        VerificationResult::Unknown { .. } | VerificationResult::Fail { .. }
+    ));
+}
+
+#[test]
+fn quantified_result_binding_does_not_accept_disjunction_or_nested_scope() {
+    for condition in [
+        "all(gate in before.Item where result.id == gate.id or true)",
+        "all(gate in before.Item where all(other in before.Item where result.id == other.id))",
+        "all(item in before.Item where result.id == item.id)",
+        "all(result in before.Item where result.id == item.id)",
+    ] {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "quantifier.dctx0".into(),
+            text: format!(
+                "workspace W {{ entity Item {{ id:Int\namount:Int\nkey id }} message Receipt {{ id:Int }} port Store {{ operation apply(item:Item) -> Receipt {{ state observes Item by item.id\nensures success implies {condition} }} }} }}"
+            ),
+        }]);
+        assert!(
+            compiled.diagnostics.is_empty(),
+            "{condition}: {:?}",
+            compiled.diagnostics
+        );
+        let ir = compiled.ir.unwrap();
+        let plan = project_program(
+            &ir,
+            "pinned",
+            1,
+            VerificationScope {
+                subjects: ["W.Store.apply".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        )
+        .operations
+        .remove(0);
+        let receipt = VerificationValue::Record(BTreeMap::from([(
+            "id".into(),
+            VerificationValue::Integer("1".into()),
+        )]));
+        let state = context(vec![row("1", "2")], vec![row("1", "2")]);
+        assert!(
+            matches!(
+                assess_operation(&ir, &plan, &observed(receipt), &state, &Default::default())
+                    .result,
+                VerificationResult::Unknown { .. }
+            ),
+            "{condition}"
+        );
+    }
+}
+
+#[test]
+fn unrelated_state_result_stays_unknown_for_vacuous_or_conditional_constraints() {
+    for condition in [
+        "result.id == result.id",
+        "(result.id == item.id) or true",
+        "false implies result.id == item.id",
+    ] {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "vacuous-observation.dctx0".into(),
+            text: format!(
+                "workspace W {{ entity Item {{ id:Int\namount:Int\nkey id }} message Receipt {{ id:Int }} port Store {{ operation apply(item:Item) -> Receipt {{ state observes Item by item.id\nensures {condition} }} }} }}"
+            ),
+        }]);
+        assert!(
+            compiled.diagnostics.is_empty(),
+            "{condition}: {:?}",
+            compiled.diagnostics
+        );
+        let ir = compiled.ir.unwrap();
+        let plan = project_program(
+            &ir,
+            "pinned",
+            1,
+            VerificationScope {
+                subjects: ["W.Store.apply".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        )
+        .operations
+        .remove(0);
+        let receipt = VerificationValue::Record(BTreeMap::from([(
+            "id".into(),
+            VerificationValue::Integer("1".into()),
+        )]));
+        let state = context(vec![row("1", "2")], vec![row("1", "2")]);
+        let result =
+            assess_operation(&ir, &plan, &observed(receipt), &state, &Default::default()).result;
+        assert!(
+            matches!(result, VerificationResult::Unknown { .. }),
+            "{condition}: {result:?}"
+        );
+    }
+}
+
+#[test]
+fn collaborator_alias_equal_to_result_is_not_an_independent_result_binding() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "observed-result-alias.dctx0".into(),
+        text: "workspace W { entity Item { id:Int\namount:Int\nkey id } message Receipt { id:Int } port Factory { operation copy(item:Item) -> Receipt } port Store { operation apply(item:Item) -> Receipt { call Factory.copy as alias\nstate observes Item by item.id\nensures success implies result.id == alias.id } } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let plan = project_program(
+        &ir,
+        "pinned",
+        1,
+        VerificationScope {
+            subjects: ["W.Store.apply".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    )
+    .operations
+    .into_iter()
+    .find(|plan| plan.operation.id == "W.Store.apply")
+    .unwrap();
+    let receipt = VerificationValue::Record(BTreeMap::from([(
+        "id".into(),
+        VerificationValue::Integer("1".into()),
+    )]));
+    let mut state = context(vec![row("1", "2")], vec![row("1", "2")]);
+    state.calls = Some(vec![InvocationObservation {
+        invocation: Invocation {
+            subject: "W.Factory.copy".into(),
+            arguments: vec![row("1", "2")],
+        },
+        observation: Observation::Returned {
+            value: receipt.clone(),
+        },
+    }]);
+    let report = assess_operation(&ir, &plan, &observed(receipt), &state, &Default::default());
+    assert!(
+        report
+            .open
+            .iter()
+            .any(|issue| issue.code == "STATE_RESULT_PROJECTION_REQUIRED"),
+        "{report:?}"
+    );
+}
+
+#[test]
+fn changed_row_projection_selects_the_real_returned_key_without_losing_other_rows() {
+    fn receipt(key: &str, amount: &str) -> VerificationValue {
+        VerificationValue::Record(BTreeMap::from([
+            ("key".into(), VerificationValue::Integer(key.into())),
+            ("amount".into(), VerificationValue::Integer(amount.into())),
+        ]))
+    }
+    for (projection, supported) in [
+        (
+            "View { key = after.Item(result.key).id amount = after.Item(result.key).amount }",
+            true,
+        ),
+        ("result", false),
+        (
+            "View { key = result.key amount = after.Item(result.key).amount }",
+            false,
+        ),
+        (
+            "View { key = before.Item(result.key).id amount = before.Item(result.key).amount }",
+            false,
+        ),
+        (
+            "View { key = after.Item(result.key + 0).id amount = after.Item(result.key + 0).amount }",
+            false,
+        ),
+        (
+            "View { key = single(after.Item).id amount = single(after.Item).amount }",
+            false,
+        ),
+    ] {
+        let c = dctx0_language::compile(&[Source {
+            file: "keyed-projection.dctx0".into(),
+            text: format!(
+                "workspace W {{ entity Item {{ id:Int\namount:Int\nkey id }} message View {{ key:Int\namount:Int }} port Store {{ operation apply(item:Item) -> View {{ state upserts Item from Item {{ id = result.key amount = result.amount }}\nensures success implies result.amount == item.amount\nensures success implies result == {projection} }} }} }}"
+            ),
+        }]);
+        assert!(c.diagnostics.is_empty(), "{:?}", c.diagnostics);
+        let ir = c.ir.unwrap();
+        let p = project_program(
+            &ir,
+            "pinned",
+            1,
+            VerificationScope {
+                subjects: ["W.Store.apply".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let plan = &p.operations[0];
+        let before = vec![row("0", "9")];
+        let after = vec![row("0", "9"), row("1", "2")];
+        let result = assess_operation(
+            &ir,
+            plan,
+            &observed(receipt("1", "2")),
+            &context(before.clone(), after.clone()),
+            &Default::default(),
+        );
+        if supported {
+            assert_eq!(result.result, VerificationResult::Pass, "{result:?}");
+            for (actual, rows) in [
+                (receipt("0", "9"), after.clone()),
+                (receipt("1", "3"), after.clone()),
+                (receipt("1", "2"), before.clone()),
+                (receipt("1", "2"), vec![row("0", "9"), row("1", "3")]),
+                (receipt("1", "2"), vec![row("1", "2")]),
+                (
+                    receipt("1", "2"),
+                    vec![row("0", "9"), row("1", "2"), row("2", "4")],
+                ),
+            ] {
+                let result = assess_operation(
+                    &ir,
+                    plan,
+                    &observed(actual),
+                    &context(before.clone(), rows),
+                    &Default::default(),
+                );
+                assert!(
+                    matches!(result.result, VerificationResult::Fail { .. }),
+                    "{result:?}"
+                );
+            }
+            for budgets in [
+                VerificationBudgets {
+                    recursion_depth: 1,
+                    ..Default::default()
+                },
+                VerificationBudgets {
+                    evaluation_steps: 1,
+                    ..Default::default()
+                },
+            ] {
+                assert!(matches!(
+                    assess_operation(
+                        &ir,
+                        plan,
+                        &observed(receipt("1", "2")),
+                        &context(before.clone(), after.clone()),
+                        &budgets
+                    )
+                    .result,
+                    VerificationResult::Unknown { .. }
+                ));
+            }
+        } else {
+            assert!(
+                matches!(result.result, VerificationResult::Unknown { .. }),
+                "{projection}: {result:?}"
+            );
         }
     }
 }

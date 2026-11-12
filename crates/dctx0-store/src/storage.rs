@@ -262,7 +262,14 @@ pub(crate) fn state_metadata(
 }
 
 pub(crate) fn evidence_metadata(task: i64, evidence: &dctx0_tasks::CheckEvidence) -> Value {
-    serde_json::json!({"task_id":task,"requirements_hash":evidence.requirements_hash,"implementation":evidence.implementation,"status":format!("{:?}",evidence.status).to_uppercase(),"verifier":evidence.verifier,"verifier_version":evidence.verifier_version,"started_at":evidence.started_at,"finished_at":evidence.finished_at,"report_hash":format!("{:x}",Sha256::digest(evidence.report.as_bytes())),"details_available":true})
+    let inspected = if evidence.verifier == "dctx0-inspected-verifier" {
+        serde_json::from_str::<Value>(&evidence.report)
+            .ok()
+            .filter(|v| v["basis"] == "INSPECTED + actual native")
+    } else {
+        None
+    };
+    serde_json::json!({"task_id":task,"requirements_hash":evidence.requirements_hash,"implementation":evidence.implementation,"status":format!("{:?}",evidence.status).to_uppercase(),"verifier":evidence.verifier,"verifier_version":evidence.verifier_version,"started_at":evidence.started_at,"finished_at":evidence.finished_at,"report_hash":format!("{:x}",Sha256::digest(evidence.report.as_bytes())),"details_available":true,"native_run":inspected.as_ref().and_then(|v| v.get("native_run")),"inspection_artifact":inspected.as_ref().and_then(|v| v.get("inspection_artifact"))})
 }
 
 #[cfg(test)]

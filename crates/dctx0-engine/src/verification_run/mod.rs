@@ -1,5 +1,7 @@
 //! Managed native execution from a published snapshot, with immutable reports.
 mod adoption;
+mod application_run;
+pub use application_run::*;
 mod adoption_preview;
 pub use adoption_preview::{AdoptionPreviewTask, VerificationAdoptionPreview};
 mod attestations;
@@ -7,9 +9,17 @@ mod build;
 mod capture;
 mod dependencies;
 mod execution;
+mod hybrid_run;
+pub use hybrid_run::HybridVerificationOptions;
+mod incremental;
+mod reuse_execution;
+mod reuse_inputs;
+pub use incremental::{IncrementalComparison, VerificationIncrementalReport};
+pub use reuse_execution::{NativeReuseOptions, NativeReuseSummary};
 mod pins;
 mod preflight;
 mod status;
+mod status_agent;
 pub use preflight::{VerificationIntent, VerificationPreflight, VerificationPreflightPin};
 pub use status::{
     ProjectStatus, StatusCause, StatusProgress, StatusRun, StatusRunSummary, StatusTaskCounts,
@@ -63,6 +73,8 @@ pub struct VerificationLifecycleFixtures {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NativeVerificationReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub incremental: Option<Box<NativeReuseSummary>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub supervision: Option<crate::NativeSupervisionCapabilities>,
     pub evidence: StoredVerificationRun,
     pub adopted_tasks: Vec<i64>,
@@ -106,6 +118,143 @@ impl Project {
             None,
         )
         .await
+    }
+    /// Explicit historical reuse; execution and reused records are reported separately.
+    /// This diagnostic path does not grant task-delivery authority.
+    pub async fn run_verification_incremental(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        options: &NativeReuseOptions,
+    ) -> Result<NativeVerificationReport> {
+        self.run_incremental_with_pin(
+            application,
+            selection,
+            generator,
+            cancellation,
+            options,
+            None,
+            true,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)] // Current source/task pin is a separate execution boundary.
+    pub async fn run_verification_incremental_preflighted(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        options: &NativeReuseOptions,
+        preflight: VerificationPreflight,
+    ) -> Result<NativeVerificationReport> {
+        if !preflight.permits_execution() {
+            return Err(Error::Invalid(
+                "PREFLIGHT_BLOCKED: incremental execution requires a permitted diagnostic scope"
+                    .into(),
+            ));
+        }
+        self.run_incremental_with_pin(
+            application,
+            selection,
+            generator,
+            cancellation,
+            options,
+            Some(&preflight.pin),
+            true,
+        )
+        .await
+    }
+    /// Execute with explicit reuse and optionally deliver eligible task results.
+    pub async fn run_verification_incremental_with_adoption(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        options: &NativeReuseOptions,
+        no_adopt: bool,
+    ) -> Result<NativeVerificationReport> {
+        self.run_incremental_with_pin(
+            application,
+            selection,
+            generator,
+            cancellation,
+            options,
+            None,
+            no_adopt,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub async fn run_verification_incremental_preflighted_with_adoption(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        options: &NativeReuseOptions,
+        preflight: VerificationPreflight,
+        no_adopt: bool,
+    ) -> Result<NativeVerificationReport> {
+        if !preflight.permits_execution() {
+            return Err(Error::Invalid(
+                "PREFLIGHT_BLOCKED: incremental execution requires a permitted scope".into(),
+            ));
+        }
+        let no_adopt = no_adopt || preflight.intent == VerificationIntent::Diagnostic;
+        self.run_incremental_with_pin(
+            application,
+            selection,
+            generator,
+            cancellation,
+            options,
+            Some(&preflight.pin),
+            no_adopt,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)] // Shared implementation retains the optional preflight boundary.
+    async fn run_incremental_with_pin(
+        &self,
+        application: Option<&Path>,
+        selection: VerificationSelection,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        options: &NativeReuseOptions,
+        preflight: Option<&VerificationPreflightPin>,
+        no_adopt: bool,
+    ) -> Result<NativeVerificationReport> {
+        let (_, config) = self.verification_configuration(application)?;
+        let limits = config
+            .execution
+            .as_ref()
+            .map(VerificationExecutionBudgets::native_limits)
+            .unwrap_or_default();
+        match self
+            .execute_verification(
+                application,
+                selection,
+                generator,
+                cancellation,
+                no_adopt,
+                None,
+                limits,
+                None,
+                preflight,
+                None,
+                None,
+                Some(options),
+            )
+            .await?
+        {
+            ExecutionReport::Published(report) => Ok(report),
+            ExecutionReport::Transient(_) => Err(Error::Invalid(
+                "Unexpected transient incremental verification".into(),
+            )),
+        }
     }
     pub(super) async fn run_verification_plan(
         &self,
@@ -177,6 +326,9 @@ impl Project {
                 limits,
                 None,
                 None,
+                None,
+                None,
+                None,
             )
             .await?
         {
@@ -211,6 +363,9 @@ impl Project {
                 None,
                 limits,
                 Some(expected),
+                None,
+                None,
+                None,
                 None,
             )
             .await?
@@ -251,12 +406,54 @@ impl Project {
                 limits,
                 None,
                 Some(&preflight.pin),
+                None,
+                None,
+                None,
             )
             .await?
         {
             ExecutionReport::Published(report) => Ok(report),
             ExecutionReport::Transient(_) => {
                 Err(Error::Invalid("Unexpected transient verification".into()))
+            }
+        }
+    }
+    /// Execute only centrally assigned adapter cases. This diagnostic entry
+    /// cannot adopt tasks; a partial backend is not a complete project proof.
+    pub async fn run_adapter_execution_group(
+        &self,
+        application: &Path,
+        assignment: &dctx0_verification::application_plan::ApplicationTestPlan,
+        group: &str,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+    ) -> Result<NativeVerificationReport> {
+        let (_, config) = self.verification_configuration(Some(application))?;
+        let limits = config
+            .execution
+            .as_ref()
+            .map(VerificationExecutionBudgets::native_limits)
+            .unwrap_or_default();
+        match self
+            .execute_verification(
+                Some(application),
+                VerificationSelection::default(),
+                generator,
+                cancellation,
+                true,
+                None,
+                limits,
+                None,
+                None,
+                Some((assignment, group)),
+                None,
+                None,
+            )
+            .await?
+        {
+            ExecutionReport::Published(report) => Ok(report),
+            ExecutionReport::Transient(_) => {
+                Err(Error::Invalid("Unexpected transient adapter group".into()))
             }
         }
     }
@@ -272,6 +469,12 @@ impl Project {
         limits: NativeLimits,
         transient: Option<BindingTestPin>,
         preflight: Option<&VerificationPreflightPin>,
+        assigned_group: Option<(
+            &dctx0_verification::application_plan::ApplicationTestPlan,
+            &str,
+        )>,
+        hybrid: Option<&hybrid_run::HybridExecution>,
+        reuse_options: Option<&NativeReuseOptions>,
     ) -> Result<ExecutionReport> {
         let parent = pinned.as_ref().and_then(|(_, _, parent)| parent.clone());
         let supervision = limits.supervision_capabilities();
@@ -295,6 +498,32 @@ impl Project {
                 self.verification_plan(selection, &fixtures, config.budgets.clone())?,
                 None,
             ),
+        };
+        let assigned_cases = if let Some((assignment, group)) = assigned_group {
+            assignment.validate().map_err(|issues| {
+                Error::Invalid(format!("Invalid hybrid assignment: {issues:?}"))
+            })?;
+            let valid_group = assignment.configuration.groups.iter().any(|entry| {
+                entry.id == group
+                    && entry.backend == dctx0_verification::application_plan::TestBackend::Adapter
+                    && entry.target == config.target
+            });
+            if assignment.program != plan || !valid_group {
+                return Err(Error::Invalid(
+                    "Adapter group must match the current complete program and configured target"
+                        .into(),
+                ));
+            }
+            Some(
+                assignment
+                    .case_groups
+                    .iter()
+                    .filter(|(_, owner)| owner.as_str() == group)
+                    .map(|(id, _)| id.clone())
+                    .collect::<BTreeSet<_>>(),
+            )
+        } else {
+            None
         };
         if let Some(expected) = preflight {
             if plan.snapshot != expected.snapshot
@@ -328,8 +557,32 @@ impl Project {
         let snapshot = self
             .store(AccessMode::ReadOnly)?
             .load(&self.key(), &plan.snapshot)?;
-        let (task_pin, mut pin_issues) =
+        let (mut task_pin, mut pin_issues) =
             pins::capture(self, &application, &config.target, &plan, &snapshot)?;
+        let incremental_done_versions = if reuse_options.is_some() && hybrid.is_none() && !no_adopt
+        {
+            Some(adoption::capture_done_versions(self, task_pin.as_ref())?)
+        } else {
+            None
+        };
+        if let Some(context) = hybrid {
+            if captured_inputs != context.source_inputs
+                || captured_inputs != context.report.source_inputs
+            {
+                pin_issues.push(issue(
+                    "HYBRID_INPUTS_CHANGED",
+                    "Backend groups did not execute the same source inventory",
+                ));
+            }
+            if task_pin != context.task_pin {
+                pin_issues.push(issue(
+                    "HYBRID_TASK_PIN_CHANGED",
+                    "Task/profile requirements changed between backend groups",
+                ));
+            }
+            task_pin = context.task_pin.clone();
+            pin_issues.extend(context.pin_issues.clone());
+        }
         if preflight.is_some_and(|expected| expected.task_pin != task_pin) {
             return Err(Error::Invalid("PREFLIGHT_TASK_PIN_CHANGED: task events, requirements or selected profiles changed; repeat preflight before native execution".into()));
         }
@@ -340,11 +593,13 @@ impl Project {
         let directory = Path::new(directory);
         let lifecycle_path = capture.root.join(directory).join("lifecycles.json");
         if pinned_lifecycles.is_none() {
-            plan.issues.extend(self.verification_lifecycle_input_issues(
-                &capture.root,
-                &config.adapter,
-                &plan,
-            )?);
+            let issues =
+                self.verification_lifecycle_input_issues(&capture.root, &config.adapter, &plan)?;
+            if assigned_group.is_none() {
+                plan.issues.extend(issues);
+            } else {
+                pin_issues.extend(issues);
+            }
         }
         let lifecycles: VerificationLifecycleFixtures = if let Some(lifecycles) = pinned_lifecycles
         {
@@ -653,12 +908,19 @@ impl Project {
             snapshot: plan.snapshot.clone(),
             check_occurrence: plan.check_occurrence as i64,
             plan_hash: artifacts[0].reference.hash.clone(),
-            implementation: capture
-                .files
-                .iter()
-                .filter(|(p, _)| !p.starts_with("node_modules/"))
-                .map(|(p, h)| (p.clone(), h.clone()))
-                .collect(),
+            // Both hybrid backends bind the same original source tree. The
+            // adapter's deterministic generated replacements remain separately
+            // bound by its harness/build receipts and execution-input inventory.
+            implementation: if hybrid.is_some() {
+                captured_inputs.clone()
+            } else {
+                capture
+                    .files
+                    .iter()
+                    .filter(|(p, _)| !p.starts_with("node_modules/"))
+                    .map(|(p, h)| (p.clone(), h.clone()))
+                    .collect()
+            },
             dependencies: capture
                 .files
                 .iter()
@@ -707,7 +969,7 @@ impl Project {
             required_subjects: plan.closure.clone(),
             not_selected: plan.not_selected.clone(),
             required_cases: BTreeSet::new(),
-            cases: vec![],
+            cases: hybrid.map(|context| context.cases()).unwrap_or_default(),
             open_obligations: plan.issues.clone(),
             bounded_obligations: vec![],
             artifacts: vec![],
@@ -715,9 +977,39 @@ impl Project {
         };
         if !build_ready {
             let manifest = dctx0_verification::case_manifest(&plan);
-            run.required_cases = manifest.required_cases;
+            run.required_cases = if hybrid.is_some() {
+                manifest.required_cases.clone()
+            } else {
+                assigned_cases
+                    .as_ref()
+                    .unwrap_or(&manifest.required_cases)
+                    .clone()
+            };
             run.open_obligations.extend(manifest.open_obligations);
             run.bounded_obligations.extend(manifest.bounded_obligations);
+        }
+        let mut reuse_state = if let Some(options) = reuse_options {
+            Some(
+                reuse_execution::PreparedReuse::capture(
+                    self,
+                    &application,
+                    &plan,
+                    options,
+                    cancellation,
+                )
+                .await?,
+            )
+        } else {
+            None
+        };
+        if let (Some(state), Some(assigned)) = (&reuse_state, &assigned_cases) {
+            if state
+                .units
+                .iter()
+                .any(|unit| unit.reusable && !unit.cases.is_subset(assigned))
+            {
+                return Err(Error::Invalid("Hybrid reuse declarations must select complete adapter-owned units; native group remains fresh".into()));
+            }
         }
         if build_ready {
             execution::execute(
@@ -727,6 +1019,9 @@ impl Project {
                     adapter: &config.adapter,
                     generated: &generated,
                     plan: &plan,
+                    assigned_cases: assigned_cases.as_ref(),
+                    reuse: reuse_state.as_mut(),
+                    complete_cohort: hybrid.is_some(),
                     lifecycles: &lifecycles,
                     cancel: cancellation,
                     limits,
@@ -768,6 +1063,16 @@ impl Project {
         .find_map(|policy| {
             matches!(policy.result, VerificationResult::Fail { .. }).then_some(policy.result)
         });
+        if let Some((_, group)) = assigned_group.filter(|_| hybrid.is_none()) {
+            let incomplete = issue(
+                "HYBRID_COHORT_REQUIRED",
+                format!(
+                    "Adapter group {group} is diagnostic until the complete fresh backend cohort is verified"
+                ),
+            );
+            run.provenance.incomplete.push(incomplete.clone());
+            run.open_obligations.push(incomplete);
+        }
         run.result = run
             .cases
             .iter()
@@ -877,6 +1182,50 @@ impl Project {
             other => run.provenance.incomplete.push(issue("RUNTIME_IDENTITY_CHANGED_OR_UNAVAILABLE",
                 format!("Actual runtime executable or launch environment cannot be pinned at publication: {other:?}"))),
         }
+        if let Some(context) = hybrid {
+            let adapter_started = run.started_at_unix_ns.clone();
+            let adapter_elapsed = run.elapsed_us;
+            run.started_at_unix_ns = context.started_at_unix_ns.clone();
+            run.elapsed_us = context.started.elapsed().as_micros().min(u64::MAX as u128) as u64;
+            if crate::native::VerifierIdentity::capture().ok().as_ref() != Some(&context.verifier) {
+                run.provenance.incomplete.push(issue(
+                    "HYBRID_VERIFIER_CHANGED",
+                    "Managing verifier changed during the cohort",
+                ));
+            }
+            context.attach(
+                &mut run,
+                &mut artifacts,
+                adapter_started,
+                adapter_elapsed,
+                reuse_state
+                    .as_ref()
+                    .map(|state| state.reused_cases())
+                    .unwrap_or(&BTreeSet::new()),
+            )?;
+            if let Some(notes) = &context.inspections {
+                program_inspection::apply_fresh_hybrid_inspections(
+                    self,
+                    &application,
+                    &snapshot,
+                    &plan,
+                    &mut run,
+                    &mut artifacts,
+                    notes,
+                )?;
+            }
+            run.artifacts = artifacts
+                .iter()
+                .map(|artifact| artifact.reference.clone())
+                .collect();
+            if matches!(run.result, VerificationResult::Pass) {
+                if let Some(problem) = run.provenance.incomplete.first() {
+                    run.result = VerificationResult::Unknown {
+                        issue: problem.clone(),
+                    };
+                }
+            }
+        }
         if transient.is_some() {
             if matches!(run.result, VerificationResult::Pass) {
                 if let Some(problem) = run.provenance.incomplete.first() {
@@ -890,20 +1239,73 @@ impl Project {
                 run,
             }));
         }
+        if let Some(state) = &reuse_state {
+            state
+                .finish(&application, &plan, &run, &mut artifacts, cancellation)
+                .await?;
+            run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
+        }
+        let mut incremental = reuse_state
+            .as_ref()
+            .map(|state| Box::new(state.summary(&plan, &run)));
+        preserve_verification_history(&config, &mut run, &mut artifacts);
         let saved = self
             .store(AccessMode::ReadWrite)?
             .record_verification_run_owned_from(&self.key(), run, &artifacts, parent.as_deref())?;
         let (adopted_tasks, adoption_issues, adoption_proposal) = if no_adopt {
             (vec![], vec![], None)
+        } else if let Some(context) = hybrid {
+            adoption::publish_hybrid(
+                self,
+                &application,
+                &plan,
+                &saved,
+                &artifacts,
+                &context.done_versions,
+            )?
+        } else if let Some(done_versions) = &incremental_done_versions {
+            adoption::publish_incremental(
+                self,
+                &application,
+                &plan,
+                &saved,
+                &artifacts,
+                done_versions,
+            )?
         } else {
             adoption::publish(self, &application, &plan, &saved, &artifacts)?
         };
+        if let Some(summary) = &mut incremental {
+            summary.adoption_authority = !adopted_tasks.is_empty();
+        }
         Ok(ExecutionReport::Published(NativeVerificationReport {
+            incremental,
             supervision: Some(supervision),
             evidence: saved,
             adopted_tasks,
             adoption_issues,
             adoption_proposal,
         }))
+    }
+}
+
+// The hold is content-addressed in the new run. The Store sees it in the same
+// transaction before retention, independently of verdicts or task eligibility.
+fn preserve_verification_history(
+    config: &VerificationConfiguration,
+    run: &mut VerificationRun,
+    artifacts: &mut Vec<VerificationArtifact>,
+) {
+    if config.history_retention.is_some()
+        && !artifacts.iter().any(|artifact| {
+            artifact.reference.media_type == dctx0_store::HISTORY_PRESERVATION_MEDIA_TYPE
+        })
+    {
+        let artifact = VerificationArtifact::new(
+            dctx0_store::HISTORY_PRESERVATION_MEDIA_TYPE,
+            br#"{"schema_version":1,"retention":"preserve-all"}"#.to_vec(),
+        );
+        run.artifacts.push(artifact.reference.clone());
+        artifacts.push(artifact);
     }
 }

@@ -126,6 +126,60 @@ fn actual_setup_results_feed_later_setup_and_main_arguments_without_changing_tem
 }
 
 #[test]
+fn application_test_export_preserves_setup_templates_bindings_and_runtime_resolution() {
+    use dctx0_verification::application_plan::*;
+    let (ir, input, observed) = fixture();
+    let fixtures = ProjectionFixtures {
+        operations: [(input.invocation.subject.clone(), vec![input.clone()])].into(),
+        ..Default::default()
+    };
+    let program = project_program(
+        &ir,
+        "snapshot",
+        1,
+        VerificationScope {
+            subjects: ["W".into()].into(),
+            tasks: Default::default(),
+        },
+        &fixtures,
+        Default::default(),
+    );
+    let configuration = ApplicationTestConfiguration {
+        schema_version: 2,
+        groups: vec![ExecutionGroup {
+            id: "legacy".into(),
+            backend: TestBackend::Adapter,
+            target: "go".into(),
+            selection: ["adapter".into()].into(),
+            area: TestArea {
+                cases: case_manifest(&program).required_cases,
+                ..Default::default()
+            },
+            resources: GroupResources {
+                namespace: "legacy".into(),
+                timeout_seconds: 60,
+                max_message_bytes: 1_048_576,
+            },
+        }],
+    };
+    let export = application_test_plan(&program, &configuration, &[]).unwrap();
+    let restored: ApplicationTestPlan =
+        serde_json::from_str(&serde_json::to_string(&export).unwrap()).unwrap();
+    restored.validate().unwrap();
+    let actual = restored
+        .program
+        .operations
+        .iter()
+        .find(|op| op.operation.id == input.invocation.subject)
+        .unwrap();
+    assert_eq!(actual.cases, vec![input.clone()]);
+    assert_eq!(
+        resolve_operation_arguments(&ir, &actual.cases[0], &observed, None),
+        resolve_operation_arguments(&ir, &input, &observed, None)
+    );
+}
+
+#[test]
 fn binding_validation_rejects_forward_unbounded_missing_and_overlapping_destinations() {
     let (ir, input, _) = fixture();
     let mut cases = vec![];
@@ -277,4 +331,66 @@ fn argument_resolution_rejects_missing_failed_or_misaddressed_actual_results() {
     }];
     let result = resolve_operation_arguments(&ir, &root, &source, None).unwrap();
     assert_eq!(result.arguments, vec![supplied]);
+}
+
+#[test]
+fn projection_checks_static_setup_fields_and_defers_only_bound_placeholders() {
+    let (ir, mut input, _) = fixture();
+    input.argument_bindings[0].target_path = vec!["nested".into()];
+    input.setup[1].arguments[0] =
+        record(&[("id", number("0")), ("nested", VerificationValue::Unit)]);
+    let project = |input: OperationCaseInput| {
+        let fixtures = ProjectionFixtures {
+            operations: [("W.Store.apply".into(), vec![input])].into(),
+            ..Default::default()
+        };
+        project_program(
+            &ir,
+            "snapshot",
+            1,
+            VerificationScope {
+                subjects: ["W.Store.apply".into()].into(),
+                tasks: Default::default(),
+            },
+            &fixtures,
+            Default::default(),
+        )
+    };
+    let projected = project(input.clone());
+    assert!(
+        !projected
+            .issues
+            .iter()
+            .any(|issue| issue.code == "INVALID_OPERATION_SETUP"),
+        "{:?}",
+        projected.issues
+    );
+    let VerificationValue::Record(fields) = &mut input.setup[1].arguments[0] else {
+        panic!()
+    };
+    fields.insert(
+        "id".into(),
+        VerificationValue::String("invalid static value".into()),
+    );
+    assert!(
+        project(input.clone())
+            .issues
+            .iter()
+            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
+    );
+    input.setup[1].arguments[0] = VerificationValue::Unit;
+    input.argument_bindings[0].target_path.clear();
+    assert!(
+        !project(input.clone())
+            .issues
+            .iter()
+            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
+    );
+    input.argument_bindings.clear();
+    assert!(
+        project(input)
+            .issues
+            .iter()
+            .any(|issue| issue.code == "INVALID_OPERATION_SETUP")
+    );
 }

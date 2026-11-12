@@ -101,6 +101,56 @@ fn explicit_projection<'a>(
     }
 }
 
+// A response containing the observed entity still needs its actual collection
+// projection. An unrelated receipt field cannot certify those nested rows.
+fn contains_entity(
+    ir: &WorkspaceIr,
+    ty: &TypeRef,
+    entity: &str,
+    depth: usize,
+    remaining: &mut usize,
+) -> bool {
+    if depth == 0 || *remaining == 0 {
+        return true;
+    }
+    *remaining -= 1;
+    if ty.symbol_id.as_deref() == Some(entity) {
+        return true;
+    }
+    if ty
+        .arguments
+        .iter()
+        .any(|argument| contains_entity(ir, argument, entity, depth - 1, remaining))
+    {
+        return true;
+    }
+    let Some(data) = ty.symbol_id.as_ref().and_then(|id| ir.data.get(id)) else {
+        return false;
+    };
+    if ir.data.get(entity).is_some_and(|observed| {
+        data.variants.is_empty()
+            && data.fields.len() == observed.fields.len()
+            && observed
+                .fields
+                .iter()
+                .all(|field| data.fields.contains(field))
+    }) {
+        return true;
+    }
+    data.alias
+        .as_ref()
+        .is_some_and(|alias| contains_entity(ir, alias, entity, depth - 1, remaining))
+        || data
+            .fields
+            .iter()
+            .any(|field| contains_entity(ir, &field.ty, entity, depth - 1, remaining))
+        || data
+            .variants
+            .iter()
+            .filter_map(|variant| variant.payload.as_ref())
+            .any(|payload| contains_entity(ir, payload, entity, depth - 1, remaining))
+}
+
 // Only conjunctions make their nested equality unconditional. Do not extract
 // projections from alternatives or other conditional expressions.
 fn collect_projection<'a>(
@@ -138,6 +188,94 @@ fn collect_projection<'a>(
         _ => true,
     }
 }
+// An unrelated observed entity is an authority/input to an operation, not its
+// return value. Only accept that distinction when an actual result field is
+// independently constrained by an explicit, unconditionally evaluated clause.
+fn has_independent_result_field_constraint(
+    plan: &OperationPlan,
+    budgets: &VerificationBudgets,
+    selected_entity: Option<&str>,
+) -> bool {
+    fn result_field(e: &Expression) -> bool {
+        matches!(&e.value, ExpressionKind::Field { target, .. }
+            if matches!(&target.value, ExpressionKind::Variable { name } if name == "result"))
+    }
+    fn independent(e: &Expression, plan: &OperationPlan, binder: Option<&str>) -> bool {
+        matches!(&e.value, ExpressionKind::Literal { .. })
+            || matches!(&e.value, ExpressionKind::Field { target, .. }
+                if matches!(&target.value, ExpressionKind::Variable { name }
+                    if name != "result" && (binder == Some(name.as_str()) || plan.operation.parameters.iter().any(|parameter| &parameter.name == name))))
+    }
+    let mut pending: Vec<_> = plan
+        .clauses
+        .iter()
+        .filter(|node| node.kind == StatementKind::Ensures)
+        .flat_map(|node| &node.expressions)
+        .map(|expression| (expression, 0usize, None))
+        .collect();
+    let mut remaining = budgets.evaluation_steps;
+    while let Some((e, depth, binder)) = pending.pop() {
+        if remaining == 0 || depth > budgets.recursion_depth {
+            return false;
+        }
+        remaining -= 1;
+        match &e.value {
+            ExpressionKind::Binary {
+                operator,
+                left,
+                right,
+            } if operator == "implies"
+                && matches!(&left.value, ExpressionKind::Variable { name } if name == "success") =>
+            {
+                pending.push((right, depth + 1, binder))
+            }
+            ExpressionKind::Binary {
+                operator,
+                left,
+                right,
+            } if operator == "and" || operator == "&&" => {
+                pending.push((left, depth + 1, binder));
+                pending.push((right, depth + 1, binder));
+            }
+            // The caller supplies an entity only for an actual, uniquely
+            // selected row. This excludes vacuous or unrelated guard scopes;
+            // the normal postcondition evaluator still checks returned values.
+            ExpressionKind::Collection {
+                operator,
+                binder: Some(name),
+                collection,
+                predicate: Some(predicate),
+                projection: None,
+            } if binder.is_none()
+                && operator == "all"
+                && name != "result"
+                && name != "success"
+                && !plan
+                    .operation
+                    .parameters
+                    .iter()
+                    .any(|parameter| parameter.name == *name)
+                && matches!(&collection.value, ExpressionKind::State { phase: StatePhase::Before, entity, keys }
+                        if Some(entity.as_str()) == selected_entity && keys.is_empty()) =>
+            {
+                pending.push((predicate, depth + 1, Some(name.as_str())));
+            }
+            ExpressionKind::Binary {
+                operator,
+                left,
+                right,
+            } if operator == "=="
+                && ((result_field(left) && independent(right, plan, binder))
+                    || (result_field(right) && independent(left, plan, binder))) =>
+            {
+                return true;
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 pub(crate) fn assess_state(
     ir: &WorkspaceIr,
     plan: &OperationPlan,
@@ -362,10 +500,67 @@ pub(crate) fn assess_state(
             true,
         );
     }
+    // A read-only observation still has to preserve its complete actual rows.
+    // In a mixed operation the returned payload belongs to the mutating state
+    // clause, which checks its independent projection below. Checking that same
+    // projection against an unrelated observed entity leaves valid result-key
+    // selectors unbound (e.g. authority read + socket upsert).
+    if matches!(mode, "observes" | "lists")
+        && plan.clauses.iter().any(|clause| {
+            clause.kind == StatementKind::State
+                && clause.terms.first().is_some_and(|term| {
+                    matches!(
+                        term.text.as_str(),
+                        "inserts" | "upserts" | "replaces" | "removes"
+                    )
+                })
+        })
+    {
+        return VerificationResult::Pass;
+    }
     if let Some(projection) = explicit_projection(plan, budgets) {
+        if !crate::state_projection::projection_within_budget(projection, budgets) {
+            return problem(
+                node,
+                "STATE_RESULT_PROJECTION_REQUIRED",
+                "Result projection exceeds the evaluation budget",
+                false,
+            );
+        }
         let mut independent = variables.clone();
         independent.remove("result");
-        return match evaluate_observed(ir, projection, &independent, &[], context, budgets) {
+        let mut selected_projection = projection.clone();
+        let source = match mode {
+            "inserts" | "upserts" => values.first(),
+            "replaces" => values.last(),
+            _ => None,
+        };
+        if let Some(keys) = source.and_then(|source| key(data, source)) {
+            let actual = variables.get("result").unwrap_or(&VerificationValue::Unit);
+            if !crate::state_projection::bind_changed_row_keys(
+                &mut selected_projection,
+                &data.id,
+                &keys,
+                actual,
+                &mut independent,
+                budgets,
+            ) {
+                return problem(
+                    node,
+                    "STATE_RESULT_PROJECTION_REQUIRED",
+                    "Result-key projection requires the exact modeled changed identity within budgets",
+                    false,
+                );
+            }
+        }
+        return match evaluate_observed(
+            ir,
+            &selected_projection,
+            &independent,
+            &[],
+            context,
+            budgets,
+        ) {
             Evaluation::Complete(expected) => {
                 let mut left = projection.clone();
                 left.value = ExpressionKind::Variable {
@@ -439,6 +634,42 @@ pub(crate) fn assess_state(
                 })
         });
     if result_ty.and_then(|t| t.symbol_id.as_ref()) != Some(&data.id) && !equivalent_record {
+        if mode == "observes" && values.len() != data.keys.len() {
+            return problem(
+                node,
+                "STATE_SELECTOR_REQUIRED",
+                "Observation needs every key component",
+                false,
+            );
+        }
+        // An independently constrained response does not excuse a missing
+        // observed key. See docs/application-test-implementation.md for the
+        // selected-authority regression and evidence boundaries.
+        let selected = before
+            .iter()
+            .any(|row| key(data, row) == Some(values.clone()));
+        let exactly_selected = before.len() == 1 && selected;
+        // A collection may be an observed input to an acknowledgement rather
+        // than its return value. A direct, nonvacuous response constraint still
+        // has to be checked by the ordinary postcondition evaluator. Unlike a
+        // keyed observation, a genuinely observed empty collection is valid.
+        let mut remaining = budgets.evaluation_steps;
+        if (mode == "lists" || mode == "observes" && selected)
+            && !contains_entity(
+                ir,
+                &plan.operation.result,
+                &data.id,
+                budgets.recursion_depth,
+                &mut remaining,
+            )
+            && has_independent_result_field_constraint(
+                plan,
+                budgets,
+                (mode == "observes" && exactly_selected).then_some(data.id.as_str()),
+            )
+        {
+            return VerificationResult::Pass;
+        }
         return problem(
             node,
             "STATE_RESULT_PROJECTION_REQUIRED",

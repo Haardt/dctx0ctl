@@ -1,3 +1,5 @@
+// Historical, unvalidated plugin-binding draft. Current native verification uses
+// .dctx0/testing/verification.json and .dctx0/application-tests/native-run.json.
 import { defineDctx0Bindings } from "@runatron/plugin-dctx0"
 
 export default defineDctx0Bindings({

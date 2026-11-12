@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test exactly three Cinema tasks and a small pure-function composition."""
+import history_retention
 import datetime
 import hashlib
 import json
@@ -188,12 +189,11 @@ def main():
         with validate.locked():
             filename = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-cinema-chain.json'
             validate.atomic(ROOT / 'benchmarks/history' / filename,
-                            {'schema_version': 2, 'status': 'complete', 'validation_status': report['status'],
+                            history_retention.mark({'schema_version': 2, 'status': 'complete', 'validation_status': report['status'],
                              'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                              'performance_gate': 'unassessed', 'measurements': samples,
-                             'provenance': report})
-            for old in sorted((ROOT / 'benchmarks/history').glob('*.json'))[:-20]:
-                old.unlink()
+                             'provenance': report}))
+            history_retention.prune((ROOT / 'benchmarks/history'))
         report['benchmark_history'] = f'benchmarks/history/{filename}'
         validate.atomic(output / 'report.json', report)
         print(f'Report: {output / "report.json"}', flush=True)

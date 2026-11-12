@@ -155,7 +155,9 @@ impl VerifierIdentity {
         #[cfg(not(target_os = "linux"))]
         let path = std::env::current_exe().map_err(NativeFailure::io)?;
         let file = std::fs::File::open(path).map_err(NativeFailure::io)?;
-        let (executable_hash, executable_bytes) = hash_bounded(file, 268_435_456)?;
+        // Full-debug workspace CLIs exceed the worker executable limit. This is
+        // our own running image, streamed without buffering, not an external input.
+        let (executable_hash, executable_bytes) = hash_bounded(file, 1_073_741_824)?;
         let identity = Self {
             schema_version: 1,
             executable_hash,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Real Bun dependency graphs, coupled to release speed/RSS measurements; no adoption."""
 from verification_storage import saved_verification_artifacts
+import history_retention
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -138,9 +139,8 @@ def main():
             record.update(status='failed', failure=failure)
         HISTORY.mkdir(parents=True, exist_ok=True)
         with locked(HISTORY.parent / '.dependency-resolution.lock'):
-            atomic(HISTORY / (stamp + '.json'), record)
-            for old in sorted(HISTORY.glob('*.json'))[:-20]:
-                old.unlink()
+            atomic(HISTORY / (stamp + '.json'), history_retention.mark(record))
+            history_retention.prune(HISTORY)
     print(json.dumps({'status': record['status'], 'report': str(HISTORY / (stamp + '.json')), 'failure': failure}))
     return 1 if failure else 0
 

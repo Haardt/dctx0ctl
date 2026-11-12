@@ -1230,6 +1230,7 @@ fn generated_preparations_are_pinned_exact_typed_unique_inputs() {
         .unwrap();
     let bindings = operation.inputs.bindings[0].clone();
     let preparation = GeneratedPreparation {
+        argument_bindings: vec![],
         bindings: bindings.clone(),
         setup: vec![Invocation {
             subject: subject.into(),
@@ -1347,4 +1348,83 @@ fn call_assertions_require_observation_while_only_prepared_replies_require_mock_
             .contains(&Capability::CallObservation)
     );
     assert!(with_given.capabilities.contains(&Capability::Mocks));
+}
+
+#[test]
+fn generated_preparation_projects_and_validates_nested_argument_bindings() {
+    let compiled = dctx0_language::compile(&[Source { file: "projection-flow.dctx0".into(), text: "workspace W { surface Api { operation create() -> String\noperation link(id:String) -> String\noperation read(id:String) -> String } }".into() }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let subject = "W.Api.read";
+    let original = plan(&ir, scope(subject), &Default::default());
+    let bindings = original.operations[0].inputs.bindings[0].clone();
+    let preparation = GeneratedPreparation {
+        bindings: bindings.clone(),
+        setup: vec![
+            Invocation {
+                subject: "W.Api.create".into(),
+                arguments: vec![],
+            },
+            Invocation {
+                subject: "W.Api.link".into(),
+                arguments: vec![bindings["id"].clone()],
+            },
+        ],
+        argument_bindings: vec![
+            OperationArgumentBinding {
+                setup: 0,
+                source_path: vec![],
+                target_setup: Some(1),
+                parameter: "id".into(),
+                target_path: vec![],
+            },
+            OperationArgumentBinding {
+                setup: 1,
+                source_path: vec![],
+                target_setup: None,
+                parameter: "id".into(),
+                target_path: vec![],
+            },
+        ],
+    };
+    let mut fixtures = ProjectionFixtures::default();
+    fixtures
+        .generated_preparations
+        .insert(subject.into(), vec![preparation.clone()]);
+    let projected = plan(&ir, scope(subject), &fixtures);
+    assert!(projected.issues.is_empty(), "{:?}", projected.issues);
+    assert_eq!(
+        projected
+            .operations
+            .iter()
+            .find(|operation| operation.operation.id == subject)
+            .unwrap()
+            .generated_argument_bindings(&bindings),
+        preparation.argument_bindings
+    );
+    assert!(
+        case_manifest(&projected)
+            .required_cases
+            .is_superset(&case_manifest(&original).required_cases)
+    );
+    let mut invalid = preparation.clone();
+    invalid.argument_bindings[0].setup = 1;
+    fixtures
+        .generated_preparations
+        .insert(subject.into(), vec![invalid]);
+    assert!(
+        codes(&plan(&ir, scope(subject), &fixtures)).contains("INVALID_OPERATION_ARGUMENT_BINDING")
+    );
+    let mut legacy = preparation;
+    legacy.argument_bindings.clear();
+    assert!(
+        serde_json::to_value(&legacy)
+            .unwrap()
+            .get("argument_bindings")
+            .is_none()
+    );
 }

@@ -63,6 +63,18 @@ impl Project {
         exports: Option<&Path>,
     ) -> Result<VerificationMaintenanceReport> {
         exports::validate(exports)?;
+        let configured_hold = self
+            .optional_verification_configuration(None)?
+            .is_some_and(|(_, config)| config.history_retention.is_some());
+        if configured_hold
+            || self
+                .store(AccessMode::ReadOnly)?
+                .verification_history_preserved()?
+        {
+            return Err(Error::Invalid(
+                "History preservation hold blocks verification GC and export pruning".into(),
+            ));
+        }
         let before = fs::metadata(&self.database)?.len();
         // A preview never creates locks, migrates, checkpoints or recovers files.
         if dry_run {

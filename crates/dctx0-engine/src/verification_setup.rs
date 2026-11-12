@@ -53,6 +53,13 @@ impl VerificationCaptureBudgets {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VerificationConfiguration {
+    /// Place a durable, non-authorizing hold on verification details.
+    /// Removing the setting never releases an already-published hold.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub history_retention: Option<VerificationHistoryRetention>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub application_tests: Option<ApplicationTestingLimits>,
+
     /// Exact unavailable adapter initially generated for this project. Absent
     /// in older configurations; changing a file never proves a binding exists.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -71,7 +78,24 @@ pub struct VerificationConfiguration {
     pub scope: ConfiguredVerificationScope,
     pub budgets: VerificationBudgets,
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum VerificationHistoryRetention {
+    PreserveAll,
+}
+
+/// Whole-plan file limits are independent of per-frame or per-case evidence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ApplicationTestingLimits {
+    pub plan_bytes: u64,
+}
+
 impl VerificationConfiguration {
+    pub fn application_plan_bytes(&self) -> u64 {
+        self.application_tests
+            .map_or(33_554_432, |limits| limits.plan_bytes)
+    }
     /// Effective capture budgets; absent configuration keeps the historical limits.
     pub fn capture_budgets(&self) -> VerificationCaptureBudgets {
         self.capture.unwrap_or_default()
@@ -203,6 +227,14 @@ fn validate(config: &VerificationConfiguration) -> Result<()> {
         .unwrap_or_default()
         .validate()?;
     config.capture.unwrap_or_default().validate()?;
+    if config
+        .application_tests
+        .is_some_and(|limits| limits.plan_bytes == 0 || limits.plan_bytes > 268_435_456)
+    {
+        return Err(Error::Invalid(
+            "Application-test plan budget must be between 1 byte and 256 MiB".into(),
+        ));
+    }
     if let Some(execution) = &config.execution {
         execution
             .native_limits()
@@ -303,6 +335,8 @@ impl Project {
         }
         let base = format!(".dctx0/testing/{}", bundle.target);
         let config = VerificationConfiguration {
+            history_retention: None,
+            application_tests: None,
             adapter_scaffold_hash: Some(
                 dctx0_store::VerificationArtifact::new(
                     "application/octet-stream",
@@ -542,5 +576,81 @@ mod execution_budget_tests {
         assert!(validate(&config).is_err());
         config.execution.as_mut().unwrap().case_seconds = u64::MAX;
         assert!(validate(&config).is_err());
+    }
+}
+
+#[cfg(test)]
+mod history_retention_tests {
+    use super::*;
+    #[test]
+    fn history_retention_is_explicit_preserve_all_and_old_configurations_serialize_unchanged() {
+        let original = serde_json::json!({
+            "schema_version":1,"target":"go","runtime":"go","adapter":"adapter.go","fixtures":"fixtures.json",
+            "scope":{"subjects":["W"],"tasks":[]},"budgets":VerificationBudgets::default()
+        });
+        let config: VerificationConfiguration = serde_json::from_value(original.clone()).unwrap();
+        assert_eq!(config.history_retention, None);
+        assert!(
+            serde_json::to_value(config)
+                .unwrap()
+                .get("history_retention")
+                .is_none()
+        );
+        let mut explicit = original;
+        explicit["history_retention"] = "preserve-all".into();
+        let config: VerificationConfiguration = serde_json::from_value(explicit.clone()).unwrap();
+        assert_eq!(
+            config.history_retention,
+            Some(VerificationHistoryRetention::PreserveAll)
+        );
+        assert_eq!(
+            serde_json::to_value(config).unwrap()["history_retention"],
+            "preserve-all"
+        );
+        for invalid in [
+            serde_json::json!("minimal"),
+            serde_json::json!(false),
+            serde_json::json!({"preserve-all":true}),
+        ] {
+            explicit["history_retention"] = invalid;
+            assert!(serde_json::from_value::<VerificationConfiguration>(explicit.clone()).is_err());
+        }
+    }
+}
+
+#[cfg(test)]
+mod application_plan_budget_tests {
+    use super::*;
+    #[test]
+    fn plan_file_budget_is_independent_bounded_and_default_compatible() {
+        let original = serde_json::json!({"schema_version":1,"target":"go","runtime":"go","adapter":"adapter.go","fixtures":"fixtures.json","scope":{"subjects":["W"],"tasks":[]},"budgets":VerificationBudgets::default()});
+        let default: VerificationConfiguration = serde_json::from_value(original.clone()).unwrap();
+        assert_eq!(default.application_plan_bytes(), 33_554_432);
+        assert!(
+            serde_json::to_value(default)
+                .unwrap()
+                .get("application_tests")
+                .is_none()
+        );
+        for (bytes, accepted) in [
+            (0, false),
+            (1, true),
+            (134_217_728, true),
+            (268_435_456, true),
+            (268_435_457, false),
+        ] {
+            let mut input = original.clone();
+            input["application_tests"] = serde_json::json!({"plan_bytes":bytes});
+            let config: VerificationConfiguration = serde_json::from_value(input).unwrap();
+            assert_eq!(config.application_plan_bytes(), bytes);
+            assert_eq!(validate(&config).is_ok(), accepted);
+            assert!(
+                config.execution.is_none(),
+                "Plan bytes do not raise frame, case or runtime budgets"
+            );
+        }
+        let mut unknown = original;
+        unknown["application_tests"] = serde_json::json!({"plan_bytes":1024,"unbounded":true});
+        assert!(serde_json::from_value::<VerificationConfiguration>(unknown).is_err());
     }
 }

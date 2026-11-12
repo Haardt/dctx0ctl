@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build/check the mdBook site and record coupled release build speed/RSS samples."""
+import history_retention
 import argparse
 from datetime import datetime, timezone
 import fcntl
@@ -166,13 +167,12 @@ def save(record):
     with (HISTORY.parent / '.docs-site.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         with tempfile.NamedTemporaryFile(mode='w', dir=HISTORY, prefix='.write-', delete=False) as staged:
-            json.dump(record, staged, indent=2)
+            json.dump(history_retention.mark(record), staged, indent=2)
             staged.write('\n')
             staged.flush()
             os.fsync(staged.fileno())
         os.replace(staged.name, path)
-        for old in sorted(HISTORY.glob('*.json'))[:-20]:
-            old.unlink()
+        history_retention.prune(HISTORY)
     return path
 
 

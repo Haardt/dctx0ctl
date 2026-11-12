@@ -137,3 +137,43 @@ fn record_path<'a>(
     }
     Ok(value)
 }
+
+/// Reconstruct a recorded invocation solely from reviewed templates and actual
+/// ordered setup observations. Both the managed template record and the native
+/// application session's resolved record are supported.
+pub fn recorded_operation_invocation(
+    ir: &WorkspaceIr,
+    input: &OperationCaseInput,
+    case: &dctx0_core::VerificationCaseRecord,
+) -> Option<Invocation> {
+    let mut setup_observations = Vec::new();
+    let mut actual_setup = Vec::new();
+    let mut offset = 0;
+    for index in 0..input.setup.len() {
+        let expected =
+            resolve_operation_arguments(ir, input, &setup_observations, Some(index)).ok()?;
+        let relative = case.observations[offset..]
+            .iter()
+            .position(|entry| entry.invocation.subject == expected.subject)?;
+        let observation = case.observations.get(offset + relative)?;
+        if observation.invocation != expected {
+            return None;
+        }
+        offset += relative + 1;
+        actual_setup.push(expected);
+        setup_observations.push(observation.clone());
+    }
+    let invocation = resolve_operation_arguments(ir, input, &setup_observations, None).ok()?;
+    let templates =
+        case.setup == input.setup && case.arguments == vec![input.invocation.arguments.clone()];
+    let resolved =
+        case.setup == actual_setup && case.arguments == vec![invocation.arguments.clone()];
+    if !(templates || resolved)
+        || !case.observations[offset..]
+            .iter()
+            .any(|entry| entry.invocation == invocation)
+    {
+        return None;
+    }
+    Some(invocation)
+}

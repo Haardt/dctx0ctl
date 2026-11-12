@@ -109,6 +109,7 @@ pub(crate) enum Phase {
     VerificationDiagnosticsCases,
     VerificationHistorySummary,
     VerificationProject,
+    ApplicationTestPlan,
     VerificationGenerate,
     VerificationEvaluateUnbound,
     VerificationAssessUnbound,

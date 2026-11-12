@@ -31,6 +31,107 @@ fn ty(id: &str) -> TypeRef {
         arguments: vec![],
     }
 }
+
+#[test]
+fn refined_list_counterexamples_preserve_valid_elements_and_break_selected_key_uniqueness() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "unique-selectors.dctx0".into(),
+        text: "workspace W { value Id = Int { range 1..2 } value Epoch = Int { range 0..2 } message Selector { id:Id\nepoch:Epoch } value Selectors = List<Selector> { length 0..4\nwhere count(distinct(map(selector.id for selector in value))) == count(value) } value Free = List<Selector> { length 0..4 } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let budgets = VerificationBudgets::default();
+    let corpus = generate_rejections(&ir, &ty("W.Selectors"), &budgets);
+    assert_eq!(
+        corpus,
+        generate_rejections(&ir, &ty("W.Selectors"), &budgets)
+    );
+    let pairs = corpus
+        .values
+        .iter()
+        .filter_map(|value| match value {
+            VerificationValue::List(items)
+                if items.len() == 2
+                    && items.iter().all(|item| {
+                        check_value(&ir, &ty("W.Selector"), item, &budgets)
+                            == ValueContract::Accepted
+                    }) =>
+            {
+                Some(items)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert!(pairs.iter().any(|items| items[0] == items[1]));
+    assert!(pairs.iter().any(|items| matches!((&items[0], &items[1]), (VerificationValue::Record(left), VerificationValue::Record(right)) if left["id"] == right["id"] && left["epoch"] != right["epoch"])));
+    for items in pairs {
+        assert!(matches!(
+            check_value(
+                &ir,
+                &ty("W.Selectors"),
+                &VerificationValue::List(items.clone()),
+                &budgets
+            ),
+            ValueContract::Rejected { .. }
+        ));
+        assert_eq!(
+            check_value(
+                &ir,
+                &ty("W.Free"),
+                &VerificationValue::List(items.clone()),
+                &budgets
+            ),
+            ValueContract::Accepted
+        );
+    }
+}
+
+#[test]
+fn refined_records_reject_bad_field_combinations_without_corrupting_field_types() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "parameter-evidence.dctx0".into(),
+        text: "workspace W { type Origin = Explicit | Reported | Hidden\nmessage Candidate { origin:Origin\nprovided:Option<Int> } value Parameter = Candidate { where (value.origin == Hidden) == (value.provided == None) } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let budgets = VerificationBudgets::default();
+    let corpus = generate_rejections(&ir, &ty("W.Parameter"), &budgets);
+    assert_eq!(
+        corpus,
+        generate_rejections(&ir, &ty("W.Parameter"), &budgets)
+    );
+    let combinations = corpus
+        .values
+        .iter()
+        .filter(|value| {
+            check_value(&ir, &ty("W.Candidate"), value, &budgets) == ValueContract::Accepted
+        })
+        .collect::<Vec<_>>();
+    assert!(!combinations.is_empty());
+    for value in combinations {
+        assert!(matches!(
+            check_value(&ir, &ty("W.Parameter"), value, &budgets),
+            ValueContract::Rejected { .. }
+        ));
+        let VerificationValue::Record(fields) = value else {
+            panic!("Expected valid record");
+        };
+        for field in &ir.data["W.Candidate"].fields {
+            assert_eq!(
+                check_value(&ir, &field.ty, &fields[&field.name], &budgets),
+                ValueContract::Accepted
+            );
+        }
+    }
+}
 #[test]
 fn rejected_corpora_include_exact_boundaries_uuid_and_record_failures_and_are_deterministic() {
     let ir = ir();

@@ -1,3 +1,5 @@
+mod application_test_plan;
+mod application_testing;
 mod args;
 mod benchmark;
 mod codec_scaffold;

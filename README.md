@@ -10,6 +10,85 @@ You can start without learning to author DCTX0 yourself. The contracts use famil
 
 [Documentation website](https://haardt.github.io/dctx0ctl/) · [Get started](docs/site/src/docs/getting-started.md) · [Language reference](docs/site/src/docs/language.md) · [Tutorial](docs/site/src/docs/miniboard.md) · [Build the documentation site](docs/site/src/docs/contributing.md)
 
+Application-owned contract tests (2026-11-09): [workflow](docs/site/src/docs/application-tests.md), [concept](docs/application-test-concept.md), and [implementation status](docs/application-test-implementation.md). Go and Bun connect real production calls, persistence, HTTP, scenarios and lifecycle paths to the same central Rust assessment and original 5,766-case Cinema manifest. Existing adapter configurations retain their meaning. Guarded task delivery and complete acceptance are being integrated and validated; no successful final validation is claimed here.
+
+Publish the shipped testing-only library with
+`dctx0 verify application-tests library --project APP --target typescript`
+(or `--target go`). Edited owned files are protected by pins. Production
+imports and authored tests are not rewritten. The CLI includes the libraries;
+no checkout-specific publisher is required.
+
+For the authored Bun Cinema suite, prepare the current finite plan and complete
+its native and source-bound review obligations:
+
+```sh
+dctx0 verify application-tests prepare examples/cinema/dctx0 \
+  --project examples/cinema --plan .dctx0/application-tests/plan.json \
+  --group cinema-native --test-name CinemaSuite --form all \
+  --boundary value-constructor --group-seconds 300
+dctx0 verify application-tests complete examples/cinema/dctx0 \
+  --project examples/cinema --plan .dctx0/application-tests/plan.json \
+  --group cinema-native --recipe .dctx0/application-tests/native-run.json \
+  --report .dctx0ctl/application-tests/complete-native.json
+```
+
+`complete` uses the prepared check/snapshot, creates missing target profiles and
+plans tasks, executes from captured sources, then applies the existing
+source-bound inspection/review and transactional task guards. Cinema's target is
+105 Done/PASS tasks, including four separately reported source-bound review
+tasks. Actual Go and Bun Cinema projects have each reached all 105 Done/PASS. Their PASS requires the explicit native-backed inspection attestation;
+review approval or manual completion alone still leaves testing Unverified.
+Previously completed Done/Unverified review tasks are preserved rather than
+silently upgraded. The retained Cinema checkpoint passed 99 steps, 773 all-feature Rust tests, 97.03% merged Rust source lines and 97.04% LLVM functions. Subsequent hybrid and task-publication changes require a fresh full validation; these checkpoint metrics do not certify the current tree.
+
+`verify application-tests run` stores a native run and attempts guarded delivery
+of eligible tasks by default. Use `--no-adopt` for diagnostics. Only actual
+nonempty task delivery sets `adoption_authority`; inspect `evidence`,
+`adopted_tasks`, `adoption_issues` and `adoption_proposal` separately from the
+central result. Claims, reservations, stale requirements/profiles/reviews,
+incomplete provenance or missing mandatory cases prevent unjustified delivery.
+`prepare`, `serve`, replay, imported reports and saved diagnostic PASS do not
+independently authorize adoption. The legacy `verify complete` remains available
+with its existing adapter workflow.
+
+For an explicitly assigned mixed scope, the development CLI provides
+`verify application-tests hybrid` and `hybrid-complete` with `--plan`, `--group`,
+`--recipe`, and a new `--report` path. Both groups execute freshly in the same
+managed occurrence; saved partial PASS reports cannot supply a group.
+`hybrid-complete` additionally requires `--notes` and retains the source-bound
+inspection/review guards. Existing report paths are preserved. Runner's reviewed
+assignment uses 201 application-test cases and 35,576 adapter cases; the complete
+35,777-case result and release validation remain pending. A prior 201-case native
+diagnostic is not a full hybrid acceptance. See the
+[hybrid workflow](docs/site/src/docs/application-tests.md#mixed-backends).
+
+The [frozen before reference](benchmarks/application-tests/before-20261108T172542Z/reference.json)
+retains raw coverage, native reports and source reconstruction. The [validated after reference](benchmarks/application-tests/after-cinema-native-20261109T060938.334343Z/reference.json) retains the new evidence and a compatible-workload before/after comparison. All 126 speed/RAM workloads completed; reduced one-sample settings remain unassessed against the accepted baseline, which is unchanged. Native diagnostics
+and managed acceptance have separate reproducible runners:
+
+```sh
+python3 scripts/application_test_acceptance.py --form all
+python3 examples/cinema/scripts/application-acceptance.py --form all
+python3 scripts/application_test_managed_acceptance.py --target go --replay --report target/application-go/result.json
+python3 scripts/application_test_managed_acceptance.py --target typescript --replay --report target/application-bun/result.json
+```
+
+These scripts retain elapsed time/RSS and do not promote the accepted benchmark
+baseline. Their current finite plan must pass all assigned native cases even if
+the frozen reference is incompatible; historic input comparisons are then
+unassessed. Add `--require-reference-match` to either diagnostic runner to make
+historical plan compatibility mandatory. Reports include an `effective_plan_hash`
+for comparing measured workloads. Replay reexecutes saved inputs in the owning native tests and remains
+diagnostic. New application-test native acceptance is Linux-only so far; the
+existing adapter platform evidence is separate. See the workflow for cold-cache
+dependency prerequisites and the distinction between task delivery, complete
+acceptance and repository release validation.
+
+`dctx0 bench SPEC application-test-plan 20` measures the new planning work;
+`python3 scripts/validate.py --coverage` includes it in the coupled validation and
+release speed/RAM measurements. New workloads remain unassessed until a baseline
+is intentionally accepted.
+
 DCTX0 turns product requirements into a typed, machine-readable contract. That contract drives a dependency-aware task DAG, parallel implementation waves, and verification plans. Once an application exists, DCTX0 checks its actual behavior against the same specification.
 
 People and coding agents develop the specification together. People own the product decisions; agents can write and refine the contracts, then implement them. An independent verification core assesses the observations.
@@ -150,7 +229,7 @@ $env:PATH = "$env:LOCALAPPDATA\DCTX0\bin;$env:PATH"
 dctx0 --version
 ```
 
-The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **Managed native verification, replay and guarded automatic adoption are verified on all five release platforms** for TypeScript/Bun, Go and Rust. The native CI matrix exercises successful applications, real failures, repaired replay, task/review guards and Cinema persistence/HTTP.
+The Windows installer checks the ZIP checksum and executable version before atomic replacement. The default destination is `%LOCALAPPDATA%\DCTX0\bin`; `-Version` and `-BinDir` provide pinned/custom installation. CLI, specification checks, task planning and LSP are available on all release platforms. **The established adapter path’s managed native verification, replay and guarded automatic adoption are verified on all five release platforms** for TypeScript/Bun, Go and Rust. The native CI matrix exercises successful applications, real failures, repaired replay, task/review guards and Cinema persistence/HTTP.
 
 ### Install your application toolchains
 
@@ -179,6 +258,31 @@ Alternatively, install the CLI from this checkout:
 ```sh
 cargo install --path crates/dctx0-cli --locked
 ```
+
+For a migration that must preserve every existing verification record, configure
+`"history_retention": "preserve-all"` in the application's verification JSON.
+Use `python3 scripts/validate.py --coverage --preserve-history` for contributor
+validation without measurement-history rotation. The hold propagates to all
+measurement writers and preserves their failed and successful records; standalone
+writers can opt in with `DCTX0_PRESERVE_BENCHMARK_HISTORY=1`. Held validation
+creates a unique `target/validation-runs/` directory for native reports and coverage
+outputs. Its `run.json` records the absolute path of a unique retained private
+functional cache under `~/.cache/dctx0ctl/`; it stays incomplete if the run is
+interrupted. If the home path is too long for a native Unix socket, set
+`DCTX0_VALIDATION_TEMP_ROOT` to a shorter absolute on-disk directory. The default
+latest-20 policy and baseline remain unchanged.
+Go and Rust Cinema native performance stages also use short on-disk workspaces.
+With the hold enabled they retain their databases, original review inputs and
+atomic incomplete or complete receipts. The runner reads a new binary-bound
+report for each invocation and records filesystem, cache and supervision settings
+for comparison. Established Rust core benchmark conditions remain unchanged;
+incompatible native measurements are explicitly unassessed.
+Large application-test plans
+can explicitly set `"application_tests": {"plan_bytes": 134217728}`; the default
+is 32 MiB and the maximum is 256 MiB. This bounds the plan file without changing
+mandatory cases, seeds or execution budgets. See
+[history preservation](docs/history-preservation.md) for the sticky database hold
+and compatibility with older CLI builds.
 
 To build only a selected target:
 
@@ -358,11 +462,11 @@ dctx0 verify attest <spec-root> <run-id> --project <app-root> --file <task-repor
 
 ### Cinema acceptance
 
-The documented complete TypeScript, Go, and Rust Cinema acceptances each cover **5,674 mandatory finite cases**. Current planning assigns 25 manual/suite obligations to four Review tasks; a fresh Cinema plan has **105 tasks**. Source-bound reviews are reported separately from testing PASS. Actual persistence and HTTP checks, deliberate production mutations, and broken/repaired replay exercise the implementation and its wiring.
+The current Cinema manifest and frozen before-reference cover **5,766 mandatory finite cases**. Current planning assigns 25 manual/suite obligations to four Review tasks; a fresh Cinema plan has **105 tasks**. Go and Bun application-test `complete` runs have each delivered all 105 as Done/PASS, including four source-bound authored review attestations. Review approval or manual completion alone does not set testing PASS, and existing Done/Unverified reviews retain their status. The retained Cinema checkpoint passed with 97.03% merged Rust source lines and 97.04% LLVM functions; these historical metrics do not certify the current Runner migration. Actual persistence and HTTP checks, deliberate production mutations, and broken/repaired replay exercise the implementation and its wiring.
 
 Native reports retain unresolved manual/suite obligations. Authored source-bound inspections produce a separate effective assessment. These results establish the documented Cinema scope, not unrestricted proof for arbitrary applications.
 
-Evidence: TypeScript (historical evidence removed during repository cleanup), Go (historical evidence removed during repository cleanup), Rust (historical evidence removed during repository cleanup).
+The immutable [before-reference](benchmarks/application-tests/before-20261108T172542Z/reference.json) preserves the pre-migration validation and its provenance. Older dated acceptance descriptions retain their original scope; their historical artifacts were removed during repository cleanup and are not current execution evidence.
 
 ## Track changes and coordinate work
 
@@ -414,7 +518,7 @@ The CLI bundles five complementary skills:
 | --- | --- |
 | [`dctx0`](skills/dctx0/SKILL.md) | Navigate the workflow, select work, and interpret verification evidence. |
 | [`dctx0-language`](skills/dctx0-language/SKILL.md) | Author, review, and repair specifications, including typed contracts, examples, and lifecycles. |
-| [`dctx0-implementation`](skills/dctx0-implementation/SKILL.md) | Implement and repair application tasks and testing adapters using pinned requirements and native verification. |
+| [`dctx0-implementation`](skills/dctx0-implementation/SKILL.md) | Connect native Go/Bun application tests, maintain legacy adapters and verify mixed scopes against pinned requirements. |
 | [`dctx0-config`](skills/dctx0-config/SKILL.md) | Configure project roots, native verification deadlines, corpus/transport budgets and editable profiles; diagnose resource-limit failures. |
 | [`dctx0-delivery`](skills/dctx0-delivery/SKILL.md) | Plan usable production deliveries, reuse change reports, batch validation and measure workflow improvements. |
 
@@ -426,6 +530,14 @@ dctx0 install --project /path/to/app --agent codex,claude
 ```
 
 Use `--dry-run` to preview. Existing differing content is preserved unless you explicitly use `--force`. Global installation is available with `--global`. See [agent skills](docs/site/src/docs/tools.md).
+
+The implementation skill includes a [connection guide](skills/dctx0-implementation/references/application-tests.md)
+for production calls, fixtures, observers, native recipes and hybrid execution,
+plus separate [legacy maintenance guidance](skills/dctx0-implementation/references/implementation.md).
+New application-test plans follow the current spec with the existing bindings;
+an old reference plan does not need to match. Explicitly frozen executions retain
+their hash checks. Existing adapter configurations remain supported; `--legacy`
+is a project-wrapper option where provided, not a general CLI flag.
 
 The native language server supports diagnostics, completion, hover, navigation, symbols, and semantic colors, including unsaved multi-file edits:
 
@@ -477,7 +589,21 @@ cargo install cargo-llvm-cov --locked
 python3 scripts/validate.py --coverage
 ```
 
-The project runner couples functional validation with release speed and RAM measurements. It runs the relevant workspace/feature checks, formatting, Clippy with warnings denied, tests, native checks, and coverage. Rust production-code coverage must meet **97% merged source lines and 97% LLVM functions**. Raw LLVM metrics and native helper coverage remain separate; line coverage does not establish branch completeness.
+The project runner couples functional validation with release speed and RAM measurements. It runs the relevant workspace/feature checks, formatting, Clippy with warnings denied, tests, native checks, and coverage. Rust production-code coverage must temporarily meet **96% merged source lines and 96% LLVM functions**, as explicitly authorized on 2026-11-09. Raw LLVM metrics and native helper coverage remain separate; line coverage does not establish branch completeness.
+
+The documented local serial QA profile keeps assertions and overflow checks enabled
+while using dev/test optimization level 1. A reduced development run is reproducible
+with the following command; its one-sample performance results remain unassessed
+when the accepted baseline uses different settings. Release measurements still use
+the separate uninstrumented release build.
+
+```sh
+env CARGO_PROFILE_DEV_OPT_LEVEL=1 CARGO_PROFILE_TEST_OPT_LEVEL=1 \
+  CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 \
+  CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=true CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true \
+  CARGO_PROFILE_DEV_OVERFLOW_CHECKS=true CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true \
+  python3 scripts/validate.py --coverage --samples 1 --iterations 1
+```
 
 Benchmarks use uninstrumented release builds and retain elapsed milliseconds, peak RSS bytes, raw samples, workload identity, input/source hashes, toolchains, cache conditions, and environment provenance. Rust core costs and native build/execution costs are reported separately. Core RSS is Linux post-exec `VmHWM`, including phase preparation; native workloads record their own memory scope. Unsupported measurement is explicit.
 
@@ -845,6 +971,57 @@ Bindings and private fixture readiness that cannot be established statically sta
 unknown. See the [status/preflight guide](docs/site/src/reference/status-preflight.md)
 for exact commands, compatibility, output paging and the remaining isolation,
 resume and saved-evidence delivery work.
+
+Changed contract/operation task assignments instruct consumers to validate the
+existing implementation first. A new task ID is not evidence of missing code.
+Complete current evidence can deliver an already satisfied task through the
+existing guarded Done/PASS path; FAIL identifies repair work, while UNKNOWN
+identifies missing evidence. Historical PASS alone never completes a new task.
+
+Native verification supports opt-in historical reuse of passing case units
+with `--reuse-inputs PATH` and, after recording a parent run,
+`--reuse-from RUN_ID`. The flags also apply to application-test and hybrid runs.
+The declaration binds chosen deterministic units and their external inputs;
+it does not sandbox the native process. Complete passing evidence with verified
+lineage may deliver eligible tasks under the existing transaction guards; use
+`--no-adopt` for diagnostic execution. Unselected cases continue to execute.
+Authored inspection and review completion flows continue to require fresh evidence.
+`dctx0 verify incremental-plan SPEC RUN_ID
+--project APP --json` remains a separate read-only comparison. See the
+[incremental verification guide](docs/site/src/reference/incremental-verification.md)
+for input declarations, evidence limits and current validation.
+
+The repository validator now reuses its own successful complete validation when
+recorded inputs are unchanged:
+
+```sh
+python3 scripts/validate.py --coverage          # reuse a matching successful receipt
+python3 scripts/validate.py --coverage --force  # execute and measure again
+```
+
+The local SQLite receipts live in `target/validation-cache/receipts.sqlite3`.
+Source/test/script and installed JavaScript dependency bytes, toolchains, Cargo
+configuration, environment, baseline and command options are bound; stored
+evidence is rehashed on lookup. Failed, interrupted, partial and unmeasured runs
+cannot seed this cache. No old result is grandfathered in: the first successful
+complete validation creates the receipt. `REUSED` names the original date and
+evidence; it is not a new test execution or timing measurement. `--no-reuse`
+disables reading and writing receipts; `--reuse-max-age-seconds N` limits age.
+External service/system state is not isolated by this local historical cache;
+use `--force` to test changed external conditions. This does not enable native
+case reuse or automatic Runner task delivery.
+
+Consumer projects can also wrap their complete acceptance command in a local
+historical receipt cache. Runatron Business uses `tools/dctx0/complete-cache.py`
+for PluginHost and Runner. It binds the project's inputs, selected CLI and
+toolchains, configuration, environment and current task database; retained reports
+are rehashed before reuse. Runner provisions its owned CSI and Docker fixtures
+after a cache miss and requires successful cleanup before saving a complete PASS.
+`--reuse-only` refuses to execute when no receipt matches; `--probe-reuse` checks
+the actual new-process lookup after a fresh Runner success. This remains a
+historical whole-command result, not new execution or task adoption. The current
+Runner migration still needs its first full current-source PASS and real reuse
+proof; partial and cancelled runs cannot seed it.
 
 `python3 scripts/memory_guard.py python3 scripts/status_acceptance.py` couples
 focused regressions with isolated release status/preflight time/RSS samples for

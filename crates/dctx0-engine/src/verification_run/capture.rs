@@ -11,6 +11,7 @@ pub(super) struct Capture {
     copy_files: bool,
     entries_remaining: usize,
     helper_remaining: u64,
+    application_tests: bool,
 }
 #[derive(Clone, Copy)]
 struct Limits {
@@ -19,6 +20,55 @@ struct Limits {
     count: usize,
 }
 impl Capture {
+    pub fn proof_inventory(
+        application: &Path,
+        budgets: crate::verification_setup::VerificationCaptureBudgets,
+        run: &VerificationRun,
+    ) -> Result<BTreeMap<String, String>> {
+        if run.artifacts.iter().any(|reference| {
+            reference.media_type
+                == dctx0_verification::application_evidence::APPLICATION_EXECUTION_MEDIA_TYPE
+        }) {
+            Self::application_inventory(application, budgets)
+        } else {
+            Self::inventory_with_budget(application, budgets)
+        }
+    }
+    pub fn application_tests(
+        application: &Path,
+        budgets: crate::verification_setup::VerificationCaptureBudgets,
+    ) -> Result<Self> {
+        // Dependencies are materialized by the frozen native build in the new
+        // capture. An ambient node_modules (including executable symlinks) is
+        // neither executed nor mistaken for a project source dependency.
+        Self::scan_application(
+            application,
+            Limits {
+                file: budgets.max_file_bytes,
+                tree: budgets.max_tree_bytes,
+                count: 20_000,
+            },
+            true,
+            true,
+        )
+    }
+    pub fn application_inventory(
+        application: &Path,
+        budgets: crate::verification_setup::VerificationCaptureBudgets,
+    ) -> Result<BTreeMap<String, String>> {
+        Ok(Self::scan_application(
+            application,
+            Limits {
+                file: budgets.max_file_bytes,
+                tree: budgets.max_tree_bytes,
+                count: 20_000,
+            },
+            false,
+            true,
+        )?
+        .files
+        .clone())
+    }
     /// Historical default limits; test and fixture paths only. Production paths
     /// pass the configured budgets explicitly through the *_with_budget forms.
     #[cfg(test)]
@@ -71,6 +121,14 @@ impl Capture {
         Ok(capture.files.clone())
     }
     fn scan(application: &Path, limits: Limits, copy_files: bool) -> Result<Self> {
+        Self::scan_application(application, limits, copy_files, false)
+    }
+    fn scan_application(
+        application: &Path,
+        limits: Limits,
+        copy_files: bool,
+        application_tests: bool,
+    ) -> Result<Self> {
         let root = std::env::temp_dir().join(format!(
             "dctx0-verification-capture-{}-{}",
             std::process::id(),
@@ -85,6 +143,7 @@ impl Capture {
             copy_files,
             entries_remaining: 40_000,
             helper_remaining: 268_435_456,
+            application_tests,
         };
         capture.directory(application, Path::new(""))?;
         Ok(capture)
@@ -108,6 +167,9 @@ impl Capture {
         entries.sort_by_key(|e| e.file_name());
         for entry in entries {
             let name = entry.file_name();
+            if self.application_tests && relative.as_os_str().is_empty() && name == "node_modules" {
+                continue;
+            }
             if matches!(
                 name.to_str(),
                 Some(".git" | ".runatron" | ".dctx0ctl" | "target" | ".bin")

@@ -1,5 +1,7 @@
 //! Embedded editable defaults for go.
+mod application_library;
 mod execution;
+pub use application_library::application_test_library;
 mod inspection;
 use dctx0_core::{ProfileTemplate, TargetManifest, TargetProfileProvider};
 pub use execution::GoHarness;

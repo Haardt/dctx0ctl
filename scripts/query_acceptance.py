@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Couple query/storage CLI acceptance with release speed/RSS and size measurements."""
+import history_retention
 import argparse
 import datetime
 import gzip
@@ -266,13 +267,12 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX)
             target = history / f'{stamp}-{os.getpid()}.json'
             with tempfile.NamedTemporaryFile('w', dir=history, delete=False) as output:
-                json.dump(report, output, indent=2)
+                json.dump(history_retention.mark(report), output, indent=2)
                 output.write('\n')
                 output.flush()
                 os.fsync(output.fileno())
             os.replace(output.name, target)
-            for old in sorted(history.glob('*.json'))[:-20]:
-                old.unlink()
+            history_retention.prune(history)
         print('Query evidence:', target.relative_to(ROOT), flush=True)
     return 0 if report['status'] == 'complete' else 1
 

@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "binary_hash": "fbb2798bcbe1b980785fef8ed4248d9bc0655f9f889e0236cd0d5708d4710ee6",
+  "seed": 42,
+  "generated_cases": 100,
+  "samples": {
+    "check": {
+      "elapsed_ms": 120.87173498002812,
+      "peak_rss_bytes": 64909312,
+      "exit_code": 0
+    },
+    "discovery": {
+      "elapsed_ms": 84.56591097638011,
+      "peak_rss_bytes": 87035904,
+      "exit_code": 0
+    },
+    "planning": {
+      "elapsed_ms": 419.53167598694563,
+      "peak_rss_bytes": 101224448,
+      "exit_code": 0
+    },
+    "harness-setup": {
+      "elapsed_ms": 2.3321349872276187,
+      "peak_rss_bytes": 87707648,
+      "exit_code": 0
+    },
+    "first-project-build": {
+      "elapsed_ms": 14102.06886898959,
+      "peak_rss_bytes": 346804224,
+      "exit_code": 1,
+      "managed_build_elapsed_ms": 4597.129,
+      "runtime_metrics": {
+        "kind": "measured",
+        "peak_rss_bytes": 8470528,
+        "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+        "platform": "linux"
+      },
+      "native_engine_elapsed_ms": 4818.524,
+      "rust_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+      "worker_hash": "7ad75de199c8fc8bbf5e112e56bee5ff23039a25d4813d13aa0952c0c5858972"
+    },
+    "warm-build": {
+      "elapsed_ms": 23808.18042199826,
+      "peak_rss_bytes": 350277632,
+      "exit_code": 1,
+      "managed_build_elapsed_ms": 5204.035,
+      "runtime_metrics": {
+        "kind": "measured",
+        "peak_rss_bytes": 8429568,
+        "runtime_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+        "platform": "linux"
+      },
+      "native_engine_elapsed_ms": 4042.939,
+      "rust_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+      "worker_hash": "f7b65b6b5494ed2aab5034d20905a5250d78e2dd94c505d410683115454074b8"
+    },
+    "source-bound-review-and-delivery": {
+      "elapsed_ms": 85508.42008000473,
+      "peak_rss_bytes": 348827648,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "complete-and-adoption": {
+      "elapsed_ms": 79178.47935599275,
+      "peak_rss_bytes": 345911296,
+      "exit_code": 0,
+      "native_adopted_tasks": 0,
+      "inspected_tasks": 0
+    },
+    "counterexample-and-shrink": {
+      "elapsed_ms": 68892.6030099974,
+      "peak_rss_bytes": 345202688,
+      "exit_code": 1,
+      "central_shrink_elapsed_ms": 7.595,
+      "shrink_attempts": 4,
+      "expected_result": "FAIL from intentional production mutation"
+    },
+    "broken-replay": {
+      "elapsed_ms": 19528.396613983205,
+      "peak_rss_bytes": 349466624,
+      "exit_code": 1,
+      "expected_result": "FAIL from intentional production mutation"
+    },
+    "repaired-replay": {
+      "elapsed_ms": 19475.202445988543,
+      "peak_rss_bytes": 347979776,
+      "exit_code": 0
+    }
+  },
+  "baseline": "unassessed; never promoted automatically",
+  "cache": "first project build and repeated build using the owned shared Cargo cache; existing module/toolchain caches",
+  "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately"
+}

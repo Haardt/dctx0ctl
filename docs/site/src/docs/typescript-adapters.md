@@ -1,5 +1,7 @@
 # TypeScript adapters
 
+Application-owned Bun tests are described in the [native application-test workflow](application-tests.md), including guarded task delivery and authored-review completion. The adapter configuration and interface documented below remain supported.
+
 The connection to TypeScript is an external **testing adapter**, separate from the production application. The application owns its types, dependencies, composition root, and framework integration.
 
 Technical configuration lives in `.dctx0/testing/verification.json`. The generated adapter contract defines the supported test interface.

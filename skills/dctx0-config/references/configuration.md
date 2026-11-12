@@ -128,3 +128,24 @@ Inspect saved diagnostics with `verify show <spec-root> <run-id> --summary --jso
 and the available detail/artifact tools after reading their help. Distinguish a
 whole-case deadline from an overall run deadline, transport overflow, missing
 observer, resolver budget or interpreter evaluation budget.
+
+## Preserve history during an explicit migration
+
+With a CLI supporting this field, set top-level `"history_retention": "preserve-all"`
+when existing verification details must not be removed. A newly published run
+places a durable database-wide retention hold before automatic pruning. The hold
+survives later writers omitting the field and blocks verification GC, export
+pruning and compaction; it never creates PASS, approvals or task authority.
+Archive the existing database and sources first. This cannot restore previously
+pruned bodies. Old strictly validating binaries reject the new field. There is
+no implicit release of the hold. Keep normal native evidence and task guards.
+
+## Application-test plan files
+
+The whole native bundle has a separate 32 MiB default file budget. For a measured
+larger complete plan, set top-level `"application_tests": {"plan_bytes": 134217728}`.
+The accepted range is 1 byte through 256 MiB. Preparation checks this bound before
+replacing an existing plan; reading checks it before allocating/parsing the file.
+The native receipt records the effective `limits.plan_bytes`. This does not raise
+frame, case-evidence, generated-value, time or RAM limits, and does not reduce the
+manifest or change seeds. Older CLI builds reject this configuration key.

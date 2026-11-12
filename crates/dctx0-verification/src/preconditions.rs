@@ -153,20 +153,24 @@ pub fn resolved_state_preconditions(
                     .iter()
                     .filter_map(|parameter| bindings.get(&parameter.name).cloned())
                     .collect::<Vec<_>>();
-                let invocation = Invocation {
-                    subject: operation.operation.id.clone(),
-                    arguments: arguments.clone(),
+                let input = crate::OperationCaseInput {
+                    id: id.clone(),
+                    invocation: Invocation {
+                        subject: operation.operation.id.clone(),
+                        arguments,
+                    },
+                    setup: operation.generated_setup(bindings),
+                    argument_bindings: operation.generated_argument_bindings(bindings),
+                    mocks: vec![],
+                };
+                let Some(invocation) = crate::recorded_operation_invocation(ir, &input, case)
+                else {
+                    return false;
                 };
                 if case.kind != VerificationCaseKind::Operation
                     || case.subject != operation.operation.id
                     || case.bindings != *bindings
-                    || case.arguments != vec![arguments]
-                    || case.setup != operation.generated_setup(bindings)
                     || case.result != VerificationResult::Pass
-                    || !case
-                        .observations
-                        .iter()
-                        .any(|observed| observed.invocation == invocation)
                 {
                     return false;
                 }

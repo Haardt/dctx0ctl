@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
+mod rejections;
 mod strings;
 
 pub const GENERATOR_VERSION: &str = "dctx0-values-6";
-pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-3";
+pub const REJECTION_GENERATOR_VERSION: &str = "dctx0-rejections-4";
 
 // Adjacent IEEE-754 values, without the Rust 1.86 next_up/next_down APIs.
 fn adjacent_float(value: f64, up: bool) -> f64 {
@@ -132,6 +133,14 @@ pub fn generate_rejections(
         let Some(data) = ir.data.get(id) else {
             break;
         };
+        if ir
+            .nodes
+            .iter()
+            .any(|node| node.owner == *id && node.kind == K::Where)
+        {
+            candidates.extend(rejections::refined_lists(ir, data, budgets));
+            candidates.extend(rejections::refined_records(ir, data, budgets));
+        }
         for node in ir
             .nodes
             .iter()

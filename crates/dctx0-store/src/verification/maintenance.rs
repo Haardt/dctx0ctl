@@ -27,10 +27,31 @@ pub(super) fn store_body(connection: &Connection, id: &str, run: &VerificationRu
     Ok(())
 }
 
+fn history_preserved(connection: &Connection) -> Result<bool> {
+    if crate::storage::version(connection)? < 4 {
+        return Ok(false);
+    }
+    // Recognizable holds fail closed even if a future payload is unknown.
+    // Only linked holds count. Protect the entire database, including otherwise
+    // unowned orphan data, so another project writer cannot collect its bytes.
+    Ok(connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM verification_runs r JOIN verification_run_artifacts l ON l.run_id=r.id JOIN verification_artifacts a ON a.hash=l.artifact_hash WHERE a.media_type=?1)",
+        [HISTORY_PRESERVATION_MEDIA_TYPE], |row| row.get(0),
+    )?)
+}
+
 fn prunable(connection: &Connection, project: &str) -> Result<Vec<String>> {
+    if history_preserved(connection)? {
+        return Ok(Vec::new());
+    }
+
     let ids = {
         let sql = if crate::storage::version(connection)? >= 7 {
-            "WITH newest(id) AS (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 1), problem(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND json_extract(result,'$.status') IN ('FAIL','UNKNOWN') ORDER BY rowid DESC LIMIT 1), pending(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND (id IN (SELECT l.run_id FROM verification_task_links l JOIN task_states s ON s.task_id=l.task_id WHERE s.work!='Done') OR EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(data) THEN data ELSE '{}' END,'$.provenance.task_pin.requirements') required JOIN task_states s ON s.task_id=CAST(required.key AS INTEGER) WHERE s.work='Progress' OR (s.work='Open' AND s.actor IS NOT NULL)))), seeds(id) AS (SELECT id FROM newest UNION SELECT id FROM problem UNION SELECT id FROM pending), kept(id) AS (SELECT id FROM seeds UNION SELECT p.parent FROM verification_run_parents p JOIN seeds s ON p.child=s.id) SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM kept) ORDER BY rowid"
+            "WITH RECURSIVE newest(id) AS (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 1), problem(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND json_extract(result,'$.status') IN ('FAIL','UNKNOWN') ORDER BY rowid DESC LIMIT 1), pending(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND (id IN (SELECT l.run_id FROM verification_task_links l JOIN task_states s ON s.task_id=l.task_id WHERE s.work!='Done') OR id IN (SELECT l.run_id FROM verification_task_links l JOIN verification_run_artifacts ra ON ra.run_id=l.run_id JOIN verification_artifacts a ON a.hash=ra.artifact_hash WHERE a.media_type='application/vnd.dctx0.inspected-done-tasks+json') OR EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(data) THEN data ELSE '{}' END,'$.provenance.task_pin.requirements') required JOIN task_states s ON s.task_id=CAST(required.key AS INTEGER) WHERE s.work='Progress' OR (s.work='Open' AND s.actor IS NOT NULL)))), seeds(id) AS (SELECT id FROM newest UNION SELECT id FROM problem UNION SELECT id FROM pending), kept(id) AS (SELECT id FROM seeds UNION SELECT p.parent FROM verification_run_parents p JOIN kept k ON p.child=k.id) SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM kept) ORDER BY rowid"
+        } else if crate::storage::version(connection)? >= 6 {
+            // Schema 6 has the run/artifact and task links, even though it has
+            // no compact evidence metadata. Preserve every linked inspection.
+            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) AND id NOT IN (SELECT l.run_id FROM verification_task_links l JOIN verification_run_artifacts ra ON ra.run_id=l.run_id JOIN verification_artifacts a ON a.hash=ra.artifact_hash WHERE a.media_type='application/vnd.dctx0.inspected-done-tasks+json') ORDER BY rowid"
         } else {
             "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) ORDER BY rowid"
         };
@@ -42,6 +63,13 @@ fn prunable(connection: &Connection, project: &str) -> Result<Vec<String>> {
     Ok(ids)
 }
 pub(crate) fn prune(connection: &Connection, project: &str) -> Result<u64> {
+    // Preserve-all suppresses orphan cleanup as well as selected run pruning.
+    if history_preserved(connection)? {
+        // A new result must still invalidate status/UI caches, including FAIL.
+        bump_revision(connection, project)?;
+        return Ok(0);
+    }
+
     let ids = prunable(connection, project)?;
     for id in &ids {
         let mut summary = summaries::summary(connection, project, id)?;
@@ -70,8 +98,12 @@ pub(crate) fn prune(connection: &Connection, project: &str) -> Result<u64> {
     connection.execute("DELETE FROM verification_artifacts WHERE NOT EXISTS(SELECT 1 FROM verification_run_artifacts r WHERE r.artifact_hash=verification_artifacts.hash)", [])?;
     connection.execute("DELETE FROM verification_case_bodies WHERE NOT EXISTS(SELECT 1 FROM verification_case_index i JOIN verification_runs r ON r.id=i.run_id WHERE i.body_hash=verification_case_bodies.hash AND r.pruned_at IS NULL)", [])?;
     connection.execute("DELETE FROM verification_corpora WHERE NOT EXISTS(SELECT 1 FROM verification_runs r WHERE r.corpus_hash=verification_corpora.hash)", [])?;
-    connection.execute("INSERT INTO verification_revisions(project,revision) VALUES(?1,1) ON CONFLICT(project) DO UPDATE SET revision=revision+1",[project])?;
+    bump_revision(connection, project)?;
     Ok(ids.len() as u64)
+}
+fn bump_revision(connection: &Connection, project: &str) -> Result<()> {
+    connection.execute("INSERT INTO verification_revisions(project,revision) VALUES(?1,1) ON CONFLICT(project) DO UPDATE SET revision=revision+1",[project])?;
+    Ok(())
 }
 fn totals(connection: &Connection, project: &str) -> Result<(u64, u64, u64)> {
     let schema: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
@@ -159,6 +191,10 @@ fn copy_tables(tx: &Connection, tables: &[String]) -> Result<()> {
     Ok(())
 }
 impl Store {
+    pub fn verification_history_preserved(&self) -> Result<bool> {
+        history_preserved(&self.connection)
+    }
+
     pub fn verification_storage_version(&self) -> Result<i64> {
         Ok(self
             .connection
@@ -172,6 +208,11 @@ impl Store {
         expected_version: i64,
     ) -> Result<()> {
         self.require_write()?;
+        if self.verification_history_preserved()? {
+            return Err(invalid(
+                "History preservation hold blocks installing a compacted database",
+            ));
+        }
         let path = self
             .connection
             .path()
@@ -221,7 +262,9 @@ impl Store {
     }
     pub fn verification_gc_preview(&self, project: &str) -> Result<VerificationGcReport> {
         let (runs, artifacts, bytes) = totals(&self.connection, project)?;
-        let after = if crate::storage::version(&self.connection)? >= 7 {
+        let after = if self.verification_history_preserved()? {
+            runs
+        } else if crate::storage::version(&self.connection)? >= 7 {
             runs.saturating_sub(prunable(&self.connection, project)?.len() as u64)
         } else {
             runs.min(3)
@@ -239,6 +282,10 @@ impl Store {
     }
     pub fn verification_gc(&mut self, project: &str) -> Result<VerificationGcReport> {
         self.require_write()?;
+        if self.verification_history_preserved()? {
+            return Err(invalid("History preservation hold blocks verification GC"));
+        }
+
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -291,6 +338,9 @@ impl Store {
         project: &str,
         destination: &Path,
     ) -> Result<VerificationGcReport> {
+        if self.verification_history_preserved()? {
+            return Err(invalid("History preservation hold blocks compaction"));
+        }
         if crate::storage::version(&self.connection)? >= 7 {
             let names=self.connection.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'verification_%'")?.query_map([],|r|r.get::<_,String>(0))?.collect::<std::result::Result<Vec<_>,_>>()?;
             let known = [

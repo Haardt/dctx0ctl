@@ -79,8 +79,20 @@ pub struct OperationPlan {
 pub struct GeneratedPreparation {
     pub bindings: BTreeMap<String, VerificationValue>,
     pub setup: Vec<dctx0_core::Invocation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub argument_bindings: Vec<crate::OperationArgumentBinding>,
 }
 impl OperationPlan {
+    pub fn generated_argument_bindings(
+        &self,
+        bindings: &BTreeMap<String, VerificationValue>,
+    ) -> Vec<crate::OperationArgumentBinding> {
+        self.generated_preparations
+            .iter()
+            .find(|entry| &entry.bindings == bindings)
+            .map(|entry| entry.argument_bindings.clone())
+            .unwrap_or_default()
+    }
     pub fn generated_setup(
         &self,
         bindings: &BTreeMap<String, VerificationValue>,

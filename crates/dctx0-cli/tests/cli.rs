@@ -274,6 +274,7 @@ fn verification_core_benchmarks_measure_both_compiled_examples_without_native_cl
             "verification-history-publish",
             "verification-history-read",
             "verification-project",
+            "application-test-plan",
             "verification-generate",
             "verification-evaluate-unbound",
             "verification-assess-unbound",

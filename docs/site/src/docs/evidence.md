@@ -14,7 +14,7 @@ Finite generated cases do not prove every possible input. Reports retain the sel
 
 ## Observe centrally
 
-Target workers report actual returns, visible failures, exceptions, calls, events, resource observations, and before/after states. The Rust core checks contracts and assertions against those observations. A worker's claim that it passed is not an accepted substitute.
+Target workers and application-owned native tests report actual returns, visible failures, exceptions, calls, events, resource observations, and before/after states. The Rust core checks contracts and assertions against those observations. A worker's claim that it passed is not an accepted substitute.
 
 Actual state observations must be exposed by the adapter. Missing projections/observers and opaque trace labels remain open. Declared collaborator replies test consumer behavior; real persistence/HTTP checks assess production adapters separately.
 
@@ -44,8 +44,57 @@ Authoritative automatic results remain separate from source-bound authored inspe
 
 Current planner review assignments and ordinary task reports make these obligations actionable. Review approval records a judgment; task completion records progress; neither alone sets testing PASS. See [agent evidence](agent-evidence.md).
 
+## Current source binding of agent checks
+
+`status` recognizes `dctx0-attestation-1` agent checks only after validating their
+complete retained native basis and exact task inspection. It compares snapshot,
+plan, task requirements, implementation inventory, actor and current selected
+profile bundle. The native run must have a complete, nonempty mandatory inventory
+with every recorded case PASS and no incomplete provenance; only separately
+reviewable manual obligations may remain in its automatic result.
+
+An inspection may be embedded in the stored check or selected by task ID from a
+SHA-256-bound archive inside the application. Archives reject symlinks, escaping
+paths, duplicates, malformed/trailing JSON and files above 1 GiB. Each archive is
+streamed and checked once per status query; duplicate source inventories are
+discarded after validating each entry. Missing, changed or mismatched inspection
+proof stays unknown. A changed executed source/spec/profile binding is stale.
+
+Validated agent checks contribute to `evidence_current` / `evidence_stale` and
+are identified separately as `agent_current` / `agent_stale`. They are authored
+inspection plus actual native execution, not automatic native adoption or an
+independent audit. Reading status never changes task checks, native outcomes,
+history, or stored evidence. Generic external PASS reports and a forged verifier
+name or native-run ID alone do not establish freshness.
+
+For a previously delivered Done task, a new check can use verifier version
+`dctx0-agent-revalidation-1` and report basis `agent-revalidation`. Its embedded
+inspection is checked against the new complete native run. The report must name
+both `delivered_implementation` (the task result and check implementation) and
+`tested_implementation` (the hash of the new native provenance). This explicitly
+revalidates source binding without rewriting the delivered result or its history.
+Submit it through the existing guarded `tasks record-check --file` transition;
+an arbitrary version, label, or provenance substitution remains unknown.
+
 ## Complete configured acceptance
 
 `verify complete` checks the current specification, executes the configured plan, revalidates authored inspections/current reviews, and requires delivered work with appropriate evidence. A nonempty task plan is mandatory. Native execution gaps, running/reserved work, failed gates, and stale/rejected reviews block success.
 
-Source-bound review IDs appear separately in `reviewed_tasks`; they may be Done/Unverified. This is distinct from executable tasks that require PASS. Repository coverage and performance checks remain separate contributor acceptance.
+Source-bound review IDs appear separately in `reviewed_tasks`. A fresh authored-complete workflow can publish their explicit native-backed inspection attestations and reach Done/PASS; review approval or manual completion alone does not do so. Previously completed Done/Unverified reviews are preserved and may retain that status. Repository coverage and performance checks remain separate contributor acceptance.
+
+
+## Application-owned test completion
+
+The [application-test workflow](application-tests.md) uses direct Go/Bun tests
+with the same central requirements and assessment. `verify application-tests run`
+records native evidence and attempts guarded task delivery by default;
+`--no-adopt` keeps the run diagnostic. `verify application-tests complete` also
+binds existing source-checked inspection/review notes and checks complete task
+delivery. It reuses the established completion and transactional store guards;
+legacy `verify complete` behavior is unchanged.
+
+Application reports separate `evidence`, `adopted_tasks`, `adoption_issues` and
+`adoption_proposal`. `adoption_authority` is true only for actual nonempty native
+task delivery. Prepare/serve, replay and imported or saved diagnostic PASS cannot
+independently authorize adoption. Current integration and final validation remain
+in progress; this description is not a successful validation receipt.

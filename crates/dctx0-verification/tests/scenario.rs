@@ -93,6 +93,105 @@ fn actual_observations_and_mock_counts_are_retained_without_inventing_given_exac
     assert_eq!(result.checks.len(), 3);
     assert!(result.unused_mocks.is_empty());
 }
+
+#[test]
+fn identical_preparations_require_real_calls_and_conflicting_outcomes_still_fail() {
+    let (ir, mut plan) = reference();
+    let mut repeated = plan.mocks[0].clone();
+    repeated.source_id.push_str("-second");
+    plan.mocks.push(repeated);
+    plan.order.insert(1, ExampleAction::PrepareMock(1));
+    let budgets = VerificationBudgets::default();
+    for count in [1, 2, 3] {
+        let mut scenario = Scenario::new(&ir, &plan, &budgets);
+        assert!(matches!(scenario.advance(), ScenarioStep::Invoke(_)));
+        for _ in 0..count {
+            assert_eq!(scenario.collaborator(&call()), value("5"));
+        }
+        scenario.deliver(value("5"), vec![event("5")]);
+        let result = completed(scenario.advance());
+        assert_eq!(result.collaborators.len(), count);
+        if count == 1 {
+            assert!(
+                matches!(result.result, VerificationResult::Unknown { issue } if issue.code == "UNEXERCISED_COLLABORATOR")
+            );
+        } else {
+            assert_eq!(result.result, VerificationResult::Pass);
+        }
+    }
+    if let Some(MockOutcome::Returned { expression }) = &mut plan.mocks[1].outcome {
+        expression.value = ExpressionKind::Literal {
+            text: "6".into(),
+            literal_kind: "Int".into(),
+        };
+    }
+    let mut scenario = Scenario::new(&ir, &plan, &budgets);
+    scenario.advance();
+    assert!(matches!(
+        scenario.collaborator(&call()),
+        Observation::Unavailable { .. }
+    ));
+    scenario.deliver(value("5"), vec![event("5")]);
+    assert!(
+        matches!(completed(scenario.advance()).result, VerificationResult::Fail { issue } if issue.code == "UNEXPECTED_COLLABORATOR")
+    );
+}
+
+#[test]
+fn explicit_float_literal_reaches_native_call_without_coercing_exact_decimal() {
+    for (literal, supported) in [("0.2e0", true), ("0.2", false)] {
+        let compiled = dctx0_language::compile(&[Source {
+            file: "float-input.dctx0".into(),
+            text: format!(
+                "workspace W {{ port Api {{ operation accept(value:Float) -> Boolean }} example \"unsupported parameter\" {{ when result = Api.accept({literal})\nexpect result == false }} }}"
+            ),
+        }]);
+        assert!(
+            compiled.diagnostics.is_empty(),
+            "{:?}",
+            compiled.diagnostics
+        );
+        let ir = compiled.ir.unwrap();
+        let plan = project_program(
+            &ir,
+            "pinned",
+            1,
+            VerificationScope {
+                subjects: ["W".into()].into(),
+                tasks: Default::default(),
+            },
+            &Default::default(),
+            Default::default(),
+        );
+        let budgets = VerificationBudgets::default();
+        let mut scenario = Scenario::new(&ir, &plan.examples[0], &budgets);
+        match scenario.advance() {
+            ScenarioStep::Invoke(invocation) => {
+                assert!(supported);
+                assert_eq!(
+                    invocation.arguments,
+                    vec![VerificationValue::Float("0.2e0".into())]
+                );
+                scenario.deliver(
+                    Observation::Returned {
+                        value: VerificationValue::Boolean(false),
+                    },
+                    vec![],
+                );
+                assert_eq!(
+                    completed(scenario.advance()).result,
+                    VerificationResult::Pass
+                );
+            }
+            ScenarioStep::Complete(evidence) => {
+                assert!(!supported);
+                assert!(
+                    matches!(evidence.result, VerificationResult::Unknown { issue } if issue.code == "FLOAT_REPRESENTATION")
+                );
+            }
+        }
+    }
+}
 #[test]
 fn missing_or_wrong_runtime_evidence_cannot_complete_a_consumer_example() {
     let (ir, plan) = reference();

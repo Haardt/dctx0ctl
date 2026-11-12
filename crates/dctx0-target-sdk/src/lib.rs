@@ -1,4 +1,6 @@
 //! Separate native transport contract; profile manifests remain unchanged.
+pub mod application_protocol;
+pub use application_protocol::ApplicationTestLibrary;
 mod dependencies;
 mod inspection;
 use dctx0_core::{Invocation, Observation, VerificationValue};

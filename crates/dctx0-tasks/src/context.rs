@@ -157,7 +157,17 @@ pub(crate) fn context_indexed(
     if !allowed.contains(&section) {
         return Err(Error::Invalid(format!("Unknown context section {section}")));
     }
-    let (instruction, acceptance) = assignment(snapshot, c);
+    let (mut instruction, mut acceptance) = assignment(snapshot, c);
+    if definition.before_snapshot.is_some()
+        && !definition.is_adjustment()
+        && matches!(c.kind, TaskKind::Contract | TaskKind::Operation)
+    {
+        instruction = format!(
+            "First validate the existing implementation against the current pinned requirements below. A new task ID does not establish missing functionality. Change production code only when current verification identifies a concrete failure or a required capability is demonstrably absent. If the existing implementation already satisfies the requirements, use complete current evidence through guarded task delivery to reach Done/PASS without an implementation change. Historical PASS is context, not current proof.\n\nCurrent contract: {}",
+            c.contract
+        );
+        acceptance.push("Distinguish a demonstrated implementation failure from missing or incomplete verification. FAIL requires a concrete counterexample; UNKNOWN remains an evidence gap and does not by itself require a production change.".into());
+    }
     let mut items = vec![
         ContextItem {
             profile: None,

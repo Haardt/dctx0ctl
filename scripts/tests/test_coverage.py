@@ -50,7 +50,7 @@ class CoverageTests(unittest.TestCase):
                         Path(command[-1]).write_text(json.dumps({'data': [{'totals': {'functions': {'percent': 100}}}]}))
                     return argparse.Namespace(returncode=0)
                 arguments = ['coverage.py'] + (['--skip-performance'] if deferred else [])
-                with patch.object(coverage, 'ROOT', Path(directory)), patch.object(coverage.sys, 'argv', arguments), patch.object(coverage.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()):
+                with patch.dict(coverage.os.environ, {'DCTX0_VALIDATION_ARTIFACT_ROOT': str(Path(directory) / 'target')}), patch.object(coverage, 'ROOT', Path(directory)), patch.object(coverage.sys, 'argv', arguments), patch.object(coverage.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(coverage.main(), 0)
                 report = json.loads((Path(directory) / 'target/coverage/source-summary.json').read_text())
                 self.assertEqual(report['coverage_scope'], 'partial-performance-deferred' if deferred else 'workspace')
@@ -70,7 +70,7 @@ class CoverageTests(unittest.TestCase):
                 if '--json' in command:
                     Path(command[-1]).write_text(json.dumps({'data': [{'totals': {'functions': {'percent': 100}}}]}))
                 return argparse.Namespace(returncode=0)
-            with patch.object(coverage, 'ROOT', Path(directory)), patch.object(coverage.sys, 'argv', ['coverage.py']), patch.object(coverage, 'source_hash', side_effect=['before', 'after']), patch.object(coverage.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with patch.dict(coverage.os.environ, {'DCTX0_VALIDATION_ARTIFACT_ROOT': str(Path(directory) / 'target')}), patch.object(coverage, 'ROOT', Path(directory)), patch.object(coverage.sys, 'argv', ['coverage.py']), patch.object(coverage, 'source_hash', side_effect=['before', 'after']), patch.object(coverage.subprocess, 'run', side_effect=run), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(coverage.main(), 1)
             report = json.loads((Path(directory) / 'target/coverage/source-summary.json').read_text())
             self.assertNotEqual(report['source_hash_before'], report['source_hash_after'])

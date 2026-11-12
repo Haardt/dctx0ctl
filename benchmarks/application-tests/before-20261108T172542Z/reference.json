@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "status": "validated-before",
+  "purpose": "Cinema application-test migration reference; not the accepted performance baseline",
+  "global_baseline_promoted": false,
+  "global_baseline_sha256": "85c6efc7052fd3bef04e582a828b417c3488c86841e7a64b2f638ef236a09444",
+  "base_revision": "789454f22f8fb8bda3d203759ebfb28d3d10be92",
+  "source_hash": "e473b1aa96996583be98bfb256d4634821780ea085dded097ef975a0b911843e",
+  "source_reconstruction": [
+    "source.patch",
+    "new-source-files.tar.gz"
+  ],
+  "validation_status": "pass",
+  "validation_steps": 35,
+  "performance_gate": "unassessed",
+  "workloads": 89,
+  "coverage": {
+    "covered_lines": 43279,
+    "lines": 44580,
+    "line_percent": 97.0816509645581,
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3605,
+        "covered": 3501,
+        "percent": 97.11511789181692
+      },
+      "instantiations": {
+        "count": 8919,
+        "covered": 5352,
+        "percent": 60.0067272115708
+      },
+      "lines": {
+        "count": 47035,
+        "covered": 45340,
+        "percent": 96.39630062719252
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 72201,
+        "covered": 67469,
+        "notcovered": 4732,
+        "percent": 93.44607415409759
+      }
+    },
+    "application_production_files_included": true
+  },
+  "cinema": {
+    "target": "go",
+    "backend": "adapter",
+    "mandatory_cases": 5766,
+    "budgets": {
+      "seed": 42,
+      "generated_cases": 100,
+      "collection_size": 4,
+      "recursion_depth": 32,
+      "value_bytes": 65536,
+      "shrink_steps": 100,
+      "evaluation_steps": 100000
+    },
+    "scope": {
+      "subjects": [
+        "HomeCinema.MovieNight"
+      ],
+      "tasks": []
+    },
+    "spec_hashes": {
+      "movie-night.dctx0": "39b8c23eb49c0c2a89a62c37902c9c2722597e472b5476235100f38c35e2e88e",
+      "workspace.dctx0": "6d363ddab2910ea5864931e28a243f721251b75adf31b98f4ecc1c6fdffd0195"
+    }
+  },
+  "freeze_queries": {
+    "check": {
+      "elapsed_ms": 165.20561600918882,
+      "peak_rss_bytes": 59215872,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "program-plan": {
+      "elapsed_ms": 354.4763139798306,
+      "peak_rss_bytes": 101081088,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "finite-plan": {
+      "elapsed_ms": 447.9962939803954,
+      "peak_rss_bytes": 104443904,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    }
+  },
+  "local_frozen_cli": "target/application-test-reference/before-20261108T172542Z/dctx0",
+  "frozen_cli_sha256": "fbb2798bcbe1b980785fef8ed4248d9bc0655f9f889e0236cd0d5708d4710ee6",
+  "source_archive_sha256": "6681e77688059332b24601356fd4603645086dab2ffab517e19a75c82fee8e2f",
+  "files": {
+    "case-manifest.json": "7cef203c386864f7c6be3e256fc35d42fff96a4795c4a4c97c86e2399cf939e2",
+    "cinema-go-source.tar.gz": "6681e77688059332b24601356fd4603645086dab2ffab517e19a75c82fee8e2f",
+    "finite-plan.json.gz": "ee5be8feab48ad8a3cce16695f5d4a0c3e1c947ad4065f0b0aa4be7848e0719b",
+    "llvm.json.gz": "12f429c9711e2c57519fe464f188c30630f4d1d26146ea515a470e07fe2854db",
+    "native/go-acceptance.json": "77fa28d611f6b9e20c9a20cbfc49afe29e41ec147c529b765087b108e2820370",
+    "native/go-performance.json": "403621ce640929a27e54020a65c7c838730352cfdf5f506e355bb6b2e195f4c3",
+    "native/go-race.json": "d358a95bdff20b6cc1d1bc7e96fa8d1d5ff2250114eb8c0ee474ac4226faf3ce",
+    "native/rust-acceptance.json": "4bee5296615a3661ac3a94b6faa878050378eff122d03ac1b6dca77876de14f3",
+    "native/rust-performance.json": "b873feac313af03f79fb25848fe67854709df80f7a0225ba44e206ecbec641d6",
+    "new-source-files.tar.gz": "00416381d68c491417c63f1ea2f65ca7ad513097930f229226ef78683fc688bb",
+    "source-inputs.json": "f27e79ab5906b79b13638fb1aa58d9877aee05d37276e827de99fcbed7f9e16a",
+    "source-summary.json.gz": "289db3eafd90ec311cf419b92de29611c538f3e8175a14adab8ab9e4106ed78b",
+    "source.patch": "ad92c802e8d7c4167a0a1765a9ebe71f78dc5390de2afea24ff5e2009148529e",
+    "validation-and-measurements.json": "adf9ad98624307dd5043ac47e5b22ee9b4002ef891f640ee509ae6223f271c0e",
+    "validation.log": "f2b438ab47a4da667c1221d8742b36230bdf52abc092c9a1efff3b126b0563b4",
+    "workspace.lcov.gz": "5e779d321b1bc34fbe348ac589d231a18420ee4d9ca3079632ceabb1b4c034e2"
+  }
+}

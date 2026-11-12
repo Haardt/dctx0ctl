@@ -85,7 +85,7 @@ fn defaults_all_agents_and_global_environment_fallbacks_are_explicit() {
 }
 
 #[test]
-fn copied_binary_installs_config_skill_and_its_references_without_repository_access() {
+fn copied_binary_installs_config_and_implementation_references_without_repository_access() {
     let root = std::env::temp_dir().join(format!("dctx0-config-skill-{}", std::process::id()));
     fs::create_dir_all(&root).unwrap();
     let binary = root.join(format!("dctx0{}", std::env::consts::EXE_SUFFIX));
@@ -101,7 +101,7 @@ fn copied_binary_installs_config_skill_and_its_references_without_repository_acc
             "--agent",
             "codex",
             "--skill",
-            "dctx0-config",
+            "dctx0-config,dctx0-implementation",
         ])
         .output()
         .unwrap();
@@ -111,7 +111,7 @@ fn copied_binary_installs_config_skill_and_its_references_without_repository_acc
         String::from_utf8_lossy(&output.stderr)
     );
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["installations"].as_array().unwrap().len(), 1);
+    assert_eq!(report["installations"].as_array().unwrap().len(), 2);
     let destination = root.join(".agents/skills/dctx0-config");
     for name in [
         "SKILL.md",
@@ -122,6 +122,18 @@ fn copied_binary_installs_config_skill_and_its_references_without_repository_acc
         assert!(
             destination.join(name).is_file(),
             "Missing installed resource: {name}"
+        );
+    }
+    let implementation = root.join(".agents/skills/dctx0-implementation");
+    for name in [
+        "SKILL.md",
+        "references/application-tests.md",
+        "references/implementation.md",
+        "references/work-packages.md",
+    ] {
+        assert!(
+            implementation.join(name).is_file(),
+            "Missing installed implementation resource: {name}"
         );
     }
     assert!(!root.join(".dctx0ctl").exists());

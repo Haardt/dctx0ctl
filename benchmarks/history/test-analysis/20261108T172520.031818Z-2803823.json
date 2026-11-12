@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "timestamp": "20261108T172520.031818Z",
+  "status": "complete",
+  "source_hash": "e473b1aa96996583be98bfb256d4634821780ea085dded097ef975a0b911843e",
+  "revision": "789454f22f8fb8bda3d203759ebfb28d3d10be92",
+  "dirty_worktree": true,
+  "platform": "Linux-7.3.1-1-cachyos-x86_64-with-glibc2.44",
+  "hardware": {
+    "machine": "x86_64",
+    "cpu_count": 16,
+    "cpu": "Intel(R) Core(TM) Ultra X7 358H"
+  },
+  "python": "3.14.9 (main, Nov  2 2026, 12:21:11) [GCC 16.2.1 20260810]",
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "measurements": {
+    "catalog": {
+      "samples": [
+        {
+          "elapsed_ms": 685.6981670134701,
+          "peak_rss_bytes": 158986240,
+          "returncode": 0,
+          "instrumented_builds": [
+            {
+              "elapsed_ms": 121.23059498844668,
+              "peak_rss_bytes": 158986240
+            }
+          ],
+          "isolated_test_executions": [],
+          "artifact_bytes": 1132073
+        }
+      ],
+      "elapsed_ms": 685.6981670134701,
+      "peak_rss_bytes": 158986240,
+      "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+      "application_source_hash": "b43b205a0dba8fce5de89bee55d749fa99910b31ee1163a9150893727b59617c"
+    },
+    "collection": {
+      "samples": [
+        {
+          "elapsed_ms": 1291.380278998986,
+          "peak_rss_bytes": 156725248,
+          "returncode": 1,
+          "instrumented_builds": [
+            {
+              "elapsed_ms": 121.27573799807578,
+              "peak_rss_bytes": 156725248
+            },
+            {
+              "elapsed_ms": 20.661690999986604,
+              "peak_rss_bytes": 22560768
+            }
+          ],
+          "isolated_test_executions": [
+            {
+              "package": "research-measurement",
+              "target_kind": "lib",
+              "target_name": "research_measurement",
+              "test_name": "first",
+              "outcome": "fail",
+              "exit_code": 101,
+              "elapsed_ms": 20.59411199297756,
+              "peak_rss_bytes": 22691840
+            },
+            {
+              "package": "research-measurement",
+              "target_kind": "lib",
+              "target_name": "research_measurement",
+              "test_name": "second",
+              "outcome": "pass",
+              "exit_code": 0,
+              "elapsed_ms": 20.54989300086163,
+              "peak_rss_bytes": 23740416
+            }
+          ],
+          "artifact_bytes": 1179172
+        }
+      ],
+      "elapsed_ms": 1291.380278998986,
+      "peak_rss_bytes": 156725248,
+      "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+      "application_source_hash": "b43b205a0dba8fce5de89bee55d749fa99910b31ee1163a9150893727b59617c"
+    },
+    "prediction": {
+      "samples": [
+        {
+          "elapsed_ms": 2.0416869956534356,
+          "peak_rss_bytes": 28397568,
+          "returncode": 0
+        }
+      ],
+      "elapsed_ms": 2.0416869956534356,
+      "peak_rss_bytes": 28397568,
+      "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+      "application_source_hash": "b43b205a0dba8fce5de89bee55d749fa99910b31ee1163a9150893727b59617c"
+    },
+    "evaluation": {
+      "samples": [
+        {
+          "elapsed_ms": 1.3893450086470693,
+          "peak_rss_bytes": 28397568,
+          "returncode": 0
+        }
+      ],
+      "elapsed_ms": 1.3893450086470693,
+      "peak_rss_bytes": 28397568,
+      "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+      "application_source_hash": "b43b205a0dba8fce5de89bee55d749fa99910b31ee1163a9150893727b59617c"
+    },
+    "replay": {
+      "samples": [
+        {
+          "elapsed_ms": 3754.7462900110986,
+          "peak_rss_bytes": 157016064,
+          "returncode": 0,
+          "instrumented_builds": [
+            {
+              "elapsed_ms": 121.15245498716831,
+              "peak_rss_bytes": 157003776
+            },
+            {
+              "elapsed_ms": 121.09194000368007,
+              "peak_rss_bytes": 157016064
+            },
+            {
+              "elapsed_ms": 20.52211298723705,
+              "peak_rss_bytes": 22601728
+            },
+            {
+              "elapsed_ms": 121.65255402214825,
+              "peak_rss_bytes": 156954624
+            },
+            {
+              "elapsed_ms": 20.645949989557266,
+              "peak_rss_bytes": 22614016
+            }
+          ],
+          "isolated_test_executions": [
+            {
+              "package": "research-measurement",
+              "target_kind": "lib",
+              "target_name": "research_measurement",
+              "test_name": "first",
+              "outcome": "pass",
+              "exit_code": 0,
+              "elapsed_ms": 20.503142004599795,
+              "peak_rss_bytes": 22601728
+            },
+            {
+              "package": "research-measurement",
+              "target_kind": "lib",
+              "target_name": "research_measurement",
+              "test_name": "second",
+              "outcome": "pass",
+              "exit_code": 0,
+              "elapsed_ms": 20.441711007151753,
+              "peak_rss_bytes": 23650304
+            },
+            {
+              "package": "research-measurement",
+              "target_kind": "lib",
+              "target_name": "research_measurement",
+              "test_name": "first",
+              "outcome": "fail",
+              "exit_code": 101,
+              "elapsed_ms": 20.568600011756644,
+              "peak_rss_bytes": 22614016
+            },
+            {
+              "package": "research-measurement",
+              "target_kind": "lib",
+              "target_name": "research_measurement",
+              "test_name": "second",
+              "outcome": "pass",
+              "exit_code": 0,
+              "elapsed_ms": 20.55192700936459,
+              "peak_rss_bytes": 23793664
+            }
+          ],
+          "artifact_bytes": 3499988
+        }
+      ],
+      "elapsed_ms": 3754.7462900110986,
+      "peak_rss_bytes": 157016064,
+      "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+      "application_source_hash": "b43b205a0dba8fce5de89bee55d749fa99910b31ee1163a9150893727b59617c"
+    },
+    "export": {
+      "samples": [
+        {
+          "elapsed_ms": 3.882635006448254,
+          "peak_rss_bytes": 28397568,
+          "returncode": 0
+        }
+      ],
+      "elapsed_ms": 3.882635006448254,
+      "peak_rss_bytes": 28397568,
+      "cost_scope": "CLI wall time including startup/serialization; Cargo instrumented build/test costs included only for catalog/collection/replay",
+      "application_source_hash": "b43b205a0dba8fce5de89bee55d749fa99910b31ee1163a9150893727b59617c"
+    }
+  },
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "dctx0-cli",
+        "--locked",
+        "--offline"
+      ],
+      "elapsed_ms": 109.37944098259322,
+      "peak_rss_bytes": 53313536,
+      "returncode": 0
+    }
+  ],
+  "settings": {
+    "samples": 1,
+    "warmup_runs": 1,
+    "profile": "release",
+    "cache": "warm filesystem; fresh Cargo target directory for catalog/collection/replay",
+    "fixture": "two libtest tests; two commits; one observed production failure"
+  },
+  "memory_scope": "Linux wait4 ru_maxrss: maximum child/its waited descendants, includes pre-exec parent footprint; concurrent RSS is not summed; build/test RSS additionally present in exported collection/observation data",
+  "baseline_status": "unassessed here: scripts/validate.py applies the accepted baseline and independent speed/RAM gates",
+  "scope": "partial research validation; not workspace coverage acceptance",
+  "dataset": "target/test-analysis-validation/20261108T172520.031818Z/dataset.ndjson",
+  "artifacts": "target/test-analysis-validation/20261108T172520.031818Z/artifacts",
+  "build_environment": {
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_CODEGEN_UNITS": null,
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_DEV_LTO": null,
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "1",
+    "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_DEV_PANIC": null,
+    "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": null,
+    "CARGO_PROFILE_RELEASE_DEBUG": null,
+    "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": null,
+    "CARGO_PROFILE_RELEASE_LTO": null,
+    "CARGO_PROFILE_RELEASE_OPT_LEVEL": null,
+    "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": null,
+    "CARGO_PROFILE_RELEASE_PANIC": null,
+    "CARGO_PROFILE_TEST_CODEGEN_UNITS": null,
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_LTO": null,
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_TEST_PANIC": null,
+    "RUSTC_BOOTSTRAP": null,
+    "RUSTUP_TOOLCHAIN": null
+  },
+  "source_hash_after": "e473b1aa96996583be98bfb256d4634821780ea085dded097ef975a0b911843e"
+}

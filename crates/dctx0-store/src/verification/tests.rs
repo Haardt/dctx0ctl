@@ -53,6 +53,263 @@ pub(crate) fn setup(
     })).unwrap();
     (run, artifacts)
 }
+
+#[test]
+fn incremental_publication_requires_verified_external_input_receipt() {
+    let t = Temp::new();
+    let mut store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    let (mut run, mut artifacts) = setup(&mut store, "p");
+    let proof = VerificationArtifact::new(
+        dctx0_verification::incremental::INCREMENTAL_PROOF_MEDIA_TYPE,
+        b"{\"bogus\":true}".to_vec(),
+    );
+    run.artifacts.push(proof.reference.clone());
+    artifacts.push(proof);
+    let error = store
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap_err();
+    assert!(error.to_string().contains("external-input receipt"));
+    assert!(store.verification_runs("p").unwrap().is_empty());
+}
+
+#[test]
+fn retention_preserves_all_ancestors_of_a_derived_run() {
+    let t = Temp::new();
+    let mut store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    let (mut run, artifacts) = setup(&mut store, "p");
+    let first = store
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap();
+    run.started_at_unix_ns = "2".into();
+    let second = store
+        .record_verification_run_owned_from("p", run.clone(), &artifacts, Some(&first.id))
+        .unwrap();
+    run.started_at_unix_ns = "3".into();
+    let third = store
+        .record_verification_run_owned_from("p", run, &artifacts, Some(&second.id))
+        .unwrap();
+    assert_eq!(store.verification_gc_preview("p").unwrap().pruned_runs, 0);
+    for id in [&first.id, &second.id, &third.id] {
+        assert!(store.verification_run("p", id).is_ok());
+    }
+}
+
+#[test]
+fn incremental_publication_validates_parent_and_copied_cases() {
+    use dctx0_verification::incremental::{self, ExternalInputReceipt, IncrementalProof};
+    let t = Temp::new();
+    let mut store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    let (mut run, _) = setup(&mut store, "p");
+    let source = Source {
+        file: "w.dctx0".into(),
+        text: "workspace W { type A = Int }".into(),
+    };
+    let ir = dctx0_language::compile(&[source]).ir.unwrap();
+    let plan = dctx0_verification::project_program(
+        &ir,
+        &run.provenance.snapshot,
+        run.provenance.check_occurrence as u64,
+        dctx0_verification::VerificationScope {
+            subjects: ["W.A".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        run.budgets.clone(),
+    );
+    let units = incremental::program_units(&plan);
+    let receipt = ExternalInputReceipt {
+        schema_version: 1,
+        deterministic_units: units
+            .iter()
+            .filter(|u| u.reusable)
+            .map(|u| u.id.clone())
+            .collect(),
+        files: Default::default(),
+        environment: Default::default(),
+    };
+    let units = incremental::receipt_units(&plan, &receipt).unwrap();
+    let plan_artifact = VerificationArtifact::new(
+        "application/vnd.dctx0.plan+json",
+        serde_json::to_vec(&plan).unwrap(),
+    );
+    let receipt_artifact = VerificationArtifact::new(
+        incremental::INCREMENTAL_INPUTS_MEDIA_TYPE,
+        serde_json::to_vec(&receipt).unwrap(),
+    );
+    run.origin = VerificationRunOrigin::Native;
+    run.selected_subjects = plan.scope.subjects.clone();
+    run.required_subjects = plan.closure.clone();
+    run.provenance
+        .implementation
+        .insert("source".into(), "digest".into());
+    run.provenance.plan_hash = plan_artifact.reference.hash.clone();
+    run.required_cases = dctx0_verification::case_manifest(&plan).required_cases;
+    let template = run.cases[0].clone();
+    run.cases = run
+        .required_cases
+        .iter()
+        .map(|id| {
+            let mut case = template.clone();
+            case.id = id.clone();
+            case
+        })
+        .collect();
+    let artifacts = vec![plan_artifact, receipt_artifact];
+    run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
+    let parent = store
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap();
+    let binding = incremental::binding(
+        &plan,
+        run.provenance.clone(),
+        artifacts[1].reference.hash.clone(),
+    )
+    .unwrap();
+    let selection = incremental::plan_reuse(&binding, &binding, &run, &units).unwrap();
+    assert!(!selection.reused.is_empty());
+    let proof = IncrementalProof {
+        parent_run: parent.id.clone(),
+        binding,
+        units,
+        plan: selection,
+    };
+    let proof_artifact = VerificationArtifact::new(
+        incremental::INCREMENTAL_PROOF_MEDIA_TYPE,
+        serde_json::to_vec(&proof).unwrap(),
+    );
+    let mut result = run.clone();
+    result.started_at_unix_ns = "2".into();
+    result.artifacts.push(proof_artifact.reference.clone());
+    let mut all = artifacts.clone();
+    all.push(proof_artifact);
+    let mut tampered = result.clone();
+    let id = proof.plan.reused.iter().next().unwrap();
+    tampered
+        .cases
+        .iter_mut()
+        .find(|c| &c.id == id)
+        .unwrap()
+        .elapsed_us += 1;
+    assert!(
+        store
+            .record_verification_run("p", &tampered, &all)
+            .unwrap_err()
+            .to_string()
+            .contains("proof")
+    );
+    let saved = store.record_verification_run("p", &result, &all).unwrap();
+    assert!(store.verification_run("p", &parent.id).is_ok());
+    assert!(store.verification_run("p", &saved.id).is_ok());
+
+    // Application receipts contain per-run details, but the store independently
+    // derives and compares the execution identity from both actual receipts.
+    let native_receipt = |timestamp: u32, source: &str| {
+        VerificationArtifact::new(
+        "application/vnd.dctx0.application-native-receipt+json",
+        serde_json::to_vec(&serde_json::json!({
+            "plan_hash":"a", "group":"group", "backend":"application-tests", "target":"typescript",
+            "source_inputs":{"source":source}, "build_inputs":{}, "materialized_inputs":{}, "toolchain_inputs":{},
+            "phases":[{"phase":"native-tests","runtime":{"executable_hash":"a".repeat(64)}}],
+            "timestamp":timestamp
+        })).unwrap(),
+    )
+    };
+    let initial_receipt = native_receipt(1, "digest");
+    let mut app_parent = run.clone();
+    app_parent.started_at_unix_ns = "3".into();
+    app_parent.provenance.runtime_version.clear();
+    app_parent.provenance.protocol_version =
+        dctx0_verification::application_evidence::APPLICATION_EXECUTION_PROTOCOL_VERSION;
+    app_parent.provenance.harness_hash = initial_receipt.reference.hash.clone();
+    let mut parent_artifacts = artifacts.clone();
+    parent_artifacts.push(initial_receipt.clone());
+    app_parent.artifacts = parent_artifacts
+        .iter()
+        .map(|a| a.reference.clone())
+        .collect();
+    let stored_parent = store
+        .record_verification_run("p", &app_parent, &parent_artifacts)
+        .unwrap();
+    let external_hash = artifacts[1].reference.hash.clone();
+    let prior = dctx0_verification::application_reuse::binding(
+        &plan,
+        &app_parent,
+        external_hash.clone(),
+        &initial_receipt.contents,
+    )
+    .unwrap();
+    let current_receipt = native_receipt(2, "digest");
+    let mut current = app_parent.clone();
+    current.started_at_unix_ns = "4".into();
+    current.provenance.harness_hash = current_receipt.reference.hash.clone();
+    let current_binding = dctx0_verification::application_reuse::binding(
+        &plan,
+        &current,
+        external_hash.clone(),
+        &current_receipt.contents,
+    )
+    .unwrap();
+    let selection = incremental::plan_reuse_projected(
+        &prior,
+        &current_binding,
+        &app_parent,
+        &proof.units,
+        &app_parent.provenance,
+    )
+    .unwrap();
+    assert!(!selection.reused.is_empty());
+    let app_proof = IncrementalProof {
+        parent_run: stored_parent.id,
+        binding: current_binding,
+        units: proof.units.clone(),
+        plan: selection,
+    };
+    let app_proof_artifact = VerificationArtifact::new(
+        incremental::INCREMENTAL_PROOF_MEDIA_TYPE,
+        serde_json::to_vec(&app_proof).unwrap(),
+    );
+    let app_artifacts = vec![
+        artifacts[0].clone(),
+        artifacts[1].clone(),
+        current_receipt,
+        app_proof_artifact,
+    ];
+    current.artifacts = app_artifacts.iter().map(|a| a.reference.clone()).collect();
+    let mut bad_artifacts = app_artifacts.clone();
+    bad_artifacts[2] = native_receipt(2, "changed");
+    let mut bad = current.clone();
+    bad.provenance.harness_hash = bad_artifacts[2].reference.hash.clone();
+    bad.artifacts = bad_artifacts.iter().map(|a| a.reference.clone()).collect();
+    assert!(
+        store
+            .record_verification_run("p", &bad, &bad_artifacts)
+            .unwrap_err()
+            .to_string()
+            .contains("application receipt")
+    );
+    assert!(
+        store
+            .record_verification_run("p", &current, &app_artifacts)
+            .is_ok()
+    );
+    let mut mismatched_bundles = app_artifacts.clone();
+    mismatched_bundles.push(VerificationArtifact::new(
+        dctx0_verification::application_reuse::APPLICATION_BUNDLE_MEDIA_TYPE,
+        b"missing parent bundle".to_vec(),
+    ));
+    let mut missing_parent_bundle = current.clone();
+    missing_parent_bundle.artifacts = mismatched_bundles
+        .iter()
+        .map(|a| a.reference.clone())
+        .collect();
+    assert!(
+        store
+            .record_verification_run("p", &missing_parent_bundle, &mismatched_bundles)
+            .unwrap_err()
+            .to_string()
+            .contains("bundle receipts")
+    );
+}
 fn legacy_store(path: &Path) -> Store {
     let connection = Connection::open(path).unwrap();
     connection.execute_batch(crate::SCHEMA).unwrap();
@@ -1636,4 +1893,177 @@ fn comparison_keeps_removed_and_reused_cases_unproven_and_pages_metadata() {
     assert_eq!(removed.unproven, 1);
     assert!(compare_runs(&before, &after, 0, 0).is_err());
     assert!(compare_runs(&before, &after, 2, 1).is_err());
+}
+
+#[test]
+fn history_preservation_hold_keeps_old_runs_orphans_and_other_project_writes_without_authority() {
+    let t = Temp::new();
+    let mut store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    let (mut run, artifacts) = setup(&mut store, "p");
+    assert!(!store.verification_history_preserved().unwrap());
+    let original = store
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap();
+    let orphan = VerificationArtifact::new("text/plain", b"previous unattached bytes".to_vec());
+    store.connection.execute("INSERT INTO verification_artifacts(hash,media_type,bytes,encoding,raw_length) VALUES(?1,?2,?3,'identity',?4)", params![orphan.reference.hash,orphan.reference.media_type,orphan.contents,orphan.contents.len() as i64]).unwrap();
+    let marker = VerificationArtifact::new(
+        HISTORY_PRESERVATION_MEDIA_TYPE,
+        br#"{"schema_version":1,"retention":"preserve-all"}"#.to_vec(),
+    );
+    let mut held_artifacts = artifacts.clone();
+    held_artifacts.push(marker.clone());
+    run.artifacts.push(marker.reference);
+    run.started_at_unix_ns = "2".into();
+    let held = store
+        .record_verification_run("p", &run, &held_artifacts)
+        .unwrap();
+    assert!(store.verification_history_preserved().unwrap());
+    let mut ids = vec![original.id, held.id];
+    for index in 3..7 {
+        run.started_at_unix_ns = index.to_string();
+        // Later publishers need not repeat the hold; it is durable and sticky.
+        run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
+        ids.push(
+            store
+                .record_verification_run("p", &run, &artifacts)
+                .unwrap()
+                .id,
+        );
+    }
+    let revision: i64 = store
+        .connection
+        .query_row(
+            "SELECT revision FROM verification_revisions WHERE project='p'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        revision, 6,
+        "Preservation must not hide newly published results from live views"
+    );
+    let (other, other_artifacts) = setup(&mut store, "q");
+    store
+        .record_verification_run("q", &other, &other_artifacts)
+        .unwrap();
+    for id in &ids {
+        let saved = store.verification_run("p", id).unwrap();
+        assert_eq!(saved.run.cases.len(), 1);
+        assert_eq!(saved.run.origin, VerificationRunOrigin::Imported);
+        assert!(saved.run.provenance.task_pin.is_none());
+    }
+    let bytes: Vec<u8> = store
+        .connection
+        .query_row(
+            "SELECT bytes FROM verification_artifacts WHERE hash=?1",
+            [&orphan.reference.hash],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(bytes, orphan.contents);
+    let deliveries: i64 = store
+        .connection
+        .query_row("SELECT count(*) FROM verification_task_links", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(deliveries, 0, "A retention marker never delivers a task");
+
+    assert_eq!(store.verification_gc_preview("p").unwrap().pruned_runs, 0);
+    assert!(
+        store
+            .verification_gc("p")
+            .unwrap_err()
+            .to_string()
+            .contains("preservation hold")
+    );
+    let compact = t.0.join("must-not-create.sqlite3");
+    assert!(
+        store
+            .verification_compact_copy("p", &compact)
+            .unwrap_err()
+            .to_string()
+            .contains("preservation hold")
+    );
+    assert!(!compact.exists());
+    let version = store.verification_storage_version().unwrap();
+    assert!(
+        store
+            .install_verification_copy(&compact, version)
+            .unwrap_err()
+            .to_string()
+            .contains("preservation hold")
+    );
+    // Reopening through the read-only API retains both the hold and every body.
+    let reader = Store::open(&t.db(), AccessMode::ReadOnly).unwrap();
+    assert!(reader.verification_history_preserved().unwrap());
+    for id in ids {
+        assert!(reader.verification_run("p", &id).is_ok());
+    }
+}
+
+#[test]
+fn schema_six_inspection_links_remain_unknown_and_preserve_evidence() {
+    let t = Temp::new();
+    let mut old = legacy_store(&t.db());
+    old.connection.execute_batch(STORAGE_MIGRATION).unwrap();
+    old.connection.execute_batch(cases::MIGRATION).unwrap();
+    let (mut run, mut artifacts) = setup(&mut old, "p");
+    let inspection = VerificationArtifact::new(
+        "application/vnd.dctx0.inspected-done-tasks+json",
+        b"retained inspection".to_vec(),
+    );
+    run.artifacts.push(inspection.reference.clone());
+    artifacts.push(inspection.clone());
+    let id = old
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap()
+        .id;
+    // This synthetic link isolates retention from task publication; production
+    // publication inserts its corresponding real task under foreign keys.
+    old.connection
+        .pragma_update(None, "foreign_keys", "OFF")
+        .unwrap();
+    old.connection.execute("INSERT INTO verification_task_links(run_id,task_id,requirements_hash) VALUES(?1,41,'req')", [&id]).unwrap();
+    old.connection
+        .pragma_update(None, "foreign_keys", "ON")
+        .unwrap();
+    for i in 2..=5 {
+        run.started_at_unix_ns = i.to_string();
+        old.record_verification_run("p", &run, &artifacts).unwrap();
+    }
+    let reader = Store::open(&t.db(), AccessMode::ReadOnly).unwrap();
+    assert!(
+        !reader
+            .verification_inspected_task_linked("p", &id, 41, "req", "report")
+            .unwrap()
+    );
+    assert_eq!(crate::storage::version(&reader.connection).unwrap(), 6);
+    assert_eq!(
+        reader
+            .verification_artifact(&id, &inspection.reference.hash)
+            .unwrap()
+            .contents,
+        inspection.contents
+    );
+    assert!(
+        reader
+            .verification_run_summary("p", &id)
+            .unwrap()
+            .details_available
+    );
+    drop(reader);
+    old.verification_gc("p").unwrap();
+    assert!(
+        old.verification_run_summary("p", &id)
+            .unwrap()
+            .details_available
+    );
+    assert_eq!(
+        old.verification_artifact(&id, &inspection.reference.hash)
+            .unwrap()
+            .contents,
+        inspection.contents
+    );
+    assert_eq!(crate::storage::version(&old.connection).unwrap(), 6);
 }

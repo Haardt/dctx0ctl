@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "target": "go",
+  "probe": null,
+  "steps": {
+    "publish-library": {
+      "elapsed_ms": 101.95779899368063,
+      "peak_rss_bytes": null,
+      "exit_code": 0,
+      "memory_status": "unavailable-no-process-tree-sample",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 67940352
+    },
+    "prepare": {
+      "elapsed_ms": 546.1799649929162,
+      "peak_rss_bytes": 94064640,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 153837568
+    },
+    "managed-run": {
+      "elapsed_ms": 33125.345701992046,
+      "peak_rss_bytes": 1041174528,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 817901568
+    },
+    "replay-original": {
+      "elapsed_ms": 7824.350415990921,
+      "peak_rss_bytes": 1165221888,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 784171008
+    },
+    "replay-mutated": {
+      "elapsed_ms": 7393.822892016033,
+      "peak_rss_bytes": 1182269440,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 825868288
+    },
+    "replay-repaired": {
+      "elapsed_ms": 7922.374820976984,
+      "peak_rss_bytes": 1199599616,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 845238272
+    },
+    "replay-lifecycle": {
+      "elapsed_ms": 7932.686095999088,
+      "peak_rss_bytes": 1187086336,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 830042112
+    },
+    "replay-entity-identity": {
+      "elapsed_ms": 8549.80700899614,
+      "peak_rss_bytes": 1184792576,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+      "wait4_peak_rss_bytes": 827940864
+    }
+  },
+  "adoption_authority": true,
+  "binary_sha256": "acaa69ab24aab9887f39abb12b9a41155ae9831375ac25e605fa35612c6643cb",
+  "task_completion": {
+    "tasks": 105,
+    "done": 105,
+    "pass": 105,
+    "review_done_unverified": 0,
+    "source_bound_reviews": 4,
+    "adopted_native": 46,
+    "effective_result": {
+      "status": "PASS"
+    }
+  },
+  "native_run": "07217272b89997b168a43d15f74f2e76a36346f7d1ae4e041e4a8984d4ba7303",
+  "native_task_delivery_links": 46,
+  "completed_cases": 5766,
+  "native_phases": [
+    {
+      "phase": "toolchain",
+      "elapsed_us": 13306,
+      "runtime_hash": "3bcbdc54ea83e79a9dd3f8ea0f94035acd7792c8d3e56a63aaf4f4e5f64330f6"
+    },
+    {
+      "phase": "prepare-0",
+      "elapsed_us": 279518,
+      "runtime_hash": "3bcbdc54ea83e79a9dd3f8ea0f94035acd7792c8d3e56a63aaf4f4e5f64330f6"
+    },
+    {
+      "phase": "prepare-1",
+      "elapsed_us": 90602,
+      "runtime_hash": "31e45aeeba1304a363cea9e74aebd79a0b324efc05fcc845f7cce26fa9743882"
+    },
+    {
+      "phase": "build-0",
+      "elapsed_us": 5469770,
+      "runtime_hash": "3bcbdc54ea83e79a9dd3f8ea0f94035acd7792c8d3e56a63aaf4f4e5f64330f6"
+    },
+    {
+      "phase": "catalog",
+      "elapsed_us": 13604,
+      "runtime_hash": "a4bb9555f42119c920e658c0677cee5919bb80d65d86ad791fe10192b9721747"
+    },
+    {
+      "phase": "native-tests",
+      "elapsed_us": 7575756,
+      "runtime_hash": "3bcbdc54ea83e79a9dd3f8ea0f94035acd7792c8d3e56a63aaf4f4e5f64330f6"
+    }
+  ],
+  "replay": {
+    "case": "HomeCinema.MovieNight.ScreeningPlanning.CandidateOrderTieBreak#assertion:2:0:0",
+    "original": "PASS",
+    "production_mutation": "FAIL",
+    "repaired": "PASS",
+    "historical_pass_reused": false
+  },
+  "connected_replay": {
+    "lifecycle": {
+      "requested_case": "HomeCinema.MovieNight.ScreeningPollLifecycle:transition:0",
+      "executed_cases": 2,
+      "result": {
+        "status": "PASS"
+      },
+      "adoption_authority": false
+    },
+    "entity-identity": {
+      "requested_case": "HomeCinema.MovieNight.Comment:identity",
+      "executed_cases": 239,
+      "result": {
+        "status": "PASS"
+      },
+      "adoption_authority": false
+    }
+  },
+  "binary_unchanged": true
+}

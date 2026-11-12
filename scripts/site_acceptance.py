@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Cinema read-only companion acceptance, paired with release speed/RSS samples."""
+import history_retention
 import argparse
 import datetime
 import hashlib
@@ -116,8 +117,8 @@ def main():
             comparable=[r for r in previous if r.get('complete') and all(r.get(k)==report.get(k) for k in ('platform','hardware','toolchain','spec_input_hash','samples','iterations','cache_conditions'))]
             report['recent_trends']=[{'started_at':r['started_at'],'summary':r.get('summary',{})} for r in comparable[-5:]]
             report['comparison_status']='compatible history available; no accepted site baseline' if comparable else 'no comparable complete history; unassessed'
-            atomic(HISTORY/filename,report)
-            for old in sorted(HISTORY.glob('*.json'))[:-20]:old.unlink()
+            atomic(HISTORY/filename,history_retention.mark(report))
+            history_retention.prune(HISTORY)
             (ROOT/'target/site').mkdir(parents=True,exist_ok=True);atomic(ROOT/'target/site/acceptance.json',report)
         print(json.dumps({'passed':report['passed'],'complete':report['complete'],'record':str(HISTORY/filename),'baseline':report['baseline_status']}))
     return 0 if report['passed'] else 1

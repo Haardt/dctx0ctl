@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "runtime": "bun",
+  "root_test": "CinemaSuite",
+  "test_directory": "root",
+  "entrypoint": ".dctx0/application-tests/cinema.test.ts",
+  "prepare": [
+    {
+      "program": "bun",
+      "arguments": [
+        "install",
+        "--frozen-lockfile",
+        "--offline"
+      ]
+    }
+  ],
+  "build": [
+    {
+      "program": "bun",
+      "arguments": [
+        "scripts/generate-application-facade.ts",
+        "{plan}"
+      ]
+    },
+    {
+      "program": "bun",
+      "arguments": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ]
+    }
+  ],
+  "catalog": {
+    "program": "bun",
+    "arguments": [
+      ".dctx0/application-tests/library/catalog.ts",
+      ".dctx0/application-tests/cinema.test.ts"
+    ]
+  },
+  "run": {
+    "program": "bun",
+    "arguments": [
+      "test",
+      "--reporter",
+      "junit",
+      "--reporter-outfile",
+      "{artifacts}/native.junit.xml",
+      "--test-name-pattern",
+      "^CinemaSuite$",
+      "./.dctx0/application-tests/cinema.test.ts"
+    ]
+  },
+  "junit": ".dctx0ctl/application-tests/native.junit.xml"
+}

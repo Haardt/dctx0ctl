@@ -1,0 +1,1243 @@
+{
+  "timestamp": "2026-11-09T04:26:04.300231+00:00",
+  "platform": "Linux-7.3.1-1-cachyos-x86_64-with-glibc2.44",
+  "native_toolchain": "go version go1.27.3-X:nodwarf5 linux/amd64",
+  "revision": "789454f22f8fb8bda3d203759ebfb28d3d10be92",
+  "cache": "warm toolchain and module caches; fresh application and test binary",
+  "samples": 1,
+  "repetitions": 1,
+  "schema_version": 1,
+  "status": "pass",
+  "scope": "diagnostic Go state-change group; no mixed adoption authority",
+  "binary_sha256": "2ced8b917c12e1ac572e4c0904dd7ec927496804379073fd9a2f0067d830def4",
+  "steps": {
+    "prepare": {
+      "elapsed_ms": 837.5122610013932,
+      "peak_rss_bytes": 152662016,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Linux sampled command/descendant RSS sum, 50 ms, shared pages counted per process; unavailable if command completed between samples",
+      "wait4_peak_rss_bytes": 152408064,
+      "guard_elapsed_ms": 794.463
+    },
+    "generate-facade": {
+      "elapsed_ms": 233.69449700112455,
+      "peak_rss_bytes": 67895296,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Linux sampled command/descendant RSS sum, 50 ms, shared pages counted per process; unavailable if command completed between samples",
+      "wait4_peak_rss_bytes": 165142528,
+      "guard_elapsed_ms": 191.125
+    },
+    "build-native": {
+      "elapsed_ms": 707.16248798999,
+      "peak_rss_bytes": 321884160,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "Linux sampled command/descendant RSS sum, 50 ms, shared pages counted per process; unavailable if command completed between samples",
+      "wait4_peak_rss_bytes": 282382336,
+      "guard_elapsed_ms": 671.819
+    },
+    "native-catalog": {
+      "elapsed_ms": 101.14384500775486,
+      "peak_rss_bytes": null,
+      "exit_code": 0,
+      "memory_status": "unavailable: no RSS sample",
+      "memory_scope": "Linux sampled command/descendant RSS sum, 50 ms, shared pages counted per process; unavailable if command completed between samples",
+      "wait4_peak_rss_bytes": 165142528,
+      "guard_elapsed_ms": 57.646
+    },
+    "native-tests": {
+      "elapsed_ms": 7340.73664699099,
+      "peak_rss_bytes": 67805184,
+      "exit_code": 1,
+      "memory_status": "measured",
+      "memory_scope": "Linux sampled command/descendant RSS sum, 50 ms, shared pages counted per process; unavailable if command completed between samples",
+      "wait4_peak_rss_bytes": 165142528,
+      "guard_elapsed_ms": 7300.58
+    },
+    "assessment-service": {
+      "elapsed_ms": 7893.798614008119,
+      "peak_rss_bytes": 123478016,
+      "memory_method": "Linux sampled Rust assessment process/descendant RSS sum, 50 ms; includes waiting for native runner; shared pages counted per process",
+      "exit_code": 1,
+      "wait4_peak_rss_bytes": 165142528
+    }
+  },
+  "global_baseline_promoted": false,
+  "performance_gate": "unassessed development run; incomplete backend migration",
+  "application_inputs": {
+    "go.mod": "8d5d4cfce1b1a3895bebc4bac95dc76020c5c92bba4128b6562160da14dd4705",
+    "go.sum": "d2ae7663ea2c1921bf7d22486e97921187ef314ac9141ec67720edb7b945a5b7",
+    "application/service.go": "e2f5f0be1d63f3806ef5e1a626fa3f22977072741ec994c522ca7d72bcb42736",
+    "application/service_test.go": "b3f2815f160310a8ac9302a8cef624dce7c6a70863bdf8510400af41fe884113",
+    "domain/contracts.go": "18c4accd09dbaf15bd1cd3b13b2b0dc3ef0f27dfae1da13d54ea8ff51ce93808",
+    "domain/contracts_test.go": "f524dc9db3e402c6df2c6d07e379b007edbfc1f716a2da253dacce98bbd2a2cd",
+    "domain/json.go": "2f5287754cd1af9b63f6e8ffcca9b85877182936ca18e008bd4d7c9afb1af534",
+    "ginapi/handler.go": "55d1a4b9aa85dfbd476f189ada55e964d9cd56daed05b9a8497a2e763f82132f",
+    "ginapi/handler_test.go": "0b6ca02f68b8bbe84bca58e198974a2771551cd8a66a65981606eb608ed4384e",
+    "httpapi/handler.go": "1c6eb3f3009292374e0ca16c1a0e0663f0abb92b3672aba9efcd8b62b006a805",
+    "httpapi/handler_test.go": "af8efdeeb255a8cf3cab1c996c6c518d58170e6ee8905211a702b2843ecb6161",
+    "persistence/store.go": "e27ffec93f33ddb6766ee21feb4702a3935ad1875617e3a4c2caa0afeed7ef83",
+    "persistence/store_test.go": "e6fbeaba00494c2c44563d24122df7440770fafffc4531abc909a534991af4b9",
+    "contracttests/projection_test.go": "0e9c819629b05ff9b91ef151de07af42c8b72fc0b56883f649437c3a3d3f649d",
+    "contracttests/runtime_contracts_test.go": "ec0abfabbd2fce78028994178d2cb8985de8c8dc582493317234653b29517b4e",
+    "contracttests/operations_test.go": "f920cfbb419a4eaf4a77df50400f4239cd9bfe07bcbf447a279346517a708944",
+    "contracttests/application_fixture_test.go": "77f6e6da1fef9fd0ab7ddc6a25788b58a734e8c63d4ef99ffaf72c5c83f81e52",
+    "contracttests/http_fixture_test.go": "476a37f5cde6c1357a26ccdda56a3c3acf6a4aa50e3b702be8dce4b8318a70ca",
+    "contracttests/generated_facade_test.go": "a2e82ca347aa03b7109111e6b1c28c0a84aa403368f855d86a7996a320fc2072",
+    "contracttests/suite_test.go": "14f6640a3b7ccded7812c135a90238ada4cfb1d430786b2892da4844eb5a6020",
+    "cmd/cinema/main.go": "48b4cf9b7fdca41889b2626d4a2b95b778381b648629738e781036bac8b12135",
+    ".dctx0/application-tests/library-pin.json": "fd687a70267f51eb884aad3061c9279048939216aa5734b3bdc037964ba65661",
+    ".dctx0/application-tests/library/client.go": "4d98b22fee889f304eb03d94ce2e5a0fdb1a8042694f86954b643e95114b316f",
+    ".dctx0/application-tests/library/decoder.go": "0e9a97caf6b06743f4780d9506d75853f3f60948db1a8b3b0571c37a2dbdf034",
+    ".dctx0/application-tests/library/go.mod": "ea55ed91e953fbb8b30eafa73ef6c4fe298eec6ce0535ec6c3349db90aab78ca",
+    ".dctx0/application-tests/library/protocol.go": "3869b8a7619ca59b74d8f2e31f32c6ee86298387534c4ae3dce9b882023ce46c",
+    ".dctx0/application-tests/library/operation.go": "5a98592a159e2b4e6aeb0ef21e93210a140b2f122fecd1230d508c88b1f8f97a",
+    ".dctx0/testing/go/adapter.go": "27ff4e04c09cf17864bff26b1b2ea1cfd3ce84c03c3d20fb5e60445cf4568b96",
+    ".dctx0/testing/go/contract.go": "3d0ac2b2b611fdc0bf2e9c487117344b504e5a1066127a5a912870d9615a7e99",
+    ".dctx0/testing/go/http.go": "7dde7e287c325666bec4ed0a71434b81268689ba6945efceab7766c8797533c7",
+    ".dctx0/testing/go/translation.go": "e0e807bfd03e29e847254eecb5d9fc22ce02f50fbd4f0a0ef3cc5edd19eb9b94"
+  },
+  "probe": {
+    "name": "cleanup",
+    "file": "contracttests/operations_test.go",
+    "source_sha256": "8c98855df1d79cc822d7627981dae4647f3e028cbb6e161058b84d632548d6b3",
+    "detected": true
+  },
+  "actual_input_comparison": {
+    "reference": "common original Cinema native input contract; TypeScript wire observations",
+    "different_invocations": [],
+    "different_arguments": []
+  },
+  "assessment": {
+    "status": "UNKNOWN",
+    "completed": 102,
+    "required": 102,
+    "failures": [
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:contract:insert",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:contract:update",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:0",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:1",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:10",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:11",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:12",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:13",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:14",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:15",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:16",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:17",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:18",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:19",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:2",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:20",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:21",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:22",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:23",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:24",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:25",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:26",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:27",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:28",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:29",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:3",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:30",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:31",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:32",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:33",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:34",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:35",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:36",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:37",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:38",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:39",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:4",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:40",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:41",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:42",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:43",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:44",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:45",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:46",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:47",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:48",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:49",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:5",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:50",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:51",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:52",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:53",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:54",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:55",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:56",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:57",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:58",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:59",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:6",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:60",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:61",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:62",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:63",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:64",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:65",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:66",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:67",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:68",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:69",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:7",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:70",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:71",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:72",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:73",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:74",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:75",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:76",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:77",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:78",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:79",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:8",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:80",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:81",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:82",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:83",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:84",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:85",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:86",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:87",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:88",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:89",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:9",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:90",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:91",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:92",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:93",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:94",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:95",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:96",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:97",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:98",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      },
+      {
+        "id": "HomeCinema.MovieNight.Catalog.FilmCatalogStore.save:operation:99",
+        "result": {
+          "status": "UNKNOWN",
+          "issue": {
+            "code": "APPLICATION_CLEANUP_FAILED",
+            "message": "cleanup failed",
+            "span": null
+          }
+        }
+      }
+    ]
+  },
+  "binary_unchanged": true
+}

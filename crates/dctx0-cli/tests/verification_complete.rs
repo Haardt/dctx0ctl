@@ -126,6 +126,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             })
             .collect();
         let mut notes = AuthoredInspections {
+            done_inspections: None,
             schema_version: 1, actor: "acceptance-reviewer".into(), scope: "W: bounded factory and explicit boundary review".into(), reviewed_hashes,
             reviewed_spec_hashes: BTreeMap::from([("w.dctx0".into(), dctx0_store::VerificationArtifact::new("application/octet-stream", fs::read(spec.join("w.dctx0")).unwrap()).reference.hash)]),
             subjects: BTreeMap::from([("W.Boundary".into(), AuthoredInspectionNote {

@@ -53,6 +53,37 @@ fn literal_prefixes_combine_inherited_length_bounds_without_waiving_other_clause
             for length in [4, 6] {
                 assert!(corpus.values.iter().any(|value| matches!(value, V::String(text) if text.encode_utf16().count() == length)));
             }
+            assert!(
+                corpus
+                    .values
+                    .iter()
+                    .any(|value| matches!(value, V::String(text) if text.as_ref() == "id:x"))
+                    && corpus
+                        .values
+                        .iter()
+                        .any(|value| matches!(value, V::String(text) if text.as_ref() == "id:xxx")),
+                "neutral filler stays the witness for a non-digest prefix: {:?}",
+                corpus.values
+            );
+        }
+        if name == "Digest" || name == "Alias" {
+            // Canonical sha256 witness: exactly 64 lowercase hex digits after the
+            // prefix, so generated operation inputs satisfy the reviewed image
+            // digest rule that production enforces.
+            for value in &corpus.values {
+                if let V::String(text) = value {
+                    let suffix = text
+                        .strip_prefix("sha256:")
+                        .unwrap_or_else(|| panic!("{name}: unexpected witness {text}"));
+                    assert_eq!(suffix.len(), 64, "{name}: {text}");
+                    assert!(
+                        suffix
+                            .bytes()
+                            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
+                        "{name}: {text}"
+                    );
+                }
+            }
         }
         let single = VerificationBudgets {
             generated_cases: 1,

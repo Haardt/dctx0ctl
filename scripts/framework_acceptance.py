@@ -2,6 +2,7 @@
 """Coupled Gin/Axum acceptance: functional checks first, release speed/RSS last."""
 from verification_storage import saved_verification_artifacts
 from cinema_expectations import assert_native_cinema
+import history_retention
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -145,9 +146,9 @@ def save(record):
     HISTORY.mkdir(parents=True,exist_ok=True)
     with locked(HISTORY.parent/'.frameworks.lock'):
         with tempfile.NamedTemporaryFile(mode='w',dir=HISTORY,prefix='.write-',delete=False) as file:
-            json.dump(record,file,indent=2);file.write('\n');file.flush();os.fsync(file.fileno())
+            json.dump(history_retention.mark(record), file,indent=2);file.write('\n');file.flush();os.fsync(file.fileno())
         path=HISTORY/(record['id']+'.json');os.replace(file.name,path)
-        for old in sorted(HISTORY.glob('*.json'))[:-20]:old.unlink()
+        history_retention.prune(HISTORY)
     report=ROOT/'target/frameworks/validation.json';report.parent.mkdir(parents=True,exist_ok=True);report.write_text(json.dumps(record,indent=2)+'\n')
     return path
 

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "binary_hash": "fbb2798bcbe1b980785fef8ed4248d9bc0655f9f889e0236cd0d5708d4710ee6",
+  "seed": 42,
+  "generated_cases": 100,
+  "samples": {
+    "check": {
+      "elapsed_ms": 118.44667201512493,
+      "peak_rss_bytes": 64782336,
+      "exit_code": 0
+    },
+    "discovery": {
+      "elapsed_ms": 86.92290299222805,
+      "peak_rss_bytes": 87285760,
+      "exit_code": 0
+    },
+    "planning": {
+      "elapsed_ms": 401.3142399780918,
+      "peak_rss_bytes": 100761600,
+      "exit_code": 0
+    },
+    "harness-setup": {
+      "elapsed_ms": 2.438241004711017,
+      "peak_rss_bytes": 87846912,
+      "exit_code": 0
+    },
+    "first-project-build": {
+      "elapsed_ms": 9278.388203005306,
+      "peak_rss_bytes": 420966400,
+      "exit_code": 1,
+      "managed_build_elapsed_ms": 1460.446,
+      "go_compile_elapsed_ms": 533.892,
+      "go_compile_peak_rss_bytes": 420966400,
+      "runtime_metrics": {
+        "kind": "measured",
+        "peak_rss_bytes": 25825280,
+        "runtime_version": "go1.27.3-X:nodwarf5",
+        "platform": "linux"
+      },
+      "native_engine_elapsed_ms": 4335.01,
+      "go_version": "go version go1.27.3-X:nodwarf5 linux/amd64",
+      "worker_hash": "28bd78ca9456f5573e4b3f588f5f1f73570c77b2b932f5575b92da8cafc41fc2"
+    },
+    "warm-build": {
+      "elapsed_ms": 17554.337545007,
+      "peak_rss_bytes": 421625856,
+      "exit_code": 1,
+      "managed_build_elapsed_ms": 1123.284,
+      "go_compile_elapsed_ms": 492.968,
+      "go_compile_peak_rss_bytes": 421625856,
+      "runtime_metrics": {
+        "kind": "measured",
+        "peak_rss_bytes": 24969216,
+        "runtime_version": "go1.27.3-X:nodwarf5",
+        "platform": "linux"
+      },
+      "native_engine_elapsed_ms": 4358.786,
+      "go_version": "go version go1.27.3-X:nodwarf5 linux/amd64",
+      "worker_hash": "28bd78ca9456f5573e4b3f588f5f1f73570c77b2b932f5575b92da8cafc41fc2"
+    },
+    "source-bound-review-and-delivery": {
+      "elapsed_ms": 75126.92151300143,
+      "peak_rss_bytes": 424837120,
+      "exit_code": 0,
+      "memory_status": "measured",
+      "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+    },
+    "complete-and-adoption": {
+      "elapsed_ms": 72917.28155399323,
+      "peak_rss_bytes": 419778560,
+      "exit_code": 0,
+      "native_adopted_tasks": 0,
+      "inspected_tasks": 0
+    },
+    "counterexample-and-shrink": {
+      "elapsed_ms": 47001.31070401403,
+      "peak_rss_bytes": 423383040,
+      "exit_code": 1,
+      "central_shrink_elapsed_ms": 10.79,
+      "shrink_attempts": 4,
+      "expected_result": "FAIL from intentional production mutation"
+    },
+    "broken-replay": {
+      "elapsed_ms": 14611.639424983878,
+      "peak_rss_bytes": 419287040,
+      "exit_code": 1,
+      "expected_result": "FAIL from intentional production mutation"
+    },
+    "repaired-replay": {
+      "elapsed_ms": 14513.492052996298,
+      "peak_rss_bytes": 418877440,
+      "exit_code": 0
+    }
+  },
+  "baseline": "unassessed; never promoted automatically",
+  "cache": "first project build and repeated warm build; existing module/toolchain caches",
+  "memory_scope": "wait4 ru_maxrss: largest reaped CLI/descendant process, not collective simultaneous RSS; worker reports its own VmHWM separately"
+}

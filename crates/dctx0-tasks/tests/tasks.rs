@@ -1640,3 +1640,43 @@ fn review_comparison_preserves_latest_judgement_and_reports_complete_group_chang
     previous.conformance = None;
     assert!(!compare_review_bindings(Some(&previous), &binding).comparable);
 }
+
+#[test]
+fn changed_producers_validate_existing_code_before_requesting_implementation() {
+    let input = snap(SPEC);
+    let mut s = session(&input);
+    let original = s.clone();
+    for kind in [TaskKind::Contract, TaskKind::Operation] {
+        let id = s
+            .plan
+            .members
+            .iter()
+            .find(|m| m.candidate.kind == kind)
+            .unwrap()
+            .task_id;
+        let initial = context(&s, &input, id, "goal", usize::MAX, None).unwrap();
+        assert!(!initial.page.items[0].text.starts_with("First validate"));
+        s.definitions.get_mut(&id).unwrap().before_snapshot = Some("previous".into());
+        let changed = context(&s, &input, id, "goal", usize::MAX, None).unwrap();
+        assert!(
+            changed.page.items[0]
+                .text
+                .starts_with("First validate the existing implementation")
+        );
+        assert!(
+            changed.page.items[0]
+                .text
+                .contains("without an implementation change")
+        );
+        assert!(
+            changed.page.items[0]
+                .text
+                .contains("Historical PASS is context, not current proof")
+        );
+        assert_eq!(s.states[&id], original.states[&id]);
+        assert_eq!(
+            serde_json::to_value(&s.plan.members).unwrap(),
+            serde_json::to_value(&original.plan.members).unwrap()
+        );
+    }
+}

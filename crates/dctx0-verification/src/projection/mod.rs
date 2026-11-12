@@ -3,6 +3,7 @@ mod expressions;
 mod model;
 mod paths;
 mod scenarios;
+mod setup_arguments;
 mod state;
 use crate::{VerificationCase, VerificationScope, generate_inputs, generate_values};
 use dctx0_core::*;
@@ -373,7 +374,7 @@ pub fn project_program(
             .iter()
             .enumerate()
             .map(|(index, preparation)| crate::OperationCaseInput {
-                argument_bindings: vec![],
+                argument_bindings: preparation.argument_bindings.clone(),
                 id: format!("{}:preparation:{index}", operation.operation.id),
                 invocation: Invocation {
                     subject: operation.operation.id.clone(),
@@ -393,7 +394,7 @@ pub fn project_program(
                 plan.issues
                     .push(issue(span, "INVALID_OPERATION_ARGUMENT_BINDING", &message));
             }
-            for setup in &case.setup {
+            for (setup_index, setup) in case.setup.iter().enumerate() {
                 let span = ir
                     .symbols
                     .get(&operation.operation.id)
@@ -415,7 +416,21 @@ pub fn project_program(
                     continue;
                 }
                 for (parameter, value) in preparation.parameters.iter().zip(&setup.arguments) {
-                    match dctx0_interpreter::check_value(ir, &parameter.ty, value, &plan.budgets) {
+                    match setup_arguments::check(
+                        ir,
+                        &parameter.ty,
+                        value,
+                        &case
+                            .argument_bindings
+                            .iter()
+                            .filter(|binding| {
+                                binding.target_setup == Some(setup_index)
+                                    && binding.parameter == parameter.name
+                            })
+                            .map(|binding| binding.target_path.as_slice())
+                            .collect::<Vec<_>>(),
+                        &plan.budgets,
+                    ) {
                         dctx0_interpreter::ValueContract::Accepted => {}
                         dctx0_interpreter::ValueContract::Rejected { reason } => plan
                             .issues

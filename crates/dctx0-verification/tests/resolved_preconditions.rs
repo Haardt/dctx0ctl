@@ -175,3 +175,121 @@ fn state_preconditions_require_complete_exact_independently_checked_evidence() {
     plan.operations[0].inputs.bindings.clear();
     assert!(resolved_state_preconditions(&ir, &plan, &cases).is_empty());
 }
+
+#[test]
+fn generated_preconditions_resolve_nested_reviewed_setup_observations() {
+    let compiled = dctx0_language::compile(&[Source {
+        file: "prepared-state.dctx0".into(),
+        text: "workspace W { entity Item { id: String\nkey id } surface Api { operation create() -> String\noperation link(id:String) -> String\noperation read(id:String) -> String { requires exists Item(id) } } }".into(),
+    }]);
+    assert!(
+        compiled.diagnostics.is_empty(),
+        "{:?}",
+        compiled.diagnostics
+    );
+    let ir = compiled.ir.unwrap();
+    let mut plan = project_program(
+        &ir,
+        "snapshot",
+        1,
+        VerificationScope {
+            subjects: ["W.Api.read".into()].into(),
+            tasks: Default::default(),
+        },
+        &Default::default(),
+        Default::default(),
+    );
+    let operation = &mut plan.operations[0];
+    let placeholder = VerificationValue::String("template".into());
+    let real = VerificationValue::String("actual".into());
+    let bindings: std::collections::BTreeMap<String, VerificationValue> =
+        [("id".into(), placeholder.clone())].into();
+    operation.inputs.bindings = vec![bindings.clone()];
+    let create = Invocation {
+        subject: "W.Api.create".into(),
+        arguments: vec![],
+    };
+    let link_template = Invocation {
+        subject: "W.Api.link".into(),
+        arguments: vec![placeholder.clone()],
+    };
+    let link_actual = Invocation {
+        subject: "W.Api.link".into(),
+        arguments: vec![real.clone()],
+    };
+    let final_actual = Invocation {
+        subject: "W.Api.read".into(),
+        arguments: vec![real.clone()],
+    };
+    operation.generated_preparations = vec![GeneratedPreparation {
+        bindings: bindings.clone(),
+        setup: vec![create.clone(), link_template.clone()],
+        argument_bindings: vec![
+            OperationArgumentBinding {
+                setup: 0,
+                source_path: vec![],
+                target_setup: Some(1),
+                parameter: "id".into(),
+                target_path: vec![],
+            },
+            OperationArgumentBinding {
+                setup: 1,
+                source_path: vec![],
+                target_setup: None,
+                parameter: "id".into(),
+                target_path: vec![],
+            },
+        ],
+    }];
+    let issue = operation
+        .inputs
+        .issues
+        .iter()
+        .find(|issue| issue.code == "STATE_OBSERVER_REQUIRED")
+        .unwrap()
+        .clone();
+    let observed = |invocation, value| InvocationObservation {
+        invocation,
+        observation: Observation::Returned { value },
+    };
+    let mut case = VerificationCaseRecord {
+        id: "W.Api.read:operation:0".into(),
+        subject: "W.Api.read".into(),
+        kind: VerificationCaseKind::Operation,
+        bindings,
+        setup: vec![create.clone(), link_template],
+        arguments: vec![vec![placeholder]],
+        observations: vec![
+            observed(create, real.clone()),
+            observed(link_actual.clone(), real.clone()),
+            observed(final_actual, real.clone()),
+        ],
+        events: None,
+        resources: None,
+        states: vec![VerificationStateEvidence {
+            phase: StatePhase::Before,
+            phase_recorded: Some(true),
+            entities: [(
+                "W.Item".into(),
+                vec![VerificationValue::Record(
+                    [("id".into(), real.clone())].into(),
+                )],
+            )]
+            .into(),
+        }],
+        result: VerificationResult::Pass,
+        elapsed_us: 0,
+    };
+    assert_eq!(
+        resolved_state_preconditions(&ir, &plan, &[case.clone()]),
+        vec![issue.clone()]
+    );
+    case.setup[1] = link_actual;
+    case.arguments = vec![vec![real]];
+    assert_eq!(
+        resolved_state_preconditions(&ir, &plan, &[case.clone()]),
+        vec![issue]
+    );
+    case.observations[1].invocation.arguments.clear();
+    assert!(resolved_state_preconditions(&ir, &plan, &[case]).is_empty());
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Couple large bound-review acceptance with isolated release CLI speed and RAM."""
+import history_retention
 import datetime
 import json
 import os
@@ -54,14 +55,13 @@ def main():
         history.mkdir(parents=True, exist_ok=True)
         with locked(history / '.lock'):
             with tempfile.NamedTemporaryFile(mode='w', dir=history, delete=False) as staged:
-                json.dump(report, staged, indent=2)
+                json.dump(history_retention.mark(report), staged, indent=2)
                 staged.write('\n')
                 staged.flush()
                 os.fsync(staged.fileno())
             destination = history / f'{stamp}-{os.getpid()}.json'
             os.replace(staged.name, destination)
-            for old in sorted(history.glob('*.json'))[:-20]:
-                old.unlink()
+            history_retention.prune(history)
         print(json.dumps({'status': report['status'], 'report': str(destination), 'error': report.get('error')}))
     return 0 if report['status'] == 'complete' else 1
 

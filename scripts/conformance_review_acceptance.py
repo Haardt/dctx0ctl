@@ -7,6 +7,8 @@ Performance measurements are run separately at the end by validate.py.
 from verification_storage import saved_verification_artifacts
 from cinema_expectations import EXPECTED_NATIVE_CASES, assert_native_cinema
 import argparse
+import contextlib
+import history_retention
 import hashlib
 import json
 import os
@@ -30,8 +32,12 @@ def main():
         parser.error('--project requires one --target and no --http-frameworks')
     binary = args.binary.resolve()
     report = {'schema_version': 1, 'status': 'incomplete', 'basis': 'Workflow test reusing source-validated authored Cinema inspection fixtures; not generated architectural approvals.', 'targets': {}}
-    with tempfile.TemporaryDirectory(prefix='dctx0-conformance-review-') as temporary:
+    preserve = history_retention.preserve_history()
+    context = contextlib.nullcontext(tempfile.mkdtemp(prefix='dctx0-conformance-review-')) if preserve else tempfile.TemporaryDirectory(prefix='dctx0-conformance-review-')
+    with context as temporary:
         base = Path(temporary)
+        if preserve:
+            print(f'Retained conformance review workspace: {base}', flush=True)
         variants = [('gin', 'go', 'cinema-go'), ('axum', 'rust', 'cinema-rust')] if args.http_frameworks else [('typescript', 'typescript', 'cinema'), ('go', 'go', 'cinema-go'), ('rust', 'rust', 'cinema-rust')]
         if args.target:
             variants = [item for item in variants if item[1] == args.target]
@@ -42,6 +48,8 @@ def main():
             spec = project / 'dctx0'
             notes_path = project / '.dctx0/testing' / target / 'inspection-notes.json'
             notes = json.loads(notes_path.read_text())
+            if preserve:
+                shutil.copyfile(notes_path, base / f'{target}-inspection-notes-original.json')
             for name, expected in notes['reviewed_hashes'].items():
                 actual = hashlib.sha256((project / name).read_bytes()).hexdigest()
                 assert actual == expected, f'{target}: reviewed fixture changed: {name}; expected {expected}, got {actual}; explicit source reinspection required'
@@ -113,15 +121,21 @@ def main():
             # Captured toolchain paths vary by runner. Preserve every inspection
             # while respecting the CLI's 1-MiB import limit on all platforms.
             batch = []
+            batch_number = 0
             for attestation in attestations:
                 encoded = json.dumps([*batch, attestation], separators=(',', ':')).encode()
                 if len(encoded) > 1_048_576 and batch:
+                    if preserve:
+                        imports = base / f'{target}-attestations-{batch_number}.json'
+                        batch_number += 1
                     imports.write_text(json.dumps(batch, separators=(',', ':')))
                     invoke('verify', 'attest', spec, native['evidence']['id'], '--project', project, '--file', imports)
                     batch = []
                 assert len(json.dumps([attestation], separators=(',', ':')).encode()) <= 1_048_576, 'A single inspection exceeds the import limit'
                 batch.append(attestation)
             if batch:
+                if preserve:
+                    imports = base / f'{target}-attestations-{batch_number}.json'
                 imports.write_text(json.dumps(batch, separators=(',', ':')))
                 invoke('verify', 'attest', spec, native['evidence']['id'], '--project', project, '--file', imports)
             # Removing the legacy notes proves completion uses persisted task reviews.

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "interrupted-invalid-coverage-scope",
+  "command": [
+    "python3",
+    "scripts/validate.py",
+    "--coverage",
+    "--samples",
+    "1",
+    "--iterations",
+    "1"
+  ],
+  "reason": "cargo-llvm-cov default test filename filtering omitted the production application_tests.rs module; rename to application_plan.rs before repeating acceptance",
+  "performance_status": "common release measurement suite not started",
+  "baseline_promoted": false,
+  "elapsed_ms": 4999349.808,
+  "peak_process_tree_rss_bytes": 1078005760,
+  "memory_scope": "sampled Linux process-tree RSS sum, 50ms; shared pages counted per process",
+  "coverage_not_accepted": {
+    "lines": 44321,
+    "covered_lines": 43023,
+    "line_percent": 97.07136571828254,
+    "llvm_totals": {
+      "branches": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "functions": {
+        "count": 3588,
+        "covered": 3484,
+        "percent": 97.10144927536231
+      },
+      "instantiations": {
+        "count": 7872,
+        "covered": 4928,
+        "percent": 62.601626016260155
+      },
+      "lines": {
+        "count": 46765,
+        "covered": 45140,
+        "percent": 96.52517908692398
+      },
+      "mcdc": {
+        "count": 0,
+        "covered": 0,
+        "notcovered": 0,
+        "percent": 0
+      },
+      "regions": {
+        "count": 71821,
+        "covered": 67198,
+        "notcovered": 4623,
+        "percent": 93.56316397710977
+      }
+    },
+    "source_hash_before": "17dc1321569210de104317a4387a4fd46fa536fa38e0923a56565538e83ed263",
+    "source_hash_after": "17dc1321569210de104317a4387a4fd46fa536fa38e0923a56565538e83ed263"
+  },
+  "raw_artifacts": "target/application-test-before-rename/",
+  "independent_subreports": [
+    "benchmarks/history/generators/20261108T153848.761377Z-2329418.json",
+    "benchmarks/history/status/20261108T153912.655015Z-2332092.json"
+  ]
+}

@@ -93,7 +93,7 @@ cargo build --workspace
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
-python3 scripts/coverage.py # 97% merged source lines and LLVM functions
+python3 scripts/coverage.py # temporary 96% merged source lines and LLVM functions
 ```
 
 The coverage stage preserves raw LLVM metrics and strictly enforces every merged LCOV source line; see `docs/site/src/reference/coverage.md` for the instrumented-instance reporting limitation. It requires `cargo-llvm-cov` and the toolchain's `llvm-tools-preview` component. Document CLI usage and native target toolchain setup in `README.md`. Test supported feature combinations separately when all-features testing cannot represent them.
@@ -113,11 +113,11 @@ Use rustfmt's default four-space indentation, `snake_case` for modules/functions
 
 ## Testing & Coverage Requirements
 
-Target **97% line and function coverage of first-party Rust production code**, enforced in CI with `cargo-llvm-cov`. Also pursue full branch/region coverage where Rust/LLVM tooling supports reliable measurement. Line coverage alone does not prove every behavior is tested.
+Target **96% line and function coverage of first-party Rust production code** (temporary user authorization, 2026-11-09), enforced in CI with `cargo-llvm-cov`. Also pursue full branch/region coverage where Rust/LLVM tooling supports reliable measurement. Line coverage alone does not prove every behavior is tested.
 
 Cover success, rejection, boundary, timeout, cancellation, and unavailable-toolchain paths. Use unit tests near implementation, integration tests under each crate's `tests/`, and descriptive behavior-based names. Run doctests separately where coverage instrumentation does not support them. Compare parser, IR, interpreter, and target behavior against shared reference fixtures; document intentional deviations. Exercise real native compilers and harnesses in integration CI, not only mocks.
 
-Merge coverage across required platform/feature jobs where necessary. Any technically unreachable or unmeasurable code needs a narrowly scoped, documented exclusion explaining the limitation and alternative validation. Record exclusions and tooling limitations in `docs/site/src/reference/coverage.md` when introduced. Never exclude ordinary error paths, lower the user-approved 97% thresholds, or add meaningless tests just to obtain 100%. Report coverage of non-Rust target helpers separately; Rust instrumentation does not measure them.
+Merge coverage across required platform/feature jobs where necessary. Any technically unreachable or unmeasurable code needs a narrowly scoped, documented exclusion explaining the limitation and alternative validation. Record exclusions and tooling limitations in `docs/site/src/reference/coverage.md` when introduced. Never exclude ordinary error paths, lower the current user-approved thresholds, or add meaningless tests just to obtain 100%. Report coverage of non-Rust target helpers separately; Rust instrumentation does not measure them.
 
 Coverage tooling reference: https://github.com/taiki-e/cargo-llvm-cov
 
@@ -1618,3 +1618,100 @@ workloads completed in 3,895,588.849 ms; sampled process-tree peak RSS was
 1,075,568,640 bytes. Performance comparison remains unassessed and no baseline
 was promoted. `docs/status-preflight-validation.json` retains source pins,
 measurement references and the earlier failed preflight classification attempt.
+
+## Application-test planning foundation (2026-11-08)
+
+The P0–P7 application-test migration is tracked in
+`docs/application-test-implementation.md`, alongside the retained concept and
+migration documents. P0 now has a diagnostic version-1 export preserving the
+original `ProgramPlan`, central `case_manifest`, exact ownership, test forms and
+expected registrations. Schema-2 group configuration is an explicit input to
+`verify plan --application-tests GROUPS --test-catalog CATALOG`; schema-1
+adapter configurations and existing execution remain unchanged. Do not treat
+this export or its registrations as native execution, complete isolation,
+persistent group evidence or adoption authority. Native application-test
+libraries, evaluator transport, collector/store composition, consumer migration
+and the default switch remain unimplemented. Complete native old/new comparison
+and P1–P7 acceptance are still required.
+
+The release `application-test-plan` phase is included in `scripts/validate.py`.
+It measures pure export/ownership construction after projection, with process
+RSS including preparation. It does not measure a new native backend. Keep the
+accepted baseline unchanged; reduced development samples are unassessed.
+
+Application-test native pilot (2026-11-08, in progress): separate application
+protocol 1 and pure `ApplicationSession` now support Go/Bun decoder or native
+constructor tests, direct operation/state tests and existing pure assertions.
+Each language's real Cinema pilot covers 4,165 unchanged finite cases: 3,862
+contracts, 100 winner calls, 102 actual SQLite saves (including the original API
+setup), and 101 assertions. The full manifest remains 5,766; remaining 1,601
+cases stay assigned to the old backend. This is diagnostic execution without
+mixed-group adoption authority, complete build/source proof or full Cinema
+migration. The common runner now includes the pilots/probes and their separate
+release measurements. Full post-change coverage is pending; do not reuse the
+97.08%/97.12% pre-migration coverage as proof of the new code. The frozen prior
+validation/source/native evidence is under
+`benchmarks/application-tests/before-20261108T172542Z/`; baseline unchanged.
+
+## Native application-test continuation (2026-11-08)
+
+The working tree adds application protocol 2 and testing libraries 0.2.0 for Go
+and Bun, separate from target SDK 2 and the existing worker protocol. Both native
+Cinema suites execute the same 5,766 original cases, including scenarios,
+lifecycles and centrally derived identity. `verify application-tests run` builds
+from captured sources and independently collects Go test2json / Bun JUnit;
+`replay` reruns saved inputs. `library` publishes the embedded testing-only SDK
+without overwriting authored tests or silently replacing edited pinned files.
+These are diagnostic execution reports, not transactional task-adoption evidence.
+The full current-tree coverage/performance acceptance is still pending; retain
+the successful before-reference and every failed/incomplete after-attempt. See
+`docs/application-test-implementation.md`. Never certify this change using the
+older 97% measurements, lower the thresholds, or promote the benchmark baseline.
+
+
+## Guarded application-test task delivery (2026-11-09)
+
+The new Go/Bun application-test path uses protocol 2 and testing libraries 0.2.0
+with the unchanged 5,766-case Cinema manifest. Fresh managed
+`verify application-tests run` stores native evidence and attempts task delivery
+through transactional native guards; `--no-adopt` requests diagnostics without
+task delivery. `verify application-tests complete` uses the prepared check,
+current profiles and source-bound authored inspection notes, then applies the
+same completion logic as the established adapter workflow. Preparation, service
+sessions, imported reports, replay and library finalization alone cannot authorize
+adoption. `adoption_authority` requires actual task delivery.
+
+Actual Go and Bun `complete` runs have each delivered all 105 Cinema tasks as Done/PASS,
+including four source-bound authored review attestations. An explicit native-backed
+TaskAttestation supplies testing evidence for those reviews; plain review approval
+or manual completion still does not set PASS. Existing Done/Unverified reviews are
+preserved. This supersedes earlier blanket diagnostic-only descriptions of the
+new managed command, not the status of their historical reports. Full current-tree
+coverage and functional validation now pass; reduced release measurements remain
+unassessed against the accepted baseline. Keep the frozen before-reference,
+failed/incomplete attempts, 97% Rust thresholds and accepted benchmark baseline
+unchanged. See `docs/site/src/docs/application-tests.md` for the current workflow.
+
+
+## Cinema application-test release acceptance (2026-11-09)
+
+Both actual Cinema Go/Bun project stores contain 105 Done/PASS tasks. Fresh
+managed completions independently reproduce all 5,766 finite cases and all 105
+Done/PASS, including 4 explicitly inspected source-bound reviews. Plain review
+approval/manual completion and replay still have no independent PASS authority.
+The complete source-stable runner passes 99 steps, 773 all-feature Rust tests,
+47 Python tests and all 7 Go/18 Bun full-suite mutations. Rust coverage is
+47,437/48,889 merged source lines (97.0300%) and 3,798/3,914 LLVM functions
+(97.0363%); raw LLVM line/region metrics are preserved separately.
+All 126 release speed/RAM workloads completed with reduced single samples;
+the performance gate is explicitly unassessed and the accepted baseline remains
+unchanged. See `benchmarks/application-tests/after-cinema-native-20261109T060938.334343Z/`
+for raw evidence/comparison and `docs/site/src/docs/application-tests.md` for the
+procedure, helper-coverage limits and remaining cross-backend/consumer stages.
+
+## Temporary coverage authorization (2026-11-09)
+
+The user explicitly lowered the Rust merged source-line and LLVM function gates
+to 96% for now. This supersedes earlier instructions to retain 97%; historical
+metrics and validation outcomes remain unchanged. All functional, native,
+provenance, task-publication and performance requirements remain applicable.

@@ -2,6 +2,7 @@
 mod descendants;
 pub(crate) mod identity;
 pub(crate) use identity::VerifierIdentity;
+pub(crate) use identity::resolve_program;
 pub use identity::{NativeLaunchInputs, NativeRuntimeIdentity};
 mod cases;
 mod command;
@@ -22,7 +23,7 @@ use dctx0_target_sdk::*;
 use serde::{Deserialize, Serialize};
 #[cfg(target_os = "linux")]
 use std::os::unix::process::CommandExt;
-use std::{path::Path, process::Stdio, time::Duration};
+use std::{collections::BTreeMap, path::Path, process::Stdio, time::Duration};
 use tokio::{
     io::AsyncWriteExt,
     process::{Child, ChildStdin, Command},
@@ -82,6 +83,9 @@ impl Default for NativeCancellation {
 impl NativeCancellation {
     pub fn cancel(&self) {
         self.signal.send_replace(true);
+    }
+    pub(crate) fn is_cancelled(&self) -> bool {
+        *self.signal.borrow()
     }
     pub(crate) async fn cancelled(&self) {
         let mut receiver = self.signal.subscribe();
@@ -220,6 +224,16 @@ impl NativeWorker {
         limits: NativeLimits,
         protocol: bool,
     ) -> Result<Self, NativeFailure> {
+        Self::spawn_streams_with_environment(recipe, directory, limits, protocol, &BTreeMap::new())
+            .await
+    }
+    async fn spawn_streams_with_environment(
+        recipe: &ExecutionRecipe,
+        directory: &Path,
+        limits: NativeLimits,
+        protocol: bool,
+        environment: &BTreeMap<String, String>,
+    ) -> Result<Self, NativeFailure> {
         limits.validate()?;
         let supervised = limits.supervision_capabilities().process_tree;
         #[cfg(target_os = "linux")]
@@ -230,6 +244,7 @@ impl NativeWorker {
         }
         let program = identity::resolve_program(&recipe.program, directory)?;
         let mut command = Command::new(&program);
+        command.envs(environment);
         if recipe.program == "cargo" {
             command
                 .env("CARGO_NET_OFFLINE", "true")
@@ -253,7 +268,7 @@ impl NativeWorker {
                 .env("GOPROXY", "off")
                 .env("GOWORK", "off")
                 .env("CGO_ENABLED", "0")
-                .env("GOFLAGS", "-mod=readonly");
+                .env("GOFLAGS", "-mod=readonly -buildvcs=false");
         }
         // An inherited ownership chain also identifies detached descendants after
         // their original parent exits, when /proc's PPid relationship is lost.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Real Rust self-verification acceptance, production mutations, then release speed/RSS."""
+import history_retention
 import argparse
 import datetime
 import hashlib
@@ -121,8 +122,8 @@ def main():
             fcntl.flock(lock,fcntl.LOCK_EX)
             filename=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')+f'-{os.getpid()}.json'
             temporary=HISTORY/(filename+'.tmp')
-            temporary.write_text(json.dumps(report,indent=2)+'\n');temporary.replace(HISTORY/filename)
-            for path in sorted(HISTORY.glob('*.json'))[:-20]:path.unlink()
+            temporary.write_text(json.dumps(history_retention.mark(report),indent=2)+'\n');temporary.replace(HISTORY/filename)
+            history_retention.prune(HISTORY)
         print(json.dumps({'complete':report['complete'],'report':str(HISTORY/filename),'error':report.get('error')}))
     return 0 if report['complete'] else 1
 

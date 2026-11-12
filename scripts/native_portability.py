@@ -3,6 +3,7 @@
 
 Run on each host; this does not simulate another OS. Never promotes a baseline.
 """
+import history_retention
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -135,10 +136,9 @@ def main():
         HISTORY.mkdir(parents=True, exist_ok=True)
         with locked(HISTORY.parent / '.native-portability.lock'):
             with tempfile.NamedTemporaryFile(mode='w', dir=HISTORY, delete=False, prefix='.write-', encoding='utf-8') as staged:
-                json.dump(record, staged, indent=2); staged.write('\n'); staged.flush(); os.fsync(staged.fileno())
+                json.dump(history_retention.mark(record), staged, indent=2); staged.write('\n'); staged.flush(); os.fsync(staged.fileno())
             os.replace(staged.name, HISTORY / (stamp + '.json'))
-            for old in sorted(HISTORY.glob('*.json'))[:-20]:
-                old.unlink()
+            history_retention.prune(HISTORY)
         (output / 'report.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'status': record['status'], 'report': str(output / 'report.json'), 'failure': failure}, indent=2))
     return 1 if failure else 0
