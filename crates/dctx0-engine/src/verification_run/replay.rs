@@ -17,7 +17,7 @@ pub struct VerificationReplayReport {
     pub changes: Vec<ReplayChange>,
     pub evidence: NativeVerificationReport,
 }
-fn only(
+pub(super) fn only(
     plan: &mut ProgramPlan,
     case: &VerificationCaseRecord,
     ir: Option<&dctx0_core::WorkspaceIr>,
@@ -287,12 +287,22 @@ fn record_matches_input(
 }
 // Replay must keep the executed backend. A native-owned observation cannot
 // become evidence of an adapter call merely because both use the same case ID.
-fn require_adapter_replay_owner(
+pub(super) fn require_adapter_replay_owner(
     store: &dctx0_store::Store,
     run_id: &str,
     run: &VerificationRun,
     plan: &ProgramPlan,
     case: &VerificationCaseRecord,
+) -> Result<()> {
+    require_adapter_replay_owners(store, run_id, run, plan, std::slice::from_ref(case))
+}
+
+pub(super) fn require_adapter_replay_owners(
+    store: &dctx0_store::Store,
+    run_id: &str,
+    run: &VerificationRun,
+    plan: &ProgramPlan,
+    cases: &[VerificationCaseRecord],
 ) -> Result<()> {
     if run.provenance.protocol_version
         == dctx0_verification::application_evidence::APPLICATION_EXECUTION_PROTOCOL_VERSION
@@ -329,33 +339,35 @@ fn require_adapter_replay_owner(
             "Hybrid replay ownership does not match its saved program".into(),
         ));
     }
-    let owner = proof
-        .application
-        .plan
-        .case_groups
-        .get(&case.id)
-        .ok_or_else(|| Error::Invalid("Saved hybrid case has no assigned backend".into()))?;
-    if owner == &proof.application.assessment.group {
-        return Err(Error::Invalid(format!(
-            "Application-owned case requires verify application-tests replay for group {} with its saved native report",
-            proof.application.assessment.group,
-        )));
-    }
-    if owner != &proof.adapter_group {
-        return Err(Error::Invalid(
-            "Saved hybrid case has an unknown backend".into(),
-        ));
-    }
-    if case.kind == VerificationCaseKind::EntityIdentity {
-        if let Some(VerificationValue::List(sources)) = case.bindings.get("source_cases") {
-            if sources.iter().any(|source| {
-                matches!(source, VerificationValue::String(id)
+    for case in cases {
+        let owner = proof
+            .application
+            .plan
+            .case_groups
+            .get(&case.id)
+            .ok_or_else(|| Error::Invalid("Saved hybrid case has no assigned backend".into()))?;
+        if owner == &proof.application.assessment.group {
+            return Err(Error::Invalid(format!(
+                "Application-owned case requires verify application-tests replay for group {} with its saved native report",
+                proof.application.assessment.group,
+            )));
+        }
+        if owner != &proof.adapter_group {
+            return Err(Error::Invalid(
+                "Saved hybrid case has an unknown backend".into(),
+            ));
+        }
+        if case.kind == VerificationCaseKind::EntityIdentity {
+            if let Some(VerificationValue::List(sources)) = case.bindings.get("source_cases") {
+                if sources.iter().any(|source| {
+                    matches!(source, VerificationValue::String(id)
                     if proof.application.plan.case_groups.get(id.as_ref())
                         == Some(&proof.application.assessment.group))
-            }) {
-                return Err(Error::Invalid(
+                }) {
+                    return Err(Error::Invalid(
                     "Cross-group identity replay requires a fresh complete hybrid execution; source cases must retain their assigned backends".into(),
                 ));
+                }
             }
         }
     }

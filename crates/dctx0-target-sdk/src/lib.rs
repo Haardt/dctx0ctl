@@ -51,6 +51,30 @@ pub enum Error {
     Protocol(String),
 }
 pub trait HarnessGenerator {
+    fn contract_decoder_adapter(
+        &self,
+        _bindings: &[dctx0_core::ContractDecoderBinding],
+    ) -> Result<Artifact, Error> {
+        Err(Error::Invalid(
+            "Direct contract decoder units are unsupported by this target".into(),
+        ))
+    }
+
+    /// Optional version-1 execution-boundary analysis. Import inventories alone
+    /// cannot certify callbacks, observers, fixtures or dynamic resource access.
+    /// Unsupported targets explicitly retain their complete execution cohort.
+    fn unit_dependency_boundary(
+        &self,
+        group: &str,
+        _roots: &BTreeMap<String, BTreeSet<String>>,
+        _sources: &[InspectionSource],
+    ) -> Result<dctx0_core::UnitDependencyBoundary, Error> {
+        Ok(dctx0_core::UnitDependencyBoundary::Unknown {
+            group: group.into(),
+            reasons: ["TARGET_UNIT_BOUNDARY_UNSUPPORTED".into()].into(),
+        })
+    }
+
     /// Languages whose syntax this target can inventory. Other captured assets remain
     /// bound by source/build receipts and are explicitly outside this syntax analysis.
     fn dependency_languages(&self) -> &'static [InspectionLanguage] {

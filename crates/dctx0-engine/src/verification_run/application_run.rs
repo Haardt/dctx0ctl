@@ -574,6 +574,7 @@ impl Project {
         let mut socket_directory = SocketDirectory::new()?;
         let socket = socket_directory.endpoint();
         let mut limits = NativeLimits {
+            environment: config.environment.clone().unwrap_or_default(),
             run: std::time::Duration::from_secs(native_group.resources.timeout_seconds),
             log_bytes: 33_554_432,
             ..Default::default()
@@ -756,9 +757,16 @@ impl Project {
                     let mut phase = catalog.clone();
                     phase.phase = "native-tests".into();
                     let native_recipe = expand(&recipe.run, &captured_plan, &artifacts);
-                    let executable =
-                        crate::native::resolve_program(&native_recipe.program, &native_directory)
-                            .map_err(|error| Error::Invalid(error.to_string()))?;
+                    let effective = limits
+                        .environment
+                        .entries()
+                        .map_err(|error| Error::Invalid(error.to_string()))?;
+                    let executable = crate::native::identity::resolve_program_with_path(
+                        &native_recipe.program,
+                        &native_directory,
+                        crate::native::environment_value(&effective, "PATH"),
+                    )
+                    .map_err(|error| Error::Invalid(error.to_string()))?;
                     if fs::metadata(&executable)?.len() > 268_435_456 {
                         return Err(Error::Invalid(
                             "Native executable exceeds identity limit".into(),

@@ -126,6 +126,7 @@ fn incremental_publication_validates_parent_and_copied_cases() {
             .collect(),
         files: Default::default(),
         environment: Default::default(),
+        incomplete: vec![],
     };
     let units = incremental::receipt_units(&plan, &receipt).unwrap();
     let plan_artifact = VerificationArtifact::new(
@@ -200,6 +201,130 @@ fn incremental_publication_validates_parent_and_copied_cases() {
     let saved = store.record_verification_run("p", &result, &all).unwrap();
     assert!(store.verification_run("p", &parent.id).is_ok());
     assert!(store.verification_run("p", &saved.id).is_ok());
+
+    // Later standalone native assertions, provenance drift and group aborts
+    // contradict all original cases even without per-case FAIL/UNKNOWN rows.
+    for (attempt, kind) in ["verdict", "drift", "abort"].into_iter().enumerate() {
+        let mut isolated = run.clone();
+        isolated.started_at_unix_ns = format!("90{attempt}");
+        isolated.provenance.runtime_version = format!("isolated-{kind}");
+        let isolated = store
+            .record_verification_run("p", &isolated, &artifacts)
+            .unwrap();
+        let mut later = isolated.run.clone();
+        later.started_at_unix_ns = format!("10{attempt}");
+        let group_issue = VerificationIssue {
+            code: "UNRECOGNIZED_GROUP_FAILURE".into(),
+            message: "Group completion was not established".into(),
+            span: None,
+        };
+        if kind == "drift" {
+            later.provenance.incomplete.push(group_issue.clone());
+        }
+        if kind == "abort" {
+            later.cases.clear();
+            later.open_obligations.push(group_issue.clone());
+        }
+        later.result = VerificationResult::Unknown { issue: group_issue };
+        store
+            .record_verification_run("p", &later, &artifacts)
+            .unwrap();
+        assert_eq!(
+            store.verification_later_nonpass("p", &isolated.id).unwrap(),
+            run.required_cases,
+            "later {kind} must block every original case",
+        );
+    }
+
+    // Even complete passing case records do not establish a successful group
+    // if the native observer retained an unclassified execution failure.
+    let mut complete_group = run.clone();
+    complete_group.started_at_unix_ns = "1000".into();
+    complete_group.provenance.runtime_version = "unclassified-group-identity".into();
+    let complete_group = store
+        .record_verification_run("p", &complete_group, &artifacts)
+        .unwrap();
+    let mut incomplete_parent = complete_group.run.clone();
+    incomplete_parent.started_at_unix_ns = "3".into();
+    let group_issue = dctx0_core::VerificationIssue {
+        code: "UNRECOGNIZED_GROUP_FAILURE".into(),
+        message: "Observer could not establish group completion".into(),
+        span: None,
+    };
+    incomplete_parent.open_obligations.push(group_issue.clone());
+    incomplete_parent.result = VerificationResult::Unknown { issue: group_issue };
+    let incomplete_parent = store
+        .record_verification_run("p", &incomplete_parent, &artifacts)
+        .unwrap();
+    assert_eq!(
+        store
+            .verification_later_nonpass("p", &complete_group.id)
+            .unwrap(),
+        run.required_cases,
+    );
+    let mut forged_proof = proof.clone();
+    forged_proof.binding = incremental::binding(
+        &plan,
+        incomplete_parent.run.provenance.clone(),
+        artifacts[1].reference.hash.clone(),
+    )
+    .unwrap();
+    forged_proof.parent_run = incomplete_parent.id.clone();
+    let forged_artifact = VerificationArtifact::new(
+        incremental::INCREMENTAL_PROOF_MEDIA_TYPE,
+        serde_json::to_vec(&forged_proof).unwrap(),
+    );
+    let mut forged_run = result.clone();
+    forged_run.started_at_unix_ns = "4".into();
+    forged_run.provenance = incomplete_parent.run.provenance.clone();
+    forged_run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
+    forged_run.artifacts.push(forged_artifact.reference.clone());
+    let mut forged_artifacts = artifacts.clone();
+    forged_artifacts.push(forged_artifact);
+    assert!(
+        store
+            .record_verification_run("p", &forged_run, &forged_artifacts)
+            .unwrap_err()
+            .to_string()
+            .contains("proof")
+    );
+    assert_eq!(
+        store
+            .verification_run("p", &incomplete_parent.id)
+            .unwrap()
+            .run,
+        incomplete_parent.run,
+    );
+
+    // A later actual failure in the same bound cohort cannot be hidden by
+    // explicitly pointing back to the older green run.
+    let mut failed = run.clone();
+    failed.started_at_unix_ns = "20".into();
+    let failure = VerificationResult::Fail {
+        issue: VerificationIssue {
+            code: "ACTUAL_FAILURE".into(),
+            message: "Observed after the baseline".into(),
+            span: None,
+        },
+    };
+    failed.cases[0].result = failure.clone();
+    failed.result = failure;
+    store
+        .record_verification_run("p", &failed, &artifacts)
+        .unwrap();
+    assert_eq!(
+        store.verification_later_nonpass("p", &parent.id).unwrap(),
+        [failed.cases[0].id.clone()].into()
+    );
+    let mut stale = result.clone();
+    stale.started_at_unix_ns = "21".into();
+    assert!(
+        store
+            .record_verification_run("p", &stale, &all)
+            .unwrap_err()
+            .to_string()
+            .contains("LATER_NONPASS_OBSERVATION")
+    );
 
     // Application receipts contain per-run details, but the store independently
     // derives and compares the execution identity from both actual receipts.
@@ -2066,4 +2191,232 @@ fn schema_six_inspection_links_remain_unknown_and_preserve_evidence() {
         inspection.contents
     );
     assert_eq!(crate::storage::version(&old.connection).unwrap(), 6);
+}
+
+#[test]
+fn native_complete_baseline_survives_manual_only_unknown_and_task_metadata() {
+    for code in [
+        "MANUAL_REQUIREMENT",
+        "SUITE_INSPECTION_REQUIRED",
+        "ADOPTION_HISTORICAL_SCOPE",
+    ] {
+        let t = Temp::new();
+        let mut store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+        let (mut run, artifacts) = setup(&mut store, "p");
+        run.origin = VerificationRunOrigin::Native;
+        let problem = VerificationIssue {
+            code: code.into(),
+            message: "Separate non-execution work remains".into(),
+            span: None,
+        };
+        if code == "ADOPTION_HISTORICAL_SCOPE" {
+            run.provenance.incomplete.push(problem.clone());
+        } else {
+            run.open_obligations.push(problem.clone());
+        }
+        run.result = VerificationResult::Unknown { issue: problem };
+        let baseline = store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+        run.cases.clear();
+        run.started_at_unix_ns = "2".into();
+        store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+        store.verification_gc("p").unwrap();
+        assert_eq!(
+            store
+                .verification_complete_baseline("p", "typescript", &run.selected_subjects)
+                .unwrap()
+                .unwrap()
+                .id,
+            baseline.id,
+            "{code} does not invalidate the technical case baseline",
+        );
+        assert_eq!(
+            store.verification_run("p", &baseline.id).unwrap().run,
+            baseline.run
+        );
+    }
+}
+
+#[test]
+fn native_complete_baseline_survives_later_partial_attempts_and_gc() {
+    let t = Temp::new();
+    let mut store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    let (mut run, artifacts) = setup(&mut store, "p");
+    run.origin = VerificationRunOrigin::Native;
+    let mut second = run.cases[0].clone();
+    second.id = "D".into();
+    run.required_cases.insert(second.id.clone());
+    run.cases.push(second);
+    let baseline = store
+        .record_verification_run("p", &run, &artifacts)
+        .unwrap();
+    run.cases.pop();
+    run.result = VerificationResult::Unknown {
+        issue: VerificationIssue {
+            code: "INCOMPLETE_RUN".into(),
+            message: "Partial diagnostic attempt".into(),
+            span: None,
+        },
+    };
+    for attempt in 2..=6 {
+        run.started_at_unix_ns = attempt.to_string();
+        store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+    }
+    // Complete central case records do not override a failed native runner,
+    // changed inputs or missing cleanup. Those attempts cannot replace the base.
+    run.cases = baseline.run.cases.clone();
+    for (attempt, code, failed) in [
+        (7, "APPLICATION_NATIVE_ASSERTION_FAILED", true),
+        (8, "ADOPTION_INPUTS_CHANGED", false),
+        (9, "NATIVE_CLEANUP", false),
+        (10, "UNCLASSIFIED_NATIVE_VERDICT", false),
+    ] {
+        run.started_at_unix_ns = attempt.to_string();
+        let problem = VerificationIssue {
+            code: code.into(),
+            message: "Unusable complete-case attempt".into(),
+            span: None,
+        };
+        run.provenance.incomplete.clear();
+        run.open_obligations.clear();
+        run.result = if failed {
+            VerificationResult::Fail {
+                issue: problem.clone(),
+            }
+        } else {
+            VerificationResult::Unknown {
+                issue: problem.clone(),
+            }
+        };
+        if code == "ADOPTION_INPUTS_CHANGED" {
+            run.provenance.incomplete.push(problem);
+        } else if code == "NATIVE_CLEANUP" {
+            run.open_obligations.push(problem);
+        }
+        store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+    }
+    assert_eq!(
+        store
+            .verification_complete_baseline("p", "typescript", &run.selected_subjects)
+            .unwrap()
+            .unwrap()
+            .id,
+        baseline.id
+    );
+    store.verification_gc("p").unwrap();
+    assert_eq!(
+        store
+            .verification_run("p", &baseline.id)
+            .unwrap()
+            .run
+            .cases
+            .len(),
+        2
+    );
+    assert_eq!(
+        store.verification_run_summaries("p", 0, 1).unwrap()[0].case_count,
+        2
+    );
+    assert_eq!(
+        store
+            .verification_reuse_candidate("p", &run.selected_subjects)
+            .unwrap()
+            .unwrap(),
+        store.verification_run_summaries("p", 0, 1).unwrap()[0].id
+    );
+    let plan = store.connection.prepare("EXPLAIN QUERY PLAN SELECT hash FROM verification_case_bodies WHERE NOT EXISTS(SELECT 1 FROM verification_case_index i JOIN verification_runs r ON r.id=i.run_id WHERE i.body_hash=verification_case_bodies.hash AND r.pruned_at IS NULL)").unwrap().query_map([], |row| row.get::<_,String>(3)).unwrap().collect::<std::result::Result<Vec<_>,_>>().unwrap();
+    assert!(plan.iter().any(|step| step.contains("SEARCH i USING COVERING INDEX verification_case_body_users")), "{plan:?}");
+}
+
+#[test]
+fn retention_body_lookup_scales_with_indexed_references_and_repairs_old_physical_indexes() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering as AtomicOrdering},
+    };
+    fn measured(count: usize) -> u64 {
+        let mut store =
+            Store::open(std::path::Path::new(":memory:"), AccessMode::ReadWrite).unwrap();
+        let (mut run, artifacts) = setup(&mut store, "p");
+        let template = run.cases[0].clone();
+        run.cases = (0..count)
+            .map(|index| {
+                let mut case = template.clone();
+                case.id = format!("case:{index}");
+                case
+            })
+            .collect();
+        run.required_cases = run.cases.iter().map(|case| case.id.clone()).collect();
+        let saved = store
+            .record_verification_run("p", &run, &artifacts)
+            .unwrap();
+        for index in 0..count {
+            store.connection.execute("INSERT INTO verification_case_bodies(hash,bytes,raw_length) VALUES(?1,x'00',0)", [format!("{index:064x}")]).unwrap();
+        }
+        let steps = Arc::new(AtomicU64::new(0));
+        let observed = steps.clone();
+        store
+            .connection
+            .progress_handler(
+                1,
+                Some(move || {
+                    observed.fetch_add(1, AtomicOrdering::Relaxed);
+                    false
+                }),
+            )
+            .unwrap();
+        let removed = store.connection.execute("DELETE FROM verification_case_bodies WHERE NOT EXISTS(SELECT 1 FROM verification_case_index i JOIN verification_runs r ON r.id=i.run_id WHERE i.body_hash=verification_case_bodies.hash AND r.pruned_at IS NULL)", []).unwrap();
+        store
+            .connection
+            .progress_handler(0, None::<fn() -> bool>)
+            .unwrap();
+        assert_eq!(removed, count);
+        assert_eq!(store.verification_run("p", &saved.id).unwrap().run, run);
+        steps.load(AtomicOrdering::Relaxed)
+    }
+    let small = measured(128);
+    let large = measured(512);
+    assert!(
+        large < small * 6,
+        "VM steps grew faster than indexed lookup: {small} -> {large}"
+    );
+    let t = Temp::new();
+    let store = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    store
+        .connection
+        .execute_batch("DROP INDEX verification_case_body_users")
+        .unwrap();
+    drop(store);
+    let reader = Store::open(&t.db(), AccessMode::ReadOnly).unwrap();
+    assert_eq!(
+        reader
+            .connection
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE name='verification_case_body_users'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
+    );
+    drop(reader);
+    let writer = Store::open(&t.db(), AccessMode::ReadWrite).unwrap();
+    assert_eq!(
+        writer
+            .connection
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE name='verification_case_body_users'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        1
+    );
 }

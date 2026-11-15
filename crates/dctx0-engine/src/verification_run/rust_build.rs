@@ -19,12 +19,14 @@ async fn output(
     args: &[&str],
     directory: &Path,
     cancel: &NativeCancellation,
+    environment: &crate::NativeEnvironment,
 ) -> Result<String> {
     let recipe = ExecutionRecipe {
         program: program.into(),
         arguments: args.iter().map(|s| (*s).into()).collect(),
     };
     let limits = NativeLimits {
+        environment: environment.clone(),
         log_bytes: 4_194_304,
         initialization: std::time::Duration::from_secs(300),
         run: std::time::Duration::from_secs(300),
@@ -224,6 +226,7 @@ async fn capture_c_toolchain(
     directory: &Path,
     cancel: &NativeCancellation,
     files: &mut BTreeMap<String, String>,
+    environment: &crate::NativeEnvironment,
 ) -> Result<()> {
     // Bundled SQLite's host C toolchain and standard system header closure.
     for tool in ["/usr/bin/cc", "/usr/bin/as", "/usr/bin/ld", "/usr/bin/ar"] {
@@ -231,10 +234,10 @@ async fn capture_c_toolchain(
     }
     for name in ["cc1", "collect2"] {
         let argument = format!("-print-prog-name={name}");
-        let tool = output("cc", &[&argument], directory, cancel).await?;
+        let tool = output("cc", &[&argument], directory, cancel, environment).await?;
         add(Path::new(tool.trim()), files)?;
     }
-    let multiarch = output("cc", &["-print-multiarch"], directory, cancel).await?;
+    let multiarch = output("cc", &["-print-multiarch"], directory, cancel, environment).await?;
     let multiarch = multiarch.trim();
     if !multiarch.is_empty() {
         if multiarch.contains('/') || multiarch.contains('\\') {
@@ -247,7 +250,14 @@ async fn capture_c_toolchain(
             walk_toolchain(&path, files)?;
         }
     }
-    let compiler_include = output("cc", &["-print-file-name=include"], directory, cancel).await?;
+    let compiler_include = output(
+        "cc",
+        &["-print-file-name=include"],
+        directory,
+        cancel,
+        environment,
+    )
+    .await?;
     walk_toolchain(Path::new(compiler_include.trim()), files)?;
     for entry in fs::read_dir("/usr/include")? {
         let entry = entry?;
@@ -268,14 +278,29 @@ async fn capture_c_toolchain(
     directory: &Path,
     cancel: &NativeCancellation,
     files: &mut BTreeMap<String, String>,
+    environment: &crate::NativeEnvironment,
 ) -> Result<()> {
     for name in ["clang", "as", "ld", "ar"] {
-        let path = output("xcrun", &["--find", name], directory, cancel).await?;
+        let path = output("xcrun", &["--find", name], directory, cancel, environment).await?;
         add(Path::new(path.trim()), files)?;
     }
-    let sdk = output("xcrun", &["--show-sdk-path"], directory, cancel).await?;
+    let sdk = output(
+        "xcrun",
+        &["--show-sdk-path"],
+        directory,
+        cancel,
+        environment,
+    )
+    .await?;
     walk_toolchain(&Path::new(sdk.trim()).join("usr/include"), files)?;
-    let resource = output("clang", &["-print-resource-dir"], directory, cancel).await?;
+    let resource = output(
+        "clang",
+        &["-print-resource-dir"],
+        directory,
+        cancel,
+        environment,
+    )
+    .await?;
     walk_toolchain(&Path::new(resource.trim()).join("include"), files)?;
     Ok(())
 }
@@ -284,12 +309,20 @@ async fn capture_c_toolchain(
     _directory: &Path,
     _cancel: &NativeCancellation,
     files: &mut BTreeMap<String, String>,
+    environment: &crate::NativeEnvironment,
 ) -> Result<()> {
     // The native runner initializes the Visual Studio developer environment.
     // Capture the selected compiler binaries and effective header search roots.
     for name in ["cl.exe", "link.exe", "lib.exe"] {
-        let path = crate::native::identity::resolve_program(name, _directory)
-            .map_err(|e| Error::Invalid(e.to_string()))?;
+        let entries = environment
+            .entries()
+            .map_err(|error| Error::Invalid(error.to_string()))?;
+        let path = crate::native::identity::resolve_program_with_path(
+            name,
+            _directory,
+            crate::native::environment_value(&entries, "PATH"),
+        )
+        .map_err(|e| Error::Invalid(e.to_string()))?;
         add(&path, files)?;
         if name == "cl.exe" {
             walk_toolchain(
@@ -299,7 +332,10 @@ async fn capture_c_toolchain(
             )?;
         }
     }
-    let include = std::env::var_os("INCLUDE").ok_or_else(|| {
+    let entries = environment
+        .entries()
+        .map_err(|error| Error::Invalid(error.to_string()))?;
+    let include = crate::native::environment_value(&entries, "INCLUDE").ok_or_else(|| {
         Error::Invalid(
             "MSVC INCLUDE is required; initialize the Visual Studio developer environment".into(),
         )
@@ -314,6 +350,23 @@ pub(crate) async fn prepare(
     application: &Path,
     cancel: &NativeCancellation,
 ) -> Result<RustBuildReceipt> {
+    prepare_with_environment(
+        directory,
+        application,
+        cancel,
+        &crate::NativeEnvironment::default(),
+    )
+    .await
+}
+pub(crate) async fn prepare_with_environment(
+    directory: &Path,
+    application: &Path,
+    cancel: &NativeCancellation,
+    environment: &crate::NativeEnvironment,
+) -> Result<RustBuildReceipt> {
+    let effective = environment
+        .entries()
+        .map_err(|error| Error::Invalid(error.to_string()))?;
     for name in [
         "CC",
         "CXX",
@@ -324,13 +377,13 @@ pub(crate) async fn prepare(
         "RUSTC",
         "CARGO_BUILD_RUSTC",
     ] {
-        if std::env::var_os(name).is_some() {
+        if crate::native::environment_value(&effective, name).is_some() {
             return Err(Error::Invalid(format!(
                 "Custom native toolchain override {name} is outside the pinned Rust build capability"
             )));
         }
     }
-    let runtime_version = output("rustc", &["-vV"], directory, cancel)
+    let runtime_version = output("rustc", &["-vV"], directory, cancel, environment)
         .await?
         .trim()
         .to_owned();
@@ -340,6 +393,7 @@ pub(crate) async fn prepare(
         &["metadata", "--offline", "--locked", "--format-version", "1"],
         directory,
         cancel,
+        environment,
     )
     .await?;
     let metadata: serde_json::Value = serde_json::from_str(&text)?;
@@ -356,7 +410,14 @@ pub(crate) async fn prepare(
     }
     names.sort();
     names.dedup();
-    let sysroot = output("rustc", &["--print", "sysroot"], directory, cancel).await?;
+    let sysroot = output(
+        "rustc",
+        &["--print", "sysroot"],
+        directory,
+        cancel,
+        environment,
+    )
+    .await?;
     let sysroot = Path::new(sysroot.trim());
     // A system toolchain may use /usr as its sysroot. Inventory Rust tools,
     // not every unrelated program and library installed on the host.
@@ -387,7 +448,14 @@ pub(crate) async fn prepare(
             add(&entry.path(), &mut files)?;
         }
     }
-    let targetlib = output("rustc", &["--print", "target-libdir"], directory, cancel).await?;
+    let targetlib = output(
+        "rustc",
+        &["--print", "target-libdir"],
+        directory,
+        cancel,
+        environment,
+    )
+    .await?;
     let targetlib = Path::new(targetlib.trim());
     walk_toolchain(targetlib, &mut files)?;
     if let Some(parent) = targetlib.parent() {
@@ -396,7 +464,7 @@ pub(crate) async fn prepare(
             walk_toolchain(&tools, &mut files)?;
         }
     }
-    capture_c_toolchain(directory, cancel, &mut files).await?;
+    capture_c_toolchain(directory, cancel, &mut files, environment).await?;
     let cache_root = std::env::var_os("XDG_CACHE_HOME")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("LOCALAPPDATA").map(PathBuf::from))
@@ -676,14 +744,26 @@ mod tests {
         let cancel = NativeCancellation::default();
         let root = std::env::temp_dir();
         assert!(
-            output("/dctx0-no-such-inspection-tool", &[], &root, &cancel)
-                .await
-                .is_err()
+            output(
+                "/dctx0-no-such-inspection-tool",
+                &[],
+                &root,
+                &cancel,
+                &crate::NativeEnvironment::default()
+            )
+            .await
+            .is_err()
         );
         assert!(
-            output("sh", &["-c", "exit 1"], &root, &cancel)
-                .await
-                .is_err()
+            output(
+                "sh",
+                &["-c", "exit 1"],
+                &root,
+                &cancel,
+                &crate::NativeEnvironment::default()
+            )
+            .await
+            .is_err()
         );
     }
     #[test]

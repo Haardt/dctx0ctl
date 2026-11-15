@@ -95,7 +95,7 @@ impl ExpressionParser<'_, '_> {
                 "None" => (0, "Option"),
                 "lowercase" | "uppercase" | "trim" => (1, "String"),
                 "length" => (1, "Int"),
-                "startsWith" | "endsWith" | "includesText" => (2, "Boolean"),
+                "startsWith" | "endsWith" | "includesText" | "matchesText" => (2, "Boolean"),
                 "slice" => (3, "List"),
                 "reverse" => (1, "List"),
                 "divide" => (4, "Decimal"),
@@ -211,7 +211,8 @@ impl ExpressionParser<'_, '_> {
                         TypeRef::builtin("List")
                     }
                 }
-                "lowercase" | "uppercase" | "trim" | "startsWith" | "endsWith" | "includesText" => {
+                "lowercase" | "uppercase" | "trim" | "startsWith" | "endsWith" | "includesText"
+                | "matchesText" => {
                     for a in &args {
                         self.check(&TypeRef::builtin("String"), a);
                     }

@@ -14,6 +14,10 @@ pub(super) struct GoBuildReceipt {
     pub build_elapsed_us: u64,
     #[serde(default)]
     pub build_peak_rss_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub discovery: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub module_root: String,
 }
 
 pub(super) async fn execute(
@@ -21,9 +25,11 @@ pub(super) async fn execute(
     directory: &Path,
     cancellation: &NativeCancellation,
     artifacts: &mut Vec<VerificationArtifact>,
+    environment: &crate::NativeEnvironment,
 ) -> Result<()> {
     let started = Instant::now();
     let limits = NativeLimits {
+        environment: environment.clone(),
         initialization: std::time::Duration::from_secs(300),
         run: std::time::Duration::from_secs(300),
         ..NativeLimits::default()
@@ -65,7 +71,9 @@ pub(super) fn go_receipt(directory: &Path) -> Result<GoBuildReceipt> {
         ));
     }
     let receipt: GoBuildReceipt = serde_json::from_slice(&bytes)?;
-    if receipt.schema_version != 1
+    if !matches!(receipt.schema_version, 1 | 2)
+        || (receipt.schema_version == 1 && !receipt.discovery.is_empty())
+        || (receipt.schema_version == 2 && receipt.discovery.is_empty())
         || receipt.files.is_empty()
         || receipt.files.len() > 20_000
         || receipt.packages.is_empty()
@@ -90,7 +98,76 @@ pub(super) fn validate(receipt: &GoBuildReceipt) -> Result<()> {
             return Err(Error::Invalid(format!("Go build input changed: {path}")));
         }
     }
+    for (directory, expected) in &receipt.discovery {
+        if discovery_hash(directory)? != *expected {
+            return Err(Error::Invalid(format!(
+                "Go package discovery changed: {directory}"
+            )));
+        }
+    }
     Ok(())
+}
+
+pub(super) fn discovery_hash(key: &str) -> Result<String> {
+    if let Some(directory) = key.strip_prefix("module-scope:") {
+        let mut bytes = Vec::new();
+        for name in ["go.mod", "go.sum", "go.work", "go.work.sum"] {
+            bytes.extend_from_slice(name.as_bytes());
+            bytes.push(0);
+            let path = Path::new(directory).join(name);
+            let hash = if path.try_exists()? {
+                file_hash(&path)?
+            } else {
+                "missing".into()
+            };
+            bytes.extend_from_slice(hash.as_bytes());
+            bytes.push(0);
+        }
+        return Ok(digest(&bytes));
+    }
+    let directory = key;
+    let mut names = fs::read_dir(directory)?
+        .map(|entry| {
+            let entry = entry?;
+            if entry.file_type()?.is_dir()
+                || !matches!(
+                    entry.path().extension().and_then(|v| v.to_str()),
+                    Some(
+                        "go" | "s"
+                            | "S"
+                            | "syso"
+                            | "h"
+                            | "c"
+                            | "cc"
+                            | "cpp"
+                            | "m"
+                            | "f"
+                            | "F"
+                            | "f90"
+                            | "swig"
+                            | "swigcxx"
+                    )
+                )
+            {
+                return Ok(None);
+            }
+            entry
+                .file_name()
+                .into_string()
+                .map(Some)
+                .map_err(|_| std::io::Error::other("Non-UTF8 Go package entry"))
+        })
+        .collect::<std::io::Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    names.sort();
+    if !Path::new(directory).is_absolute() {
+        return Err(Error::Invalid(
+            "Go discovery needs an absolute directory".into(),
+        ));
+    }
+    Ok(digest(names.join("\0").as_bytes()))
 }
 
 #[cfg(test)]
@@ -118,6 +195,8 @@ mod tests {
             binary_hash: digest(b"native binary"),
             build_elapsed_us: 1,
             build_peak_rss_bytes: None,
+            discovery: BTreeMap::new(),
+            module_root: String::new(),
         };
         fs::write(
             root.join(".bin/dependencies.json"),

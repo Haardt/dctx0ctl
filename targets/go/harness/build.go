@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 )
@@ -37,6 +38,73 @@ type receipt struct {
 	BinaryHash     string            `json:"binary_hash"`
 	BuildElapsedUS uint64            `json:"build_elapsed_us"`
 	BuildPeakRSS   *uint64           `json:"build_peak_rss_bytes"`
+	Discovery      map[string]string `json:"discovery,omitempty"`
+	ModuleRoot     string            `json:"module_root,omitempty"`
+}
+
+// Versioned opt-in for read-only production modules used by an isolated fixture.
+// The default still rejects every external local replacement. The compiler reads
+// original source directly; receipts bind its selected inputs and package discovery.
+func readonlyModules() (map[string]bool, error) {
+	allowed := map[string]bool{}
+	text := os.Getenv("DCTX0_GO_READONLY_MODULE_ROOTS_V1")
+	if text == "" {
+		return allowed, nil
+	}
+	var roots []string
+	if len(text) > 65536 {
+		return nil, fmt.Errorf("Read-only module declaration exceeds limit")
+	}
+	if err := json.Unmarshal([]byte(text), &roots); err != nil {
+		return nil, err
+	}
+	if len(roots) > 128 {
+		return nil, fmt.Errorf("Too many read-only modules")
+	}
+	for _, root := range roots {
+		resolved, err := filepath.EvalSymlinks(root)
+		if err != nil || !filepath.IsAbs(root) || filepath.Clean(root) != root || resolved != root {
+			return nil, fmt.Errorf("Read-only module must be a canonical absolute directory: %s", root)
+		}
+		info, err := os.Stat(root)
+		if err != nil || !info.IsDir() {
+			return nil, fmt.Errorf("Read-only module is unavailable: %s", root)
+		}
+		allowed[root] = true
+	}
+	return allowed, nil
+}
+
+func discovery(directory string) (string, error) {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return "", err
+	}
+	names := []string{}
+	for _, entry := range entries {
+		// Include ignored/build-tagged files as discovery inputs too. External
+		// embeds are rejected below until their directory/glob closure is bound.
+		if !entry.IsDir() && strings.Contains("|.go|.s|.S|.syso|.h|.c|.cc|.cpp|.m|.f|.F|.f90|.swig|.swigcxx|", "|"+filepath.Ext(entry.Name())+"|") {
+			names = append(names, entry.Name())
+		}
+	}
+	sort.Strings(names)
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(names, "\x00")))), nil
+}
+
+func moduleScope(directory string) (string, error) {
+	var contents strings.Builder
+	for _, name := range []string{"go.mod", "go.sum", "go.work", "go.work.sum"} {
+		contents.WriteString(name + "\x00")
+		sum, err := hash(filepath.Join(directory, name))
+		if os.IsNotExist(err) {
+			sum = "missing"
+		} else if err != nil {
+			return "", err
+		}
+		contents.WriteString(sum + "\x00")
+	}
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(contents.String()))), nil
 }
 
 func hash(path string) (string, error) {
@@ -105,6 +173,11 @@ func prepare() error {
 		return fmt.Errorf("A Go application module is required")
 	}
 	moduleRoot := filepath.Dir(modfile)
+	allowed, err := readonlyModules()
+	if err != nil {
+		return err
+	}
+	external := false
 	data, err := exec.Command("go", "mod", "edit", "-json").Output()
 	if err != nil {
 		return err
@@ -125,19 +198,27 @@ func prepare() error {
 			}
 			path = filepath.Clean(path)
 			if path != moduleRoot && !strings.HasPrefix(path, moduleRoot+string(os.PathSeparator)) {
-				return fmt.Errorf("External local replacements are unsupported: %s", path)
+				if !allowed[path] {
+					return fmt.Errorf("External local replacements are unsupported: %s", path)
+				}
+				external = true
 			}
 		}
 	}
 
-	cmd := exec.Command("go", "mod", "vendor")
-	cmd.Dir = moduleRoot
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	if err = cmd.Run(); err != nil {
-		return err
+	mode := "-mod=vendor"
+	if external {
+		mode = "-mod=readonly"
+	} else {
+		cmd := exec.Command("go", "mod", "vendor")
+		cmd.Dir = moduleRoot
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+		if err = cmd.Run(); err != nil {
+			return err
+		}
 	}
-	list := exec.Command("go", "list", "-mod=vendor", "-deps", "-json", ".")
+	list := exec.Command("go", "list", mode, "-deps", "-json", ".")
 	list.Stderr = os.Stderr
 	stdout, err := list.StdoutPipe()
 	if err != nil {
@@ -147,6 +228,11 @@ func prepare() error {
 		return err
 	}
 	r := receipt{SchemaVersion: 1, Files: map[string]string{}, Packages: []string{}}
+	if external {
+		r.SchemaVersion = 2
+		r.Discovery = map[string]string{}
+		r.ModuleRoot = moduleRoot
+	}
 	decoder := json.NewDecoder(io.LimitReader(stdout, 67108865))
 	total := int64(0)
 	capture := func(path string) error {
@@ -188,6 +274,17 @@ func prepare() error {
 			return fmt.Errorf("CGO packages are unsupported: %s", p.ImportPath)
 		}
 		r.Packages = append(r.Packages, p.ImportPath)
+		if p.Module != nil {
+			for _, module := range []*module{p.Module, p.Module.Replace} {
+				if module != nil && module.GoMod != "" {
+					if err = capture(module.GoMod); err != nil {
+						list.Process.Kill()
+						list.Wait()
+						return err
+					}
+				}
+			}
+		}
 		for _, files := range [][]string{p.GoFiles, p.CompiledGoFiles, p.SFiles, p.SysoFiles, p.HFiles, p.EmbedFiles} {
 			for _, file := range files {
 				if err = capture(filepath.Join(p.Dir, file)); err != nil {
@@ -197,10 +294,59 @@ func prepare() error {
 				}
 			}
 		}
+		if p.Dir != moduleRoot && !strings.HasPrefix(p.Dir, moduleRoot+string(os.PathSeparator)) {
+			sum, err := discovery(p.Dir)
+			if err != nil {
+				list.Process.Kill()
+				list.Wait()
+				return err
+			}
+			if external {
+				r.Discovery[p.Dir] = sum
+			}
+		}
+		if external && p.Module != nil && !p.Module.Main {
+			root := p.Module.Dir
+			if p.Module.Replace != nil {
+				root = p.Module.Replace.Dir
+			}
+			for directory := p.Dir; ; directory = filepath.Dir(directory) {
+				if directory != root && !strings.HasPrefix(directory, root+string(os.PathSeparator)) {
+					list.Process.Kill()
+					list.Wait()
+					return fmt.Errorf("Package module scope escaped its resolved root")
+				}
+				sum, err := moduleScope(directory)
+				if err != nil {
+					list.Process.Kill()
+					list.Wait()
+					return err
+				}
+				r.Discovery["module-scope:"+directory] = sum
+				if directory == root {
+					break
+				}
+			}
+		}
 		if p.Module != nil && p.Module.Replace != nil && !strings.HasPrefix(p.Dir, moduleRoot+string(os.PathSeparator)) {
-			list.Process.Kill()
-			list.Wait()
-			return fmt.Errorf("External local replacements are unsupported")
+			root := filepath.Clean(p.Module.Replace.Dir)
+			if !allowed[root] || (p.Dir != root && !strings.HasPrefix(p.Dir, root+string(os.PathSeparator))) || len(p.EmbedFiles) != 0 {
+				list.Process.Kill()
+				list.Wait()
+				return fmt.Errorf("External module boundary or embedded resource is unsupported")
+			}
+			if err = capture(filepath.Join(root, "go.mod")); err != nil {
+				list.Process.Kill()
+				list.Wait()
+				return err
+			}
+			sum, err := discovery(p.Dir)
+			if err != nil {
+				list.Process.Kill()
+				list.Wait()
+				return err
+			}
+			r.Discovery[p.Dir] = sum
 		}
 	}
 	if err = list.Wait(); err != nil {
@@ -237,6 +383,14 @@ func prepare() error {
 	if err != nil {
 		return err
 	}
+	for _, name := range []string{"go.env", "VERSION"} {
+		path := filepath.Join(strings.TrimSpace(string(goroot)), name)
+		if _, err := os.Stat(path); err == nil {
+			if err = capture(path); err != nil {
+				return err
+			}
+		}
+	}
 	headers, err := filepath.Glob(filepath.Join(strings.TrimSpace(string(goroot)), "pkg", "include", "*.h"))
 	if err != nil {
 		return err
@@ -251,7 +405,7 @@ func prepare() error {
 		return err
 	}
 	r.GoVersion = strings.TrimSpace(string(version))
-	if err = command("build", "-trimpath", "-mod=vendor", "-o", ".bin/worker"+exeSuffix(), "."); err != nil {
+	if err = command("build", "-trimpath", mode, "-o", ".bin/worker"+exeSuffix(), "."); err != nil {
 		return err
 	}
 	for path, before := range r.Files {
@@ -261,6 +415,18 @@ func prepare() error {
 		}
 		if before != after {
 			return fmt.Errorf("Build input changed: %s", path)
+		}
+	}
+	for directory, before := range r.Discovery {
+		var after string
+		var err error
+		if strings.HasPrefix(directory, "module-scope:") {
+			after, err = moduleScope(strings.TrimPrefix(directory, "module-scope:"))
+		} else {
+			after, err = discovery(directory)
+		}
+		if err != nil || before != after {
+			return fmt.Errorf("Package discovery changed: %s", directory)
 		}
 	}
 	r.BuildElapsedUS = compileElapsed

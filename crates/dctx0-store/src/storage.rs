@@ -18,6 +18,7 @@ INSERT INTO verification_case_index_v7 SELECT * FROM verification_case_index;
 DROP TABLE verification_case_index;
 ALTER TABLE verification_case_index_v7 RENAME TO verification_case_index;
 CREATE INDEX verification_cases_subject ON verification_case_index(run_id,subject,outcome);
+CREATE INDEX verification_case_body_users ON verification_case_index(body_hash,run_id);
 CREATE TABLE storage_snapshot_keys(id INTEGER PRIMARY KEY,snapshot TEXT NOT NULL UNIQUE REFERENCES snapshots(id));
 CREATE TABLE storage_spec_texts(id INTEGER PRIMARY KEY,hash BLOB NOT NULL UNIQUE,text TEXT NOT NULL);
 CREATE TABLE storage_spec_nodes(id INTEGER PRIMARY KEY,hash BLOB NOT NULL UNIQUE,subject TEXT NOT NULL,owner TEXT,kind TEXT NOT NULL,text_id INTEGER NOT NULL REFERENCES storage_spec_texts(id),file TEXT NOT NULL,start_line INTEGER NOT NULL,end_line INTEGER NOT NULL);

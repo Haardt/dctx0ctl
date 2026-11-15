@@ -170,6 +170,9 @@ pub use profiles::*;
 mod verification;
 pub use verification::*;
 
+mod unit_evidence;
+pub use unit_evidence::*;
+
 mod codecs;
 pub use codecs::*;
 

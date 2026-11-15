@@ -272,6 +272,11 @@ impl Store {
         }
         target.connection.execute_batch(storage::chunks::SCHEMA)?;
         target.connection.execute_batch(storage::PARENT_SCHEMA)?;
+        if storage::version(&target.connection)? == 7 {
+            target
+                .connection
+                .execute_batch(verification::units::MIGRATION)?;
+        }
         target.connection.execute_batch("CREATE TABLE IF NOT EXISTS storage_conversion(id INTEGER PRIMARY KEY CHECK(id=1),source_signature TEXT NOT NULL,status TEXT NOT NULL);")?;
         target.connection.execute(
             "INSERT INTO storage_conversion VALUES(1,?1,'incomplete') ON CONFLICT(id) DO UPDATE SET source_signature=excluded.source_signature,status=excluded.status",

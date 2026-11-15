@@ -637,6 +637,14 @@ mod tests {
 #[cfg(test)]
 mod environment_tests {
     use super::*;
+    fn inventory(directory: &Path) -> Option<BTreeMap<String, Vec<u8>>> {
+        if !directory.exists() {
+            return None;
+        }
+        let mut files = BTreeMap::new();
+        tree(directory, directory, &mut files, &mut 0).unwrap();
+        Some(files)
+    }
     #[test]
     fn global_preview_uses_the_live_agent_environment_without_writing_files() {
         let locations = SkillLocations::from_environment();
@@ -652,10 +660,21 @@ mod environment_tests {
             assert!(install_skills(&request, &locations).is_err());
             return;
         }
+        let directory = location("codex", &request, &locations)
+            .unwrap()
+            .join("dctx0");
+        let before = inventory(&directory);
         let report = install_skills(&request, &locations).unwrap();
         assert_eq!(report.installations.len(), 1);
         let installation = &report.installations[0];
-        assert!(matches!(installation.status, SkillInstallStatus::Planned));
+        assert!(matches!(
+            (&before, &installation.status),
+            (None, SkillInstallStatus::Planned) | (Some(_), SkillInstallStatus::Unchanged)
+        ));
+        assert!(
+            before == inventory(&directory),
+            "Global preview changed skill files"
+        );
         assert_eq!(installation.agents, vec!["codex"]);
         assert_eq!(installation.directory.file_name().unwrap(), "dctx0");
         assert_eq!(

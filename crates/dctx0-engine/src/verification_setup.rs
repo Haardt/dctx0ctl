@@ -53,6 +53,8 @@ impl VerificationCaptureBudgets {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VerificationConfiguration {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub environment: Option<crate::NativeEnvironment>,
     /// Place a durable, non-authorizing hold on verification details.
     /// Removing the setting never releases an already-published hold.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -222,6 +224,11 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     Ok(serde_json::from_reader(file)?)
 }
 fn validate(config: &VerificationConfiguration) -> Result<()> {
+    if let Some(environment) = &config.environment {
+        environment
+            .entries()
+            .map_err(|error| Error::Invalid(error.to_string()))?;
+    }
     config
         .dependency_resolution
         .unwrap_or_default()
@@ -335,6 +342,7 @@ impl Project {
         }
         let base = format!(".dctx0/testing/{}", bundle.target);
         let config = VerificationConfiguration {
+            environment: None,
             history_retention: None,
             application_tests: None,
             adapter_scaffold_hash: Some(

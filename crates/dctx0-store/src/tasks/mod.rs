@@ -4,6 +4,10 @@ use crate::Error;
 use dctx0_tasks::*;
 use std::collections::{BTreeMap, BTreeSet};
 mod actions;
+mod composition_proof;
+pub use composition_proof::{
+    ComposedTaskReport, CompositionTaskPublication, composition_implementation,
+};
 mod native_proof;
 pub use actions::{TaskDelivery, TaskDeliveryPublication, TaskDeliveryPublicationReceipt};
 mod profiles;

@@ -14,6 +14,7 @@ pub use query::*;
 mod site;
 pub use site::*;
 mod tasks;
+pub use tasks::{ComposedTaskReport, CompositionTaskPublication, composition_implementation};
 pub use tasks::{TaskDelivery, TaskDeliveryPublication, TaskDeliveryPublicationReceipt};
 mod verification;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
@@ -26,7 +27,7 @@ pub enum Error {
     Sql(#[from] rusqlite::Error),
     #[error("Snapshot JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("Unsupported database schema {0}; expected 1 through 7")]
+    #[error("Unsupported database schema {0}; expected 1 through 8")]
     Schema(i64),
     #[error("Snapshot not found or ambiguous: {0}")]
     Missing(String),
@@ -75,7 +76,7 @@ fn decode<T: serde::de::DeserializeOwned>(json: &str) -> std::result::Result<T, 
     Ok(value)
 }
 fn validate_version(version: i64) -> Result<()> {
-    if !matches!(version, 1..=7) {
+    if !matches!(version, 1..=8) {
         return Err(Error::Schema(version));
     }
     Ok(())
@@ -119,6 +120,13 @@ fn initialize(connection: &mut Connection, version: i64, mode: AccessMode) -> Re
     } else {
         validate_version(version)?;
     }
+    if mode == AccessMode::ReadWrite && storage::version(connection)? == 7 {
+        let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if storage::version(&tx)? == 7 {
+            tx.execute_batch(verification::units::MIGRATION)?;
+        }
+        tx.commit()?;
+    }
     Ok(())
 }
 impl Store {
@@ -157,6 +165,7 @@ impl Store {
         let version: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
         initialize(&mut connection, version, mode)?;
         if mode == AccessMode::ReadWrite {
+            connection.execute_batch("CREATE INDEX IF NOT EXISTS verification_case_body_users ON verification_case_index(body_hash,run_id);")?;
             let journal: String =
                 connection.pragma_query_value(None, "journal_mode", |row| row.get(0))?;
             if journal != "wal" {

@@ -45,21 +45,28 @@ fn prunable(connection: &Connection, project: &str) -> Result<Vec<String>> {
         return Ok(Vec::new());
     }
 
-    let ids = {
+    let mut ids = {
         let sql = if crate::storage::version(connection)? >= 7 {
-            "WITH RECURSIVE newest(id) AS (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 1), problem(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND json_extract(result,'$.status') IN ('FAIL','UNKNOWN') ORDER BY rowid DESC LIMIT 1), pending(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND (id IN (SELECT l.run_id FROM verification_task_links l JOIN task_states s ON s.task_id=l.task_id WHERE s.work!='Done') OR id IN (SELECT l.run_id FROM verification_task_links l JOIN verification_run_artifacts ra ON ra.run_id=l.run_id JOIN verification_artifacts a ON a.hash=ra.artifact_hash WHERE a.media_type='application/vnd.dctx0.inspected-done-tasks+json') OR EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(data) THEN data ELSE '{}' END,'$.provenance.task_pin.requirements') required JOIN task_states s ON s.task_id=CAST(required.key AS INTEGER) WHERE s.work='Progress' OR (s.work='Open' AND s.actor IS NOT NULL)))), seeds(id) AS (SELECT id FROM newest UNION SELECT id FROM problem UNION SELECT id FROM pending), kept(id) AS (SELECT id FROM seeds UNION SELECT p.parent FROM verification_run_parents p JOIN kept k ON p.child=k.id) SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM kept) ORDER BY rowid"
+            "WITH RECURSIVE newest(id) AS (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 1), problem(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND json_extract(result,'$.status') IN ('FAIL','UNKNOWN') ORDER BY rowid DESC LIMIT 1), pending(id) AS (SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND (id IN (SELECT l.run_id FROM verification_task_links l JOIN task_states s ON s.task_id=l.task_id WHERE s.work!='Done') OR id IN (SELECT l.run_id FROM verification_task_links l JOIN verification_run_artifacts ra ON ra.run_id=l.run_id JOIN verification_artifacts a ON a.hash=ra.artifact_hash WHERE a.media_type='application/vnd.dctx0.inspected-done-tasks+json') OR EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(data) THEN data ELSE '{}' END,'$.provenance.task_pin.requirements') required JOIN task_states s ON s.task_id=CAST(required.key AS INTEGER) WHERE s.work='Progress' OR (s.work='Open' AND s.actor IS NOT NULL)))), baseline(id) AS (SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY json_extract(summary,'$.target'),json_extract(summary,'$.selected_subjects') ORDER BY CAST(json_extract(summary,'$.required_case_count') AS INTEGER) DESC,rowid DESC) AS priority FROM verification_runs WHERE project=?1 AND __BASELINE_FILTER__) WHERE priority=1), seeds(id) AS (SELECT id FROM newest UNION SELECT id FROM problem UNION SELECT id FROM pending UNION SELECT id FROM baseline), kept(id) AS (SELECT id FROM seeds UNION SELECT p.parent FROM verification_run_parents p JOIN kept k ON p.child=k.id) SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM kept) ORDER BY rowid".replace("__BASELINE_FILTER__", summaries::COMPLETE_NATIVE_CASE_FILTER)
         } else if crate::storage::version(connection)? >= 6 {
             // Schema 6 has the run/artifact and task links, even though it has
             // no compact evidence metadata. Preserve every linked inspection.
-            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) AND id NOT IN (SELECT l.run_id FROM verification_task_links l JOIN verification_run_artifacts ra ON ra.run_id=l.run_id JOIN verification_artifacts a ON a.hash=ra.artifact_hash WHERE a.media_type='application/vnd.dctx0.inspected-done-tasks+json') ORDER BY rowid"
+            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) AND id NOT IN (SELECT l.run_id FROM verification_task_links l JOIN verification_run_artifacts ra ON ra.run_id=l.run_id JOIN verification_artifacts a ON a.hash=ra.artifact_hash WHERE a.media_type='application/vnd.dctx0.inspected-done-tasks+json') ORDER BY rowid".to_owned()
         } else {
-            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) ORDER BY rowid"
+            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND id NOT IN (SELECT id FROM verification_runs WHERE project=?1 ORDER BY rowid DESC LIMIT 3) ORDER BY rowid".to_owned()
         };
-        let mut statement = connection.prepare(sql)?;
+        let mut statement = connection.prepare(&sql)?;
         statement
             .query_map([project], |r| r.get::<_, String>(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?
     };
+    if crate::storage::version(connection)? >= 8 {
+        let mut statement = connection.prepare("WITH RECURSIVE seeds(id) AS (SELECT native_run FROM verification_active_sources WHERE project=?1 UNION SELECT c.native_run FROM verification_composition_cases c JOIN verification_evidence_compositions e ON e.id=c.composition WHERE e.project=?1 AND c.native_run IS NOT NULL), kept(id) AS (SELECT id FROM seeds UNION SELECT p.parent FROM verification_run_parents p JOIN kept k ON p.child=k.id) SELECT id FROM kept")?;
+        let held = statement
+            .query_map([project], |row| row.get::<_, String>(0))?
+            .collect::<std::result::Result<BTreeSet<_>, _>>()?;
+        ids.retain(|id| !held.contains(id));
+    }
     Ok(ids)
 }
 pub(crate) fn prune(connection: &Connection, project: &str) -> Result<u64> {
@@ -356,6 +363,13 @@ impl Store {
                 "verification_case_projections",
                 "verification_requirements",
                 "verification_run_parents",
+                "verification_unit_bindings",
+                "verification_unit_dependencies",
+                "verification_unit_attempts",
+                "verification_unit_origins",
+                "verification_evidence_compositions",
+                "verification_composition_cases",
+                "verification_active_sources",
             ];
             if names.iter().any(|name| !known.contains(&name.as_str())) {
                 return Err(invalid(

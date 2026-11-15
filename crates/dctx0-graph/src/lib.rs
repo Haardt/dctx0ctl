@@ -186,6 +186,52 @@ pub struct GraphIndex<'a> {
     outgoing: BTreeMap<&'a str, Vec<&'a GraphEdge>>,
 }
 impl GraphIndex<'_> {
+    /// Verification identity follows references and applicable governing facts,
+    /// never a container's unrelated children. Ancestors contribute governing
+    /// facts only; they are not themselves added as broad dependencies.
+    pub fn verification_closure(&self, roots: &BTreeSet<String>) -> BTreeSet<String> {
+        let mut closure = BTreeSet::new();
+        let mut queue = VecDeque::from_iter(roots.iter().cloned());
+        while let Some(id) = queue.pop_front() {
+            if !closure.insert(id.clone()) {
+                continue;
+            }
+            for edge in self.outgoing.get(id.as_str()).into_iter().flatten() {
+                if matches!(edge.kind, EdgeKind::Dependency(_)) {
+                    queue.push_back(edge.to.clone());
+                }
+            }
+            let mut ancestors = VecDeque::from([id]);
+            let mut visited = BTreeSet::new();
+            while let Some(owner) = ancestors.pop_front() {
+                if !visited.insert(owner.clone()) {
+                    continue;
+                }
+                for edge in self.incoming.get(owner.as_str()).into_iter().flatten() {
+                    match edge.kind {
+                        EdgeKind::Governs => {
+                            if self.graph.nodes.get(&edge.from).is_some_and(|node| {
+                                matches!(
+                                    node.kind,
+                                    K::Intent
+                                        | K::Constraint
+                                        | K::Decision
+                                        | K::Policy
+                                        | K::Invariant
+                                )
+                            }) {
+                                queue.push_back(edge.from.clone());
+                            }
+                        }
+                        EdgeKind::Contains => ancestors.push_back(edge.from.clone()),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        closure
+    }
+
     /// Incoming dependency edges propagate to consumers; governing facts
     /// propagate to their target and the target's named semantic subtree.
     pub fn impact(&self, id: &str) -> Vec<Impact> {

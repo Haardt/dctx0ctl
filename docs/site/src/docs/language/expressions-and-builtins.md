@@ -97,6 +97,10 @@ Contextual `where` supplies a predicate for `count`, `all` or `any`. Contextual 
 - `trim(text)` removes surrounding whitespace.
 - `length(value)` returns the size of text or a collection.
 - `startsWith(text, prefix)` and `endsWith(text, suffix)` test boundaries.
+- `matchesText(text, pattern)` returns whether a Rust `regex` expression matches.
+  Use anchors such as `^[a-z][a-z0-9_]{2,31}$` when the entire text must match.
+  Pattern compilation and matching memory are bounded by the value-byte budget;
+  invalid or over-budget patterns remain `UNKNOWN` (`REGEX_MODEL`), never false.
 - `reverse(list)` returns the same list type in reverse order.
 
 ## Selection and transformations
@@ -137,3 +141,23 @@ State predicates `exists`, `creates`, `updates`, `preserves`, and `removes` need
 - Module dependencies use `requires`, executable interactions use `call`, and lifecycle discriminators use `using`. There is no `uses` language keyword.
 - Record fields use `name: Type`.
 - `Success`, `Failure`, `PASS`, `FAIL`, `UNKNOWN`, review/policy statuses and suite names are contextual values or catalog identifiers, not declaration keywords.
+
+## Pure predicate models in refinements
+
+Value-contract checking and corpus generation can evaluate a pure Boolean helper
+whose result is explicitly defined by `ensures result == expression` (or its
+symmetric form). The evaluator binds the actual arguments, requires every
+precondition and checks every postcondition. Nested modeled predicates share the
+ordinary expression step/depth budgets. Missing definitions, possible declared
+failures, inconsistent postconditions and unavailable state remain `UNKNOWN`.
+Parameter types must currently be primitive built-ins. Refined/composite parameter
+types remain explicitly unavailable to avoid recursive type checks resetting the
+shared evaluation budget. Primitive arguments are checked before model evaluation.
+An implication such as `not result or condition` does not uniquely define a
+predicate and therefore cannot silently supply a true/false model.
+
+This model is only used to classify value-contract inputs. Operation, example,
+scenario and lifecycle execution still requires actual native call observations;
+model evaluation never fabricates an invocation receipt. Interpreter version 7
+invalidates prior interpreter-bound reuse; SDK, transport and storage versions do
+not change.

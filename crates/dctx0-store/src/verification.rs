@@ -8,7 +8,9 @@ pub(crate) mod cases;
 pub(crate) mod codec;
 mod context;
 pub(crate) mod maintenance;
+mod reuse_observations;
 mod summaries;
+pub(crate) mod units;
 pub use context::*;
 pub use maintenance::*;
 pub use summaries::*;
@@ -161,6 +163,11 @@ pub(crate) fn validate_incremental(
     if receipt_artifact.is_none() && proof_artifact.is_none() {
         return Ok(None);
     }
+    // Imported receipt-only copies remain untrusted reader fixtures. Native
+    // authority, including every reuse proof, still requires all guards below.
+    if run.origin != dctx0_core::VerificationRunOrigin::Native && proof_artifact.is_none() {
+        return Ok(None);
+    }
     let receipt_artifact = receipt_artifact
         .ok_or_else(|| invalid("Incremental proof requires an external-input receipt"))?;
     let receipt: ExternalInputReceipt = serde_json::from_slice(&receipt_artifact.contents)?;
@@ -170,10 +177,21 @@ pub(crate) fn validate_incremental(
         return Err(invalid("Incremental plan is not the run's pinned plan"));
     }
     let plan: dctx0_verification::ProgramPlan = serde_json::from_slice(&plan_artifact.contents)?;
+    let required = dctx0_verification::case_manifest(&plan).required_cases;
+    // Assigned adapter cohorts retain available inputs for diagnosis, but they
+    // are not a complete execution and cannot publish a reuse proof.
+    let diagnostic_cohort = proof_artifact.is_none()
+        && run.result != dctx0_core::VerificationResult::Pass
+        && run
+            .provenance
+            .incomplete
+            .iter()
+            .any(|issue| issue.code == "HYBRID_COHORT_REQUIRED")
+        && run.required_cases.is_subset(&required);
     if plan.snapshot != run.provenance.snapshot
         || plan.check_occurrence as i64 != run.provenance.check_occurrence
         || plan.budgets != run.budgets
-        || dctx0_verification::case_manifest(&plan).required_cases != run.required_cases
+        || (required != run.required_cases && !diagnostic_cohort)
         || plan.scope.subjects != run.selected_subjects
         || plan.closure != run.required_subjects
     {
@@ -185,6 +203,12 @@ pub(crate) fn validate_incremental(
         return Ok(None);
     };
     let proof: IncrementalProof = serde_json::from_slice(&proof_artifact.contents)?;
+    let contrary = reuse_observations::later_nonpass(c, project, &proof.parent_run)?;
+    if !proof.plan.reused.is_disjoint(&contrary) {
+        return Err(invalid(
+            "LATER_NONPASS_OBSERVATION: historical PASS is contradicted by a later native observation",
+        ));
+    }
     let parent = codec::read_run(c, project, &proof.parent_run)?;
     let old = &parent.run;
     let old_plan_ref = old
@@ -513,6 +537,21 @@ impl Store {
             )?;
         }
         cases::store(&tx, &id, run)?;
+        // A unit source must be protected in this publication transaction,
+        // before retention runs or another writer can collect its artifacts.
+        // This hold grants no PASS or task authority and does not preserve
+        // unrelated history globally.
+        if storage::version(&tx)? >= 8
+            && run.origin == dctx0_core::VerificationRunOrigin::Native
+            && artifacts.iter().any(|artifact| {
+                artifact.reference.media_type == dctx0_core::UNIT_BINDING_MEDIA_TYPE
+            })
+        {
+            tx.execute(
+                "INSERT OR IGNORE INTO verification_active_sources VALUES(?1,?2,?3)",
+                params![format!("native-unit:{id}"), project, id],
+            )?;
+        }
         register_parents(
             &tx,
             project,

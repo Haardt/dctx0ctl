@@ -1,5 +1,6 @@
 //! Runtime value contracts derived from validated declaration IR, without target I/O.
-use crate::{Evaluation, evaluate, number};
+use crate::modeled_predicates::evaluate_refinement;
+use crate::{Evaluation, number};
 use dctx0_core::{
     StatementKind as K, TypeRef, VerificationBudgets, VerificationIssue, VerificationValue as V,
     WorkspaceIr,
@@ -259,11 +260,10 @@ impl Checker<'_> {
                     }
                     let mut result = ValueContract::Accepted;
                     for expression in &node.expressions {
-                        let next = match evaluate(
+                        let next = match evaluate_refinement(
                             self.ir,
                             expression,
                             &variables,
-                            &[],
                             self.budgets,
                         ) {
                             Evaluation::Complete(V::Boolean(true)) => ValueContract::Accepted,

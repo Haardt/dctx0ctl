@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "reviewer": "codex",
+  "updated_at": "2026-11-14T19:07:03.252322+00:00",
+  "scope": "Durable incremental verification and historical native reuse; review of the source files listed below, not approval of the whole dirty workspace",
+  "judgement": "changes-requested",
+  "implementation_artifacts": {
+    "crates/dctx0-verification/src/incremental.rs": "0102cdbcc665d7501e033413da2e1c8e5b2fe0e982e908f6f37ef81f505437be",
+    "crates/dctx0-verification/src/incremental/decisions.rs": "4992b5a0141dcdfdd70b6593f3a561b975039f0779676e88a6153692e62904f4",
+    "crates/dctx0-engine/src/verification_run/reuse_execution.rs": "916aadeab85ca1592bc1d863f2c16a04acdf7cda3a3860f32433adc2c2722e41",
+    "crates/dctx0-engine/src/verification_run/reuse_inputs.rs": "7d6ebbeb7c28332247c853c789fadc3af4a6c39616ae9b7d5098827001298e6f",
+    "crates/dctx0-engine/src/verification_run/incremental.rs": "bcb39d93d54a4094ed3028ffa30a47a5984b7e425e24faf0c3b0641840041c40",
+    "crates/dctx0-engine/src/verification_run/hybrid_run.rs": "e25c36546187b219f8af68d149f5eb30c1b4c508903e649a6ae12fce8d0118aa",
+    "crates/dctx0-engine/src/verification_run/application_run.rs": "09c4b07c6e9490aa71fb6f56c99dbceff0aa2bfa284f70bbe259347c720d4fb6",
+    "crates/dctx0-store/src/verification.rs": "332f3733d2e240253084e459196d8634f043f9416ba8ea06613666b7b7068725",
+    "crates/dctx0-store/src/verification/reuse_observations.rs": "10821028e362cdd97ad9fa00cb0d72d12a728dffaf5ebe4182fb93c155c789d8",
+    "crates/dctx0-store/src/verification/maintenance.rs": "7a492713ab902de1638fa71a9c6e36946b7219ce5faabc501f599bd7a5d4fec4",
+    "crates/dctx0-store/src/verification/summaries.rs": "d4200d1cf0fe826e226b276c3513ab26be6f0579242da25a91583f3923e84907",
+    "crates/dctx0-store/src/verification/tests.rs": "777c193279d9e3c93e8be5da16e2109cdae84f43d590c9a98d48179003cda830",
+    "crates/dctx0-store/src/tasks/native_proof.rs": "fb734fee30f184de7207eebedb838acc631fe4ab4e04b24db7090041a2425be5"
+  },
+  "closed_findings": [
+    {
+      "id": "REUSE-GROUP-001",
+      "severity": "high",
+      "issue": "The planner excluded only four known group failure codes; future/unclassified errors could supply historical PASS records.",
+      "repair": "Allow only separate manual/suite obligations; reject global verdicts with no per-case assignment and incomplete execution provenance. Task-occurrence metadata alone does not invalidate native execution.",
+      "tests": [
+        "incremental::tests::aborted_or_unclean_groups_do_not_supply_even_completed_case_units",
+        "incremental::tests::global_native_verdict_and_input_drift_block_otherwise_passing_cases",
+        "incremental::tests::pending_manual_inspections_do_not_discard_complete_native_units"
+      ],
+      "observed_before": "Regression failed on NATIVE_WORKER_EXIT before the repair."
+    },
+    {
+      "id": "REUSE-GROUP-002",
+      "severity": "high",
+      "issue": "Explicitly selecting old green evidence bypassed later group-level UNKNOWN, source drift or standalone native failures without per-case FAIL/UNKNOWN rows.",
+      "repair": "Transactional contradiction lookup includes all original cohort IDs for unclassified group failures, incomplete native provenance and unassigned native verdicts; aborted later runs need not contain case rows.",
+      "tests": [
+        "verification::tests::incremental_publication_validates_parent_and_copied_cases"
+      ],
+      "integrity": "Historical parent observations remain unchanged; a forged reuse proof is rejected.",
+      "coverage": [
+        "Later unassigned overall UNKNOWN",
+        "Later input/provenance drift",
+        "Later abort with zero case records",
+        "Incomplete parent with otherwise passing cases",
+        "Rejection of fabricated historical reuse proof",
+        "Historical parent preserved byte-for-byte"
+      ]
+    },
+    {
+      "id": "REUSE-BASELINE-003",
+      "severity": "high",
+      "issue": "An unclassified overall UNKNOWN with complete passing case rows could become the preferred complete baseline and permit garbage collection of a usable earlier basis.",
+      "repair": "Complete native baseline selection accepts PASS or explicit manual/suite/task-occurrence-only UNKNOWN verdicts; other UNKNOWN verdicts cannot replace the retained baseline.",
+      "tests": [
+        "verification::tests::native_complete_baseline_survives_later_partial_attempts_and_gc",
+        "verification::tests::native_complete_baseline_survives_manual_only_unknown_and_task_metadata"
+      ],
+      "observed_before": "Regression selected the unclassified UNKNOWN instead of the old complete baseline before the repair."
+    }
+  ],
+  "open_findings": [
+    {
+      "id": "INCREMENTAL-UNIT-001",
+      "severity": "high",
+      "action_required": true,
+      "issue": "Identity is still global; independent specification additions invalidate unchanged units. Per-unit semantic/dependency evidence and indexed multi-origin lookup are not implemented."
+    },
+    {
+      "id": "INCREMENTAL-BOUNDARY-002",
+      "severity": "high",
+      "action_required": true,
+      "issue": "Deterministic declarations and a file snapshot do not prove absence of unbound external/dynamic dependencies. Target-supported complete closures and explicit unknown boundaries remain required."
+    },
+    {
+      "id": "INCREMENTAL-PROCESS-003",
+      "severity": "medium",
+      "action_required": true,
+      "issue": "Warm reuse still runs build/catalog/native processes, and initial application attempts may have no complete provisional decisions."
+    },
+    {
+      "id": "INCREMENTAL-REQUIRE-004",
+      "severity": "high",
+      "action_required": true,
+      "issue": "Hybrid application production executes before the adapter reuse decision; require-mode failure can therefore occur after production execution."
+    },
+    {
+      "id": "INCREMENTAL-RETENTION-005",
+      "severity": "high",
+      "action_required": true,
+      "issue": "Widest-baseline retention is not a durable in-use reference or coverage-preserving replacement policy for independently usable unit evidence."
+    },
+    {
+      "id": "INCREMENTAL-MIGRATION-006",
+      "severity": "medium",
+      "action_required": true,
+      "issue": "Legacy reconstruction, additive idempotent migration and source-bound review reuse remain incomplete."
+    },
+    {
+      "id": "INCREMENTAL-PLAN-007",
+      "severity": "medium",
+      "action_required": true,
+      "issue": "Read-only incremental planning and actual execution do not use one decision component."
+    },
+    {
+      "id": "INCREMENTAL-ACCEPTANCE-008",
+      "severity": "high",
+      "action_required": true,
+      "issue": "Final whole-workspace coverage, complete Cinema acceptance, release performance acceptance and final Runatron reconciliation have not been established on this source."
+    }
+  ],
+  "validation": {
+    "state": "pass",
+    "command": [
+      "python3",
+      "scripts/validate.py",
+      "--focus",
+      "incremental",
+      "--samples",
+      "1",
+      "--iterations",
+      "1"
+    ],
+    "log": "/tmp/dctx0-incremental-review-validation-baseline-fixed.log",
+    "scope": "Focused development regression and release speed/RSS measurements; not full coverage or release acceptance",
+    "prior_attempts": [
+      {
+        "log": "/tmp/dctx0-incremental-review-validation.log",
+        "state": "interrupted during checks to extend coverage to later group-level provenance and verdict failures"
+      },
+      {
+        "log": "/tmp/dctx0-incremental-review-validation-final.log",
+        "state": "all selected functional steps passed; interrupted during release build after the baseline retention defect was discovered; not final acceptance"
+      }
+    ],
+    "validation_steps": 19,
+    "rust_test_functions_passed": 111,
+    "python_tests_passed": 98,
+    "source_hash": "d5dbbf07f16a5d2141751dff9bf68617e8acd4d0d54a27e692d71f60d1f16238",
+    "source_hash_after": "d5dbbf07f16a5d2141751dff9bf68617e8acd4d0d54a27e692d71f60d1f16238",
+    "raw_log": "docs/durable-incremental-review-focused.log.gz",
+    "raw_log_sha256": "69c4035c800c2d1bd5cc4660585c2ebddb39e9f4915bec10c42c89c09c36dd11",
+    "raw_report": "docs/durable-incremental-review-focused-report.json.gz",
+    "raw_report_sha256": "8d232586f04c9b2367874c46e35f3c9d4cf9a8dbd0046495c5da4d770d45ae82",
+    "release_workloads": {
+      "legacy-native": {
+        "elapsed_ms": 4489.053,
+        "peak_rss_bytes": 52342784
+      },
+      "hybrid-native": {
+        "elapsed_ms": 6993.788,
+        "peak_rss_bytes": 57622528
+      },
+      "application-native": {
+        "elapsed_ms": 6841.795,
+        "peak_rss_bytes": 278863872
+      },
+      "cli": {
+        "elapsed_ms": 1662.752,
+        "peak_rss_bytes": 61378560
+      },
+      "verification-core": {
+        "elapsed_ms": 175.512,
+        "peak_rss_bytes": 38113280
+      }
+    },
+    "performance_gate": "unassessed",
+    "samples": 1,
+    "iterations": 1,
+    "elapsed_ms": 688412.66,
+    "peak_process_tree_rss_bytes": 1139216384
+  },
+  "authority": "This source-bound review artifact grants no native PASS, task completion or blanket release approval. dctx0ctl has no existing self-task database at dctx0/.dctx0ctl/state.sqlite3; none was fabricated.",
+  "scoped_reviews": [
+    {
+      "reviewer": "codex",
+      "judgement": "approved",
+      "scope": "Repair of REUSE-GROUP-001 only",
+      "summary": "Allow only separate manual/suite obligations; reject global verdicts with no per-case assignment and incomplete execution provenance. Task-occurrence metadata alone does not invalidate native execution.",
+      "finding_ids_resolved": [
+        "REUSE-GROUP-001"
+      ],
+      "implementation_artifacts": {
+        "crates/dctx0-verification/src/incremental.rs": "0102cdbcc665d7501e033413da2e1c8e5b2fe0e982e908f6f37ef81f505437be",
+        "crates/dctx0-verification/src/incremental/decisions.rs": "4992b5a0141dcdfdd70b6593f3a561b975039f0779676e88a6153692e62904f4",
+        "crates/dctx0-engine/src/verification_run/reuse_execution.rs": "916aadeab85ca1592bc1d863f2c16a04acdf7cda3a3860f32433adc2c2722e41",
+        "crates/dctx0-engine/src/verification_run/reuse_inputs.rs": "7d6ebbeb7c28332247c853c789fadc3af4a6c39616ae9b7d5098827001298e6f",
+        "crates/dctx0-engine/src/verification_run/incremental.rs": "bcb39d93d54a4094ed3028ffa30a47a5984b7e425e24faf0c3b0641840041c40",
+        "crates/dctx0-engine/src/verification_run/hybrid_run.rs": "e25c36546187b219f8af68d149f5eb30c1b4c508903e649a6ae12fce8d0118aa",
+        "crates/dctx0-engine/src/verification_run/application_run.rs": "09c4b07c6e9490aa71fb6f56c99dbceff0aa2bfa284f70bbe259347c720d4fb6",
+        "crates/dctx0-store/src/verification.rs": "332f3733d2e240253084e459196d8634f043f9416ba8ea06613666b7b7068725",
+        "crates/dctx0-store/src/verification/reuse_observations.rs": "10821028e362cdd97ad9fa00cb0d72d12a728dffaf5ebe4182fb93c155c789d8",
+        "crates/dctx0-store/src/verification/maintenance.rs": "7a492713ab902de1638fa71a9c6e36946b7219ce5faabc501f599bd7a5d4fec4",
+        "crates/dctx0-store/src/verification/summaries.rs": "d4200d1cf0fe826e226b276c3513ab26be6f0579242da25a91583f3923e84907",
+        "crates/dctx0-store/src/verification/tests.rs": "777c193279d9e3c93e8be5da16e2109cdae84f43d590c9a98d48179003cda830",
+        "crates/dctx0-store/src/tasks/native_proof.rs": "fb734fee30f184de7207eebedb838acc631fe4ab4e04b24db7090041a2425be5"
+      },
+      "findings": []
+    },
+    {
+      "reviewer": "codex",
+      "judgement": "approved",
+      "scope": "Repair of REUSE-GROUP-002 only",
+      "summary": "Transactional contradiction lookup includes all original cohort IDs for unclassified group failures, incomplete native provenance and unassigned native verdicts; aborted later runs need not contain case rows.",
+      "finding_ids_resolved": [
+        "REUSE-GROUP-002"
+      ],
+      "implementation_artifacts": {
+        "crates/dctx0-verification/src/incremental.rs": "0102cdbcc665d7501e033413da2e1c8e5b2fe0e982e908f6f37ef81f505437be",
+        "crates/dctx0-verification/src/incremental/decisions.rs": "4992b5a0141dcdfdd70b6593f3a561b975039f0779676e88a6153692e62904f4",
+        "crates/dctx0-engine/src/verification_run/reuse_execution.rs": "916aadeab85ca1592bc1d863f2c16a04acdf7cda3a3860f32433adc2c2722e41",
+        "crates/dctx0-engine/src/verification_run/reuse_inputs.rs": "7d6ebbeb7c28332247c853c789fadc3af4a6c39616ae9b7d5098827001298e6f",
+        "crates/dctx0-engine/src/verification_run/incremental.rs": "bcb39d93d54a4094ed3028ffa30a47a5984b7e425e24faf0c3b0641840041c40",
+        "crates/dctx0-engine/src/verification_run/hybrid_run.rs": "e25c36546187b219f8af68d149f5eb30c1b4c508903e649a6ae12fce8d0118aa",
+        "crates/dctx0-engine/src/verification_run/application_run.rs": "09c4b07c6e9490aa71fb6f56c99dbceff0aa2bfa284f70bbe259347c720d4fb6",
+        "crates/dctx0-store/src/verification.rs": "332f3733d2e240253084e459196d8634f043f9416ba8ea06613666b7b7068725",
+        "crates/dctx0-store/src/verification/reuse_observations.rs": "10821028e362cdd97ad9fa00cb0d72d12a728dffaf5ebe4182fb93c155c789d8",
+        "crates/dctx0-store/src/verification/maintenance.rs": "7a492713ab902de1638fa71a9c6e36946b7219ce5faabc501f599bd7a5d4fec4",
+        "crates/dctx0-store/src/verification/summaries.rs": "d4200d1cf0fe826e226b276c3513ab26be6f0579242da25a91583f3923e84907",
+        "crates/dctx0-store/src/verification/tests.rs": "777c193279d9e3c93e8be5da16e2109cdae84f43d590c9a98d48179003cda830",
+        "crates/dctx0-store/src/tasks/native_proof.rs": "fb734fee30f184de7207eebedb838acc631fe4ab4e04b24db7090041a2425be5"
+      },
+      "findings": []
+    },
+    {
+      "reviewer": "codex",
+      "judgement": "approved",
+      "scope": "Repair of REUSE-BASELINE-003 only",
+      "summary": "Complete native baseline selection accepts PASS or explicit manual/suite/task-occurrence-only UNKNOWN verdicts; other UNKNOWN verdicts cannot replace the retained baseline.",
+      "finding_ids_resolved": [
+        "REUSE-BASELINE-003"
+      ],
+      "implementation_artifacts": {
+        "crates/dctx0-verification/src/incremental.rs": "0102cdbcc665d7501e033413da2e1c8e5b2fe0e982e908f6f37ef81f505437be",
+        "crates/dctx0-verification/src/incremental/decisions.rs": "4992b5a0141dcdfdd70b6593f3a561b975039f0779676e88a6153692e62904f4",
+        "crates/dctx0-engine/src/verification_run/reuse_execution.rs": "916aadeab85ca1592bc1d863f2c16a04acdf7cda3a3860f32433adc2c2722e41",
+        "crates/dctx0-engine/src/verification_run/reuse_inputs.rs": "7d6ebbeb7c28332247c853c789fadc3af4a6c39616ae9b7d5098827001298e6f",
+        "crates/dctx0-engine/src/verification_run/incremental.rs": "bcb39d93d54a4094ed3028ffa30a47a5984b7e425e24faf0c3b0641840041c40",
+        "crates/dctx0-engine/src/verification_run/hybrid_run.rs": "e25c36546187b219f8af68d149f5eb30c1b4c508903e649a6ae12fce8d0118aa",
+        "crates/dctx0-engine/src/verification_run/application_run.rs": "09c4b07c6e9490aa71fb6f56c99dbceff0aa2bfa284f70bbe259347c720d4fb6",
+        "crates/dctx0-store/src/verification.rs": "332f3733d2e240253084e459196d8634f043f9416ba8ea06613666b7b7068725",
+        "crates/dctx0-store/src/verification/reuse_observations.rs": "10821028e362cdd97ad9fa00cb0d72d12a728dffaf5ebe4182fb93c155c789d8",
+        "crates/dctx0-store/src/verification/maintenance.rs": "7a492713ab902de1638fa71a9c6e36946b7219ce5faabc501f599bd7a5d4fec4",
+        "crates/dctx0-store/src/verification/summaries.rs": "d4200d1cf0fe826e226b276c3513ab26be6f0579242da25a91583f3923e84907",
+        "crates/dctx0-store/src/verification/tests.rs": "777c193279d9e3c93e8be5da16e2109cdae84f43d590c9a98d48179003cda830",
+        "crates/dctx0-store/src/tasks/native_proof.rs": "fb734fee30f184de7207eebedb838acc631fe4ab4e04b24db7090041a2425be5"
+      },
+      "findings": []
+    }
+  ],
+  "local_install": {
+    "installed_at": "2026-11-14T19:06:18.661986+00:00",
+    "path": "/home/held/.local/bin/dctx0",
+    "version": "0.3.1",
+    "sha256": "b13f623a8844d2833de3b5a139d7c41c90bbe436a068fd57fd48b49d3f91fd79",
+    "previous_sha256": "daf1267b1fd6c0c0def99f472279d646d61d1a558c6be182d2dadbf2ccd3e437",
+    "previous_binary_backup": "/home/held/.local/state/dctx0/local-install-backups/daf1267b1fd6c0c0def99f472279d646d61d1a558c6be182d2dadbf2ccd3e437/dctx0",
+    "build": "Cargo release, default target features; exact binary used by final release CLI regressions",
+    "validation_source_hash": "d5dbbf07f16a5d2141751dff9bf68617e8acd4d0d54a27e692d71f60d1f16238",
+    "release_acceptance": "Not established: focused development validation only; performance baseline incompatible; full coverage and remaining durable incrementality requirements open"
+  }
+}

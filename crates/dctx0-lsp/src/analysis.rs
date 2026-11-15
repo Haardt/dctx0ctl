@@ -65,7 +65,7 @@ const EXTRA_KEYWORDS: &[&str] = &[
     "result",
 ];
 
-const BUILTIN_FUNCTIONS: &str = "count sum all any contains distinct min max filter map sortBy sortDescBy first single ifElse mean indexOf getOrElse lowercase uppercase trim length startsWith endsWith includesText slice reverse divide round";
+const BUILTIN_FUNCTIONS: &str = "count sum all any contains distinct min max filter map sortBy sortDescBy first single ifElse mean indexOf getOrElse lowercase uppercase trim length startsWith endsWith includesText matchesText slice reverse divide round";
 
 pub struct Analysis {
     sources: BTreeMap<String, String>,

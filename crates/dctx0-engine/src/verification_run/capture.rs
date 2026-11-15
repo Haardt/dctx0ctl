@@ -246,12 +246,10 @@ impl Capture {
         self.files.insert(name, digest(&bytes));
         if self.copy_files {
             fs::write(self.root.join(relative), bytes)?;
-            if helper {
-                fs::set_permissions(
-                    self.root.join(relative),
-                    fs::metadata(source)?.permissions(),
-                )?;
-            }
+            fs::set_permissions(
+                self.root.join(relative),
+                fs::metadata(source)?.permissions(),
+            )?;
         }
         Ok(())
     }
@@ -265,6 +263,34 @@ impl Drop for Capture {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    fn capture_preserves_executable_inputs_outside_helper_paths() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!(
+            "dctx0-capture-executable-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&root).unwrap();
+        let binary = root.join("git-lfs");
+        fs::write(&binary, b"#!/bin/sh\nexit 0\n").unwrap();
+        fs::set_permissions(&binary, fs::Permissions::from_mode(0o750)).unwrap();
+        let capture = Capture::new(&root).unwrap();
+        let copied = capture.root.join("git-lfs");
+        assert_eq!(
+            fs::metadata(&copied).unwrap().permissions().mode() & 0o777,
+            0o750
+        );
+        assert!(
+            std::process::Command::new(copied)
+                .status()
+                .unwrap()
+                .success()
+        );
+        drop(capture);
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn configured_capture_budgets_accept_larger_regular_files() {
         let root = std::env::temp_dir().join(format!(

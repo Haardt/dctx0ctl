@@ -1,0 +1,391 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-11-15T17:37:05.763276+00:00",
+  "complete_plan_implemented": false,
+  "complete_acceptance": false,
+  "scope": "Compiler-checked isolated Go decoder cohorts and guarded authored composition publication; whole Runatron migration and acceptance incomplete",
+  "source": {
+    "root": "/home/held/workspaces/compinion/dctx0ctl",
+    "note": "Earlier decoder source manifest retained in previous_decoder_checkpoint; final composition executable and individual probe files are pinned separately."
+  },
+  "installed_cli": {
+    "installed": "/home/held/.local/bin/dctx0",
+    "sha256": "77584b135751e3ae3a737d9568a1cfe83f342ae4f25539d467990d1e2d1e4cb4",
+    "backup": "/home/held/.local/bin/dctx0.before-composition-io-guard-20261115T163309041777Z",
+    "prior_sha256": "a3e513338ed1d1f963ea3e0cabdc09e98052a0018a9791977c4843e226bc56ab",
+    "root_acceptance": false
+  },
+  "checks": {
+    "cargo_build_release_dctx0_cli": "PASS",
+    "cargo_fmt_all_check": "PASS",
+    "gofmt_nonwriting_check": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "not_run_by_explicit_plan": [
+    "dctx0ctl Rust tests",
+    "selftests",
+    "coverage",
+    "Cinema",
+    "benchmarks",
+    "full release acceptance suites"
+  ],
+  "production_validation": {
+    "fixture": "/tmp/runatron-unit-evidence-6uai_omb",
+    "database": "/tmp/runatron-unit-evidence-6uai_omb/units-final.sqlite3",
+    "probes": {
+      "go-final-baseline": {
+        "exit": 0,
+        "elapsed_seconds": 2.198901643001591,
+        "wait4_peak_rss_bytes": 108806144,
+        "composition_id": "08ce3e315dfac2f9fb831b74c95b72239ed716142efd80b965eecfdb3a2c2c68",
+        "reused_cases": 0,
+        "executed_cases": 701,
+        "worker_starts": 2,
+        "production_calls": {
+          "UnitEvidence.Runner.ByteLimit": 117,
+          "UnitEvidence.Runner.Counter": 116,
+          "UnitEvidence.Runner.InstantMillis": 116,
+          "UnitEvidence.Runner.Milliseconds": 117,
+          "UnitEvidence.Runner.PositiveLimit": 117,
+          "UnitEvidence.Runner.RuntimePolicy": 118
+        },
+        "production_calls_complete": true,
+        "native_runs": [
+          "d82ef6e4b41f70e7c91933a8cf0421ac614e2e7b1e75208ae4a935433a90ef33",
+          "2f226b13d17a5210de0c2f2d98ce6da901d3a7ad8c04b972a54f4244cdc16cab"
+        ],
+        "sampled_child_count": 15
+      },
+      "go-final-warm": {
+        "exit": 0,
+        "elapsed_seconds": 0.41519919599522837,
+        "wait4_peak_rss_bytes": 98906112,
+        "composition_id": "5669baa16d5947c8fcaa9cf0089e50575ea939f4fa61777afd50d080e8124c6a",
+        "reused_cases": 701,
+        "executed_cases": 0,
+        "worker_starts": 0,
+        "production_calls": {},
+        "production_calls_complete": true,
+        "native_runs": [],
+        "sampled_child_count": 0
+      },
+      "go-final-policy-change": {
+        "exit": 0,
+        "elapsed_seconds": 1.1722966029919917,
+        "wait4_peak_rss_bytes": 99373056,
+        "killed_owned_worker": null,
+        "composition_id": "e283677ec63576bfcf810581a3f673763e3ecbf1c45a19748f9d1e589d71d4d8",
+        "reused_cases": 116,
+        "executed_cases": 585,
+        "worker_starts": 1,
+        "production_calls": {
+          "UnitEvidence.Runner.ByteLimit": 117,
+          "UnitEvidence.Runner.InstantMillis": 116,
+          "UnitEvidence.Runner.Milliseconds": 117,
+          "UnitEvidence.Runner.PositiveLimit": 117,
+          "UnitEvidence.Runner.RuntimePolicy": 118
+        },
+        "production_calls_complete": true,
+        "native_runs": [
+          "3c1d847d1df86c177fe7e1454a05b0a8f2de3f1f8403005a0ab35cac425b240a"
+        ],
+        "decisions": [
+          {
+            "unit": "counter",
+            "action": "reuse",
+            "reasons": []
+          },
+          {
+            "unit": "policy",
+            "action": "execute-changed",
+            "reasons": [
+              {
+                "code": "UNIT_BINDING_CHANGED",
+                "input": "policy"
+              }
+            ]
+          }
+        ],
+        "coverage": {
+          "counter": "reused-pass",
+          "policy": "fresh-pass"
+        },
+        "sampled_child_count": 9
+      },
+      "go-final-shared-discovery": {
+        "exit": 1,
+        "elapsed_seconds": 0.15534199301328044,
+        "wait4_peak_rss_bytes": 98021376,
+        "killed_owned_worker": null,
+        "sampled_child_count": 0
+      },
+      "go-final-worker-abort": {
+        "exit": 1,
+        "elapsed_seconds": 0.995007240009727,
+        "wait4_peak_rss_bytes": 99205120,
+        "killed_owned_worker": 1728262,
+        "composition_id": "2ca1e3c3e1cd67f9800dc36b867f51f12dfc6291f847b259b7c73bfa046ef514",
+        "reused_cases": 116,
+        "executed_cases": 30,
+        "worker_starts": null,
+        "production_calls": {},
+        "production_calls_complete": false,
+        "native_runs": [
+          "611fc40e43b1989c064cf42eb7181122714d36b699fe7d09c203a17e61d63929"
+        ],
+        "decisions": [
+          {
+            "unit": "counter",
+            "action": "reuse",
+            "reasons": []
+          },
+          {
+            "unit": "policy",
+            "action": "execute-unbound",
+            "reasons": [
+              {
+                "code": "REUSE_SOURCE_RESTRICTED",
+                "input": "policy"
+              }
+            ]
+          }
+        ],
+        "coverage": {
+          "counter": "reused-pass",
+          "policy": "unknown"
+        },
+        "sampled_child_count": 8
+      },
+      "go-final-worker-repair": {
+        "exit": 0,
+        "elapsed_seconds": 1.221843639999861,
+        "wait4_peak_rss_bytes": 99557376,
+        "killed_owned_worker": null,
+        "composition_id": "30155af43d2a625a4026f351dc30166ef7276df776aed32e799423196004a20e",
+        "reused_cases": 116,
+        "executed_cases": 585,
+        "worker_starts": 1,
+        "production_calls": {
+          "UnitEvidence.Runner.ByteLimit": 117,
+          "UnitEvidence.Runner.InstantMillis": 116,
+          "UnitEvidence.Runner.Milliseconds": 117,
+          "UnitEvidence.Runner.PositiveLimit": 117,
+          "UnitEvidence.Runner.RuntimePolicy": 118
+        },
+        "production_calls_complete": true,
+        "native_runs": [
+          "f93b03e94f43f8b91fe455a1c8267ba835b903fbfd51cd591900563b35bd610c"
+        ],
+        "decisions": [
+          {
+            "unit": "counter",
+            "action": "reuse",
+            "reasons": []
+          },
+          {
+            "unit": "policy",
+            "action": "execute-unbound",
+            "reasons": [
+              {
+                "code": "LATEST_ATTEMPT_NOT_PASS",
+                "input": "policy"
+              }
+            ]
+          }
+        ],
+        "coverage": {
+          "counter": "reused-pass",
+          "policy": "fresh-pass"
+        },
+        "sampled_child_count": 8
+      },
+      "go-final-repaired-warm": {
+        "exit": 0,
+        "elapsed_seconds": 0.3762838240072597,
+        "wait4_peak_rss_bytes": 98222080,
+        "killed_owned_worker": null,
+        "composition_id": "2048f52bb6a44c0078e620ad409b5ebc0e0c9f1abab13c823d6e34f41ef65ff7",
+        "reused_cases": 701,
+        "executed_cases": 0,
+        "worker_starts": 0,
+        "production_calls": {},
+        "production_calls_complete": true,
+        "native_runs": [],
+        "decisions": [
+          {
+            "unit": "counter",
+            "action": "reuse",
+            "reasons": []
+          },
+          {
+            "unit": "policy",
+            "action": "reuse",
+            "reasons": []
+          }
+        ],
+        "coverage": {
+          "counter": "reused-pass",
+          "policy": "reused-pass"
+        },
+        "sampled_child_count": 0
+      }
+    },
+    "storage": {
+      "schema": 8,
+      "unit_origins": 4,
+      "compositions": 7,
+      "attempt_outcomes": {
+        "pass": 4,
+        "unknown": 5
+      },
+      "global_history_holds": 0
+    },
+    "production_sources_restored": true,
+    "full_runatron_executions": 0,
+    "task_changes": 0,
+    "memory_measurement": "Linux wait4 ru_maxrss for each CLI command (maximum, not simultaneous aggregate RSS); process starts additionally sampled with psutil",
+    "historical_setup_failures": "Preserved under fixture logs and native history; no partial or aborted result counted as full PASS"
+  },
+  "static_identity_probes": {
+    "original_seconds": 0.06455078299040906,
+    "format_seconds": 0.04773379200196359,
+    "format_fingerprints_equal": true,
+    "input_change_seconds": 0.040729601998464204,
+    "same_case_ids_after_input_change": true,
+    "changed_input_changes_fingerprint": true,
+    "native_call_delta": {},
+    "scope": "static logical identities only; no native reuse or composition authority"
+  },
+  "production_readonly_query_plans": {
+    "database_schema": 7,
+    "queries": {
+      "case_by_native_source": [
+        [
+          3,
+          0,
+          39,
+          "SEARCH verification_case_index USING INDEX sqlite_autoindex_verification_case_index_1 (run_id=? AND case_id=?)"
+        ]
+      ],
+      "latest_native_candidates": [
+        [
+          4,
+          0,
+          54,
+          "SEARCH verification_runs USING COVERING INDEX verification_runs_project (project=?)"
+        ],
+        [
+          20,
+          0,
+          0,
+          "USE TEMP B-TREE FOR ORDER BY"
+        ]
+      ]
+    }
+  },
+  "remaining": [
+    "Unify all existing commands and default decisions with the unit planner",
+    "Bun closures and stateful operation/lifecycle adapters",
+    "Lazy versioned stateful fixture broker",
+    "Historical source-bound migration and reviews",
+    "Bounded case-body loading and safe retirement of superseded source holds",
+    "Final complete same-source project/native acceptance",
+    "Extend guarded composition publication/status beyond supported decoder workflow and reconcile actual Runner tasks"
+  ],
+  "previous_decoder_checkpoint": {
+    "installed_cli": {
+      "installed": "/home/held/.local/bin/dctx0",
+      "sha256": "d756629bf264782bad5206d791abe90c9461dfbb10507f0a7ab81bd7329089d1",
+      "predecessor": "/home/held/.local/bin/dctx0.before-unit-evidence-20261115T110331277127Z",
+      "predecessor_sha256": "808ded8347d95825b0ee8f6f1cff1a35b8a2b9dddadc38716caf120bff5455d5"
+    },
+    "source": {
+      "root": "/home/held/workspaces/compinion/dctx0ctl",
+      "inputs_sha256": "d6f024eba477966c94d0e215f1a49bed6d3aa7ce436e68e23e73ca303f576ef3",
+      "input_files": 524,
+      "input_manifest": "/tmp/runatron-unit-evidence-6uai_omb/source-inputs.json"
+    }
+  },
+  "composition_publication": {
+    "cli_sha256": "77584b135751e3ae3a737d9568a1cfe83f342ae4f25539d467990d1e2d1e4cb4",
+    "fixture": "/tmp/runatron-unit-evidence-6uai_omb",
+    "database": "/tmp/runatron-unit-evidence-6uai_omb/composition-final-publication.sqlite3",
+    "native_metrics": {
+      "exit_code": 0,
+      "elapsed_seconds": 1.743913458994939,
+      "sampled_process_tree_peak_rss_bytes": 97402880,
+      "sampling_seconds": 0.02,
+      "scope": "isolated real production fixture, native Counter/RuntimePolicy; no full Runatron execution"
+    },
+    "delivery": {
+      "basis": "native-evidence-composition+authored-inspection",
+      "composition": "32fe9392b68f34fad58707d22a24fae5ae74212f21bb0bd9f7be7d10bf280892",
+      "delivered_tasks": [
+        2
+      ],
+      "event_sequence": 10,
+      "request_hash": "05afd9f2e8d1579b3808a3a8c9ede0245154504a227ffe4dd52abeaa32bf3c2c",
+      "schema_version": 1
+    },
+    "delivery_metrics": {
+      "exit_code": 0,
+      "seconds": 0.17894783300289419,
+      "production_counter_bytes_changed": 0,
+      "scope": "Only isolated fixture T2; all real Runner tasks untouched"
+    },
+    "final_task_status": {
+      "total": 6,
+      "done_pass": 1,
+      "done_without_pass": 0,
+      "open": 5,
+      "in_progress": 0,
+      "blocked": 1,
+      "evidence_current": 1,
+      "evidence_stale": 0,
+      "evidence_unknown": 0,
+      "inspected_current": 0,
+      "inspected_stale": 0,
+      "agent_current": 1,
+      "agent_stale": 0
+    },
+    "status_report": "/tmp/runatron-unit-evidence-6uai_omb/composition-publication-final-status.json",
+    "ambient_io_negative_probe": {
+      "exit_code": 1,
+      "elapsed_seconds": 0.649272281996673,
+      "production_counter_bytes_changed": 0,
+      "guard_rejected": true,
+      "error": "Unit inventory: 116 mandatory cases; 0 reusable; 116 fresh\nUNIT_COMPILED_BOUNDARY_UNPROVEN: {\"kind\":\"unknown\",\"group\":\"ambient-counter\",\"reasons\":[\"AMBIENT_STANDARD_IO_OR_OPAQUE_ALIAS:file:/tmp/runatron-unit-evidence-6uai_omb/ambient-input-application/decoder/decoder.go\"]}\n"
+    },
+    "earlier_publication_guard_probes": {
+      "scope": "Earlier executable a3e513338ed1d1f963ea3e0cabdc09e98052a0018a9791977c4843e226bc56ab; retained separately from final executable probes",
+      "claim_conflict": "composition-conflict-start.json and composition-conflict-release.json",
+      "wrong_profile": "composition-profile-pin-rejected.log",
+      "wrong_plan": "composition-inspection-binding-rejected.log",
+      "profile_stale_and_restored": [
+        "composition-status-profile-changed.json",
+        "composition-status-profile-restored.json"
+      ]
+    },
+    "real_runner_tasks_completed": 0,
+    "full_runatron_executions": 0,
+    "native_report": {
+      "path": "/tmp/runatron-unit-evidence-6uai_omb/composition-publication-final-native.json",
+      "sha256": "a743d210256d4e370334a166f77606494b1c502f210ec869cf6894d5d27e12b1"
+    },
+    "warm_report": {
+      "path": "/tmp/runatron-unit-evidence-6uai_omb/composition-publication-final-warm.json",
+      "sha256": "151c4766916e80f5309593ee777201e20965c8eb9b57ba0cb176e1bde0ae4c28"
+    }
+  },
+  "historical_source_reconstruction": {
+    "native_run": "a527722260d4daf152a316729132b6f15274c221db85f109bc6aaddff75216c2",
+    "report": "/tmp/runatron-current-origin-audit/a527722260d4daf152a316729132b6f15274c221db85f109bc6aaddff75216c2.source-reconstruction.json",
+    "sha256": "4339a4822d10219e94bb0304d16fea32e42f75a5935d4ddc14e2333533a4a7e0",
+    "direct_exact_matches": 1883,
+    "supplementary_exact_matches": 56,
+    "remaining_missing": 0,
+    "remaining_changed": 0,
+    "unit_migration_accepted": false,
+    "cleanup_and_isolation_proved": false
+  }
+}

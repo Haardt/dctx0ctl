@@ -16,6 +16,7 @@ mod constructor_equality;
 pub mod hybrid_assessment;
 pub mod hybrid_evidence;
 pub mod incremental;
+pub mod unit_planner;
 pub use constructor_equality::constructor_value_equality;
 mod preconditions;
 pub mod program_inspection;

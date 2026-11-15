@@ -436,6 +436,33 @@ impl Project {
         provider: &dyn TargetProfileProvider,
         cancellation: &NativeCancellation,
     ) -> Result<CompleteVerificationReport> {
+        self.complete_application_tests_with_reuse(
+            application,
+            plan,
+            group,
+            recipe,
+            output,
+            notes_file,
+            provider,
+            cancellation,
+            &NativeReuseOptions::default(),
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn complete_application_tests_with_reuse(
+        &self,
+        application: &Path,
+        plan: &str,
+        group: &str,
+        recipe: &str,
+        output: &str,
+        notes_file: &Path,
+        provider: &dyn TargetProfileProvider,
+        cancellation: &NativeCancellation,
+        reuse: &NativeReuseOptions,
+    ) -> Result<CompleteVerificationReport> {
         let application = fs::canonicalize(application)?;
         let imported = self.complete_imported_inspections(
             &application,
@@ -458,13 +485,14 @@ impl Project {
         self.task_plan(&bundle.plan.program.snapshot)?;
         let notes = self.complete_inspection_notes(&application, imported)?;
         let managed = self
-            .verify_application_tests(
+            .verify_application_tests_incremental_with_adoption(
                 &application,
                 plan,
                 group,
                 recipe,
                 output,
                 cancellation,
+                reuse,
                 false,
             )
             .await?;
@@ -478,7 +506,7 @@ impl Project {
             &application,
             notes,
             NativeVerificationReport {
-                incremental: None,
+                incremental: managed.incremental.map(Box::new),
                 supervision: None,
                 evidence,
                 adopted_tasks: managed.adopted_tasks,
@@ -500,7 +528,7 @@ impl Project {
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
     ) -> Result<CompleteVerificationReport> {
-        self.complete_hybrid_verification_checked(
+        self.complete_hybrid_verification_with_reuse(
             application,
             options,
             notes_file,
@@ -508,6 +536,7 @@ impl Project {
             generator,
             cancellation,
             None,
+            &NativeReuseOptions::default(),
         )
         .await
     }
@@ -524,7 +553,7 @@ impl Project {
         cancellation: &NativeCancellation,
         expected_plan_sha256: &str,
     ) -> Result<CompleteVerificationReport> {
-        self.complete_hybrid_verification_checked(
+        self.complete_hybrid_verification_with_reuse(
             application,
             options,
             notes_file,
@@ -532,12 +561,13 @@ impl Project {
             generator,
             cancellation,
             Some(expected_plan_sha256),
+            &NativeReuseOptions::default(),
         )
         .await
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn complete_hybrid_verification_checked(
+    pub async fn complete_hybrid_verification_with_reuse(
         &self,
         application: &Path,
         options: &HybridVerificationOptions<'_>,
@@ -546,6 +576,7 @@ impl Project {
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
         expected_plan_sha256: Option<&str>,
+        reuse: &NativeReuseOptions,
     ) -> Result<CompleteVerificationReport> {
         let application = fs::canonicalize(application)?;
         let imported = self.complete_imported_inspections(
@@ -594,6 +625,7 @@ impl Project {
                 cancellation,
                 Some(&notes),
                 expected_plan_sha256,
+                reuse,
             )
             .await?;
         self.finish_complete_verification(&application, notes, native)
@@ -629,6 +661,29 @@ impl Project {
         generator: &dyn HarnessGenerator,
         cancellation: &NativeCancellation,
         max_input_bytes: u64,
+    ) -> Result<CompleteVerificationReport> {
+        self.complete_verification_with_reuse(
+            application,
+            notes_file,
+            provider,
+            generator,
+            cancellation,
+            max_input_bytes,
+            &NativeReuseOptions::default(),
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn complete_verification_with_reuse(
+        &self,
+        application: &Path,
+        notes_file: &Path,
+        provider: &dyn TargetProfileProvider,
+        generator: &dyn HarnessGenerator,
+        cancellation: &NativeCancellation,
+        max_input_bytes: u64,
+        reuse: &NativeReuseOptions,
     ) -> Result<CompleteVerificationReport> {
         let application = fs::canonicalize(application)?;
         let imported =
@@ -716,12 +771,14 @@ impl Project {
             )));
         }
         let native = self
-            .run_verification_preflighted(
+            .run_verification_incremental_preflighted_with_adoption(
                 Some(&application),
                 Default::default(),
                 generator,
                 cancellation,
+                reuse,
                 preflight,
+                !native_delivery_needed,
             )
             .await?;
         self.finish_complete_verification(&application, notes, native)

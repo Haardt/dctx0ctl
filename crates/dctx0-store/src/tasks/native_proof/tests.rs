@@ -753,6 +753,7 @@ fn incremental_lineage_revalidates_parent_receipts_and_rejects_corruption() {
             .collect(),
         files: Default::default(),
         environment: Default::default(),
+        incomplete: vec![],
     };
     let units = incremental::receipt_units(&plan, &receipt).unwrap();
     let input = crate::VerificationArtifact::new(
@@ -1251,5 +1252,29 @@ fn inspected_native_rejects_corrupt_bound_audit_metadata_and_payload_atomically(
             )
             .unwrap();
         assert_eq!(links, 0);
+    }
+}
+
+#[test]
+fn controlled_runtime_requires_live_image_and_complete_nonsecret_launch_pins() {
+    let runtime = serde_json::json!({"schema_version":3,"method":"controlled-procfs-live-image","launch":{"directory":std::env::current_dir().unwrap(),"arguments":["worker"],"parent_environment_hash":"a".repeat(64),"forwarded_environment":["PATH"]}});
+    assert!(controlled_runtime_identity(&runtime));
+    for (field, value) in [
+        ("method", serde_json::json!("captured-launch")),
+        ("schema_version", serde_json::json!(99)),
+    ] {
+        let mut changed = runtime.clone();
+        changed[field] = value;
+        assert!(!controlled_runtime_identity(&changed));
+    }
+    for (field, value) in [
+        ("directory", serde_json::json!("relative")),
+        ("parent_environment_hash", serde_json::json!("missing")),
+        ("forwarded_environment", serde_json::json!(["A=B"])),
+        ("arguments", serde_json::json!([42])),
+    ] {
+        let mut changed = runtime.clone();
+        changed["launch"][field] = value;
+        assert!(!controlled_runtime_identity(&changed));
     }
 }

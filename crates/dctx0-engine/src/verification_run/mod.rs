@@ -1,5 +1,7 @@
 //! Managed native execution from a published snapshot, with immutable reports.
 mod adoption;
+mod continuation;
+pub use continuation::VerificationContinuationPlan;
 mod application_run;
 pub use application_run::*;
 mod adoption_preview;
@@ -7,6 +9,8 @@ pub use adoption_preview::{AdoptionPreviewTask, VerificationAdoptionPreview};
 mod attestations;
 mod build;
 mod capture;
+mod composition_attestations;
+pub use composition_attestations::CompositionTaskAttestation;
 mod dependencies;
 mod execution;
 mod hybrid_run;
@@ -14,8 +18,12 @@ pub use hybrid_run::HybridVerificationOptions;
 mod incremental;
 mod reuse_execution;
 mod reuse_inputs;
+mod reuse_preflight;
+mod unit_plan;
+mod units;
 pub use incremental::{IncrementalComparison, VerificationIncrementalReport};
-pub use reuse_execution::{NativeReuseOptions, NativeReuseSummary};
+pub use reuse_execution::{NativeReuseMode, NativeReuseOptions, NativeReuseSummary};
+pub use units::{DecoderUnitConfiguration, DecoderUnitGroup, UnitVerificationReport};
 mod pins;
 mod preflight;
 mod status;
@@ -247,6 +255,8 @@ impl Project {
                 None,
                 None,
                 Some(options),
+                None,
+                None,
             )
             .await?
         {
@@ -329,6 +339,8 @@ impl Project {
                 None,
                 None,
                 None,
+                None,
+                None,
             )
             .await?
         {
@@ -363,6 +375,8 @@ impl Project {
                 None,
                 limits,
                 Some(expected),
+                None,
+                None,
                 None,
                 None,
                 None,
@@ -409,6 +423,8 @@ impl Project {
                 None,
                 None,
                 None,
+                None,
+                None,
             )
             .await?
         {
@@ -448,6 +464,8 @@ impl Project {
                 Some((assignment, group)),
                 None,
                 None,
+                None,
+                None,
             )
             .await?
         {
@@ -475,20 +493,32 @@ impl Project {
         )>,
         hybrid: Option<&hybrid_run::HybridExecution>,
         reuse_options: Option<&NativeReuseOptions>,
+        continuation: Option<&continuation::ContinuationSelection>,
+        mut unit_context: Option<&mut units::UnitNativeContext>,
     ) -> Result<ExecutionReport> {
         let parent = pinned.as_ref().and_then(|(_, _, parent)| parent.clone());
         let supervision = limits.supervision_capabilities();
         let historical = selection.historical_check.is_some() || pinned.is_some();
         let no_adopt = no_adopt || historical;
+        let automatic_options = NativeReuseOptions::default();
+        let reuse_options = reuse_options
+            .or_else(|| (transient.is_none() && !historical).then_some(&automatic_options));
         let (application, config) = self.verification_configuration(application)?;
+        let mut limits = limits;
+        limits.environment = config.environment.clone().unwrap_or_default();
         if selection.subjects.is_empty() && selection.tasks.is_empty() {
             selection.subjects = config.scope.subjects.clone();
             selection.tasks = config.scope.tasks.clone();
         }
-        let mut capture = Capture::new_with_budget(&application, config.capture_budgets())?;
-        let captured_inputs = capture.files.clone();
-        let fixtures: ProjectionFixtures = if pinned.is_none() {
-            serde_json::from_slice(&fs::read(capture.root.join(&config.fixtures))?)?
+        let projection_bytes = if pinned.is_none() {
+            Some(fs::read(
+                crate::verification_setup::safe_file(&application, &config.fixtures)?.1,
+            )?)
+        } else {
+            None
+        };
+        let fixtures: ProjectionFixtures = if let Some(bytes) = &projection_bytes {
+            serde_json::from_slice(bytes)?
         } else {
             Default::default()
         };
@@ -499,7 +529,32 @@ impl Project {
                 None,
             ),
         };
-        let assigned_cases = if let Some((assignment, group)) = assigned_group {
+        if hybrid.is_none()
+            && continuation.is_none()
+            && let Some(options) = reuse_options
+        {
+            reuse_preflight::guard(self, &application, &plan, options, cancellation).await?;
+        }
+        let mut capture = Capture::new_with_budget(&application, config.capture_budgets())?;
+        let captured_inputs = capture.files.clone();
+        if let Some(bytes) = projection_bytes
+            && fs::read(capture.root.join(&config.fixtures))? != bytes
+        {
+            return Err(Error::Invalid("PREFLIGHT_FIXTURES_CHANGED: projection inputs changed during planning; no native execution started".into()));
+        }
+        let assigned_cases = if let Some(context) = continuation {
+            let required = dctx0_verification::case_manifest(&plan).required_cases;
+            if assigned_group.is_some()
+                || hybrid.is_some()
+                || reuse_options.is_some()
+                || !context.plan.selected_cases.is_subset(&required)
+            {
+                return Err(Error::Invalid(
+                    "Continuation cannot expand or mix execution cohorts".into(),
+                ));
+            }
+            Some(context.plan.selected_cases.clone())
+        } else if let Some((assignment, group)) = assigned_group {
             assignment.validate().map_err(|issues| {
                 Error::Invalid(format!("Invalid hybrid assignment: {issues:?}"))
             })?;
@@ -557,8 +612,11 @@ impl Project {
         let snapshot = self
             .store(AccessMode::ReadOnly)?
             .load(&self.key(), &plan.snapshot)?;
-        let (mut task_pin, mut pin_issues) =
-            pins::capture(self, &application, &config.target, &plan, &snapshot)?;
+        let (mut task_pin, mut pin_issues) = if unit_context.is_some() {
+            (None, Vec::new())
+        } else {
+            pins::capture(self, &application, &config.target, &plan, &snapshot)?
+        };
         let incremental_done_versions = if reuse_options.is_some() && hybrid.is_none() && !no_adopt
         {
             Some(adoption::capture_done_versions(self, task_pin.as_ref())?)
@@ -761,8 +819,13 @@ impl Project {
         let mut rust_receipt = None;
         let rust_pending = if config.target == "rust" {
             Some(
-                rust_build::prepare(&capture.root.join(directory), &capture.root, cancellation)
-                    .await,
+                rust_build::prepare_with_environment(
+                    &capture.root.join(directory),
+                    &capture.root,
+                    cancellation,
+                    &limits.environment,
+                )
+                .await,
             )
         } else {
             None
@@ -791,6 +854,7 @@ impl Project {
                 &capture.root.join(directory),
                 cancellation,
                 &mut artifacts,
+                &limits.environment,
             )
             .await
             {
@@ -854,6 +918,9 @@ impl Project {
                             "application/vnd.dctx0.go-build-inputs+json",
                             serde_json::to_vec(&receipt)?,
                         ));
+                        if let Some(context) = unit_context.as_deref_mut() {
+                            context.bind_compilation(self, &receipt, generator, &mut artifacts)?;
+                        }
                         if transient.is_some() {
                             bundle.recipe.program = capture
                                 .root
@@ -958,6 +1025,24 @@ impl Project {
             task_pin,
             incomplete: pin_issues,
         };
+        if let Some(context) = continuation {
+            artifacts.push(VerificationArtifact::new(
+                "application/vnd.dctx0.continuation+json",
+                serde_json::to_vec(&context.plan)?,
+            ));
+            if let Some(inputs) = &context.lifecycle_inputs {
+                let artifact = VerificationArtifact::new(
+                    "application/vnd.dctx0.continuation-lifecycle-inputs+json",
+                    serde_json::to_vec(inputs)?,
+                );
+                if context.plan.lifecycle_inputs_hash.as_ref() != Some(&artifact.reference.hash) {
+                    return Err(Error::Invalid(
+                        "Continuation lifecycle input digest differs".into(),
+                    ));
+                }
+                artifacts.push(artifact);
+            }
+        }
         let mut run = VerificationRun {
             schema_version: 1,
             origin: VerificationRunOrigin::Native,
@@ -1002,11 +1087,15 @@ impl Project {
         } else {
             None
         };
+        if let Some(state) = &reuse_state {
+            run.provenance.incomplete.extend(state.input_issues());
+        }
         if let (Some(state), Some(assigned)) = (&reuse_state, &assigned_cases) {
-            if state
-                .units
-                .iter()
-                .any(|unit| unit.reusable && !unit.cases.is_subset(assigned))
+            if state.enabled()
+                && state
+                    .units
+                    .iter()
+                    .any(|unit| unit.reusable && !unit.cases.is_subset(assigned))
             {
                 return Err(Error::Invalid("Hybrid reuse declarations must select complete adapter-owned units; native group remains fresh".into()));
             }
@@ -1022,6 +1111,9 @@ impl Project {
                     assigned_cases: assigned_cases.as_ref(),
                     reuse: reuse_state.as_mut(),
                     complete_cohort: hybrid.is_some(),
+                    identity_context: continuation
+                        .map(|context| context.identity_context.as_slice())
+                        .unwrap_or_default(),
                     lifecycles: &lifecycles,
                     cancel: cancellation,
                     limits,
@@ -1072,6 +1164,14 @@ impl Project {
             );
             run.provenance.incomplete.push(incomplete.clone());
             run.open_obligations.push(incomplete);
+        }
+        if continuation.is_some() {
+            let gap = issue(
+                "CONTINUATION_COMPOSITION_REQUIRED",
+                "Selected pending cases are diagnostic native observations; the full inventory and historical producer bindings require separate validated composition",
+            );
+            run.provenance.incomplete.push(gap.clone());
+            run.open_obligations.push(gap);
         }
         run.result = run
             .cases
@@ -1144,7 +1244,7 @@ impl Project {
                 format!("Cannot reassess execution input freshness: {error}"),
             )),
         }
-        if !historical {
+        if !historical || continuation.is_some() {
             match self.sources() {
                 Ok(sources) if dctx0_changes::source_hash(&sources) == snapshot.source_hash => {},
                 Ok(_) => run.provenance.incomplete.push(issue("SPEC_INPUTS_CHANGED",
@@ -1239,15 +1339,19 @@ impl Project {
                 run,
             }));
         }
-        if let Some(state) = &reuse_state {
+        if let Some(state) = &mut reuse_state {
             state
-                .finish(&application, &plan, &run, &mut artifacts, cancellation)
+                .finish(&application, &plan, &mut run, &mut artifacts, cancellation)
                 .await?;
             run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
         }
         let mut incremental = reuse_state
             .as_ref()
             .map(|state| Box::new(state.summary(&plan, &run)));
+        if let Some(context) = unit_context {
+            context.complete(&run, &mut artifacts)?;
+            run.artifacts = artifacts.iter().map(|a| a.reference.clone()).collect();
+        }
         preserve_verification_history(&config, &mut run, &mut artifacts);
         let saved = self
             .store(AccessMode::ReadWrite)?

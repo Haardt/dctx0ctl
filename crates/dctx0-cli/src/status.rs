@@ -84,6 +84,9 @@ pub(crate) fn run(
         } else {
             writeln!(output, "Latest run: none").map_err(crate::error_message)?;
         }
+        if let Some(baseline) = &report.historical_complete_baseline {
+            writeln!(output, "Historical complete native baseline: {} with {} passing cases; current compatibility requires input validation", baseline.id, baseline.required_case_count).map_err(crate::error_message)?;
+        }
         if let Some(progress) = &report.progress {
             writeln!(output,"Since P{} / event {}: {} newly Done; {} newly PASS; {} added Done; {} added PASS; {} lost PASS",progress.baseline.plan_id,progress.baseline.event_seq,progress.newly_done,progress.newly_pass,progress.added_done,progress.added_pass,progress.lost_pass).map_err(crate::error_message)?;
         } else {

@@ -12,6 +12,7 @@ mod profile_benchmark;
 mod profiles;
 mod query;
 mod render;
+mod reuse_args;
 mod site;
 mod skills;
 mod sources;

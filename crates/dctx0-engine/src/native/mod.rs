@@ -1,8 +1,10 @@
 //! Managed native transport with optional Linux process-tree supervision. No worker reply constitutes verification PASS.
 mod descendants;
+mod environment;
 pub(crate) mod identity;
+pub use environment::NativeEnvironment;
+pub(crate) use environment::environment_value;
 pub(crate) use identity::VerifierIdentity;
-pub(crate) use identity::resolve_program;
 pub use identity::{NativeLaunchInputs, NativeRuntimeIdentity};
 mod cases;
 mod command;
@@ -102,6 +104,9 @@ pub enum NativeSupervision {
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct NativeLimits {
+    /// Configuration values are never serialized into execution artifacts.
+    #[serde(skip)]
+    pub environment: NativeEnvironment,
     pub supervision: NativeSupervision,
     pub initialization: Duration,
     pub case: Duration,
@@ -116,6 +121,7 @@ impl Default for NativeLimits {
     fn default() -> Self {
         Self {
             supervision: NativeSupervision::Auto,
+            environment: NativeEnvironment::default(),
             initialization: Duration::from_secs(30),
             case: Duration::from_secs(5),
             run: Duration::from_secs(120),
@@ -242,8 +248,14 @@ impl NativeWorker {
                 rustix::process::Pid::INIT,
             )))?;
         }
-        let program = identity::resolve_program(&recipe.program, directory)?;
+        let selected_environment = limits.environment.entries()?;
+        let program = identity::resolve_program_with_path(
+            &recipe.program,
+            directory,
+            crate::native::environment_value(&selected_environment, "PATH"),
+        )?;
         let mut command = Command::new(&program);
+        command.env_clear().envs(&selected_environment);
         command.envs(environment);
         if recipe.program == "cargo" {
             command
@@ -296,8 +308,13 @@ impl NativeWorker {
         if supervised {
             command.as_std_mut().process_group(0);
         }
-        let launch_identity =
-            NativeRuntimeIdentity::capture_launch(&program, recipe, directory, &mut command)?;
+        let launch_identity = NativeRuntimeIdentity::capture_launch(
+            &program,
+            recipe,
+            directory,
+            &mut command,
+            &limits.environment,
+        )?;
         let mut child = command
             .spawn()
             .map_err(|e| NativeFailure::new(NativeFailureKind::Unavailable, e.to_string()))?;

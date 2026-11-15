@@ -6,6 +6,20 @@ const SUBJECT_SLOT: &str = "__SUBJECTS__";
 pub struct GoHarness;
 
 impl HarnessGenerator for GoHarness {
+    fn contract_decoder_adapter(
+        &self,
+        bindings: &[dctx0_core::ContractDecoderBinding],
+    ) -> Result<Artifact, Error> {
+        crate::decoder_units::adapter(bindings)
+    }
+    fn unit_dependency_boundary(
+        &self,
+        group: &str,
+        roots: &std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
+        sources: &[InspectionSource],
+    ) -> Result<dctx0_core::UnitDependencyBoundary, Error> {
+        crate::decoder_units::boundary(group, roots, sources)
+    }
     fn dependency_languages(&self) -> &'static [InspectionLanguage] {
         &[InspectionLanguage::Go]
     }

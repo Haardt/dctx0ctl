@@ -7,6 +7,7 @@ CREATE TABLE verification_case_bodies(hash TEXT PRIMARY KEY,bytes BLOB NOT NULL,
 CREATE TABLE verification_case_projections(run_id TEXT PRIMARY KEY REFERENCES verification_runs(id),version INTEGER NOT NULL);
 CREATE TABLE verification_case_index(run_id TEXT NOT NULL REFERENCES verification_runs(id),case_id TEXT NOT NULL,ordinal INTEGER NOT NULL,subject TEXT NOT NULL,kind TEXT NOT NULL,outcome TEXT NOT NULL,issue_code TEXT,observations INTEGER NOT NULL,body_hash TEXT NOT NULL REFERENCES verification_case_bodies(hash),metadata TEXT NOT NULL,PRIMARY KEY(run_id,case_id),UNIQUE(run_id,ordinal));
 CREATE INDEX verification_cases_subject ON verification_case_index(run_id,subject,outcome);
+CREATE INDEX verification_case_body_users ON verification_case_index(body_hash,run_id);
 CREATE TABLE verification_requirements(run_id TEXT NOT NULL REFERENCES verification_runs(id),case_id TEXT NOT NULL,PRIMARY KEY(run_id,case_id));
 CREATE TABLE query_snapshots(snapshot TEXT PRIMARY KEY REFERENCES snapshots(id),version INTEGER NOT NULL);
 CREATE TABLE query_spec_rows(snapshot TEXT NOT NULL REFERENCES snapshots(id),view TEXT NOT NULL,data TEXT NOT NULL);

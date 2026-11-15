@@ -11,8 +11,11 @@ use dctx0_core::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+mod decisions;
+pub use decisions::*;
 
 pub const INCREMENTAL_SCHEMA_VERSION: u32 = 1;
+pub const INPUT_RECEIPT_SCHEMA_VERSION: u32 = 2;
 pub const INCREMENTAL_PROOF_MEDIA_TYPE: &str = "application/vnd.dctx0.incremental-proof+json";
 pub const INCREMENTAL_INPUTS_MEDIA_TYPE: &str = "application/vnd.dctx0.incremental-inputs+json";
 
@@ -25,6 +28,16 @@ pub struct ExternalInputReceipt {
     pub deterministic_units: BTreeSet<String>,
     pub files: BTreeMap<String, String>,
     pub environment: BTreeMap<String, Option<String>>,
+    /// Missing observations are explicit; an incomplete receipt cannot grant reuse.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub incomplete: Vec<InputGap>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InputGap {
+    pub code: String,
+    pub input: String,
 }
 
 /// Restrict independently projected units to explicitly declared scopes.
@@ -41,8 +54,15 @@ pub fn receipt_units(
     fn name(value: &str) -> bool {
         !value.is_empty() && value.len() <= 4096 && !value.contains('\0')
     }
-    if receipt.schema_version != INCREMENTAL_SCHEMA_VERSION
-        || receipt.deterministic_units.is_empty()
+    if !matches!(
+        receipt.schema_version,
+        INCREMENTAL_SCHEMA_VERSION | INPUT_RECEIPT_SCHEMA_VERSION
+    ) || (receipt.schema_version == INCREMENTAL_SCHEMA_VERSION && !receipt.incomplete.is_empty())
+        || receipt.incomplete.len() > 4096
+        || receipt
+            .incomplete
+            .iter()
+            .any(|gap| !name(&gap.code) || !name(&gap.input))
         || receipt.deterministic_units.len() > 4096
         || receipt.files.len() > 4096
         || receipt.environment.len() > 4096
@@ -65,7 +85,8 @@ pub fn receipt_units(
     // The conservative non-contract unit can observe stateful external inputs.
     // Require at least one explicitly captured snapshot or live revision, not
     // merely the declaration, runtime, verifier, or environment inventory.
-    if receipt.deterministic_units.contains("other-cases")
+    if receipt.incomplete.is_empty()
+        && receipt.deterministic_units.contains("other-cases")
         && !receipt.files.keys().any(|key| {
             key.strip_prefix("file:")
                 .is_some_and(|name| !name.is_empty())
@@ -77,7 +98,8 @@ pub fn receipt_units(
         return None;
     }
     for unit in &mut units {
-        unit.reusable = receipt.deterministic_units.contains(&unit.id);
+        unit.reusable =
+            receipt.incomplete.is_empty() && receipt.deterministic_units.contains(&unit.id);
     }
     Some(units)
 }
@@ -170,6 +192,7 @@ pub fn binding(
     let mut normalized = program.clone();
     normalized.snapshot.clear();
     normalized.check_occurrence = 0;
+    normalized.scope.tasks.clear();
     // Task publication occurrence is not a native execution input. Preserve the
     // diagnostic on the actual run; it still blocks adoption. Source/runtime
     // drift and every other incomplete-provenance issue remain cache blockers.
@@ -232,6 +255,45 @@ fn compatible(old: &ReuseBinding, current: &ReuseBinding) -> bool {
     left == right
 }
 
+/// Only separately assessed manual work can remain open without casting doubt
+/// on native group completion. Unknown issue codes fail closed: a future worker
+/// or cleanup failure must not silently become reusable historical evidence.
+pub fn reuse_blocking_issues(
+    parent: &VerificationRun,
+) -> impl Iterator<Item = &dctx0_core::VerificationIssue> {
+    fn manual(issue: &dctx0_core::VerificationIssue) -> bool {
+        matches!(
+            issue.code.as_str(),
+            "MANUAL_REQUIREMENT" | "SUITE_INSPECTION_REQUIRED"
+        )
+    }
+    let unassigned_verdict = match &parent.result {
+        VerificationResult::Fail { issue } | VerificationResult::Unknown { issue }
+            if !manual(issue)
+                && issue.code != "ADOPTION_HISTORICAL_SCOPE"
+                && parent
+                    .cases
+                    .iter()
+                    .all(|case| case.result == VerificationResult::Pass) =>
+        {
+            Some(issue)
+        }
+        _ => None,
+    };
+    parent
+        .open_obligations
+        .iter()
+        .filter(|issue| !manual(issue))
+        .chain(
+            parent
+                .provenance
+                .incomplete
+                .iter()
+                .filter(|issue| issue.code != "ADOPTION_HISTORICAL_SCOPE"),
+        )
+        .chain(unassigned_verdict)
+}
+
 /// Return a plan only for a valid complete partition of the parent's manifest.
 /// A caller must independently derive units, including all connected cases.
 /// Invalid input returns None; incompatible evidence causes every case to rerun.
@@ -278,6 +340,7 @@ pub fn plan_reuse_projected(
     let eligible = parent.origin == VerificationRunOrigin::Native
         && &parent.provenance == parent_provenance
         && parent.budgets == old.budgets
+        && reuse_blocking_issues(parent).next().is_none()
         && compatible(old, current);
     let mut result = IncrementalPlan {
         reused: BTreeSet::new(),
@@ -657,12 +720,11 @@ mod tests {
         }
         let mut incomplete = run.clone();
         incomplete.open_obligations.push(issue());
-        assert_eq!(
+        assert!(
             plan_reuse(&old, &old, &incomplete, &units)
                 .unwrap()
                 .reused
-                .len(),
-            2
+                .is_empty()
         );
         let mut duplicate = run.clone();
         duplicate.cases.push(duplicate.cases[0].clone());
@@ -737,8 +799,23 @@ mod tests {
                 .collect(),
             files: [("file:fixtures/data".into(), "a".repeat(64))].into(),
             environment: [("SETTING".into(), None)].into(),
+            incomplete: vec![],
         };
         assert!(receipt_units(&program, &receipt).is_some());
+        receipt.schema_version = INPUT_RECEIPT_SCHEMA_VERSION;
+        receipt.incomplete.push(InputGap {
+            code: "REVISION_OUTPUT_MISSING".into(),
+            input: "database".into(),
+        });
+        assert!(
+            receipt_units(&program, &receipt)
+                .unwrap()
+                .iter()
+                .all(|unit| !unit.reusable)
+        );
+        receipt.schema_version = INCREMENTAL_SCHEMA_VERSION;
+        assert!(receipt_units(&program, &receipt).is_none());
+        receipt.incomplete.clear();
         receipt.deterministic_units.insert("other-cases".into());
         assert!(
             receipt_units(&program, &receipt)
@@ -768,6 +845,18 @@ mod tests {
         );
         let (example, _, _) = fixture();
         let first = binding(&program, example.provenance.clone(), "receipt".into()).unwrap();
+        let mut task_occurrence = program.clone();
+        task_occurrence.scope.tasks.insert("937".into());
+        assert_eq!(
+            first.program_hash,
+            binding(
+                &task_occurrence,
+                example.provenance.clone(),
+                "receipt".into()
+            )
+            .unwrap()
+            .program_hash
+        );
         let mut revised = program.clone();
         revised.contracts[0].corpus.values.pop();
         let second = binding(&revised, example.provenance.clone(), "receipt".into()).unwrap();
@@ -814,5 +903,141 @@ mod tests {
         assert!(!validate_proof(
             &proof, "parent", &old, &old, &parent, &units, &completed
         ));
+    }
+    #[test]
+    fn decisions_name_changed_inputs_without_values_and_partition_fresh_or_reused_units() {
+        let (binding, run, units) = fixture();
+        let plan = plan_reuse(&binding, &binding, &run, &units).unwrap();
+        let decisions = unit_decisions(&units, &plan, Some(&binding), &binding, false);
+        assert_eq!(decisions[0].decision, UnitAction::Reuse);
+        assert_eq!(decisions[1].decision, UnitAction::ExecuteUnbound);
+        assert!(
+            unit_decisions(&units, &plan, Some(&binding), &binding, true)
+                .iter()
+                .all(|d| d.decision == UnitAction::ExecuteAlways)
+        );
+        let all_fresh = IncrementalPlan {
+            reused: Default::default(),
+            rerun: run.required_cases.clone(),
+        };
+        assert_eq!(
+            unit_decisions(&units, &all_fresh, None, &binding, false)[0].decision,
+            UnitAction::ExecuteNew
+        );
+        let mut current = binding.clone();
+        current
+            .provenance
+            .implementation
+            .insert("source".into(), "private-new-digest".into());
+        current.budgets.seed += 1;
+        let decisions = unit_decisions(&units, &all_fresh, Some(&binding), &current, false);
+        assert_eq!(decisions[0].decision, UnitAction::ExecuteChanged);
+        assert!(
+            decisions[0]
+                .reasons
+                .iter()
+                .any(|r| r.code == "SOURCE_CHANGED" && r.input == "source")
+        );
+        assert!(
+            !serde_json::to_string(&decisions)
+                .unwrap()
+                .contains("private-new-digest")
+        );
+        let old = ExternalInputReceipt {
+            schema_version: 1,
+            deterministic_units: Default::default(),
+            files: [("file:fixture".into(), "a".repeat(64))].into(),
+            environment: [("SETTING".into(), Some("b".repeat(64)))].into(),
+            incomplete: vec![],
+        };
+        let mut changed = old.clone();
+        changed.files.clear();
+        changed.environment.insert("SETTING".into(), None);
+        assert_eq!(
+            receipt_changes(&old, &changed)
+                .iter()
+                .map(|r| r.input.as_str())
+                .collect::<Vec<_>>(),
+            vec!["file:fixture", "SETTING"]
+        );
+    }
+    #[test]
+    fn pending_manual_inspections_do_not_discard_complete_native_units() {
+        let (binding, mut run, units) = fixture();
+        for code in [
+            "MANUAL_REQUIREMENT",
+            "SUITE_INSPECTION_REQUIRED",
+            "ADOPTION_HISTORICAL_SCOPE",
+        ] {
+            let issue = dctx0_core::VerificationIssue {
+                code: code.into(),
+                message: "Separate authored assessment remains pending".into(),
+                span: None,
+            };
+            run.result = VerificationResult::Unknown {
+                issue: issue.clone(),
+            };
+            if code == "ADOPTION_HISTORICAL_SCOPE" {
+                run.open_obligations.clear();
+            } else {
+                run.open_obligations = vec![issue];
+            }
+            assert_eq!(
+                plan_reuse(&binding, &binding, &run, &units).unwrap().reused,
+                units[0].cases,
+            );
+        }
+    }
+
+    #[test]
+    fn global_native_verdict_and_input_drift_block_otherwise_passing_cases() {
+        let (binding, mut run, units) = fixture();
+        for result in [
+            VerificationResult::Fail { issue: issue() },
+            VerificationResult::Unknown { issue: issue() },
+        ] {
+            run.result = result;
+            assert!(
+                plan_reuse(&binding, &binding, &run, &units)
+                    .unwrap()
+                    .reused
+                    .is_empty()
+            );
+        }
+        run.result = VerificationResult::Pass;
+        run.provenance.incomplete.push(issue());
+        assert!(
+            plan_reuse(&binding, &binding, &run, &units)
+                .unwrap()
+                .reused
+                .is_empty()
+        );
+        assert_eq!(reuse_blocking_issues(&run).count(), 1);
+    }
+
+    #[test]
+    fn aborted_or_unclean_groups_do_not_supply_even_completed_case_units() {
+        let (binding, mut run, units) = fixture();
+        for code in [
+            "NATIVE_RUN_ABORTED",
+            "NATIVE_CLEANUP",
+            "NATIVE_INITIALIZATION",
+            "ADAPTER_DESCRIPTION",
+            "NATIVE_WORKER_EXIT",
+            "NATIVE_EXECUTION_INCOMPLETE",
+            "UNRECOGNIZED_GROUP_FAILURE",
+        ] {
+            run.open_obligations = vec![dctx0_core::VerificationIssue {
+                code: code.into(),
+                message: "Unproven group boundary".into(),
+                span: None,
+            }];
+            assert!(
+                plan_reuse(&binding, &binding, &run, &units)
+                    .unwrap()
+                    .reused
+                    .is_empty()
+            );
+        }
     }
 }

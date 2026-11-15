@@ -170,6 +170,7 @@ impl Project {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)] // Inspection pins and execution policy are independent inputs.
     pub(crate) async fn run_hybrid_verification_with_inspections(
         &self,
         application: &Path,
@@ -178,6 +179,7 @@ impl Project {
         cancellation: &NativeCancellation,
         inspections: Option<&crate::AuthoredInspections>,
         expected_plan_sha256: Option<&str>,
+        reuse: &NativeReuseOptions,
     ) -> Result<NativeVerificationReport> {
         self.run_hybrid_verification_inner(
             application,
@@ -188,7 +190,7 @@ impl Project {
                 no_adopt: false,
                 inspections,
                 expected_plan_sha256,
-                reuse: None,
+                reuse: Some(reuse),
             },
         )
         .await
@@ -230,6 +232,15 @@ impl Project {
             return Err(Error::Invalid("Hybrid execution requires one assigned adapter and one application-test group of the configured target".into()));
         }
         let adapter_group = adapter.unwrap().id.clone();
+        let automatic_reuse = NativeReuseOptions::default();
+        super::reuse_preflight::guard(
+            self,
+            &root,
+            &bundle.plan.program,
+            reuse.unwrap_or(&automatic_reuse),
+            cancellation,
+        )
+        .await?;
         let snapshot = self.load(&bundle.plan.program.snapshot)?;
         let (task_pin, pin_issues) =
             pins::capture(self, &root, &config.target, &bundle.plan.program, &snapshot)?;
@@ -319,6 +330,8 @@ impl Project {
                 Some((&context.assignment, &context.adapter_group)),
                 Some(&context),
                 reuse,
+                None,
+                None,
             )
             .await?
         {

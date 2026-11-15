@@ -57,6 +57,7 @@ impl Fixture {
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
+                    mode: Default::default(),
                     inputs: ".dctx0/reuse.json".into(),
                     parent,
                 },
@@ -104,6 +105,7 @@ impl Fixture {
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
+                    mode: Default::default(),
                     inputs: ".dctx0/reuse.json".into(),
                     parent: Some(parent),
                 },
@@ -397,6 +399,7 @@ async fn incremental_execution_retains_preflight_input_drift_guard() {
             &BunHarness,
             &NativeCancellation::default(),
             &NativeReuseOptions {
+                mode: Default::default(),
                 inputs: ".dctx0/reuse.json".into(),
                 parent: None,
             },

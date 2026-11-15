@@ -1913,6 +1913,15 @@ async fn incompatible_harnesses_escaping_artifacts_and_missing_runtimes_never_ex
         report
             .evidence
             .run
+            .provenance
+            .incomplete
+            .iter()
+            .any(|issue| { issue.code == "CONFIGURED_RUNTIME_UNAVAILABLE" })
+    );
+    assert!(
+        report
+            .evidence
+            .run
             .open_obligations
             .iter()
             .any(|i| i.code == "NATIVE_INITIALIZATION")
@@ -2856,7 +2865,8 @@ async fn complete_cinema_plan_runs_real_pure_examples_and_lifecycle_cases_and_re
 
     assert!(!run.provenance.dependencies.is_empty());
     let summary = f.project.verification_summary(&report.evidence.id).unwrap();
-    assert!(!summary.details_available);
+    // Later diagnostic replays must not evict the complete native case basis.
+    assert!(summary.details_available);
     assert_eq!(summary.result, run.result);
     assert_eq!(summary.case_count, run.cases.len());
     let output =
@@ -3924,6 +3934,7 @@ async fn complete_task_evidence_adopts_with_unrelated_manual_review_still_open()
         .unwrap()
         .task_id;
     let report = f.run(false).await;
+    assert_eq!(report.incremental.as_ref().unwrap().reused_cases, 0);
     assert!(
         matches!(&report.evidence.run.result, VerificationResult::Unknown { issue } if issue.code == "MANUAL_REQUIREMENT")
     );
@@ -4184,12 +4195,11 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         f.project.task_session(None, None).unwrap().event_seq,
         session.event_seq
     );
-    assert!(
+    assert_eq!(
         f.project
             .saved_verification_run(&original.evidence.id)
-            .unwrap_err()
-            .to_string()
-            .contains("pruned")
+            .unwrap(),
+        original.evidence
     );
 }
 
@@ -4532,6 +4542,12 @@ async fn assigned_adapter_group_executes_only_its_unchanged_cases_and_never_adop
             .any(|issue| issue.code == "HYBRID_COHORT_REQUIRED")
     );
     assert_ne!(report.evidence.run.result, VerificationResult::Pass);
+    assert!(report.evidence.run.artifacts.iter().any(|artifact| {
+        artifact.media_type == dctx0_verification::incremental::INCREMENTAL_INPUTS_MEDIA_TYPE
+    }));
+    assert!(!report.evidence.run.artifacts.iter().any(|artifact| {
+        artifact.media_type == dctx0_verification::incremental::INCREMENTAL_PROOF_MEDIA_TYPE
+    }));
     assert_eq!(
         original,
         dctx0_verification::case_manifest(&bundle.plan.program)

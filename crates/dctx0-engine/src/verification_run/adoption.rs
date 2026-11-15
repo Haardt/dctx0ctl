@@ -86,6 +86,10 @@ pub(super) fn publish_incremental(
     artifacts: &[VerificationArtifact],
     done_versions: &BTreeMap<i64, i64>,
 ) -> Result<(Vec<i64>, Vec<VerificationIssue>, Option<AdoptionProposal>)> {
+    // Empty completed-task pins do not request a Done/Unverified transition.
+    // Fresh Open-task delivery keeps its existing task-specific proof rules;
+    // unrelated manual UNKNOWN obligations retain their original status.
+    let done_versions = (!done_versions.is_empty()).then_some(done_versions);
     evaluate_inner(
         project,
         application,
@@ -93,7 +97,7 @@ pub(super) fn publish_incremental(
         saved,
         artifacts,
         false,
-        Some(done_versions),
+        done_versions,
         true,
     )
 }

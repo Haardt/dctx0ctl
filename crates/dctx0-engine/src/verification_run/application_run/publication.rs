@@ -31,7 +31,6 @@ impl Project {
         .await
     }
 
-    #[cfg(unix)]
     #[allow(clippy::too_many_arguments)]
     pub async fn verify_application_tests_incremental(
         &self,
@@ -56,7 +55,6 @@ impl Project {
         .await
     }
 
-    #[cfg(unix)]
     #[allow(clippy::too_many_arguments)]
     pub async fn verify_application_tests_incremental_with_adoption(
         &self,
@@ -94,9 +92,14 @@ impl Project {
         no_adopt: bool,
         options: Option<&super::super::reuse_execution::NativeReuseOptions>,
     ) -> Result<ApplicationNativeReport> {
+        let automatic_options = NativeReuseOptions::default();
+        let options = options.or(Some(&automatic_options));
         let (root, bundle, _) = self.read_application_testing_bundle(application, plan)?;
         let (_, config) = self.verification_configuration(Some(&root))?;
         let program = &bundle.plan.program;
+        if let Some(options) = options {
+            super::super::reuse_preflight::guard(self, &root, program, options, cancel).await?;
+        }
         let (_, bundle_path) = crate::verification_setup::safe_file(&root, plan)?;
         let bundle_artifact = VerificationArtifact::new(
             dctx0_verification::application_reuse::APPLICATION_BUNDLE_MEDIA_TYPE,
@@ -135,6 +138,9 @@ impl Project {
         } else {
             None
         };
+        if let Some(prepared) = &prepared {
+            incomplete.extend(prepared.input_issues());
+        }
         if let Some(prepared) = &mut prepared
             && let Some(parent) = &prepared.parent
             && prepared.parent_binding.is_some()
@@ -158,7 +164,12 @@ impl Project {
                 dctx0_verification::application_reuse::binding_with_bundle(
                     &parent_program,
                     &parent.run,
-                    prepared.receipt_artifact.reference.hash.clone(),
+                    prepared
+                        .parent_binding
+                        .as_ref()
+                        .expect("parent binding checked")
+                        .external_inputs_receipt_hash
+                        .clone(),
                     &receipt.contents,
                     &old_bundle.contents,
                 )
@@ -425,7 +436,7 @@ impl Project {
                 };
             }
         }
-        if let Some(prepared) = &prepared {
+        if let Some(prepared) = &mut prepared {
             let current = dctx0_verification::application_reuse::binding_with_bundle(
                 program,
                 &run,
@@ -433,6 +444,22 @@ impl Project {
                 &artifacts[3].contents,
                 &bundle_artifact.contents,
             )
+            .or_else(|| {
+                // An incomplete native attempt still records its captured
+                // inputs. It cannot acquire a reuse proof or task authority.
+                prepared
+                    .reused_cases()
+                    .is_empty()
+                    .then(|| {
+                        dctx0_verification::incremental::binding(
+                            program,
+                            run.provenance.clone(),
+                            prepared.receipt_artifact.reference.hash.clone(),
+                        )
+                        .ok()
+                    })
+                    .flatten()
+            })
             .ok_or_else(|| {
                 Error::Invalid("Cannot establish application reuse execution identity".into())
             })?;
@@ -447,7 +474,7 @@ impl Project {
                 ));
             }
             prepared
-                .finish_binding(&root, program, &run, current, &mut artifacts, cancel)
+                .finish_binding(&root, program, &mut run, current, &mut artifacts, cancel)
                 .await?;
             report.incremental = Some(prepared.summary(program, &run));
         }

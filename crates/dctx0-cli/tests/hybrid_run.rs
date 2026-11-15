@@ -212,6 +212,30 @@ fn hybrid_cli_runs_both_backends_and_preserves_existing_native_reports() {
         String::from_utf8_lossy(&second.stderr)
     );
     assert!(String::from_utf8_lossy(&second.stdout).contains("Fresh hybrid assessment: Pass"));
+    fs::write(
+        f.app.join(".dctx0/testing/reuse-inputs.json"),
+        r#"{"schema_version":1,"deterministic_units":["contract:W.A"]}"#,
+    )
+    .unwrap();
+    let basis = invoke(".dctx0ctl/application-tests/cli-reuse-basis.json", false);
+    assert!(
+        basis.status.success(),
+        "{}",
+        String::from_utf8_lossy(&basis.stderr)
+    );
+    assert!(String::from_utf8_lossy(&basis.stdout).contains("Fresh hybrid assessment: Pass"));
+    let reused = invoke(".dctx0ctl/application-tests/cli-reused-text.json", false);
+    assert!(
+        reused.status.success(),
+        "{}",
+        String::from_utf8_lossy(&reused.stderr)
+    );
+    let text = String::from_utf8_lossy(&reused.stdout);
+    assert!(
+        text.contains("Incremental hybrid assessment: Pass"),
+        "{text}"
+    );
+    assert!(!text.contains("Historical reused cases: 0;"), "{text}");
 }
 
 #[test]

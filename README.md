@@ -978,18 +978,26 @@ Complete current evidence can deliver an already satisfied task through the
 existing guarded Done/PASS path; FAIL identifies repair work, while UNKNOWN
 identifies missing evidence. Historical PASS alone never completes a new task.
 
-Native verification supports opt-in historical reuse of passing case units
-with `--reuse-inputs PATH` and, after recording a parent run,
-`--reuse-from RUN_ID`. The flags also apply to application-test and hybrid runs.
+Native run and complete commands default to `--reuse=auto`, including
+application-test and hybrid execution. `--reuse=off` forces fresh selected cases;
+`--reuse=require` stops before production cases when an existing basis supplies
+no compatible unit. `--reuse-from RUN_ID` restricts the historical basis and
+`--reuse-inputs PATH` supplies an additional declaration (the automatic location
+is `.dctx0/testing/reuse-inputs.json`). Available receipts are captured even
+without a declaration; no deterministic scope is invented.
 The declaration binds chosen deterministic units and their external inputs;
 it does not sandbox the native process. Complete passing evidence with verified
 lineage may deliver eligible tasks under the existing transaction guards; use
-`--no-adopt` for diagnostic execution. Unselected cases continue to execute.
+`--no-adopt` for diagnostic execution. Unreusable selected cases execute freshly.
 Authored inspection and review completion flows continue to require fresh evidence.
 `dctx0 verify incremental-plan SPEC RUN_ID
 --project APP --json` remains a separate read-only comparison. See the
 [incremental verification guide](docs/site/src/reference/incremental-verification.md)
 for input declarations, evidence limits and current validation.
+This remains a partial foundation for the
+[durable incremental plan](docs/durable-incremental-progress.md): per-unit
+dependency identity, migration, multi-origin lookup and fully warm process
+skipping are still required.
 
 The repository validator now reuses its own successful complete validation when
 recorded inputs are unchanged:

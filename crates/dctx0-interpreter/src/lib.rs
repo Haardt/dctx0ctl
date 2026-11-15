@@ -1,6 +1,7 @@
 //! Pure, budgeted evaluation of validated expressions. No filesystem or target I/O.
 mod contracts;
 mod modeled;
+mod modeled_predicates;
 mod observed;
 mod refinements;
 pub use observed::ObservationContext;
@@ -17,7 +18,7 @@ use num_rational::BigRational;
 use num_traits::{ToPrimitive, Zero};
 use std::collections::BTreeMap;
 
-pub const INTERPRETER_VERSION: &str = "dctx0-interpreter-6";
+pub const INTERPRETER_VERSION: &str = "dctx0-interpreter-7";
 
 /// Exact boundary offsets shared by generators; never native floating arithmetic.
 pub fn numeric_offset(value: &V, offset: i8) -> Option<V> {
@@ -76,6 +77,7 @@ pub fn evaluate_observed(
         budgets,
         cursor: 0,
         steps: 0,
+        modeled_predicates: false,
         context,
     };
     // Bound external wire values before recursive cloning or serialization.
@@ -107,6 +109,7 @@ struct Evaluator<'a> {
     ir: &'a WorkspaceIr,
     observations: &'a [InvocationObservation],
     budgets: &'a VerificationBudgets,
+    modeled_predicates: bool,
     cursor: usize,
     steps: usize,
     context: &'a ObservationContext,
@@ -335,6 +338,9 @@ impl Evaluator<'_> {
                             "IMPURE_OPERATION",
                             "Operation needs effects or unavailable declaration",
                         ));
+                    }
+                    if self.modeled_predicates {
+                        return self.modeled_predicate(e, subject, values, next);
                     }
                     let invocation = Invocation {
                         subject: subject.clone(),
@@ -736,6 +742,20 @@ impl Evaluator<'_> {
             }
             ("endsWith", [V::String(s), V::String(suffix)]) => {
                 Ok(V::Boolean(s.ends_with(suffix.as_ref())))
+            }
+            ("matchesText", [V::String(text), V::String(pattern)]) => {
+                let regex = regex::RegexBuilder::new(pattern)
+                    .size_limit(self.budgets.value_bytes)
+                    .dfa_size_limit(self.budgets.value_bytes)
+                    .build()
+                    .map_err(|_| {
+                        self.issue(
+                            e,
+                            "REGEX_MODEL",
+                            "Invalid or over-budget regular expression",
+                        )
+                    })?;
+                Ok(V::Boolean(regex.is_match(text)))
             }
             ("includesText", [V::String(text), V::String(query)]) => {
                 Ok(V::Boolean(text.contains(query.as_ref())))

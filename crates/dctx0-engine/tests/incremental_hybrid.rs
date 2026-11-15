@@ -111,6 +111,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
+                    mode: Default::default(),
                     inputs: ".dctx0/reuse.json".into(),
                     parent,
                 },
@@ -135,6 +136,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
+                    mode: Default::default(),
                     inputs: ".dctx0/reuse.json".into(),
                     parent,
                 },
@@ -179,6 +181,12 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
 #[tokio::test]
 async fn hybrid_incremental_delivers_guarded_tasks_with_reused_adapter_and_fresh_application() {
     let f = Fixture::new();
+    let config_path = f.app.join(".dctx0/testing/verification.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&fs::read(&config_path).unwrap()).unwrap();
+    config["environment"] =
+        serde_json::json!({"mode":"controlled","inherit":["PATH","HOME","TMPDIR"]});
+    fs::write(config_path, serde_json::to_vec(&config).unwrap()).unwrap();
     let (a, b) = f.plan_tasks();
     let first = f.run(None).await;
     assert_eq!(first.evidence.run.result, VerificationResult::Pass);
@@ -262,6 +270,47 @@ async fn hybrid_incremental_adds_pass_to_authored_done_without_replacing_result(
 impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
+#[tokio::test]
+async fn hybrid_reuse_off_executes_both_backends_with_project_wide_declarations() {
+    let f = Fixture::new();
+    fs::write(
+        f.app.join(".dctx0/reuse.json"),
+        r#"{"schema_version":1,"deterministic_units":["contract:W.A","contract:W.B"],"files":[".dctx0ctl/revision"]}"#,
+    )
+    .unwrap();
+    let mut previous = (0, 0);
+    for attempt in 0..2 {
+        let report = format!(".dctx0ctl/application-tests/fresh-{attempt}.json");
+        let result = f
+            .project
+            .run_hybrid_verification_incremental(
+                &f.app,
+                &HybridVerificationOptions {
+                    plan: ".dctx0/application-tests/hybrid.json",
+                    application_group: "native",
+                    recipe: ".dctx0/application-tests/recipe.json",
+                    native_report: &report,
+                },
+                &BunHarness,
+                &NativeCancellation::default(),
+                &NativeReuseOptions {
+                    mode: NativeReuseMode::Off,
+                    inputs: ".dctx0/reuse.json".into(),
+                    parent: None,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(result.evidence.run.result, VerificationResult::Pass);
+        let summary = result.incremental.unwrap();
+        assert_eq!(summary.reused_cases, 0);
+        assert_eq!(summary.executed_cases, summary.required_cases);
+        let calls = (f.count("legacy-calls"), f.count("native-calls"));
+        assert!(calls.0 > previous.0 && calls.1 > previous.1);
+        previous = calls;
     }
 }
 

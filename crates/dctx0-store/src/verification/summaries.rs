@@ -2,6 +2,31 @@ use super::*;
 use dctx0_core::VerificationRunOrigin;
 use std::collections::BTreeMap;
 
+// Technical case coverage may coexist with unrelated manual obligations, but
+// failed assertions, cleanup, capture drift and unknown native obligations
+// cannot replace a usable complete basis. Publication pins are checked later.
+pub(super) const COMPLETE_NATIVE_CASE_FILTER: &str = r#"
+origin='"native"' AND pruned_at IS NULL
+AND (
+  json_extract(result,'$.status')='PASS'
+  OR (
+    json_extract(result,'$.status')='UNKNOWN'
+    AND json_extract(result,'$.issue.code') IN ('MANUAL_REQUIREMENT','SUITE_INSPECTION_REQUIRED','ADOPTION_HISTORICAL_SCOPE')
+  )
+)
+AND json_extract(summary,'$.case_inventory_complete')=1
+AND json_extract(summary,'$.required_case_count')>0
+AND json_extract(summary,'$.outcomes[0]')=json_extract(summary,'$.required_case_count')
+AND json_valid(data)
+AND NOT EXISTS (
+  SELECT 1 FROM json_each(data,'$.provenance.incomplete') gap
+  WHERE json_extract(gap.value,'$.code')!='ADOPTION_HISTORICAL_SCOPE'
+)
+AND NOT EXISTS (
+  SELECT 1 FROM json_each(data,'$.open_obligations') obligation
+  WHERE json_extract(obligation.value,'$.code') NOT IN ('MANUAL_REQUIREMENT','SUITE_INSPECTION_REQUIRED')
+)"#;
+
 /// Historical outcome, never a replacement for full execution evidence.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerificationRunSummary {
@@ -79,6 +104,47 @@ impl VerificationRunSummary {
     }
 }
 impl Store {
+    /// A historical complete native case baseline, never a current PASS claim.
+    /// A later narrow or incomplete run does not replace its wider inventory.
+    pub fn verification_complete_baseline(
+        &self,
+        project: &str,
+        target: &str,
+        subjects: &BTreeSet<String>,
+    ) -> Result<Option<VerificationRunSummary>> {
+        if !self.has_verification_history()? || crate::storage::version(&self.connection)? < 5 {
+            return Ok(None);
+        }
+        let sql = format!(
+            "SELECT id FROM verification_runs WHERE project=?1 AND {COMPLETE_NATIVE_CASE_FILTER} AND json_extract(summary,'$.target')=?2 AND json_extract(summary,'$.selected_subjects')=json(?3) ORDER BY CAST(json_extract(summary,'$.required_case_count') AS INTEGER) DESC,rowid DESC LIMIT 1"
+        );
+        let id: Option<String> = self
+            .connection
+            .query_row(
+                &sql,
+                params![project, target, serde_json::to_string(subjects)?],
+                |row| row.get(0),
+            )
+            .optional()?;
+        id.map(|id| summary(&self.connection, project, &id))
+            .transpose()
+    }
+    /// Select the latest observation in the same scope, including failed or
+    /// unbound runs. Never search backwards past a contrary observation for green.
+    pub fn verification_reuse_candidate(
+        &self,
+        project: &str,
+        subjects: &BTreeSet<String>,
+    ) -> Result<Option<String>> {
+        if !self.has_verification_history()? || crate::storage::version(&self.connection)? < 5 {
+            return Ok(None);
+        }
+        Ok(self.connection.query_row(
+            "SELECT id FROM verification_runs WHERE project=?1 AND pruned_at IS NULL AND origin=?2 AND json_extract(summary,'$.selected_subjects')=json(?3) ORDER BY rowid DESC LIMIT 1",
+            params![project, serde_json::to_string(&VerificationRunOrigin::Native)?, serde_json::to_string(subjects)?],
+            |row| row.get(0),
+        ).optional()?)
+    }
     pub fn verification_run_summary(
         &self,
         project: &str,

@@ -477,7 +477,7 @@ impl Store {
         project: &str,
         request: TaskDeliveryPublication<'_>,
     ) -> Result<TaskDeliveryPublicationReceipt> {
-        self.publish_deliveries(project, request, &BTreeMap::new(), None, false)
+        self.publish_deliveries(project, request, &BTreeMap::new(), None, false, None)
     }
 
     /// Explicit inspected delivery, including ordinary guarded review events.
@@ -493,7 +493,25 @@ impl Store {
                 "Inspected delivery is separate from automatic native adoption",
             ));
         }
-        self.publish_deliveries(project, request, reviews, None, false)
+        self.publish_deliveries(project, request, reviews, None, false, None)
+    }
+
+    /// Explicit inspected delivery backed by a separately stored composition.
+    /// Rechecks every native origin and latest generation in this same write
+    /// transaction as the task/profile/claim and source-bound review guards.
+    pub fn publish_composed_task_deliveries(
+        &mut self,
+        project: &str,
+        request: TaskDeliveryPublication<'_>,
+        reviews: &BTreeMap<i64, dctx0_tasks::ReviewReport>,
+        composition: &super::CompositionTaskPublication<'_>,
+    ) -> Result<TaskDeliveryPublicationReceipt> {
+        if request.run_id.is_some() {
+            return Err(invalid(
+                "Composition delivery cannot identify a global native run",
+            ));
+        }
+        self.publish_deliveries(project, request, reviews, None, false, Some(composition))
     }
 
     /// Atomically publish one native run for open deliveries and previously completed
@@ -508,7 +526,14 @@ impl Store {
         if request.run_id.is_none() || done_tasks.is_empty() {
             return Err(invalid("Native batch requires a run and completed tasks"));
         }
-        self.publish_deliveries(project, request, &BTreeMap::new(), Some(done_tasks), false)
+        self.publish_deliveries(
+            project,
+            request,
+            &BTreeMap::new(),
+            Some(done_tasks),
+            false,
+            None,
+        )
     }
 
     /// Publish explicitly inspected historical tasks together with this fresh
@@ -525,7 +550,14 @@ impl Store {
                 "Inspected native batch requires a run and completed tasks",
             ));
         }
-        self.publish_deliveries(project, request, &BTreeMap::new(), Some(done_tasks), true)
+        self.publish_deliveries(
+            project,
+            request,
+            &BTreeMap::new(),
+            Some(done_tasks),
+            true,
+            None,
+        )
     }
 
     fn publish_deliveries(
@@ -535,6 +567,7 @@ impl Store {
         reviews: &BTreeMap<i64, dctx0_tasks::ReviewReport>,
         done_tasks: Option<&BTreeMap<i64, i64>>,
         inspected: bool,
+        composition: Option<&super::CompositionTaskPublication<'_>>,
     ) -> Result<TaskDeliveryPublicationReceipt> {
         let TaskDeliveryPublication {
             actor,
@@ -728,6 +761,9 @@ impl Store {
             |r| r.get(0),
         )?;
         let snapshot: Snapshot = storage::load(&tx, &data)?;
+        if let Some(composition) = composition {
+            super::composition_proof::validate(&tx, project, composition, &snapshot, check)?;
+        }
         let inputs = Some((profiles.0, profiles.1, &snapshot));
         // Build the reverse mapping once: a large hybrid manifest may contain
         // tens of thousands of cases shared by many inspected tasks.
@@ -791,6 +827,18 @@ impl Store {
             let task_inspection = inspected_batch
                 .as_ref()
                 .and_then(|(_, batch)| batch.tasks.get(&id));
+            if let Some(composition) = composition {
+                let delivery = delivery
+                    .ok_or_else(|| invalid("Composition requires explicit task inspections"))?;
+                super::composition_proof::validate_delivery(
+                    composition,
+                    actor,
+                    &member.candidate,
+                    delivery,
+                    reviews.get(&id),
+                    pin.profile_bundles.get(&id),
+                )?;
+            }
             if let Some(run) = &associated_run {
                 let requirements = member
                     .candidate

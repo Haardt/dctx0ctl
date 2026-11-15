@@ -81,10 +81,8 @@ enum Action {
         /// Store diagnostic evidence without delivering tasks.
         #[arg(long)]
         no_adopt: bool,
-        #[arg(long)]
-        reuse_inputs: Option<String>,
-        #[arg(long, requires = "reuse_inputs")]
-        reuse_from: Option<String>,
+        #[command(flatten)]
+        reuse: crate::reuse_args::ReuseArgs,
     },
     /// Execute assigned adapter and application tests, optionally reusing eligible cases.
     Hybrid {
@@ -102,10 +100,8 @@ enum Action {
         report: String,
         #[arg(long)]
         no_adopt: bool,
-        #[arg(long)]
-        reuse_inputs: Option<String>,
-        #[arg(long, requires = "reuse_inputs")]
-        reuse_from: Option<String>,
+        #[command(flatten)]
+        reuse: crate::reuse_args::ReuseArgs,
     },
     /// Complete fresh hybrid evidence and source-bound authored reviews.
     HybridComplete {
@@ -125,6 +121,8 @@ enum Action {
         /// Require the exact plan file bytes captured during explicit preparation.
         #[arg(long)]
         expected_plan_sha256: Option<String>,
+        #[command(flatten)]
+        reuse: crate::reuse_args::ReuseArgs,
     },
     /// Complete native scope and source-bound authored reviews with guarded delivery.
     Complete {
@@ -141,6 +139,8 @@ enum Action {
         report: String,
         #[arg(long)]
         notes: Option<PathBuf>,
+        #[command(flatten)]
+        reuse: crate::reuse_args::ReuseArgs,
     },
     /// Explicitly check/publish specs and write a diagnostic native test plan.
     Prepare {
@@ -298,9 +298,9 @@ pub(crate) fn run(
             recipe,
             report,
             no_adopt,
-            reuse_inputs,
-            reuse_from,
+            reuse,
         } => {
+            let reuse = reuse.options()?;
             let source = Project::new(&input, database).map_err(crate::error_message)?;
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -309,10 +309,7 @@ pub(crate) fn run(
             let cancellation = dctx0_engine::NativeCancellation::default();
             let result = runtime
                 .block_on(async {
-                    let options = reuse_inputs.map(|inputs| dctx0_engine::NativeReuseOptions {
-                        inputs,
-                        parent: reuse_from,
-                    });
+                    let options = Some(reuse);
                     let execution = async {
                         if let Some(options) = &options {
                             source
@@ -371,9 +368,9 @@ pub(crate) fn run(
             recipe,
             report,
             no_adopt,
-            reuse_inputs,
-            reuse_from,
+            reuse,
         } => {
+            let reuse = reuse.options()?;
             let source = Project::new(&input, database).map_err(crate::error_message)?;
             let (_, configuration) = source
                 .verification_configuration(Some(&project))
@@ -392,10 +389,7 @@ pub(crate) fn run(
             };
             let result = runtime
                 .block_on(async {
-                    let reuse = reuse_inputs.map(|inputs| dctx0_engine::NativeReuseOptions {
-                        inputs,
-                        parent: reuse_from,
-                    });
+                    let reuse = Some(reuse);
                     let execution = async {
                         if let Some(reuse) = &reuse {
                             source
@@ -431,7 +425,16 @@ pub(crate) fn run(
             if json {
                 crate::render::json(output, &result)?;
             } else {
-                writeln!(output, "Hybrid assessment: {:?}; {} mandatory cases; adopted tasks: {:?}; native report: {report}.",
+                let origin = if result
+                    .incremental
+                    .as_ref()
+                    .is_some_and(|summary| summary.reused_cases > 0)
+                {
+                    "Incremental"
+                } else {
+                    "Fresh"
+                };
+                writeln!(output, "{origin} hybrid assessment: {:?}; {} mandatory cases; adopted tasks: {:?}; native report: {report}.",
                     result.evidence.run.result, result.evidence.run.required_cases.len(), result.adopted_tasks)
                     .map_err(crate::error_message)?;
                 if let Some(summary) = &result.incremental {
@@ -458,7 +461,9 @@ pub(crate) fn run(
             report,
             notes,
             expected_plan_sha256,
+            reuse,
         } => {
+            let reuse = reuse.options()?;
             let source = Project::new(&input, database).map_err(crate::error_message)?;
             let (_, configuration) = source
                 .verification_configuration(Some(&project))
@@ -479,30 +484,18 @@ pub(crate) fn run(
             let result = runtime
                 .block_on(async {
                     let execution = async {
-                        if let Some(expected) = expected_plan_sha256.as_deref() {
-                            source
-                                .complete_hybrid_verification_with_plan_hash(
-                                    &project,
-                                    &options,
-                                    &notes,
-                                    provider,
-                                    generator,
-                                    &cancellation,
-                                    expected,
-                                )
-                                .await
-                        } else {
-                            source
-                                .complete_hybrid_verification(
-                                    &project,
-                                    &options,
-                                    &notes,
-                                    provider,
-                                    generator,
-                                    &cancellation,
-                                )
-                                .await
-                        }
+                        source
+                            .complete_hybrid_verification_with_reuse(
+                                &project,
+                                &options,
+                                &notes,
+                                provider,
+                                generator,
+                                &cancellation,
+                                expected_plan_sha256.as_deref(),
+                                &reuse,
+                            )
+                            .await
                     };
                     tokio::pin!(execution);
                     tokio::select! {
@@ -528,7 +521,9 @@ pub(crate) fn run(
             recipe,
             report,
             notes,
+            reuse,
         } => {
+            let reuse = reuse.options()?;
             let source = Project::new(&input, database).map_err(crate::error_message)?;
             let (_, config) = source
                 .verification_configuration(Some(&project))
@@ -547,7 +542,7 @@ pub(crate) fn run(
             let cancellation = dctx0_engine::NativeCancellation::default();
             let result = runtime
                 .block_on(async {
-                    let execution = source.complete_application_tests(
+                    let execution = source.complete_application_tests_with_reuse(
                         &project,
                         &plan,
                         &group,
@@ -556,6 +551,7 @@ pub(crate) fn run(
                         &notes,
                         provider,
                         &cancellation,
+                        &reuse,
                     );
                     tokio::pin!(execution);
                     tokio::select! {

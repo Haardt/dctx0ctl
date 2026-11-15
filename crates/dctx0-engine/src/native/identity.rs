@@ -24,19 +24,22 @@ pub struct NativeLaunchInputs {
     pub arguments: Vec<String>,
     pub directory: String,
     pub parent_environment_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forwarded_environment: Option<std::collections::BTreeSet<String>>,
 }
 
 /// Resolve once and launch this path. Keep the final symlink name: rustup uses
 /// argv[0] to select rustc/cargo, so canonicalizing that name changes the program.
-pub(crate) fn resolve_program(
+pub(crate) fn resolve_program_with_path(
     program: &str,
     directory: &Path,
+    search_path: Option<&std::ffi::OsString>,
 ) -> Result<std::path::PathBuf, NativeFailure> {
     let path = Path::new(program);
     let roots = if path.components().count() > 1 || path.is_absolute() {
         vec![directory.to_path_buf()]
     } else {
-        std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
+        std::env::split_paths(&search_path.cloned().unwrap_or_default())
             .map(|root| {
                 if root.is_absolute() {
                     root
@@ -76,6 +79,16 @@ pub(crate) fn resolve_program(
 fn parent_environment() -> Result<String, NativeFailure> {
     environment_entries(std::env::vars_os().collect())
 }
+fn forwarded_environment(
+    names: &std::collections::BTreeSet<String>,
+) -> Result<String, NativeFailure> {
+    environment_entries(
+        names
+            .iter()
+            .filter_map(|name| std::env::var_os(name).map(|value| (name.into(), value)))
+            .collect(),
+    )
+}
 // as_encoded_bytes is the platform-native, lossless OsStr encoding. Hash sorted
 // entries with NUL delimiters; values are never persisted. Windows names compare
 // case-insensitively when applying Command overrides.
@@ -97,8 +110,9 @@ impl NativeRuntimeIdentity {
         recipe: &ExecutionRecipe,
         directory: &Path,
         command: &mut Command,
+        policy: &NativeEnvironment,
     ) -> Result<Self, NativeFailure> {
-        let mut environment = std::env::vars_os().collect::<std::collections::BTreeMap<_, _>>();
+        let mut environment = policy.entries()?;
         for (key, value) in command.as_std().get_envs() {
             #[cfg(windows)]
             environment.retain(|name, _| {
@@ -120,7 +134,11 @@ impl NativeRuntimeIdentity {
             268_435_456,
         )?;
         Ok(Self {
-            schema_version: 2,
+            schema_version: if policy.forwarded_names().is_some() {
+                3
+            } else {
+                2
+            },
             method: "captured-launch".into(),
             launch: Some(NativeLaunchInputs {
                 arguments: recipe.arguments.clone(),
@@ -128,7 +146,11 @@ impl NativeRuntimeIdentity {
                     .map_err(NativeFailure::io)?
                     .to_string_lossy()
                     .into_owned(),
-                parent_environment_hash: parent_environment()?,
+                parent_environment_hash: match policy.forwarded_names() {
+                    Some(names) => forwarded_environment(&names)?,
+                    None => parent_environment()?,
+                },
+                forwarded_environment: policy.forwarded_names(),
             }),
             executable_hash,
             executable_bytes,
@@ -219,6 +241,23 @@ impl NativeWorker {
             .map_err(NativeFailure::io)?
             .to_string_lossy()
             .into_owned();
+        if self.launch_identity.schema_version == 3 {
+            if initial_environment_hash != self.launch_identity.initial_environment_hash {
+                return Err(NativeFailure::new(
+                    NativeFailureKind::Technical,
+                    "Observed controlled environment differs from frozen launch inputs",
+                ));
+            }
+            return Ok(NativeRuntimeIdentity {
+                schema_version: 3,
+                method: "controlled-procfs-live-image".into(),
+                launch: self.launch_identity.launch.clone(),
+                executable_hash,
+                executable_path,
+                executable_bytes,
+                initial_environment_hash,
+            });
+        }
         Ok(NativeRuntimeIdentity {
             schema_version: 1,
             method: live_method(),
@@ -259,20 +298,28 @@ fn environment_hash(input: impl Read) -> Result<String, NativeFailure> {
 }
 impl NativeRuntimeIdentity {
     pub fn still_current(&self) -> Result<bool, NativeFailure> {
-        if !matches!(self.schema_version, 1 | 2) || self.executable_path.is_empty() {
+        if !matches!(self.schema_version, 1..=3) || self.executable_path.is_empty() {
             return Ok(false);
         }
         let file = std::fs::File::open(&self.executable_path).map_err(NativeFailure::io)?;
         let (hash, bytes) = hash_bounded(file, 268_435_456)?;
-        if self.schema_version == 2 {
+        if matches!(self.schema_version, 2 | 3) {
             let Some(launch) = &self.launch else {
                 return Ok(false);
             };
-            return Ok(self.method == "captured-launch"
-                && Path::new(&launch.directory).is_absolute()
+            return Ok(matches!(
+                self.method.as_str(),
+                "captured-launch" | "controlled-procfs-live-image"
+            ) && Path::new(&launch.directory).is_absolute()
                 && hash == self.executable_hash
                 && bytes == self.executable_bytes
-                && parent_environment()? == launch.parent_environment_hash);
+                && match (&launch.forwarded_environment, self.schema_version) {
+                    (Some(names), 3) => {
+                        forwarded_environment(names)? == launch.parent_environment_hash
+                    }
+                    (None, 2) => parent_environment()? == launch.parent_environment_hash,
+                    _ => false,
+                });
         }
         let mut environment = Vec::new();
         for (key, value) in std::env::vars_os() {

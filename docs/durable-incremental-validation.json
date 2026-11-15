@@ -1,0 +1,373 @@
+{
+  "schema_version": 1,
+  "objective_status": "partial_implementation_not_accepted",
+  "preexisting_worktree_changes_preserved": true,
+  "workspace_attempt": {
+    "command": [
+      "python3",
+      "scripts/validate.py",
+      "--coverage",
+      "--samples",
+      "1",
+      "--iterations",
+      "1"
+    ],
+    "source_hash": "0bd481ab6c61a1e33eeb9d52a684dee0bb327ac66290cd914cee147b69a2eecf",
+    "status": "failed_and_interrupted_before_coverage_and_release_measurements",
+    "all_feature_workspace_test_functions": {
+      "passed": 892,
+      "failed": 2,
+      "filtered_out": 1
+    },
+    "failures": [
+      {
+        "test": "hybrid_cli_runs_both_backends_and_preserves_existing_native_reports",
+        "cause": "Fresh execution label lost after automatic reuse became the default"
+      },
+      {
+        "test": "global_preview_uses_the_live_agent_environment_without_writing_files",
+        "cause": "An identical installed global skill correctly returns Unchanged rather than Planned"
+      }
+    ],
+    "native_verification_regressions": {
+      "passed": 48,
+      "failed": 0
+    },
+    "python_tests": {
+      "passed": 98,
+      "failed": 0
+    },
+    "observed_native_acceptance": "Go/Bun pilot forms, managed completions with replay, and managed negative probes passed inside the all-feature CLI suite",
+    "elapsed_ms": 2379781.603,
+    "peak_process_tree_rss_bytes": 1597423616,
+    "memory_method": "Sampled Linux descendant RSS sum every 50ms; shared pages counted per process",
+    "raw_log": "docs/durable-incremental-workspace-failed.log.gz",
+    "raw_log_sha256": "dbdac2ce8943ffa04dcc1ba395fe825ed357aa3e784cc0c087a5d0ebeb780cba"
+  },
+  "focused_validation": {
+    "command": [
+      "python3",
+      "scripts/validate.py",
+      "--focus",
+      "incremental",
+      "--samples",
+      "1",
+      "--iterations",
+      "1"
+    ],
+    "source_hash": "98b4f4de0d0b47dd33907d045019aaf25332027b01c03d4aae59e7f2a2611b5c",
+    "status": "pass",
+    "scope": "Partial development validation; no full coverage or final acceptance claim",
+    "source_hash_after": "98b4f4de0d0b47dd33907d045019aaf25332027b01c03d4aae59e7f2a2611b5c",
+    "validation_steps": [
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "scripts/tests"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--workspace",
+          "--locked"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-verification",
+          "--lib",
+          "incremental",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--lib",
+          "incremental",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--lib",
+          "tasks::native_proof::tests",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--lib",
+          "retention_preserves_all_ancestors",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--lib",
+          "reuse_inputs",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--lib",
+          "native::environment",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--lib",
+          "skills::environment_tests",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--lib",
+          "native_complete_baseline_survives",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-store",
+          "--lib",
+          "retention_body_lookup",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--test",
+          "incremental_native",
+          "--test",
+          "incremental_hybrid",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--test",
+          "verification_run",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-engine",
+          "--test",
+          "hybrid_done",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "dctx0-cli",
+          "--test",
+          "verification_incremental",
+          "--test",
+          "hybrid_run",
+          "--all-features",
+          "--locked",
+          "--",
+          "--skip",
+          "verification_core_benchmarks_measure_both_compiled_examples_without_native_claims"
+        ],
+        "returncode": 0
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "-p",
+          "dctx0-cli",
+          "--no-default-features",
+          "--locked"
+        ],
+        "returncode": 0
+      }
+    ],
+    "rust_test_functions": {
+      "passed": 107,
+      "failed": 0,
+      "filtered_out": 711
+    },
+    "python_tests": {
+      "passed": 98,
+      "failed": 0
+    },
+    "elapsed_ms": 940406.231,
+    "peak_process_tree_rss_bytes": 1135124480,
+    "memory_method": "Sampled Linux descendant RSS sum every 50ms; shared pages counted per process",
+    "release_workloads": [
+      "legacy-native",
+      "hybrid-native",
+      "application-native",
+      "cli",
+      "verification-core"
+    ],
+    "performance_gate": "unassessed",
+    "unassessed_workloads": [
+      "legacy-native",
+      "hybrid-native",
+      "application-native",
+      "cli",
+      "verification-core"
+    ],
+    "sample_count": 1,
+    "iteration_count": 1,
+    "raw_report": "docs/durable-incremental-focused-report.json.gz",
+    "raw_report_sha256": "7b7d8987b2f64af0ff89caaf52329d120e9d129e3dcc9f4631582a2fc392f19d",
+    "original_report": "benchmarks/history/20261114T141901.600797Z-1040783.json",
+    "raw_log": "docs/durable-incremental-focused.log.gz",
+    "raw_log_sha256": "699b011839382deb4efcd17a7a69bf8e5674fa5b0a10ff9ec17889fd5f5673c9"
+  },
+  "mandatory_outstanding": [
+    "Complete packages A through D, including true per-unit dependency evidence, warm process skipping, historical migration and Runatron reconciliation",
+    "Run final-source full workspace, coverage and release acceptance after implementation",
+    "Run final-source Runatron project acceptance through the system CLI and regular task guards"
+  ],
+  "baseline_promoted": false,
+  "installed_cli_updated": false,
+  "runatron_task_states_changed": false
+}

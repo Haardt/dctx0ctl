@@ -1,6 +1,8 @@
 //! Explicit input bindings for historical reuse. These declarations do not sandbox a test.
 use super::*;
-use dctx0_verification::incremental::ExternalInputReceipt;
+use dctx0_verification::incremental::{
+    ExternalInputReceipt, INPUT_RECEIPT_SCHEMA_VERSION, InputGap,
+};
 use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::time::Duration;
@@ -31,14 +33,106 @@ fn default_timeout() -> u64 {
     5_000
 }
 
+fn runtime_hash(
+    application: &Path,
+    runtime: &str,
+    policy: &crate::NativeEnvironment,
+) -> Result<String> {
+    let entries = policy
+        .entries()
+        .map_err(|error| Error::Invalid(error.to_string()))?;
+    let runtime = crate::native::identity::resolve_program_with_path(
+        runtime,
+        application,
+        crate::native::environment_value(&entries, "PATH"),
+    )
+    .map_err(|_| Error::Invalid("Unable to resolve configured runtime".into()))?;
+    let mut input = fs::File::open(runtime)?;
+    let mut hasher = Sha256::new();
+    let mut total = 0u64;
+    let mut buffer = [0u8; 16384];
+    loop {
+        let count = input.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        total += count as u64;
+        if total > 268_435_456 {
+            return Err(Error::Invalid(
+                "Configured runtime exceeds identity limit".into(),
+            ));
+        }
+        hasher.update(&buffer[..count]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+async fn revision_inputs(
+    application: &Path,
+    revision: Revision,
+    policy: &crate::NativeEnvironment,
+    cancellation: &NativeCancellation,
+) -> std::result::Result<(String, String), &'static str> {
+    let recipe = ExecutionRecipe {
+        program: revision.executable,
+        arguments: revision.args,
+    };
+    let limits = NativeLimits {
+        environment: policy.clone(),
+        run: Duration::from_millis(revision.timeout_ms),
+        log_bytes: 65_536,
+        ..NativeLimits::default()
+    };
+    let mut command = NativeCommand::spawn(&recipe, application, limits)
+        .await
+        .map_err(|_| "REVISION_LAUNCH_UNAVAILABLE")?;
+    let identity = command.runtime_identity();
+    let audit = command
+        .wait_status(cancellation)
+        .await
+        .map_err(|_| "REVISION_EXECUTION_INCOMPLETE")?;
+    if audit.exit_code != Some(0) {
+        return Err("REVISION_EXECUTION_FAILED");
+    }
+    let output = command.stdout_bytes();
+    if output.is_empty() {
+        return Err("REVISION_OUTPUT_MISSING");
+    }
+    let identity = serde_json::to_vec(&identity).map_err(|_| "REVISION_IDENTITY_UNAVAILABLE")?;
+    Ok((digest(&identity), digest(&output)))
+}
+
 /// Query live revisions both before and after execution. Only digests are persisted.
 pub(super) async fn capture(
     application: &Path,
     inputs: &str,
     cancellation: &NativeCancellation,
 ) -> Result<ExternalInputReceipt> {
-    let (_, path) = crate::verification_setup::safe_file(application, inputs)?;
-    let bytes = fs::read(path)?;
+    capture_mode(application, inputs, cancellation, true).await
+}
+
+/// Static preflight never launches a revision provider. Unknown live inputs
+/// remain explicit gaps rather than being silently assumed unchanged.
+pub(super) async fn capture_static(
+    application: &Path,
+    inputs: &str,
+    cancellation: &NativeCancellation,
+) -> Result<ExternalInputReceipt> {
+    capture_mode(application, inputs, cancellation, false).await
+}
+
+async fn capture_mode(
+    application: &Path,
+    inputs: &str,
+    cancellation: &NativeCancellation,
+    live: bool,
+) -> Result<ExternalInputReceipt> {
+    let bytes = if inputs.is_empty() {
+        br#"{"schema_version":1,"deterministic_units":[]}"#.to_vec()
+    } else {
+        let (_, path) = crate::verification_setup::safe_file(application, inputs)?;
+        fs::read(path)?
+    };
     if bytes.len() > 65_536 {
         return Err(Error::Invalid("Reuse declaration exceeds 64 KiB".into()));
     }
@@ -58,7 +152,9 @@ pub(super) async fn capture(
         (format!("declaration:{inputs}"), digest(&bytes)),
         ("verifier".into(), digest(&serde_json::to_vec(&verifier)?)),
     ]);
+    let mut incomplete = Vec::new();
     let config_path = application.join(".dctx0/testing/verification.json");
+    let mut policy = crate::NativeEnvironment::default();
     let has_config = match fs::symlink_metadata(&config_path) {
         Ok(_) => true,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
@@ -68,34 +164,23 @@ pub(super) async fn capture(
         let (_, path) =
             crate::verification_setup::safe_file(application, ".dctx0/testing/verification.json")?;
         let config: serde_json::Value = serde_json::from_slice(&fs::read(path)?)?;
+        if let Some(value) = config.get("environment").filter(|value| !value.is_null()) {
+            policy = serde_json::from_value(value.clone())?;
+        }
         let runtime = config
             .get("runtime")
             .and_then(|v| v.as_str())
             .filter(|v| !v.is_empty())
             .ok_or_else(|| Error::Invalid("Missing configured runtime".into()))?;
-        let runtime = crate::native::resolve_program(runtime, application)
-            .map_err(|_| Error::Invalid("Unable to resolve configured runtime".into()))?;
-        let mut input = fs::File::open(runtime)?;
-        let mut hasher = Sha256::new();
-        let mut total = 0u64;
-        let mut buffer = [0u8; 16384];
-        loop {
-            let count = input.read(&mut buffer)?;
-            if count == 0 {
-                break;
+        match runtime_hash(application, runtime, &policy) {
+            Ok(hash) => {
+                files.insert("configured-runtime".into(), hash);
             }
-            total += count as u64;
-            if total > 268_435_456 {
-                return Err(Error::Invalid(
-                    "Configured runtime exceeds identity limit".into(),
-                ));
-            }
-            hasher.update(&buffer[..count]);
+            Err(_) => incomplete.push(InputGap {
+                code: "CONFIGURED_RUNTIME_UNAVAILABLE".into(),
+                input: "configured-runtime".into(),
+            }),
         }
-        files.insert(
-            "configured-runtime".into(),
-            format!("{:x}", hasher.finalize()),
-        );
     }
     for name in declaration.files {
         let file = if Path::new(&name).is_absolute() {
@@ -103,16 +188,36 @@ pub(super) async fn capture(
         } else {
             crate::verification_setup::safe_file(application, &name)?.1
         };
-        let metadata = fs::symlink_metadata(&file)?;
+        let metadata = match fs::symlink_metadata(&file) {
+            Ok(metadata) => metadata,
+            Err(_) => {
+                incomplete.push(InputGap {
+                    code: "INPUT_FILE_UNAVAILABLE".into(),
+                    input: name,
+                });
+                continue;
+            }
+        };
         if !metadata.is_file() || metadata.file_type().is_symlink() || metadata.len() > 67_108_864 {
             return Err(Error::Invalid(format!(
                 "Reuse input must be a regular file at most 64 MiB: {name}"
             )));
         }
-        files.insert(format!("file:{name}"), digest(&fs::read(file)?));
+        match fs::read(file) {
+            Ok(bytes) => {
+                files.insert(format!("file:{name}"), digest(&bytes));
+            }
+            Err(_) => incomplete.push(InputGap {
+                code: "INPUT_FILE_UNAVAILABLE".into(),
+                input: name,
+            }),
+        }
     }
     let mut environment = BTreeMap::new();
-    for (name, value) in std::env::vars_os() {
+    for (name, value) in policy
+        .entries()
+        .map_err(|error| Error::Invalid(error.to_string()))?
+    {
         let name = name
             .into_string()
             .map_err(|_| Error::Invalid("Non-UTF8 reuse environment name".into()))?;
@@ -131,44 +236,30 @@ pub(super) async fn capture(
         {
             return Err(Error::Invalid("Invalid live revision query".into()));
         }
-        let recipe = ExecutionRecipe {
-            program: revision.executable,
-            arguments: revision.args,
-        };
-        let limits = NativeLimits {
-            run: Duration::from_millis(revision.timeout_ms),
-            log_bytes: 65_536,
-            ..NativeLimits::default()
-        };
-        let mut command = NativeCommand::spawn(&recipe, application, limits)
-            .await
-            .map_err(|_| Error::Invalid(format!("Unable to launch live revision query {name}")))?;
-        let identity = command.runtime_identity();
-        let audit = command.wait_status(cancellation).await.map_err(|_| {
-            Error::Invalid(format!(
-                "Live revision query {name} failed, timed out, or was cancelled"
-            ))
-        })?;
-        if audit.exit_code != Some(0) {
-            return Err(Error::Invalid(format!("Live revision query {name} failed")));
+        if !live {
+            incomplete.push(InputGap {
+                code: "REVISION_REQUIRES_LIVE_PLAN".into(),
+                input: name,
+            });
+            continue;
         }
-        let output = command.stdout_bytes();
-        if output.is_empty() {
-            return Err(Error::Invalid(format!(
-                "Live revision query {name} returned an empty revision"
-            )));
+        match revision_inputs(application, revision, &policy, cancellation).await {
+            Ok((identity, output)) => {
+                files.insert(format!("revision-identity:{name}"), identity);
+                files.insert(format!("revision-output:{name}"), output);
+            }
+            Err(code) => incomplete.push(InputGap {
+                code: code.into(),
+                input: name,
+            }),
         }
-        files.insert(
-            format!("revision-identity:{name}"),
-            digest(&serde_json::to_vec(&identity)?),
-        );
-        files.insert(format!("revision-output:{name}"), digest(&output));
     }
     Ok(ExternalInputReceipt {
-        schema_version: 1,
+        schema_version: INPUT_RECEIPT_SCHEMA_VERSION,
         deterministic_units: declaration.deterministic_units,
         files,
         environment,
+        incomplete,
     })
 }
 
@@ -243,6 +334,17 @@ mod tests {
         let runtime_one = capture(&root.0, "inputs.json", &NativeCancellation::default())
             .await
             .unwrap();
+        fs::write(
+            root.0.join(".dctx0/testing/verification.json"),
+            r#"{"runtime":"./runtime","environment":null}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            runtime_one,
+            capture(&root.0, "inputs.json", &NativeCancellation::default())
+                .await
+                .unwrap()
+        );
         fs::write(root.0.join("runtime"), b"runtime two").unwrap();
         let runtime_two = capture(&root.0, "inputs.json", &NativeCancellation::default())
             .await
@@ -251,24 +353,56 @@ mod tests {
             runtime_one.files["configured-runtime"],
             runtime_two.files["configured-runtime"]
         );
+        fs::remove_file(root.0.join("snapshot")).unwrap();
+        let missing = capture(&root.0, "inputs.json", &NativeCancellation::default())
+            .await
+            .unwrap();
+        assert_eq!(
+            missing.incomplete,
+            vec![InputGap {
+                code: "INPUT_FILE_UNAVAILABLE".into(),
+                input: "snapshot".into(),
+            }]
+        );
+        assert!(!missing.files.contains_key("file:snapshot"));
     }
 
     #[tokio::test]
-    async fn revision_query_failures_and_timeouts_refuse_capture() {
+    async fn revision_query_failures_and_timeouts_remain_explicit_incomplete_receipts() {
         let root = Directory::new();
         fs::write(root.0.join("inputs.json"), r#"{"schema_version":1,"deterministic_units":["unit"],"revisions":{"bad":{"executable":"/bin/sh","args":["-c","sleep 5"],"timeout_ms":30}}}"#).unwrap();
         let start = Instant::now();
-        assert!(
-            capture(&root.0, "inputs.json", &NativeCancellation::default())
-                .await
-                .is_err()
+        let timed_out = capture(&root.0, "inputs.json", &NativeCancellation::default())
+            .await
+            .unwrap();
+        assert_eq!(timed_out.schema_version, INPUT_RECEIPT_SCHEMA_VERSION);
+        assert_eq!(
+            timed_out.incomplete,
+            vec![InputGap {
+                code: "REVISION_EXECUTION_INCOMPLETE".into(),
+                input: "bad".into(),
+            }]
         );
         assert!(start.elapsed() < Duration::from_secs(4));
         fs::write(root.0.join("inputs.json"), r#"{"schema_version":1,"deterministic_units":["unit"],"revisions":{"bad":{"executable":"/bin/false"}}}"#).unwrap();
-        assert!(
-            capture(&root.0, "inputs.json", &NativeCancellation::default())
-                .await
-                .is_err()
+        let failed = capture(&root.0, "inputs.json", &NativeCancellation::default())
+            .await
+            .unwrap();
+        assert_eq!(failed.incomplete[0].code, "REVISION_EXECUTION_FAILED");
+        assert!(!failed.files.contains_key("revision-output:bad"));
+        fs::create_dir_all(root.0.join(".dctx0/testing")).unwrap();
+        fs::write(
+            root.0.join(".dctx0/testing/verification.json"),
+            r#"{"runtime":"/dctx0-absent-runtime-22901"}"#,
+        )
+        .unwrap();
+        let unavailable = capture(&root.0, "inputs.json", &NativeCancellation::default())
+            .await
+            .unwrap();
+        assert_eq!(
+            unavailable.incomplete[0].code,
+            "CONFIGURED_RUNTIME_UNAVAILABLE"
         );
+        assert!(!unavailable.files.contains_key("configured-runtime"));
     }
 }

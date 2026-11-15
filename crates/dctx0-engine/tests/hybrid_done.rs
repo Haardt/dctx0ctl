@@ -1107,6 +1107,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
         }
     };
     let first = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: None,
     })
@@ -1116,6 +1117,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     let first_evidence = first.evidence.unwrap();
     let parent = first_evidence.id.clone();
     let second = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1164,6 +1166,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
         )
         .unwrap();
     let rechecked = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1194,6 +1197,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
         )
         .unwrap();
     let changed_group = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1219,6 +1223,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     // changing independently of central inputs; it must never be hidden.
     fs::write(f.root.join("fail-native"), "fail").unwrap();
     let failed = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1292,6 +1297,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     fs::remove_file(f.root.join("fail-native")).unwrap();
     fs::write(f.app.join("app.ts"), "export function decode(raw){const v=JSON.parse(new TextDecoder().decode(raw));if(!Number.isSafeInteger(v)||v<10||v>11)throw new TypeError('invalid');return v;} // changed source").unwrap();
     let third = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1318,6 +1324,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
         .push("--timeout=30000".into());
     fs::write(&recipe, serde_json::to_vec(&revised).unwrap()).unwrap();
     let changed_recipe = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1334,6 +1341,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     )
     .unwrap();
     let changed_library = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1385,6 +1393,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
             ".dctx0ctl/application-tests/adopt.json",
             &cancel,
             &NativeReuseOptions {
+                mode: Default::default(),
                 inputs: "reuse.json".into(),
                 parent: Some(parent),
             },
@@ -1461,6 +1470,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
         }
     };
     let first = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: None,
     })
@@ -1478,6 +1488,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
             ".dctx0ctl/application-tests/adopt.json",
             &cancel,
             &NativeReuseOptions {
+                mode: Default::default(),
                 inputs: "reuse.json".into(),
                 parent: Some(parent.clone()),
             },
@@ -1529,6 +1540,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
         )
         .unwrap();
     let rechecked = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent.clone()),
     })
@@ -1545,6 +1557,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
     )
     .unwrap();
     let changed = run(NativeReuseOptions {
+        mode: Default::default(),
         inputs: "reuse.json".into(),
         parent: Some(parent),
     })

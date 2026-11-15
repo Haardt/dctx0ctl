@@ -163,6 +163,28 @@ struct PreflightedRun<'a> {
 }
 #[derive(Subcommand)]
 enum VerifyAction {
+    /// Execute exact pending cases from a saved plan; never expand or adopt it.
+    Continue {
+        input: PathBuf,
+        run_id: String,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        /// Exact mandatory IDs; defaults to missing and nonpassing cases.
+        #[arg(long)]
+        case: Vec<String>,
+        /// Fail before execution if the pending selection exceeds this ceiling.
+        #[arg(long, default_value_t = 256)]
+        max_cases: usize,
+        /// Read the exact pending inventory without building or executing.
+        #[arg(long)]
+        plan_only: bool,
+        /// Explicit fresh lifecycle argument values; keys/setup remain pinned.
+        #[arg(long)]
+        lifecycle_fixtures: Option<PathBuf>,
+        /// Validated single-case native replays for the diagnostic pending ledger.
+        #[arg(long)]
+        with_evidence: Vec<String>,
+    },
     /// Diagnostic application-owned tests with central Rust assessment.
     ApplicationTests(crate::application_testing::ApplicationTestingArgs),
     /// Check scope, task pins, planned cases and declared bindings without execution.
@@ -225,6 +247,8 @@ enum VerifyAction {
         /// Maximum authored inspection JSON bytes.
         #[arg(long, default_value_t = DEFAULT_REVIEW_INPUT_BYTES, value_parser = clap::value_parser!(u64).range(1..))]
         max_input_bytes: u64,
+        #[command(flatten)]
+        reuse: crate::reuse_args::ReuseArgs,
     },
     /// Store effective suite/review/Release evidence; no native execution or adoption.
     Inspect {
@@ -248,6 +272,9 @@ enum VerifyAction {
         /// JSON array of TaskAttestation reports with exact source bindings.
         #[arg(long)]
         file: PathBuf,
+        /// Treat the evidence ID as a composition; revalidate current Go unit inputs.
+        #[arg(long)]
+        composition_unit_groups: Option<String>,
         /// Maximum JSON input bytes; read incrementally without a second full buffer.
         #[arg(long, default_value_t = DEFAULT_REVIEW_INPUT_BYTES, value_parser = clap::value_parser!(u64).range(1..))]
         max_input_bytes: u64,
@@ -300,10 +327,9 @@ enum VerifyAction {
         bindings: Option<String>,
         /// Explicit deterministic scopes and snapshot/revision inputs for historical reuse.
         #[arg(long)]
-        reuse_inputs: Option<String>,
-        /// Same-project saved native run; requires the same input declaration.
-        #[arg(long, requires = "reuse_inputs")]
-        reuse_from: Option<String>,
+        unit_groups: Option<String>,
+        #[command(flatten)]
+        reuse: crate::reuse_args::ReuseArgs,
     },
     /// List compact historical outcomes; never loads case corpora.
     History {
@@ -432,6 +458,7 @@ pub(crate) fn run(
                 | VerifyAction::Inspect { .. }
                 | VerifyAction::Attest { .. }
                 | VerifyAction::Replay { .. }
+                | VerifyAction::Continue { .. }
                 | VerifyAction::Show { .. }
         )
     {
@@ -616,12 +643,14 @@ fn run_inner(
             project: application,
             inspections,
             max_input_bytes,
+            reuse,
         } => {
             #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
                 if let Some(pass) = super::verification_complete::memory_guard()? {
                     return Ok(pass);
                 }
+                let reuse = reuse.options()?;
                 let project = Project::new(&input, database).map_err(crate::error_message)?;
                 let target = configured_target(&project, Some(&application))?;
                 let (provider, generator) = execution_target(&target)?;
@@ -636,13 +665,14 @@ fn run_inner(
                     "Complete verification: checking sources, executing configured native cases, then binding authored inspections."
                 );
                 let report = runtime
-                    .block_on(project.complete_verification_with_input_limit(
+                    .block_on(project.complete_verification_with_reuse(
                         &application,
                         &notes,
                         provider,
                         generator,
                         &dctx0_engine::NativeCancellation::default(),
                         max_input_bytes,
+                        &reuse,
                     ))
                     .map_err(crate::error_message)?;
                 if json {
@@ -671,7 +701,7 @@ fn run_inner(
             }
             #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
             {
-                let _ = (input, application, inspections, max_input_bytes);
+                let _ = (input, application, inspections, max_input_bytes, reuse);
                 return Err("No executable TypeScript testing target is enabled".into());
             }
         }
@@ -711,15 +741,49 @@ fn run_inner(
             run_id,
             project: application,
             file,
+            composition_unit_groups,
             max_input_bytes,
         } => {
-            let reports: Vec<dctx0_engine::TaskAttestation> =
-                read_review_input(&file, max_input_bytes, "Attestation")
-                    .map_err(crate::error_message)?;
-            let receipt = Project::new(&input, database)
-                .map_err(crate::error_message)?
-                .publish_task_attestations(application.as_deref(), &run_id, &reports)
-                .map_err(crate::error_message)?;
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let receipt = if let Some(configuration) = &composition_unit_groups {
+                let reports: Vec<dctx0_engine::CompositionTaskAttestation> =
+                    read_review_input(&file, max_input_bytes, "Composition attestation")
+                        .map_err(crate::error_message)?;
+                let application = application
+                    .as_deref()
+                    .ok_or("Composition delivery requires --project")?;
+                let target = project
+                    .verification_configuration(Some(application))
+                    .map_err(crate::error_message)?
+                    .1
+                    .target;
+                let (_, generator) = execution_target(&target)?;
+                project.publish_composition_attestations(
+                    application,
+                    &run_id,
+                    configuration,
+                    generator,
+                    &reports,
+                )
+            } else {
+                let reports: Vec<dctx0_engine::TaskAttestation> =
+                    read_review_input(&file, max_input_bytes, "Attestation")
+                        .map_err(crate::error_message)?;
+                project.publish_task_attestations(application.as_deref(), &run_id, &reports)
+            }
+            .map_err(crate::error_message)?;
+            if composition_unit_groups.is_some() {
+                if json {
+                    crate::render::bounded_json(
+                        output,
+                        &serde_json::json!({"schema_version":1,"basis":"native-evidence-composition+authored-inspection","composition":run_id,"request_hash":receipt.request_hash,"event_sequence":receipt.event_sequence,"delivered_tasks":receipt.deliveries.iter().filter_map(|r|r.task_id).collect::<Vec<_>>()}),
+                        max_output_bytes,
+                    )?;
+                } else {
+                    writeln!(output, "{} tasks delivered from composition `{run_id}` and authored inspection. Native sources remain separate. Event sequence: {}.", receipt.deliveries.len(), receipt.event_sequence).map_err(crate::error_message)?;
+                }
+                return Ok(true);
+            }
             if json {
                 if full {
                     crate::render::json(output, &receipt)?;
@@ -809,6 +873,125 @@ fn run_inner(
                 return Err("No structural inspector is enabled".into());
             }
         }
+        VerifyAction::Continue {
+            input,
+            run_id,
+            project: application,
+            case,
+            max_cases,
+            plan_only,
+            lifecycle_fixtures,
+            with_evidence,
+        } => {
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let mut selection = project
+                .verification_continuation_plan_from_evidence(
+                    &run_id,
+                    &case.into_iter().collect(),
+                    max_cases,
+                    &with_evidence.into_iter().collect(),
+                )
+                .map_err(crate::error_message)?;
+            let inputs: Option<dctx0_engine::VerificationLifecycleFixtures> = lifecycle_fixtures
+                .map(|file| {
+                    read_review_input(
+                        &file,
+                        DEFAULT_REVIEW_INPUT_BYTES,
+                        "Continuation lifecycle inputs",
+                    )
+                })
+                .transpose()
+                .map_err(crate::error_message)?;
+            if let Some(inputs) = &inputs {
+                let bytes = serde_json::to_vec(inputs).map_err(crate::error_message)?;
+                selection.lifecycle_inputs_hash = Some(
+                    dctx0_store::VerificationArtifact::new(
+                        "application/vnd.dctx0.continuation-lifecycle-inputs+json",
+                        bytes,
+                    )
+                    .reference
+                    .hash,
+                );
+            }
+            if plan_only || selection.selected_cases.is_empty() {
+                if !plan_only {
+                    project
+                        .validate_continuation_source_inputs(application.as_deref(), &selection)
+                        .map_err(crate::error_message)?;
+                }
+                if json {
+                    crate::render::bounded_json(output, &selection, max_output_bytes)?;
+                } else {
+                    writeln!(
+                        output,
+                        "{} exact pending cases; {} central derivations; no execution or adoption",
+                        selection.selected_cases.len(),
+                        selection.derived_cases.len()
+                    )
+                    .map_err(crate::error_message)?;
+                }
+                return Ok(true);
+            }
+            #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
+            {
+                let target = configured_target(&project, application.as_deref())?;
+                let (_, generator) = execution_target(&target)?;
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(crate::error_message)?;
+                let report = runtime
+                    .block_on(project.continue_verification_with_lifecycle_inputs(
+                        application.as_deref(),
+                        selection.clone(),
+                        generator,
+                        &dctx0_engine::NativeCancellation::default(),
+                        inputs,
+                    ))
+                    .map_err(crate::error_message)?;
+                let run = &report.evidence.run;
+                let actual = run
+                    .cases
+                    .iter()
+                    .map(|case| case.id.clone())
+                    .collect::<BTreeSet<_>>();
+                let pass = actual == selection.selected_cases
+                    && run
+                        .cases
+                        .iter()
+                        .all(|case| case.result == dctx0_core::VerificationResult::Pass)
+                    && run
+                        .provenance
+                        .incomplete
+                        .iter()
+                        .all(|issue| issue.code == "CONTINUATION_COMPOSITION_REQUIRED")
+                    && run.open_obligations.iter().all(|issue| {
+                        matches!(
+                            issue.code.as_str(),
+                            "MANUAL_REQUIREMENT"
+                                | "SUITE_INSPECTION_REQUIRED"
+                                | "CONTINUATION_COMPOSITION_REQUIRED"
+                        )
+                    });
+                if json {
+                    if full {
+                        crate::render::json(output, &report)?;
+                    } else {
+                        compact_run(
+                            output,
+                            &report.evidence,
+                            serde_json::json!({"continuation":selection,"selected_cases_pass":pass,"complete_acceptance":false}),
+                            max_output_bytes,
+                        )?;
+                    }
+                } else {
+                    writeln!(output, "Continuation {}: {} recorded of {} selected; selected cases pass: {}. No complete acceptance or task adoption.", report.evidence.id, run.cases.len(), selection.selected_cases.len(), pass).map_err(crate::error_message)?;
+                }
+                return Ok(pass);
+            }
+            #[cfg(not(any(feature = "typescript", feature = "go", feature = "rust")))]
+            return Err("No executable testing target is enabled".into());
+        }
         VerifyAction::Replay {
             input,
             run_id,
@@ -893,14 +1076,54 @@ fn run_inner(
             historical_check,
             no_adopt,
             bindings,
-            reuse_inputs,
-            reuse_from,
+            unit_groups,
+            reuse,
         } => {
             #[cfg(any(feature = "typescript", feature = "go", feature = "rust"))]
             {
+                let reuse = reuse.options()?;
                 let project = Project::new(&input, database).map_err(crate::error_message)?;
                 let target = configured_target(&project, application.as_deref())?;
                 let (_, generator) = execution_target(&target)?;
+                if let Some(groups) = unit_groups {
+                    if !no_adopt
+                        || historical_check.is_some()
+                        || !subject.is_empty()
+                        || !task.is_empty()
+                        || bindings.is_some()
+                    {
+                        return Err("Isolated decoder cohorts currently require --no-adopt and their configured complete scope".into());
+                    }
+                    let root = application
+                        .as_deref()
+                        .ok_or("--unit-groups requires --project")?;
+                    let runtime = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .map_err(crate::error_message)?;
+                    let report = runtime
+                        .block_on(project.run_decoder_units(
+                            root,
+                            &groups,
+                            generator,
+                            &reuse,
+                            &dctx0_engine::NativeCancellation::default(),
+                        ))
+                        .map_err(crate::error_message)?;
+                    let pass = report.composition.units.iter().all(|unit| {
+                        matches!(
+                            unit.coverage,
+                            dctx0_core::UnitCoverage::FreshPass
+                                | dctx0_core::UnitCoverage::ReusedPass
+                        )
+                    });
+                    if json {
+                        crate::render::bounded_json(output, &report, max_output_bytes)?;
+                    } else {
+                        writeln!(output,"Composition: {}\n{} reused; {} fresh cases; {:?} observed worker starts. Task delivery: false",report.composition_id,report.reused_cases,report.executed_cases,report.worker_starts).map_err(crate::error_message)?;
+                    }
+                    return Ok(pass);
+                }
                 let selection = VerificationSelection {
                     subjects: BTreeSet::from_iter(subject),
                     tasks: BTreeSet::from_iter(task),
@@ -949,31 +1172,19 @@ fn run_inner(
                     .build()
                     .map_err(crate::error_message)?;
                 let cancellation = dctx0_engine::NativeCancellation::default();
-                let report = if let Some(inputs) = reuse_inputs {
-                    runtime.block_on(
+                let report = runtime
+                    .block_on(
                         project.run_verification_incremental_preflighted_with_adoption(
                             application.as_deref(),
                             selection,
                             generator,
                             &cancellation,
-                            &dctx0_engine::NativeReuseOptions {
-                                inputs,
-                                parent: reuse_from,
-                            },
+                            &reuse,
                             preflight,
                             no_adopt,
                         ),
                     )
-                } else {
-                    runtime.block_on(project.run_verification_preflighted(
-                        application.as_deref(),
-                        selection,
-                        generator,
-                        &cancellation,
-                        preflight,
-                    ))
-                }
-                .map_err(crate::error_message)?;
+                    .map_err(crate::error_message)?;
                 let pass = matches!(
                     report.evidence.run.result,
                     dctx0_core::VerificationResult::Pass
@@ -1027,8 +1238,7 @@ fn run_inner(
                     historical_check,
                     no_adopt,
                     bindings,
-                    reuse_inputs,
-                    reuse_from,
+                    reuse,
                 );
                 return Err("No executable TypeScript testing target is enabled".into());
             }

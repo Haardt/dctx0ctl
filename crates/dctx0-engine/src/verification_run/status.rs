@@ -97,6 +97,9 @@ pub struct ProjectStatus {
     pub task_plan_current: Option<bool>,
     pub tasks: StatusTaskCounts,
     pub latest_run: Option<StatusRun>,
+    /// Retained historical coverage, separate from the latest attempt and from
+    /// live validity (which read-only status cannot establish).
+    pub historical_complete_baseline: Option<StatusRunSummary>,
     pub progress: Option<StatusProgress>,
     pub next_causes: Vec<StatusCause>,
     pub concurrent_change: bool,
@@ -234,6 +237,7 @@ impl Project {
                 task_plan_current: None,
                 tasks: Default::default(),
                 latest_run: None,
+                historical_complete_baseline: None,
                 progress: None,
                 next_causes: vec![StatusCause {
                     code: "SPEC_CHECK_REQUIRED".into(),
@@ -292,6 +296,7 @@ impl Project {
             }),
             tasks: Default::default(),
             latest_run: None,
+            historical_complete_baseline: None,
             progress: None,
             next_causes: vec![],
             concurrent_change: false,
@@ -330,6 +335,12 @@ impl Project {
                 break;
             }
             offset += 200;
+        }
+        if let Some((_, config)) = &config {
+            report.historical_complete_baseline = store
+                .verification_complete_baseline(&key, &config.target, &config.scope.subjects)?
+                .as_ref()
+                .map(Into::into);
         }
         if let Some(summary) = latest.first() {
             let context = store.verification_run_context(&key, &summary.id)?;

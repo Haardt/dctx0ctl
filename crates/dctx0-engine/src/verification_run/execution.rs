@@ -132,6 +132,7 @@ pub(super) struct Input<'a> {
     pub assigned_cases: Option<&'a BTreeSet<String>>,
     pub reuse: Option<&'a mut super::reuse_execution::PreparedReuse>,
     pub complete_cohort: bool,
+    pub identity_context: &'a [VerificationCaseRecord],
     pub lifecycles: &'a VerificationLifecycleFixtures,
     pub cancel: &'a NativeCancellation,
     pub limits: NativeLimits,
@@ -160,6 +161,7 @@ pub(super) async fn execute(
         assigned_cases,
         reuse,
         complete_cohort,
+        identity_context,
         lifecycles,
         cancel,
         limits,
@@ -720,6 +722,33 @@ pub(super) async fn execute(
             }
         }
     }
+    let derives_identity = plan.contracts.iter().any(|contract| {
+        !contract.identity_requirements.is_empty()
+            && selected(&format!("{}:identity", contract.subject))
+    });
+    let identity_sources = if !identity_context.is_empty() && derives_identity {
+        let fresh = run
+            .cases
+            .iter()
+            .map(|case| case.id.as_str())
+            .collect::<BTreeSet<_>>();
+        let mut sources = identity_context
+            .iter()
+            .filter(|case| {
+                case.kind == VerificationCaseKind::Operation && !fresh.contains(case.id.as_str())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        sources.extend(
+            run.cases
+                .iter()
+                .filter(|case| case.kind == VerificationCaseKind::Operation)
+                .cloned(),
+        );
+        Some(sources)
+    } else {
+        None
+    };
     for contract in &plan.contracts {
         if !contract.identity_requirements.is_empty()
             && selected(&format!("{}:identity", contract.subject))
@@ -727,7 +756,7 @@ pub(super) async fn execute(
             run.cases.push(dctx0_verification::entity_identity_case(
                 ir,
                 &contract.subject,
-                &run.cases,
+                identity_sources.as_deref().unwrap_or(&run.cases),
                 &plan.budgets,
             ));
         }

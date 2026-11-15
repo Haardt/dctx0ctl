@@ -635,9 +635,14 @@ def main():
             ['cargo', 'test', '-p', 'dctx0-store', '--lib', 'tasks::native_proof::tests', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-store', '--lib', 'retention_preserves_all_ancestors', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-engine', '--lib', 'reuse_inputs', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-engine', '--lib', 'native::environment', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-engine', '--lib', 'skills::environment_tests', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-store', '--lib', 'native_complete_baseline_survives', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-store', '--lib', 'retention_body_lookup', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'incremental_native', '--test', 'incremental_hybrid', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'verification_run', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'hybrid_done', '--locked'],
-            ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'verification_incremental', '--all-features', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'verification_incremental', '--test', 'hybrid_run', '--all-features', '--locked'],
             ['cargo', 'check', '-p', 'dctx0-cli', '--no-default-features', '--locked'],
         ]
     if args.focus == 'native-transport':

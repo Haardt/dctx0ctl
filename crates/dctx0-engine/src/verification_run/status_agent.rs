@@ -62,6 +62,7 @@ pub(super) struct AgentFreshness<'a> {
     spec_current: Option<bool>,
     native: BTreeMap<String, Option<NativeBinding>>,
     archives: BTreeMap<ArchiveKey, ArchiveBindings>,
+    compositions: BTreeMap<String, Option<super::composition_attestations::ComposedBinding>>,
 }
 impl<'a> AgentFreshness<'a> {
     pub(super) fn new(
@@ -81,6 +82,7 @@ impl<'a> AgentFreshness<'a> {
             spec_current,
             native: BTreeMap::new(),
             archives: BTreeMap::new(),
+            compositions: BTreeMap::new(),
         }
     }
     fn native_binding(&self, id: &str) -> Option<NativeBinding> {
@@ -136,7 +138,7 @@ impl<'a> AgentFreshness<'a> {
             .ok()??;
         if !matches!(
             evidence.verifier_version.as_str(),
-            "dctx0-attestation-1" | "dctx0-agent-revalidation-1"
+            "dctx0-attestation-1" | "dctx0-agent-revalidation-1" | "dctx0-composition-inspection-1"
         ) || evidence.verifier != reference.verifier
             || evidence.status != CheckStatus::Pass
             || evidence.requirements_hash != reference.requirements_hash
@@ -144,6 +146,9 @@ impl<'a> AgentFreshness<'a> {
             || format!("{:x}", Sha256::digest(evidence.report.as_bytes())) != reference.report_hash
         {
             return None;
+        }
+        if evidence.verifier_version == "dctx0-composition-inspection-1" {
+            return self.composed_current(reference, &evidence);
         }
         let report: AgentReport = serde_json::from_str(&evidence.report).ok()?;
         if report.schema_version != 1 || report.native_run.is_empty() {
@@ -236,6 +241,83 @@ impl<'a> AgentFreshness<'a> {
             return Some(false);
         }
         native.current
+    }
+
+    fn composed_current(
+        &mut self,
+        reference: &TaskEvidenceReference,
+        evidence: &dctx0_tasks::CheckEvidence,
+    ) -> Option<bool> {
+        let report: dctx0_store::ComposedTaskReport =
+            serde_json::from_str(&evidence.report).ok()?;
+        if report.schema_version != 1
+            || report.basis != "native-evidence-composition+authored-inspection"
+        {
+            return None;
+        }
+        let key = dctx0_changes::hash(&(
+            &report.composition,
+            &report.unit_configuration,
+            &report.input_hashes,
+        ));
+        if !self.compositions.contains_key(&key) {
+            let binding = super::composition_attestations::current_task_binding(
+                self.project,
+                self.store,
+                self.root?,
+                &report,
+            )
+            .ok();
+            self.compositions.insert(key.clone(), binding);
+        }
+        let binding = self.compositions[&key].as_ref()?;
+        if !binding.current || self.spec_current == Some(false) {
+            return Some(false);
+        }
+        if self.spec_current != Some(true) {
+            return None;
+        }
+        let member = self.session.member(reference.task_id).ok()?;
+        let candidate = &member.candidate;
+        let subject = format!("T{}", reference.task_id);
+        let requirements = candidate
+            .subjects
+            .iter()
+            .chain(&candidate.types)
+            .chain(&candidate.facts)
+            .cloned()
+            .collect();
+        let plan_hash = dctx0_verification::unit_planner::evidence_digest(&binding.program).ok()?;
+        let identity =
+            dctx0_changes::hash(&(&report.composition, &plan_hash, &binding.implementation));
+        if report.inspection.actor != reference.verifier
+            || report.inspection.result != VerificationResult::Pass
+            || i64::try_from(binding.program.check_occurrence).ok() != Some(report.check_occurrence)
+            || identity != reference.implementation
+            || !attestation_matches(
+                &report.inspection,
+                &AttestationBinding {
+                    subject: &subject,
+                    snapshot: &binding.program.snapshot,
+                    plan_hash: &plan_hash,
+                    requirements: &requirements,
+                    implementation_artifacts: &binding.implementation,
+                },
+            )
+        {
+            return None;
+        }
+        let selected = dctx0_tasks::select_profiles(
+            &binding.snapshot,
+            candidate,
+            &binding.profiles.manifest,
+            &binding.profiles.documents,
+        );
+        selected.require_complete().ok()?;
+        if selected.bundle.hash != report.profile_bundle_hash {
+            return Some(false);
+        }
+        Some(true)
     }
 }
 fn bound(

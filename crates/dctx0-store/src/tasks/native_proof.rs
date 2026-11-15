@@ -37,6 +37,26 @@ fn sha256_string(value: &serde_json::Value) -> bool {
         .as_str()
         .is_some_and(|hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
 }
+fn controlled_runtime_identity(runtime: &serde_json::Value) -> bool {
+    runtime["schema_version"] == 3
+        && runtime["method"] == "controlled-procfs-live-image"
+        && runtime["launch"]["directory"]
+            .as_str()
+            .is_some_and(|path| std::path::Path::new(path).is_absolute())
+        && sha256_string(&runtime["launch"]["parent_environment_hash"])
+        && runtime["launch"]["forwarded_environment"]
+            .as_array()
+            .is_some_and(|names| {
+                names.len() <= 4096
+                    && names.iter().all(|name| {
+                        name.as_str()
+                            .is_some_and(|name| !name.is_empty() && !name.contains(['=', '\0']))
+                    })
+            })
+        && runtime["launch"]["arguments"]
+            .as_array()
+            .is_some_and(|arguments| arguments.iter().all(serde_json::Value::is_string))
+}
 
 /// Recheck every historical edge inside the delivery transaction. The current
 /// task/check/profile pins are checked separately by the publication path.
@@ -307,7 +327,7 @@ fn validate_hybrid_artifacts(
         || receipt["toolchain_inputs"] != serde_json::to_value(&app.toolchain_inputs)?
         || !phases_match
         || !successful_native_audit(&audit)
-        || runtime["schema_version"] != 1
+        || (runtime["schema_version"] != 1 && !controlled_runtime_identity(&runtime))
         || !sha256_string(&runtime["executable_hash"])
         || !runtime["executable_path"]
             .as_str()

@@ -10,6 +10,9 @@ pub struct IncrementalComparison {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerificationIncrementalReport {
+    /// Complete static partition from the unit planner. Unknown target boundaries
+    /// are explicit; this projection cannot authorize technical or task PASS.
+    pub unit_execution_plan: UnitExecutionPlan,
     pub schema_version: u32,
     pub parent_run: String,
     pub snapshot: String,
@@ -103,6 +106,13 @@ impl Project {
             None
         };
         let manifest = dctx0_verification::case_manifest(&current);
+        let unit_execution_plan = super::unit_plan::static_plan(
+            self,
+            &application,
+            &current,
+            &inventory,
+            &run.required_cases,
+        )?;
         let mut potential = 0;
         if run.origin == VerificationRunOrigin::Native {
             let records = run
@@ -133,9 +143,16 @@ impl Project {
             IncrementalComparison { component: "configuration".into(), matches: Some(config_matches), detail: "Verification configuration".into() },
             IncrementalComparison { component: "runtime-and-external-inputs".into(), matches: None, detail: "A read-only comparison cannot establish current runtime identity or complete external inputs".into() },
         ];
-        let bound = run.artifacts.iter().any(|a| {
+        let bound = if let Some(reference) = run.artifacts.iter().find(|a| {
             a.media_type == dctx0_verification::incremental::INCREMENTAL_INPUTS_MEDIA_TYPE
-        });
+        }) {
+            let artifact = store.verification_artifact(parent_run, &reference.hash)?;
+            let receipt: dctx0_verification::incremental::ExternalInputReceipt =
+                serde_json::from_slice(&artifact.contents)?;
+            !receipt.deterministic_units.is_empty()
+        } else {
+            false
+        };
         let reasons = vec![if bound {
             issue(
                 "INCREMENTAL_EXECUTION_REQUIRED",
@@ -144,10 +161,11 @@ impl Project {
         } else {
             issue(
                 "INCREMENTAL_EXTERNAL_INPUTS_UNAVAILABLE",
-                "This parent has no declared input receipt. First execute with --no-adopt --reuse-inputs PATH; existing historical runs cannot gain an input receipt retrospectively",
+                "This parent has no bound deterministic scope. Supply captured snapshot/revision inputs for eligible units; unobserved historical inputs cannot be invented",
             )
         }];
         Ok(VerificationIncrementalReport {
+            unit_execution_plan,
             schema_version: 1,
             parent_run: parent.id,
             snapshot: current.snapshot,
