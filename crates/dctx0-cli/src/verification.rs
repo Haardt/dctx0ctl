@@ -228,6 +228,16 @@ enum VerifyAction {
         #[arg(long)]
         subject: Vec<String>,
     },
+    /// Reconcile a retained complete native PASS with current tasks; never execute tests.
+    Reconcile {
+        input: PathBuf,
+        run_id: String,
+        #[arg(long)]
+        project: PathBuf,
+        /// Explicit source-bound checks for integration, review or adapter tasks.
+        #[arg(long)]
+        checks: Option<PathBuf>,
+    },
     /// Read-only source-bound report template for an assigned conformance review task.
     ReviewTemplate {
         input: PathBuf,
@@ -583,6 +593,26 @@ fn run_inner(
         }
         VerifyAction::ScaffoldCodecs(args) => {
             return crate::codec_scaffold::run(args, database, json, output);
+        }
+        VerifyAction::Reconcile {
+            input,
+            run_id,
+            project: application,
+            checks,
+        } => {
+            let checks: Vec<dctx0_engine::ReconciliationCheck> = match checks {
+                Some(path) => {
+                    serde_json::from_slice(&std::fs::read(path).map_err(crate::error_message)?)
+                        .map_err(crate::error_message)?
+                }
+                None => vec![],
+            };
+            let project = Project::new(&input, database).map_err(crate::error_message)?;
+            let report = project
+                .reconcile_native_tasks(&application, &run_id, &checks)
+                .map_err(crate::error_message)?;
+            crate::render::json(output, &report)?;
+            return Ok(report.without_pass == 0);
         }
         VerifyAction::ReviewChanges {
             input,

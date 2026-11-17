@@ -6,7 +6,7 @@ pub fn valid_completion(binding: &UnitEvidenceBindingV1, proof: &UnitCompletionP
         && proof.schema_version == 1
         && valid_digest(&proof.native_run)
         && proof.unit == binding.unit.id
-        && evidence_digest(binding).is_ok_and(|hash| hash == proof.fingerprint)
+        && code_fingerprint(binding).is_ok_and(|hash| hash == proof.fingerprint)
         && proof.generation > 0
         && proof.completed
         && proof.cleanup_completed

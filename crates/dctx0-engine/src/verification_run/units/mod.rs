@@ -155,7 +155,7 @@ impl Project {
                 prior_bindings.push(old.clone());
             }
             let binding = binding::current(self, &group_program, &group, &recipe, old.as_ref())?;
-            let fingerprint = unit_planner::evidence_digest(&binding)?;
+            let fingerprint = unit_planner::code_fingerprint(&binding)?;
             candidates.extend(store.unit_evidence_candidates(
                 &self.key(),
                 &group.id,

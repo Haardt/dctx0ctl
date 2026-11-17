@@ -223,12 +223,17 @@ pub(crate) fn validate_incremental(
         .iter()
         .filter(|a| a.media_type == incremental::INCREMENTAL_INPUTS_MEDIA_TYPE)
         .collect();
-    if old_receipts.len() != 1 || old_receipts[0] != &receipt_artifact.reference {
+    if old_receipts.len() != 1 {
         return Err(invalid("Parent and current input receipts differ"));
     }
     let old_plan_artifact = codec::read_artifact(c, &parent.id, &old_plan_ref.hash)?;
     let old_receipt_artifact = codec::read_artifact(c, &parent.id, &old_receipts[0].hash)?;
-    if old_plan_artifact.reference != *old_plan_ref || old_receipt_artifact != *receipt_artifact {
+    let prior_receipt: ExternalInputReceipt =
+        serde_json::from_slice(&old_receipt_artifact.contents)?;
+    if old_plan_artifact.reference != *old_plan_ref
+        || old_receipt_artifact.reference != *old_receipts[0]
+        || incremental::code_receipt(&prior_receipt) != incremental::code_receipt(&receipt)
+    {
         return Err(invalid("Parent incremental artifacts differ"));
     }
     let old_plan: dctx0_verification::ProgramPlan =

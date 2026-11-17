@@ -49,7 +49,7 @@ fn register_binding(
     if !unit_planner::valid_unit_binding(binding) {
         return Err(invalid("UNIT_BINDING_INVALID"));
     }
-    let fingerprint = unit_planner::evidence_digest(binding)?;
+    let fingerprint = unit_planner::code_fingerprint(binding)?;
     c.execute(
         "INSERT OR IGNORE INTO verification_unit_bindings VALUES(?1,?2,?3,?4)",
         params![

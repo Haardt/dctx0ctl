@@ -99,8 +99,9 @@ impl Project {
                     "Saved inventory artifact metadata differs from its reference".into(),
                 ));
             }
-            Some(serde_json::from_slice::<BTreeMap<String, String>>(
-                &artifact.contents,
+            Some(Capture::code_inventory(
+                &application,
+                &serde_json::from_slice(&artifact.contents)?,
             )?)
         } else {
             None

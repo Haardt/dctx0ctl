@@ -50,7 +50,7 @@ pub(super) async fn guard(
             reasons.extend(receipt.incomplete.iter().map(|gap| gap.code.clone()));
             let old_receipt = store.verification_artifact(id, &reference.hash)?;
             let old_receipt: reuse::ExternalInputReceipt =
-                serde_json::from_slice(&old_receipt.contents)?;
+                reuse::code_receipt(&serde_json::from_slice(&old_receipt.contents)?);
             reasons.extend(
                 reuse::receipt_changes(&old_receipt, &receipt)
                     .into_iter()
@@ -61,7 +61,7 @@ pub(super) async fn guard(
             let old = reuse::binding(
                 &old_program,
                 saved.run.provenance.clone(),
-                reference.hash.clone(),
+                digest(&serde_json::to_vec(&old_receipt)?),
             )?;
             let inventory = Capture::proof_inventory(
                 application,
@@ -82,7 +82,8 @@ pub(super) async fn guard(
                 .find(|a| a.media_type == "application/vnd.dctx0.captured-input-inventory+json")
             {
                 let artifact = store.verification_artifact(id, &reference.hash)?;
-                serde_json::from_slice::<BTreeMap<String, String>>(&artifact.contents)? == inventory
+                Capture::code_inventory(application, &serde_json::from_slice(&artifact.contents)?)?
+                    == inventory
             } else {
                 false
             };

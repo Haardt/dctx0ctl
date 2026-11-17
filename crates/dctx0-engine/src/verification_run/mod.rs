@@ -9,6 +9,7 @@ pub use adoption_preview::{AdoptionPreviewTask, VerificationAdoptionPreview};
 mod attestations;
 mod build;
 mod capture;
+mod code_selection;
 mod composition_attestations;
 pub use composition_attestations::CompositionTaskAttestation;
 mod dependencies;
@@ -16,9 +17,11 @@ mod execution;
 mod hybrid_run;
 pub use hybrid_run::HybridVerificationOptions;
 mod incremental;
+mod reconciliation;
 mod reuse_execution;
 mod reuse_inputs;
 mod reuse_preflight;
+pub use reconciliation::{NativeTaskReconciliation, ReconciliationCheck};
 mod unit_plan;
 mod units;
 pub use incremental::{IncrementalComparison, VerificationIncrementalReport};
@@ -994,7 +997,11 @@ impl Project {
                 .filter(|(p, _)| p.starts_with("node_modules/"))
                 .map(|(p, h)| (p.clone(), h.clone()))
                 .collect(),
-            adapter_hash: capture.files[&config.adapter].clone(),
+            adapter_hash: capture.files.get(&config.adapter).cloned().ok_or_else(|| {
+                Error::Invalid(
+                    "Configured adapter is excluded by code selection or .gitignore".into(),
+                )
+            })?,
             configuration_hash: digest(&serde_json::to_vec(&config)?),
             harness_hash: digest(&serde_json::to_vec(
                 &serde_json::json!({"bundle":bundle,"model_hash":digest(&model)}),

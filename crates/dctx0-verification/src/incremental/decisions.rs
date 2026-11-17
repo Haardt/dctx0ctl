@@ -46,6 +46,8 @@ pub fn receipt_changes(
     old: &ExternalInputReceipt,
     current: &ExternalInputReceipt,
 ) -> Vec<ReuseReason> {
+    let old = code_receipt(old);
+    let current = code_receipt(current);
     let mut changes = map_changes(&old.files, &current.files, "INPUT_CHANGED");
     changes.extend(map_changes(
         &old.environment,

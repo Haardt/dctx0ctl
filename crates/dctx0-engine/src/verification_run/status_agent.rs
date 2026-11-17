@@ -103,7 +103,9 @@ impl<'a> AgentFreshness<'a> {
             self.project.sources().ok().is_some_and(|sources| {
                 dctx0_changes::source_hash(&sources) == snapshot.source_hash
             });
-        let sources = super::status::sources_current(self.store, id, &context, self.inputs).ok()?;
+        let sources =
+            super::status::sources_current(self.store, id, &context, self.inputs, self.root)
+                .ok()?;
         let requirements = super::status::requirements_current(&context, self.session);
         let current = match (
             sources,

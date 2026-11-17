@@ -145,7 +145,7 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
                     return Err("Unsupported JUnit encoding or standalone declaration".into());
                 }
             }
-            Event::Text(text) if text.as_ref().iter().all(u8::is_ascii_whitespace) => {}
+            Event::Text(text) if text.iter().all(u8::is_ascii_whitespace) => {}
             Event::Comment(_) => {}
             Event::Eof => break,
             _ => return Err("Unsupported XML content in JUnit".into()),

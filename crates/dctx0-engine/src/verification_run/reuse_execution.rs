@@ -118,14 +118,16 @@ impl PreparedReuse {
                 .find(|a| a.media_type == reuse::INCREMENTAL_INPUTS_MEDIA_TYPE)
             {
                 let old = store.verification_artifact(id, &reference.hash)?;
-                let old_receipt: ExternalInputReceipt = serde_json::from_slice(&old.contents)?;
+                let old_receipt: ExternalInputReceipt =
+                    reuse::code_receipt(&serde_json::from_slice(&old.contents)?);
+                let code_receipt_hash = digest(&serde_json::to_vec(&old_receipt)?);
                 parent_receipt = Some(old_receipt);
                 let plan = store.verification_artifact(id, &saved.run.provenance.plan_hash)?;
                 let program: ProgramPlan = serde_json::from_slice(&plan.contents)?;
                 parent_binding = Some(reuse::binding(
                     &program,
                     saved.run.provenance.clone(),
-                    reference.hash.clone(),
+                    code_receipt_hash,
                 )?);
             }
             parent = Some(saved);

@@ -32,7 +32,7 @@ impl UnitNativeContext {
         artifacts: &mut Vec<VerificationArtifact>,
     ) -> Result<()> {
         let binding = binding::compiled(self, receipt, generator)?;
-        if unit_planner::evidence_digest(&binding)? != self.attempt.fingerprint {
+        if unit_planner::code_fingerprint(&binding)? != self.attempt.fingerprint {
             self.fail(project)?;
             self.attempt = project
                 .store(AccessMode::ReadWrite)?

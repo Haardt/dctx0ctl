@@ -12,6 +12,7 @@ pub(super) struct Capture {
     entries_remaining: usize,
     helper_remaining: u64,
     application_tests: bool,
+    code_selection: super::code_selection::CodeSelection,
 }
 #[derive(Clone, Copy)]
 struct Limits {
@@ -20,6 +21,19 @@ struct Limits {
     count: usize,
 }
 impl Capture {
+    pub(super) fn code_inventory(
+        application: &Path,
+        inputs: &BTreeMap<String, String>,
+    ) -> Result<BTreeMap<String, String>> {
+        let mut selection = super::code_selection::CodeSelection::new(application)?;
+        let mut code = BTreeMap::new();
+        for (path, hash) in inputs {
+            if selection.contains(Path::new(path))? {
+                code.insert(path.clone(), hash.clone());
+            }
+        }
+        Ok(code)
+    }
     pub fn proof_inventory(
         application: &Path,
         budgets: crate::verification_setup::VerificationCaptureBudgets,
@@ -144,6 +158,7 @@ impl Capture {
             entries_remaining: 40_000,
             helper_remaining: 268_435_456,
             application_tests,
+            code_selection: super::code_selection::CodeSelection::new(application)?,
         };
         capture.directory(application, Path::new(""))?;
         Ok(capture)
@@ -178,6 +193,15 @@ impl Capture {
             }
             let path = relative.join(name);
             let kind = entry.file_type()?;
+            if kind.is_dir()
+                && matches!(
+                    path.file_name().and_then(|name| name.to_str()),
+                    Some("dist" | "coverage" | "reports")
+                )
+                && self.code_selection.ignored_path(&path, true)?
+            {
+                continue;
+            }
             if kind.is_dir() {
                 if self.copy_files {
                     fs::create_dir_all(self.root.join(&path))?;
@@ -195,6 +219,18 @@ impl Capture {
         Ok(())
     }
     fn file(&mut self, source: &Path, relative: &Path) -> Result<()> {
+        let name = relative
+            .to_str()
+            .ok_or_else(|| Error::Invalid("Verification paths must be UTF-8".into()))?;
+        if std::path::MAIN_SEPARATOR != '\\' && name.contains('\\') {
+            return Err(Error::Invalid(
+                "Verification paths must use unambiguous forward-slash separators".into(),
+            ));
+        }
+        let code = self.code_selection.contains(relative)?;
+        if !self.copy_files && !code {
+            return Ok(());
+        }
         if self.files.len() >= self.limits.count {
             return Err(Error::Invalid(
                 "Verification capture exceeds 20000 files".into(),
@@ -243,7 +279,9 @@ impl Capture {
         }
         let name = name.replace('\\', "/");
         *remaining -= bytes.len() as u64;
-        self.files.insert(name, digest(&bytes));
+        if code {
+            self.files.insert(name, digest(&bytes));
+        }
         if self.copy_files {
             fs::write(self.root.join(relative), bytes)?;
             fs::set_permissions(
@@ -309,7 +347,8 @@ mod tests {
             max_tree_bytes: 2_147_483_648,
         };
         let capture = Capture::new_with_budget(&root, budgets).unwrap();
-        assert!(capture.files.contains_key("generated.bin"));
+        assert!(capture.root.join("generated.bin").is_file());
+        assert!(!capture.files.contains_key("generated.bin"));
         assert_eq!(
             Capture::inventory_with_budget(&root, budgets).unwrap(),
             capture.files
@@ -386,6 +425,27 @@ mod tests {
 #[cfg(test)]
 mod inventory_tests {
     use super::*;
+    #[test]
+    fn code_inventory_obeys_parent_nested_and_negated_gitignore_rules() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-code-selection-{}", std::process::id()));
+        fs::create_dir_all(root.join("app/src")).unwrap();
+        fs::create_dir_all(root.join("app/dist")).unwrap();
+        fs::write(root.join(".gitignore"), "dist/\n*.go\n").unwrap();
+        fs::write(root.join("app/src/.gitignore"), "!kept.go\n").unwrap();
+        fs::write(root.join("app/src/kept.go"), "package src").unwrap();
+        fs::write(root.join("app/src/ignored.go"), "package ignored").unwrap();
+        fs::write(root.join("app/dist/generated.ts"), "export default 1").unwrap();
+        fs::write(root.join("app/build.json"), "{}").unwrap();
+        let inputs = Capture::inventory(&root.join("app")).unwrap();
+        assert_eq!(inputs.keys().collect::<Vec<_>>(), vec!["src/kept.go"]);
+        fs::write(root.join("app/build.json"), "{\"changed\":true}").unwrap();
+        fs::write(root.join("app/dist/generated.ts"), "export default 2").unwrap();
+        assert_eq!(inputs, Capture::inventory(&root.join("app")).unwrap());
+        fs::write(root.join("app/src/kept.go"), "package changed").unwrap();
+        assert_ne!(inputs, Capture::inventory(&root.join("app")).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
     #[cfg(unix)]
     #[test]
     fn distinct_native_paths_cannot_collide_in_verification_provenance() {

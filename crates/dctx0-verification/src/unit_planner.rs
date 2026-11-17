@@ -11,6 +11,29 @@ pub fn evidence_digest(value: &impl Serialize) -> Result<String, serde_json::Err
     Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(value)?)))
 }
 
+/// Code-only implementation identity; execution metadata remains in the receipt.
+pub fn code_binding(binding: &UnitEvidenceBindingV1) -> UnitEvidenceBindingV1 {
+    let mut code = binding.clone();
+    code.dependencies = crate::incremental::code_inputs(&code.dependencies);
+    code.build_inputs.clear();
+    code.environment.clear();
+    code.fixtures.clear();
+    code.semantics.retain(|key, _| {
+        !matches!(
+            key.as_str(),
+            "configuration" | "verifier" | "toolchain" | "runtime"
+        )
+    });
+    if let UnitDependencyBoundary::Complete { discovery, .. } = &mut code.unit.boundary {
+        discovery.retain(|key, _| !key.starts_with("module-scope:"));
+    }
+    code
+}
+
+pub fn code_fingerprint(binding: &UnitEvidenceBindingV1) -> Result<String, serde_json::Error> {
+    evidence_digest(&code_binding(binding))
+}
+
 pub fn valid_digest(value: &str) -> bool {
     value.len() == 64
         && value
@@ -31,6 +54,7 @@ pub fn valid_unit_binding(binding: &UnitEvidenceBindingV1) -> bool {
             == binding.unit.cases
         && !binding.requirements.is_empty()
         && !binding.dependencies.is_empty()
+        && !crate::incremental::code_inputs(&binding.dependencies).is_empty()
         && !binding.build_inputs.is_empty()
         && !binding.semantics.is_empty()
         && [
@@ -144,7 +168,7 @@ pub fn plan_units(input: UnitPlannerInput<'_>) -> Result<UnitExecutionPlan, Stri
         if !valid_unit_binding(binding) {
             return Err(format!("UNIT_BINDING_INVALID: {}", binding.unit.id));
         }
-        let fingerprint = evidence_digest(binding).map_err(|e| e.to_string())?;
+        let fingerprint = code_fingerprint(binding).map_err(|e| e.to_string())?;
         let newest = input
             .attempts
             .iter()
@@ -154,7 +178,7 @@ pub fn plan_units(input: UnitPlannerInput<'_>) -> Result<UnitExecutionPlan, Stri
             .candidates
             .iter()
             .filter(|c| {
-                c.binding == *binding
+                code_binding(&c.binding) == code_binding(binding)
                     && input
                         .reuse_from
                         .is_none_or(|allowed| allowed.contains(&c.proof.native_run))
@@ -197,7 +221,10 @@ pub fn plan_units(input: UnitPlannerInput<'_>) -> Result<UnitExecutionPlan, Stri
                 vec![reason("LATEST_ATTEMPT_NOT_PASS", &binding.unit.id)],
             )
         } else if input.reuse_from.is_some()
-            && input.candidates.iter().any(|c| c.binding == *binding)
+            && input
+                .candidates
+                .iter()
+                .any(|c| code_binding(&c.binding) == code_binding(binding))
         {
             (
                 UnitExecutionAction::ExecuteUnbound,

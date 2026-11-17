@@ -731,10 +731,10 @@ impl Store {
                 || batch.check_occurrence != run.provenance.check_occurrence
                 || &batch.task_pin != pin
                 || !batch.valid_catalog(&run.provenance.implementation)
-                || batch
-                    .tasks
-                    .keys()
-                    .any(|id| !done_tasks.is_some_and(|tasks| tasks.contains_key(id)))
+                || done_tasks
+                    .into_iter()
+                    .flat_map(|tasks| tasks.keys())
+                    .any(|id| !batch.tasks.contains_key(id))
             {
                 return Err(invalid(
                     "Inspected task batch does not match the fresh run and task pin",
@@ -801,7 +801,15 @@ impl Store {
                     .flat_map(|tasks| tasks.keys().map(|id| (*id, None))),
             )
         {
-            let current = session(&tx, project, None, None)?;
+            // Check-only publications cannot change another task's captured state.
+            // The transaction excludes concurrent writers and IDs are distinct.
+            let refreshed;
+            let current = if deliveries.is_empty() {
+                &initial
+            } else {
+                refreshed = session(&tx, project, None, None)?;
+                &refreshed
+            };
             let member = current.member(id)?;
             let state = &current.states[&id];
             if !seen.insert(id)

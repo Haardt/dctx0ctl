@@ -73,18 +73,27 @@ pub(crate) fn run(
             )
             .map_err(crate::error_message)?;
         }
-        if let Some(run) = &report.latest_run {
+        if let Some(run) = report.effective_run.as_ref().or(report.latest_run.as_ref()) {
             writeln!(
                 output,
                 "Recorded diagnostic causes: {:?}",
                 run.summary.causes
             )
             .map_err(crate::error_message)?;
-            writeln!(output, "Latest run: {} ({}) {:?}\nCases: {}/{} recorded; {} missing; PASS/FAIL/UNKNOWN {:?}; {} open obligations\nSources current: {:?}; requirements current: {:?}; task pin present: {:?}", run.summary.id, run.summary.target, run.summary.result, run.summary.case_count, run.summary.required_case_count, run.summary.missing_case_count, run.summary.outcomes, run.summary.open_obligation_count, run.sources_current, run.requirements_current, run.task_pin_present).map_err(crate::error_message)?;
+            writeln!(output, "{}: {} ({}) {:?}\nCases: {}/{} recorded; {} missing; PASS/FAIL/UNKNOWN {:?}; {} open obligations\nSources current: {:?}; requirements current: {:?}; task pin present: {:?}", if report.effective_run.is_some() { "Effective native evidence" } else { "Latest run" }, run.summary.id, run.summary.target, run.summary.result, run.summary.case_count, run.summary.required_case_count, run.summary.missing_case_count, run.summary.outcomes, run.summary.open_obligation_count, run.sources_current, run.requirements_current, run.task_pin_present).map_err(crate::error_message)?;
         } else {
             writeln!(output, "Latest run: none").map_err(crate::error_message)?;
         }
-        if let Some(baseline) = &report.historical_complete_baseline {
+        if let Some(effective) = &report.effective_run {
+            if let Some(latest) = &report.latest_run {
+                if latest.summary.id != effective.summary.id {
+                    writeln!(output, "Last attempt (history): {}; current acceptance uses the effective evidence above", latest.summary.id).map_err(crate::error_message)?;
+                }
+            }
+        }
+        if report.effective_run.is_none()
+            && let Some(baseline) = &report.historical_complete_baseline
+        {
             writeln!(output, "Historical complete native baseline: {} with {} passing cases; current compatibility requires input validation", baseline.id, baseline.required_case_count).map_err(crate::error_message)?;
         }
         if let Some(progress) = &report.progress {

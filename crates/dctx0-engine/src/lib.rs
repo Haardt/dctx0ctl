@@ -59,12 +59,12 @@ pub use verification_run::{
     ApplicationNativeReport, ApplicationNativeRuntime, BindingTestPin, BindingTestReport,
     CompositionTaskAttestation, DecoderUnitConfiguration, DecoderUnitGroup,
     HybridVerificationOptions, IncrementalComparison, InspectedVerificationReport, NativeReuseMode,
-    NativeReuseOptions, NativeReuseSummary, NativeVerificationReport, ProjectStatus, ReplayChange,
-    ReviewChangesReport, StatusCause, StatusProgress, StatusRun, StatusRunSummary,
-    StatusTaskCounts, TaskAttestation, UnitVerificationReport, VerificationAdoptionPreview,
-    VerificationContinuationPlan, VerificationIncrementalReport, VerificationIntent,
-    VerificationLifecycleFixtures, VerificationPreflight, VerificationPreflightPin,
-    VerificationReplayReport,
+    NativeReuseOptions, NativeReuseSummary, NativeTaskReconciliation, NativeVerificationReport,
+    ProjectStatus, ReconciliationCheck, ReplayChange, ReviewChangesReport, StatusCause,
+    StatusProgress, StatusRun, StatusRunSummary, StatusTaskCounts, TaskAttestation,
+    UnitVerificationReport, VerificationAdoptionPreview, VerificationContinuationPlan,
+    VerificationIncrementalReport, VerificationIntent, VerificationLifecycleFixtures,
+    VerificationPreflight, VerificationPreflightPin, VerificationReplayReport,
 };
 pub use verification_setup::*;
 

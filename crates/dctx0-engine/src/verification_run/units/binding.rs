@@ -37,38 +37,7 @@ pub(in crate::verification_run) fn refresh_captured(
             *hash = discovery(Path::new(path))?;
         }
     }
-    let environment = materialize::controlled_environment(root, config)?;
-    let entries = environment
-        .entries()
-        .map_err(|error| Error::Invalid(error.to_string()))?;
-    let go = crate::native::identity::resolve_program_with_path(
-        &config.runtime,
-        root,
-        crate::native::environment_value(&entries, "PATH"),
-    )
-    .map_err(|error| Error::Invalid(error.to_string()))?;
-    binding.environment = entries
-        .into_iter()
-        .map(|(name, value)| {
-            Ok((
-                name.into_string()
-                    .map_err(|_| Error::Invalid("Non-UTF8 unit environment".into()))?,
-                Some(digest(value.as_encoded_bytes())),
-            ))
-        })
-        .collect::<Result<_>>()?;
-    let verifier = crate::native::VerifierIdentity::capture()
-        .map_err(|error| Error::Invalid(error.to_string()))?;
-    binding
-        .semantics
-        .insert("verifier".into(), unit_planner::evidence_digest(&verifier)?);
-    binding
-        .semantics
-        .insert("toolchain".into(), hash_file(&go)?);
-    binding.semantics.insert(
-        "evaluator".into(),
-        unit_planner::evidence_digest(&dctx0_verification::VERIFICATION_VERSION)?,
-    );
+    let _ = (root, config);
     Ok(binding)
 }
 

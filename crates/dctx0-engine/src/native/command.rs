@@ -4,9 +4,6 @@ pub struct NativeCommand {
     pub(super) worker: NativeWorker,
 }
 impl NativeCommand {
-    pub(crate) fn stdout_bytes(&self) -> Vec<u8> {
-        self.worker.stdout.lock().expect("stdout guard").clone()
-    }
     pub fn runtime_identity(&self) -> NativeRuntimeIdentity {
         self.worker.launch_identity.clone()
     }

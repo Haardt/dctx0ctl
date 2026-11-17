@@ -357,11 +357,19 @@ impl Project {
             // Rebuilding a complete inventory must never rebind an authored
             // subset to newer bytes between initial validation and capture.
             for (name, expected) in &imported.reviewed_hashes {
-                if notes.reviewed_hashes.get(name) != Some(expected) {
+                let file = crate::verification_setup::safe_file(application, name)?.1;
+                let actual = dctx0_store::VerificationArtifact::new(
+                    "application/octet-stream",
+                    fs::read(file)?,
+                )
+                .reference
+                .hash;
+                if &actual != expected {
                     return Err(Error::Invalid(format!(
                         "New source inspection required before merging notes: {name}"
                     )));
                 }
+                notes.reviewed_hashes.insert(name.clone(), expected.clone());
             }
             for (name, expected) in &imported.reviewed_spec_hashes {
                 if notes.reviewed_spec_hashes.get(name) != Some(expected) {

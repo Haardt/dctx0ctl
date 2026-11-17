@@ -1,5 +1,40 @@
 # Incremental verification: implementation boundary
 
+## Code-only change detection (2026-11-16)
+
+Native source inventories select code files and respect repository, parent and
+nested `.gitignore` rules, including negations. Source additions, edits and
+deletions change the implementation key. Ignored build-output directories such
+as `dist`, `coverage` and `reports` are omitted from capture. Other build material
+can still be copied to execute a recipe without becoming a source fingerprint.
+
+Build configuration, binaries, reports, coverage, inherited environment and
+runtime revision commands do not invalidate code evidence. Explicit external
+code dependencies remain hashed. Native receipts retain execution metadata;
+case identity, requirement coverage, completion, cleanup and contrary native
+observations remain separate checks. Historical reports are not rewritten.
+
+Validation for this increment uses release compilation, read-only formatting
+and static CLI probes against Runatron. Selftests, coverage, Cinema and benchmark
+suites remain suspended by user instruction; no application acceptance is claimed.
+
+### Reconcile existing complete native evidence
+
+`dctx0 verify reconcile SPEC RUN_ID --project APP --checks checks.json --json`
+reconciles retained complete native PASS evidence with delivered tasks, without
+building or executing tests. It checks current code, specification, source-run
+integrity, exact native coverage, contradictory observations and task/profile pins.
+Stored inspections use the existing guarded native publication; separate authored
+checks use the existing guarded check transition and require exact native/source
+bindings. `checks.json` is an array of `{ "task": 123, "evidence": ... }`.
+Identical checks are idempotent. This is not a PASS override or a replacement for
+missing native cases. It does not certify independent performance gates.
+
+`status.effective_run` identifies complete current evidence referenced by current
+task checks. `status.latest_run` still shows the last attempt, including an aborted
+attempt for different code. Next-step diagnostics prefer the effective complete
+evidence only when every active task has a current PASS check.
+
 ## Repository validation reuse
 
 The repository's `python3 scripts/validate.py --coverage` now has a separate,

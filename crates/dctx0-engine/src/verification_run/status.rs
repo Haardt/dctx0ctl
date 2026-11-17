@@ -97,6 +97,9 @@ pub struct ProjectStatus {
     pub task_plan_current: Option<bool>,
     pub tasks: StatusTaskCounts,
     pub latest_run: Option<StatusRun>,
+    /// Complete current native evidence referenced by the current task checks.
+    /// The last attempt remains separately visible, including aborted attempts.
+    pub effective_run: Option<StatusRun>,
     /// Retained historical coverage, separate from the latest attempt and from
     /// live validity (which read-only status cannot establish).
     pub historical_complete_baseline: Option<StatusRunSummary>,
@@ -143,6 +146,7 @@ pub(super) fn sources_current(
     id: &str,
     context: &VerificationRunContext,
     inputs: Option<&BTreeMap<String, String>>,
+    application: Option<&Path>,
 ) -> Result<Option<bool>> {
     let Some(inputs) = inputs else {
         return Ok(None);
@@ -157,7 +161,12 @@ pub(super) fn sources_current(
     };
     let artifact = store.verification_artifact(id, &reference.hash)?;
     let expected: BTreeMap<String, String> = serde_json::from_slice(&artifact.contents)?;
-    Ok(Some(&expected == inputs))
+    let Some(application) = application else {
+        return Ok(None);
+    };
+    Ok(Some(
+        &Capture::code_inventory(application, &expected)? == inputs,
+    ))
 }
 
 struct EvidenceBinding {
@@ -173,6 +182,7 @@ fn evidence_binding(
     session: &Session,
     inputs: Option<&BTreeMap<String, String>>,
     spec_current: Option<bool>,
+    application: Option<&Path>,
 ) -> Result<Option<EvidenceBinding>> {
     let summary = store.verification_run_summary(project, id)?;
     if summary.origin != VerificationRunOrigin::Native || !summary.details_available {
@@ -182,7 +192,7 @@ fn evidence_binding(
         return Ok(None);
     };
     let current = match (
-        sources_current(store, id, &context, inputs)?,
+        sources_current(store, id, &context, inputs, application)?,
         requirements_current(&context, session),
     ) {
         (Some(false), _) | (_, Some(false)) => Some(false),
@@ -237,6 +247,7 @@ impl Project {
                 task_plan_current: None,
                 tasks: Default::default(),
                 latest_run: None,
+                effective_run: None,
                 historical_complete_baseline: None,
                 progress: None,
                 next_causes: vec![StatusCause {
@@ -296,6 +307,7 @@ impl Project {
             }),
             tasks: Default::default(),
             latest_run: None,
+            effective_run: None,
             historical_complete_baseline: None,
             progress: None,
             next_causes: vec![],
@@ -348,7 +360,15 @@ impl Project {
                 sources_current: context
                     .as_ref()
                     .filter(|_| summary.details_available)
-                    .map(|c| sources_current(&store, &summary.id, c, inputs.as_ref()))
+                    .map(|c| {
+                        sources_current(
+                            &store,
+                            &summary.id,
+                            c,
+                            inputs.as_ref(),
+                            config.as_ref().map(|(root, _)| root.as_path()),
+                        )
+                    })
                     .transpose()?
                     .flatten(),
                 requirements_current: context
@@ -508,7 +528,15 @@ impl Project {
                 if !freshness.contains_key(id) {
                     freshness.insert(
                         id.clone(),
-                        evidence_binding(&store, &key, id, session, inputs.as_ref(), spec_current)?,
+                        evidence_binding(
+                            &store,
+                            &key,
+                            id,
+                            session,
+                            inputs.as_ref(),
+                            spec_current,
+                            config.as_ref().map(|(root, _)| root.as_path()),
+                        )?,
                     );
                 }
                 let Some(binding) = freshness[id].as_ref() else {
@@ -540,6 +568,43 @@ impl Project {
                 .tasks
                 .done_pass
                 .saturating_sub(report.tasks.evidence_current + report.tasks.evidence_stale);
+            if report.tasks.total > 0
+                && report.tasks.evidence_current == report.tasks.total
+                && report.tasks.done_pass == report.tasks.total
+            {
+                for (id, binding) in &freshness {
+                    if !binding
+                        .as_ref()
+                        .is_some_and(|binding| binding.current == Some(true))
+                    {
+                        continue;
+                    }
+                    let summary = store.verification_run_summary(&key, id)?;
+                    if summary.result != VerificationResult::Pass
+                        || summary.missing_case_count != 0
+                        || summary.open_obligation_count != 0
+                        || summary.outcomes != [summary.required_case_count as u64, 0, 0]
+                        || config.as_ref().is_none_or(|(_, config)| {
+                            !config.scope.tasks.is_empty()
+                                || summary.selected_subjects != config.scope.subjects
+                        })
+                    {
+                        continue;
+                    }
+                    let context = store.verification_run_context(&key, id)?;
+                    report.effective_run = Some(StatusRun {
+                        sources_current: Some(true),
+                        requirements_current: Some(true),
+                        task_pin_present: Some(true),
+                        task_event_pin_current: context
+                            .as_ref()
+                            .and_then(|c| c.provenance.task_pin.as_ref())
+                            .map(|pin| pin.event_sequence == session.event_seq),
+                        summary: (&summary).into(),
+                    });
+                    break;
+                }
+            }
             let baseline = if let Some(since) = since {
                 Some(since)
             } else if let Some(previous) = latest.get(1) {
@@ -598,7 +663,7 @@ impl Project {
             report.tasks.total,
             "Publish tasks plan against the latest successful check",
         );
-        if let Some(run) = &report.latest_run {
+        if let Some(run) = report.effective_run.as_ref().or(report.latest_run.as_ref()) {
             cause(
                 !run.summary.details_available,
                 "EVIDENCE_DETAILS_PRUNED",

@@ -13,6 +13,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 mod decisions;
 pub use decisions::*;
+mod code;
+pub use code::*;
 
 pub const INCREMENTAL_SCHEMA_VERSION: u32 = 1;
 pub const INPUT_RECEIPT_SCHEMA_VERSION: u32 = 2;
@@ -199,6 +201,15 @@ pub fn binding(
     provenance
         .incomplete
         .retain(|issue| issue.code != "ADOPTION_HISTORICAL_SCOPE");
+    // Execution receipts retain these values for auditing. They are not code
+    // changes and do not participate in the implementation reuse key.
+    provenance.implementation = code_inputs(&provenance.implementation);
+    provenance.dependencies = code_inputs(&provenance.dependencies);
+    provenance.build_configuration.clear();
+    provenance.configuration_hash = "code-only".into();
+    provenance.runtime_version = "code-only".into();
+    provenance.adapter_hash = "code-only".into();
+    provenance.harness_hash = "code-only".into();
     Ok(ReuseBinding {
         schema_version: INCREMENTAL_SCHEMA_VERSION,
         requirements_hash: digest(&manifest.case_requirements)?,
