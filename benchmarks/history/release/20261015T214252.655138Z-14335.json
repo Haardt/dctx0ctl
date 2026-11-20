@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "id": "20261015T214252.655138Z-14335",
+  "timestamp": "2026-10-15T21:42:52.655138+00:00",
+  "workload": "release-distribution",
+  "status": "complete",
+  "metadata": {
+    "revision": "dcb7412d635582cbd15da5c99ff4b8f6772afe58",
+    "dirty_worktree": false,
+    "content_hash": "e99313c36592b80808c87967bf9b780ec5999eb18a6cec2769c5f2afdabc71ca",
+    "binary_sha256": "2c51f1cda0d5e3014a537da7a7a36562952153a9318b40e2c3f141e0ed47c032",
+    "target": "x86_64-apple-darwin",
+    "platform": "macOS-15.7.9-x86_64-i386-64bit",
+    "machine": "x86_64",
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "cpu": "unknown",
+    "memory_guard": {
+      "active": false,
+      "budget_bytes": null
+    }
+  },
+  "features": [
+    "typescript",
+    "java",
+    "go",
+    "rust"
+  ],
+  "seed": null,
+  "cache": "prebuilt uninstrumented release CLI, one warm-up per phase, fresh process per sample, warm filesystem cache",
+  "memory_scope": "Linux/macOS wait4 peak child/reaped descendants; Windows polled child PeakWorkingSetSize; unsupported OS queries are null. See per-command scope; not collective simultaneous RSS",
+  "baseline_comparison": {
+    "status": "unassessed",
+    "reason": "No accepted distribution baseline; existing core baseline unchanged"
+  },
+  "measurements": {
+    "shell-syntax": [
+      {
+        "elapsed_ms": 30.324689000053695,
+        "peak_rss_bytes": 1003520,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "binary-version": [
+      {
+        "elapsed_ms": 34.335795999936636,
+        "peak_rss_bytes": 1626112,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "installer-and-release-tests": [
+      {
+        "elapsed_ms": 17598.594480999964,
+        "peak_rss_bytes": 154312704,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "platform-cli-lsp-harness-cancellation": [
+      {
+        "elapsed_ms": 5992.924442999993,
+        "peak_rss_bytes": 55267328,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "package-warmup": [
+      {
+        "elapsed_ms": 4130.0611579999895,
+        "peak_rss_bytes": 45989888,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "startup-warmup": [
+      {
+        "elapsed_ms": 98.71949800003677,
+        "peak_rss_bytes": 1626112,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "package-release": [
+      {
+        "elapsed_ms": 4762.70492499998,
+        "peak_rss_bytes": 45907968,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 4291.792952999913,
+        "peak_rss_bytes": 45797376,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 5168.302850999908,
+        "peak_rss_bytes": 45899776,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ],
+    "startup-release": [
+      {
+        "elapsed_ms": 32.77617399999144,
+        "peak_rss_bytes": 1626112,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 65.70363099990573,
+        "peak_rss_bytes": 1630208,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      },
+      {
+        "elapsed_ms": 65.24888499984627,
+        "peak_rss_bytes": 1626112,
+        "exit_code": 0,
+        "memory_status": "measured",
+        "memory_scope": "wait4 child/reaped descendant peak RSS; may include inherited memory before exec; not collective RSS"
+      }
+    ]
+  },
+  "platform_checks": {
+    "schema_version": 1,
+    "status": "PASS",
+    "platform": "darwin",
+    "architecture": "x64",
+    "binary_sha256": "2c51f1cda0d5e3014a537da7a7a36562952153a9318b40e2c3f141e0ed47c032",
+    "bun": "1.4.2",
+    "checks": [
+      {
+        "name": "standalone CLI version, skills and compilation",
+        "elapsed_ms": 50.54881,
+        "status": "PASS"
+      },
+      {
+        "name": "LSP initialize, diagnostics, symbols and clean shutdown",
+        "elapsed_ms": 192.75789400000002,
+        "status": "PASS"
+      },
+      {
+        "name": "actual Bun SDK harness call, state, event and mock transport",
+        "elapsed_ms": 70.06217599999997,
+        "status": "PASS"
+      },
+      {
+        "name": "forced cancellation cleans up the owned process and descendant",
+        "elapsed_ms": 56.118088,
+        "status": "PASS"
+      },
+      {
+        "name": "managed TypeScript finite plan, actual mutation, stored failure and repaired replay",
+        "elapsed_ms": 5244.413344,
+        "status": "PASS"
+      }
+    ],
+    "scope": "Native CLI/LSP, Bun SDK transport, managed TypeScript finite plan with mutation and replay; Go/Rust and full Cinema are checked by native_portability.py",
+    "memory": {
+      "peak_rss_bytes": null,
+      "scope": "Linux Bun runner self peak RSS; other OS self metrics unavailable here; the Python distribution runner measures child peak memory separately"
+    }
+  },
+  "validation": {
+    "status": "pass",
+    "test_output": "test_archive_paths_are_never_unpacked (test_distribution.InstallerTests.test_archive_paths_are_never_unpacked) ... ok\ntest_bad_checksums_and_duplicates_preserve_the_existing_installation (test_distribution.InstallerTests.test_bad_checksums_and_duplicates_preserve_the_existing_installation) ... ok\ntest_failed_download_and_unexpected_redirect_preserve_the_installation (test_distribution.InstallerTests.test_failed_download_and_unexpected_redirect_preserve_the_installation) ... ok\ntest_invalid_arguments_and_truncated_script_do_not_install (test_distribution.InstallerTests.test_invalid_arguments_and_truncated_script_do_not_install) ... ok\ntest_pinned_version_skips_latest_resolution_and_upgrades_atomically (test_distribution.InstallerTests.test_pinned_version_skips_latest_resolution_and_upgrades_atomically) ... ok\ntest_piped_latest_install_works_without_checkout_assets (test_distribution.InstallerTests.test_piped_latest_install_works_without_checkout_assets) ... ok\ntest_platform_minimum_versions_are_checked_before_download (test_distribution.InstallerTests.test_platform_minimum_versions_are_checked_before_download) ... ok\ntest_symlinks_and_non_regular_destinations_are_not_replaced (test_distribution.InstallerTests.test_symlinks_and_non_regular_destinations_are_not_replaced) ... ok\ntest_unsupported_platform_architecture_and_libc_do_not_fetch_assets (test_distribution.InstallerTests.test_unsupported_platform_architecture_and_libc_do_not_fetch_assets) ... ok\ntest_version_mismatch_and_missing_binary_member_preserve_the_installation (test_distribution.InstallerTests.test_version_mismatch_and_missing_binary_member_preserve_the_installation) ... ok\ntest_archives_are_reproducible_and_bind_the_architecture_and_binary (test_distribution.VersionAndArchiveTests.test_archives_are_reproducible_and_bind_the_architecture_and_binary) ... ok\ntest_checksums_require_the_complete_exact_asset_set (test_distribution.VersionAndArchiveTests.test_checksums_require_the_complete_exact_asset_set) ... ok\ntest_release_tags_match_the_workspace_and_distinguish_prereleases (test_distribution.VersionAndArchiveTests.test_release_tags_match_the_workspace_and_distinguish_prereleases) ... ok\ntest_real_powershell_installer_control_flow_with_a_unix_execution_fixture (test_powershell_logic.PowerShellLogicTests.test_real_powershell_installer_control_flow_with_a_unix_execution_fixture) ... ok\n\n----------------------------------------------------------------------\nRan 14 tests in 17.398s\n\nOK\n",
+    "network_scope": "deterministic curl fixtures; actual binary, archive, checksum, install and compiler execution"
+  },
+  "summary": {
+    "package-release": {
+      "samples": 3,
+      "median_elapsed_ms": 4762.70492499998,
+      "peak_rss_bytes": 45907968
+    },
+    "startup-release": {
+      "samples": 3,
+      "median_elapsed_ms": 65.24888499984627,
+      "peak_rss_bytes": 1630208
+    }
+  }
+}

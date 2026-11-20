@@ -1,0 +1,209 @@
+// Source: RFC 5545 (September 2009), supplied by the user.
+// Scope: core interchange format; later RFC extensions and iTIP/iMIP are separate.
+// Normative prose constraints preserve requirements not expressible in this DSL.
+workspace ICalendar {
+  intent """Represent and exchange events, to-dos, journals, free/busy information, time zones and alarms independently of calendar services and transport protocols."""
+  domain Calendaring {
+    value Token = String { length 1..2147483647 }
+    value CalendarUid = String { length 1..2147483647 }
+    value CalendarUri = String { format Uri }
+    value CalendarInteger = Int { range -2147483648..2147483647 }
+    value PositiveCount = Int { range 1..2147483647 }
+    value NonnegativeCount = Int { range 0..2147483647 }
+    value PercentComplete = Int { range 0..100 }
+    value Priority = Int { range 0..9 }
+    value Month = Int { range 1..12 }
+    value Hour = Int { range 0..23 }
+    value Minute = Int { range 0..59 }
+    value Second = Int { range 0..60 }
+    value MonthDay = Int { range -31..31
+      where value != 0
+    }
+    value YearDay = Int { range -366..366
+      where value != 0
+    }
+    value WeekNumber = Int { range -53..53
+      where value != 0
+    }
+    value SetPosition = Int { range -366..366
+      where value != 0
+    }
+    value Latitude = Float { range -90..90 }
+    value Longitude = Float { range -180..180 }
+    // Wire dates/times are basic-format strings, not RFC3339 timestamps.
+    value DateText = String { length 8..8 }
+    value LocalDateTimeText = String { length 15..15 }
+    value UtcDateTimeText = String { length 16..16 }
+    value TimeText = String { length 6..7 }
+    value DurationText = String
+    value UtcOffsetText = String { length 5..7 }
+    type Weekday = Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday
+    type Frequency = Secondly | Minutely | Hourly | Daily | Weekly | Monthly | Yearly
+    type TriggerRelationship = Start | End
+    type Relationship = Parent | Child | Sibling | OtherRelationship(Token)
+    type UserType = Individual | Group | Resource | Room | Unknown | OtherUserType(Token)
+    type ParticipationRole = Chair | RequiredParticipant | OptionalParticipant | NonParticipant | OtherRole(Token)
+    type ParticipationStatus = NeedsAction | Accepted | Declined | Tentative | Delegated | Completed | InProcess | OtherParticipationStatus(Token)
+    type Classification = Public | Private | Confidential | OtherClassification(Token)
+    type BusyType = Free | Busy | BusyUnavailable | BusyTentative | OtherBusyType(Token)
+    type Transparency = Opaque | Transparent
+    type EventStatus = TentativeEvent | ConfirmedEvent | CancelledEvent
+    type TodoStatus = NeedsActionTodo | CompletedTodo | InProcessTodo | CancelledTodo
+    type JournalStatus = DraftJournal | FinalJournal | CancelledJournal
+    type AlarmAction = Audio | Display | Email | OtherAlarmAction(Token)
+    type ValueType = Binary | BooleanValue | CalendarAddress | DateValue | DateTimeValue | DurationValue | FloatValue | IntegerValue | PeriodValue | RecurrenceValue | TextValue | TimeValue | UriValue | UtcOffsetValue | OtherValueType(Token)
+    type ZonedDateTime {
+      local: LocalDateTimeText 
+      zoneId: String
+    }
+    type CalendarDateTime = Floating(LocalDateTimeText) | Utc(UtcDateTimeText) | Zoned(ZonedDateTime)
+    type CalendarDate = DateOnly(DateText) | DateAndTime(CalendarDateTime)
+    type ExplicitPeriod {
+      start: CalendarDateTime 
+      end: CalendarDateTime
+    }
+    type DurationPeriod {
+      start: CalendarDateTime 
+      duration: DurationText
+    }
+    type Period = StartAndEnd(ExplicitPeriod) | StartAndDuration(DurationPeriod)
+    type OrdinalWeekday {
+      day: Weekday 
+      ordinal: Option<WeekNumber>
+    }
+    type RecurrenceRule {
+      frequency: Frequency
+      boundary: RecurrenceBoundary
+      interval: PositiveCount
+      bySecond: List<Second>
+      byMinute: List<Minute>
+      byHour: List<Hour>
+      byDay: List<OrdinalWeekday>
+      byMonthDay: List<MonthDay>
+      byYearDay: List<YearDay>
+      byWeekNumber: List<WeekNumber>
+      byMonth: List<Month>
+      bySetPosition: List<SetPosition>
+      weekStart: Weekday
+    }
+    type Parameter {
+      name: Token 
+      values: List<String>
+    }
+    type ContentLine {
+      name: Token 
+      parameters: List<Parameter> 
+      rawValue: String
+    }
+    // Ordered raw properties retain repeated properties, extension values and parameters.
+    type Component {
+      name: Token 
+      properties: List<ContentLine> 
+      children: List<Component>
+    }
+    type CalendarObject {
+      properties: List<ContentLine> 
+      components: List<Component>
+    }
+    type CalendarStream {
+      calendars: List<CalendarObject>
+    }
+    type Diagnostic {
+      section: String 
+      line: Option<PositiveCount> 
+      description: String
+    }
+    type ValidationReport {
+      valid: Boolean 
+      diagnostics: List<Diagnostic>
+    }
+    type RecurrenceWindow {
+      from: CalendarDateTime 
+      until: CalendarDateTime
+    }
+    type RecurrenceInstance {
+      originalStart: CalendarDate 
+      start: CalendarDate 
+      duration: Option<DurationText>
+       cancelled: Boolean
+    }
+    type AlarmTrigger = Relative(RelativeTrigger) | Absolute(UtcDateTimeText)
+    type RelativeTrigger {
+      duration: DurationText 
+      related: TriggerRelationship
+    }
+    type GeographicPosition {
+      latitude: Latitude 
+      longitude: Longitude
+    }
+    type RequestStatus {
+      code: String 
+      description: String 
+      exceptionData: Option<String>
+    }
+    type MimeMetadata {
+      charset: Option<String> 
+      method: Option<Token> 
+      components: List<Token> 
+      optionalInformation: List<String>
+    }
+
+    constraint """Scope: RFC 5545 core only. Scheduling methods and transactions are defined by iTIP, email binding by iMIP, and service authorization by the receiving system. Absence of METHOD never implies a scheduling transaction."""
+    constraint """Sections 2 and 3.1: property names, parameter names and enumerated values are case-insensitive; other values are case-sensitive unless explicitly stated. Unquoted parameter values are case-insensitive. Tokens contain only ASCII letters, digits and hyphens; experimental names begin X-. Optional vendor IDs contain at least three letters or digits."""
+    constraint """Sections 3.1 and 6: emit UTF-8 and accept UTF-8 or US-ASCII. Content lines end with CRLF. Unfold bytes before UTF-8 decoding by removing each CRLF immediately followed by exactly one SPACE or HTAB, restoring even a split multibyte sequence. Generated lines SHOULD be folded at no more than 75 octets excluding CRLF, between characters."""
+    constraint """Sections 3.1 and 3.2: a content line is name followed by zero or more semicolon-separated name=value parameters, a colon and the property value. Commas separate parameter lists, including individually quoted URI values. Parameter values containing colon, semicolon or comma MUST be quoted; a parameter value MUST NOT contain a double quote. Controls other than HTAB are forbidden. Unknown IANA and experimental parameters are ignored semantically."""
+    constraint """Sections 3.1.2 and 3.3.11: repeated property lines and comma-separated values are allowed only as defined for that property. Multiple language variants of the same value MUST NOT be represented using multi-valued properties. Display all values SHOULD be supported. TEXT escapes backslash, comma and semicolon with backslash; newline is backslash followed by n or N. Colon MUST NOT be backslash-escaped. Other value types have no TEXT escaping."""
+    constraint """Sections 3.1.3, 3.2.7 and 3.3.1: attachments SHOULD reference external binary content by URI. Inline binary uses RFC4648 BASE64 and MUST specify VALUE=BINARY and ENCODING=BASE64. Default encoding is 8BIT. FMTTYPE is recommended for inline binary; unknown media content defaults to application/octet-stream after optional inspection."""
+    constraint """Section 3.2: ALTREP and DIR are quoted URIs; ALTREP retains the default textual representation. CN is display text. DELEGATED-FROM, DELEGATED-TO and MEMBER are lists of individually quoted calendar addresses. SENT-BY is a quoted mailto URI. LANGUAGE uses RFC5646 tags and applies to text and text parameters; absent MIME Content-Language gives no assumed default."""
+    constraint """Section 3.2: CUTYPE defaults to INDIVIDUAL and unknown types become UNKNOWN; FBTYPE defaults to BUSY and unknown types become BUSY; PARTSTAT defaults to NEEDS-ACTION and unknown statuses become NEEDS-ACTION; RELTYPE defaults to PARENT and unknown relationships become PARENT; ROLE defaults to REQ-PARTICIPANT and unknown roles become REQ-PARTICIPANT; RSVP defaults to FALSE; RELATED defaults to START. PARTSTAT permits COMPLETED and IN-PROCESS only on VTODO, and TENTATIVE and DELEGATED only on VEVENT or VTODO."""
+    constraint """Sections 3.2.19 and 3.3: TZID references an equal TZID property in a unique VTIMEZONE definition within the calendar. A definition is required for every distinct referenced zone, covering all recurrence instances. TZID MUST NOT accompany DATE or UTC values. Local values without TZID are floating even if time zone definitions exist. A leading slash denotes a globally registered zone identifier; RFC5545 defines no such registry."""
+    constraint """Sections 3.2.20 and 3.3: each property contains values of one declared type. An allowable nondefault type MUST specify VALUE. Unknown value types retain raw data without interpretation. BOOLEAN is TRUE or FALSE. INTEGER is signed 32-bit; absent sign is positive. FLOAT permits an optional sign, digits and optional fractional digits, with no exponent. URI obeys RFC3986. Calendar addresses are URIs and internet email addresses use mailto."""
+    constraint """Sections 3.3.4, 3.3.5 and 3.3.12: DATE is YYYYMMDD with valid Gregorian month/day. DATE-TIME is YYYYMMDDTHHMMSS optionally ending Z; TIME is HHMMSS optionally ending Z. Numeric UTC suffix offsets and fractional seconds are forbidden. Local zone references are parameters. Hour is 00..23, minute 00..59 and second 00..60; 60 is only a positive leap second, and unsupported leap seconds SHOULD be interpreted as 59."""
+    constraint """Section 3.3.5: an explicitly supplied ambiguous local time selects the first occurrence. An explicitly supplied nonexistent local time uses the offset before the gap. Floating values represent wall-clock time in the attendee's current zone; fixed times MUST use UTC or a zone reference."""
+    constraint """Sections 3.3.6 and 3.3.9: DURATION has an optional sign and P followed by weeks, days with optional time, or time hours/minutes/seconds in descending order. Years and months are unsupported; week form cannot mix with day/time form. Add days before hours, minutes and seconds; account for zone discontinuities and ignore leap seconds. PERIOD is start/end with start strictly before end, or start/positive-duration."""
+    constraint """Section 3.3.14: UTC-OFFSET has a mandatory sign and HHMM optionally SS. Negative zero (-0000 or -000000) is forbidden; seconds cannot be 60 and default to zero."""
+    constraint """Sections 3.4..3.7: streams contain one or more BEGIN:VCALENDAR / END:VCALENDAR objects. Each calendar requires exactly one PRODID, exactly one VERSION and at least one component. VERSION is 2.0 for this standard. CALSCALE and METHOD occur at most once; scale defaults to GREGORIAN. Calendar properties SHOULD precede components. Properties have no semantic ordering. Unknown components are ignored semantically; importers SHOULD support every standard component and SHOULD NOT silently drop components."""
+    constraint """Section 3.6.1 VEVENT: UID and DTSTAMP occur exactly once. DTSTART occurs at most once and is required when calendar METHOD is absent. CLASS, CREATED, DESCRIPTION, GEO, LAST-MODIFIED, LOCATION, ORGANIZER, PRIORITY, SEQUENCE, STATUS, SUMMARY, TRANSP, URL and RECURRENCE-ID occur at most once. RRULE SHOULD occur at most once. DTEND and DURATION are mutually exclusive and each occurs at most once. ATTACH, ATTENDEE, CATEGORIES, COMMENT, CONTACT, EXDATE, REQUEST-STATUS, RELATED-TO, RESOURCES, RDATE and extension properties may repeat. Only VALARM children are allowed."""
+    constraint """Sections 3.6.1 and 3.8.2: event start is inclusive and DTEND exclusive, strictly later and of the same value type as DTSTART. Local-time forms must correspond. DATE events require DATE ends and day/week durations. Without DTEND or DURATION a DATE event lasts one day and a DATE-TIME event ends at its start. TRANSP defaults OPAQUE; TRANSPARENT events do not block busy-time searches."""
+    constraint """Section 3.6.2 VTODO: exactly one UID and DTSTAMP. CLASS, COMPLETED, CREATED, DESCRIPTION, DTSTART, GEO, LAST-MODIFIED, LOCATION, ORGANIZER, PERCENT-COMPLETE, PRIORITY, RECURRENCE-ID, SEQUENCE, STATUS, SUMMARY and URL occur at most once. RRULE SHOULD occur at most once. DUE and DURATION are mutually exclusive, each at most once; DURATION requires DTSTART. DUE, when DTSTART exists, has the same type and corresponding local-time form and is strictly later. Repeatable properties are ATTACH, ATTENDEE, CATEGORIES, COMMENT, CONTACT, EXDATE, REQUEST-STATUS, RELATED-TO, RESOURCES, RDATE and extensions. Only VALARM children are allowed. Undated to-dos remain associated with successive dates until completed."""
+    constraint """Section 3.6.3 VJOURNAL: exactly one UID and DTSTAMP. CLASS, CREATED, DTSTART, LAST-MODIFIED, ORGANIZER, RECURRENCE-ID, SEQUENCE, STATUS, SUMMARY and URL occur at most once; RRULE SHOULD occur at most once. ATTACH, ATTENDEE, CATEGORIES, COMMENT, CONTACT, DESCRIPTION, EXDATE, RELATED-TO, RDATE, REQUEST-STATUS and extensions may repeat. No child components. Journals never block busy time."""
+    constraint """Section 3.6.4 VFREEBUSY: exactly one UID and DTSTAMP. CONTACT, DTSTART, DTEND, ORGANIZER and URL occur at most once. ATTENDEE, COMMENT, FREEBUSY, REQUEST-STATUS and extensions may repeat. No child components, RRULE, RDATE, EXDATE or DURATION. DTSTART and DTEND are UTC with end strictly later; the published surrounding window is inclusive. Resolve recurring events into individual periods. Bounds SHOULD precede FREEBUSY; periods SHOULD sort by start then end. All dates in FREEBUSY periods are UTC and values in one line share FBTYPE."""
+    constraint """Sections 3.6.5 and 3.8.3 VTIMEZONE: exactly one unique TZID, at most one LAST-MODIFIED and TZURL, and at least one STANDARD or DAYLIGHT child; observance children may repeat. Each observance requires exactly one local DATE-TIME DTSTART without TZID, TZOFFSETFROM and TZOFFSETTO; RRULE SHOULD occur at most once; COMMENT, RDATE, TZNAME and extensions may repeat. RDATE onsets are local and relative to TZOFFSETFROM. Determine absolute onsets from DTSTART and TZOFFSETFROM and use TZOFFSETTO of the latest applicable onset. A known final onset MUST be represented by UTC UNTIL equal to that last onset. TZURL SHOULD be accessible to recipients and SHOULD NOT be a file URI; retrieval returns a calendar with one zone and METHOD=PUBLISH."""
+    constraint """Section 3.6.6 VALARM: only VEVENT and VTODO may contain alarms; alarms cannot nest. Exactly one ACTION and TRIGGER. DURATION and REPEAT are optional, at most once each and MUST occur together. AUDIO permits at most one sound ATTACH; unsupported or inaccessible sound may use a default sound or silence. DISPLAY requires exactly one DESCRIPTION. EMAIL requires exactly one DESCRIPTION and SUMMARY and at least one ATTENDEE, with repeatable ATTACH. Unknown actions are ignored. An imported alarm SHOULD be accepted only under an explicit user policy."""
+    constraint """Sections 3.6.6 and 3.8.6: relative TRIGGER is signed DURATION with RELATED default START; positive means after, negative before. START requires parent DTSTART. END requires event DTEND or todo DUE, or parent DTSTART plus DURATION. Absolute TRIGGER requires VALUE=DATE-TIME and UTC, with no RELATED or TZID, and triggers once for a recurring parent except specified repetitions. DATE-relative alarms use midnight in the user's zone or UTC if unavailable. REPEAT counts additional triggers after the initial one; DURATION is the positive repeat delay. EMAIL uses DESCRIPTION as body and SUMMARY as subject and SHOULD include attachments."""
+    constraint """Section 3.3.10: RRULE contains exactly one FREQ; every rule part occurs at most once and COUNT and UNTIL are mutually exclusive. Accept any ordering but generate FREQ first. INTERVAL defaults to 1, WKST to Monday; COUNT includes DTSTART. UNTIL is inclusive, matches DTSTART value type, is local for floating DTSTART and UTC for UTC/zoned DTSTART; observance UNTIL is UTC. Absent COUNT and UNTIL means unbounded recurrence."""
+    constraint """Section 3.3.10: DATE DTSTART forbids BYSECOND, BYMINUTE and BYHOUR; readers MUST ignore these parts if received on a DATE recurrence. Numeric BYDAY is allowed only MONTHLY or YEARLY and is forbidden for YEARLY with BYWEEKNO. BYMONTHDAY is forbidden WEEKLY; BYYEARDAY is forbidden DAILY, WEEKLY and MONTHLY; BYWEEKNO requires YEARLY; BYSETPOS requires another BY part. All lists respect their typed nonzero bounds."""
+    constraint """Section 3.3.10: evaluate FREQ/INTERVAL then BYMONTH, BYWEEKNO, BYYEARDAY, BYMONTHDAY, BYDAY, BYHOUR, BYMINUTE, BYSECOND, BYSETPOS, then COUNT/UNTIL. BYMONTH limits except YEARLY expands; BYWEEKNO expands YEARLY; BYYEARDAY limits subdaily and expands YEARLY; BYMONTHDAY limits through DAILY and expands MONTHLY/YEARLY. BYDAY limits through DAILY and expands WEEKLY; MONTHLY limits with BYMONTHDAY else expands; YEARLY limits with BYYEARDAY/BYMONTHDAY, otherwise expands over weeks with BYWEEKNO, months with BYMONTH, else the year. BYHOUR expands DAILY and above, BYMINUTE HOURLY and above, BYSECOND MINUTELY and above; otherwise each limits. BYSETPOS selects positions within one frequency interval. Derive unspecified date/time parts from DTSTART."""
+    constraint """Section 3.3.10: week one is the first week with at least four days in that year, with weeks starting WKST. Numeric BYDAY is relative to month for MONTHLY and YEARLY with BYMONTH, otherwise to year when permitted. Invalid dates and generated nonexistent local times MUST be skipped without consuming COUNT. Repeated local times use the first occurrence. The supplied RFC also contains conflicting gap prose at the end of section 3.3.10; the explicit MUST-skip recurrence requirement governs generated gaps, while section 3.3.5 governs explicit inputs."""
+    constraint """Sections 3.8.4.4 and 3.8.5: recurrence set is the distinct union of DTSTART, RRULE and RDATE minus EXDATE; exclusion wins. Preserve original DTSTART even when excluded. DTSTART SHOULD match RRULE; mismatches and multiple RRULEs yield undefined recurrence and cannot be claimed as defined results. EXDATE permits DATE or DATE-TIME; RDATE permits DATE, DATE-TIME or PERIOD, explicitly declaring alternate types. A PERIOD RDATE supplies that instance's duration. DTEND/DUE establishes exact recurring duration; DURATION establishes nominal recurring duration across zone changes."""
+    constraint """Section 3.8.4.4: RECURRENCE-ID is the original start of the instance, even after moving it; it matches the master DTSTART type and corresponding local-time form. UID, SEQUENCE and RECURRENCE-ID correlate instances. RANGE only permits THISANDFUTURE; subsequent instances are determined by original IDs and shift by the same time difference and new duration, excluding separately overridden components."""
+    constraint """Sections 3.8.1 and 3.8.4: CLASS defaults PUBLIC and unknown values are treated PRIVATE; it expresses intent rather than authorization enforcement. GEO contains latitude then longitude separated by semicolon; accept at least six decimal places. PERCENT-COMPLETE is 0..100; PRIORITY defaults 0 (undefined), 1 highest and 9 lowest. STATUS is component-specific. CATEGORIES and RESOURCES are comma-separated TEXT lists. RFC5545 section 3.8.1.10 says RESOURCES occurs once while component grammars permit repetition; retain input lines and expose the discrepancy rather than silently losing data."""
+    constraint """Section 3.8.4: group scheduling requires ORGANIZER and ATTENDEE; publishing busy time requires ORGANIZER and forbids ATTENDEE; single-user nongroup components and zone-only calendars do not specify them. EMAIL alarm attendees designate recipients. Attendee scheduling parameters are permitted on VEVENT/VTODO/VJOURNAL, not VFREEBUSY/VALARM. Delegated recipients inherit ROLE and RSVP. LANGUAGE on organizer or attendee applies to CN. RELATED-TO references another UID with default PARENT; relationship implications are maintained by the receiving calendar system."""
+    constraint """Sections 3.8.4.6, 3.8.4.7 and 3.8.7: URL and MIME Content-Location, if both present, reference the same resource. UID is persistent and globally unique, and receivers MUST persist at least 255 octets without truncating UTF-8 sequences. CREATED, COMPLETED, DTSTAMP and LAST-MODIFIED are UTC. With METHOD, DTSTAMP is object creation time; without METHOD it is last revision time equivalent to LAST-MODIFIED. SEQUENCE defaults 0 and organizer increments for significant revisions; individual recurrence instances may have different sequences."""
+    constraint """Section 3.8.8: IANA and X- properties retain arbitrary allowed VALUE and parameters and may be ignored semantically. REQUEST-STATUS contains a numeric two- or three-part dotted code, semicolon-separated TEXT description and optional TEXT exception data. Code classes are 1 preliminary, 2 successful, 3 client error and 4 scheduling error."""
+    constraint """Sections 3.7.2, 6 and 8.1: MIME text/calendar charset identifies the transported charset. MIME method and calendar METHOD must agree; for streams the MIME method exists iff every object has the same METHOD. Component metadata represents every contained top-level component type; optional information must agree with the body. Transport encoding and TEXT escaping are distinct. Extensions are .ics for calendars and .ifb for free/busy."""
+    constraint """Section 5 and Appendix A: SUMMARY truncation at 255 octets is permitted only at UTF-8 boundaries. Unsupported seconds SHOULD emit 00. EXRULE, RANGE=THISANDPRIOR and ACTION=PROCEDURE are deprecated and MUST NOT be generated. RECUR does not permit comma-separated complete rules or experimental rule parts. Registration processes are administrative, not calendar runtime operations."""
+
+    surface Interchange exposes requestReply {
+      operation parse(input: Bytes, limits: ParseLimits) -> ParseOutcome {
+        pure
+      }
+      operation validate(stream: CalendarStream) -> ValidationReport {
+        pure
+      }
+      operation serialize(stream: CalendarStream) -> ExportOutcome {
+        pure
+      }
+      operation validateMime(stream: CalendarStream, metadata: MimeMetadata) -> ValidationReport {
+        pure
+      }
+    }
+    surface Recurrences exposes requestReply {
+      operation expand(component: Component, calendar: CalendarObject, window: RecurrenceWindow, limits: ExpansionLimits, context: TimeContext) -> ExpansionOutcome {
+        pure
+      }
+    }
+    constraint """Interchange.parse follows Documents.parse and performs byte unfolding, content-line parsing and matched BEGIN/END nesting while retaining extension content. Interchange.validate reports lexical, value, cardinality, placement, reference and cross-property violations against the constraints above. Interchange.serialize emits a conforming UTF-8 CRLF stream, TEXT escapes, quoted parameters and recommended folding. Operations describe contracts; no execution evidence is implied."""
+    constraint """Recurrences.expand returns ExpandedInstances only for complete, defined evaluation; it otherwise returns ExpansionRejected. Successful instances are chronologically ordered distinct instances within the requested finite half-open window, preserving original identities and applying exclusions, overrides and durations. It requires a valid recurring component, complete referenced time zones and strictly increasing compatible window bounds. Undefined recurrence input is diagnosed before expansion; a finite window is an API bound, not a change to the RFC's unbounded recurrence semantics."""
+  }
+}

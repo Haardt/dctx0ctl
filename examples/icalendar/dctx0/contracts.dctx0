@@ -1,0 +1,220 @@
+// Implementation-facing contracts. No application code or test cases.
+fragment ICalendar.Calendaring {
+  type IssueSeverity = ErrorIssue | WarningIssue | InformationIssue
+  type IssueCode = InvalidUtf8 | InvalidLineEnding | InvalidContentLine | InvalidParameter | InvalidTextEscape | InvalidValue | InvalidDate | InvalidLeapSecond | UnexpectedDelimiter | MissingProperty | DuplicateProperty | InvalidPlacement | ConflictingProperties | IncompatibleValueTypes | UnknownTimeZone | DuplicateTimeZone | UndefinedRecurrence | AmbiguousOverride | UnsupportedVersion | UnsupportedScale | DeprecatedElement | MimeMismatch | NoncanonicalInput | IgnoredRulePart | ResourceLimit | UnrepresentableValue
+  type SourcePosition {
+    byteOffset: NonnegativeCount
+    line: PositiveCount
+    byteColumn: PositiveCount
+  }
+  type SourceRange {
+    start: SourcePosition
+    end: SourcePosition
+  }
+  type PropertyLocation {
+    calendarIndex: NonnegativeCount
+    componentPath: List<NonnegativeCount>
+    propertyIndex: Option<NonnegativeCount>
+    parameterIndex: Option<NonnegativeCount>
+  }
+  type CalendarIssue {
+    code: IssueCode
+    severity: IssueSeverity
+    section: String
+    message: String
+    source: Option<SourceRange>
+    location: Option<PropertyLocation>
+  }
+  value CalendarIssues = List<CalendarIssue> { length 1..2147483647 }
+  type Rejection { issues: CalendarIssues }
+  type CalendarValidation {
+    issues: List<CalendarIssue>
+    structurallyValid: Boolean
+    recurrenceDefined: Boolean
+  }
+  type ParseLimits {
+    inputOctets: PositiveCount
+    unfoldedLineOctets: PositiveCount
+    nestingDepth: PositiveCount
+    contentLines: PositiveCount
+  }
+  type LocatedProperty {
+    location: PropertyLocation
+    source: SourceRange
+  }
+  type ParsedCalendarDocument {
+    originalBytes: Bytes
+    stream: CalendarStream
+    locations: List<LocatedProperty>
+    issues: List<CalendarIssue>
+  }
+  type ParseOutcome = ParsedDocument(ParsedCalendarDocument) | ParseRejected(Rejection)
+  // Wire sidecar keeps recognized parameters absent from semantic convenience records.
+  type DecodedCalendarDocument {
+    calendars: Calendars
+    wire: ParsedCalendarDocument
+    issues: List<CalendarIssue>
+  }
+  type DecodeOutcome = DecodedDocument(DecodedCalendarDocument) | DecodeRejected(Rejection)
+  type ExportOutcome = ExportedBytes(Bytes) | ExportRejected(Rejection)
+  type WireOutcome = EncodedStream(CalendarStream) | EncodeRejected(Rejection)
+  type ExpansionOutcome = ExpandedInstances(List<RecurrenceInstance>) | ExpansionRejected(Rejection)
+  type BooleanOutcome = DecodedBoolean(Boolean) | BooleanRejected(Rejection)
+  type TextOutcome = DecodedText(String) | TextRejected(Rejection)
+  type TextEncodingOutcome = EncodedText(String) | TextEncodingRejected(Rejection)
+  type DateOutcome = DecodedDate(GregorianDate) | DateRejected(Rejection)
+  type DateTimeOutcome = DecodedDateTime(DateTime) | DateTimeRejected(Rejection)
+  type DurationOutcome = DecodedDuration(SignedDuration) | DurationRejected(Rejection)
+  type OffsetOutcome = DecodedOffset(Offset) | OffsetRejected(Rejection)
+  type PropertyOutcome = DecodedProperty(ContentLine) | PropertyRejected(Rejection)
+  type TimeZoneDefinitions { zones: List<CalendarTimeZone> }
+  type LeapSecondPolicy = ValidateKnownLeapSeconds | TreatLeapSecondAs59
+  type TimeContext {
+    zones: TimeZoneDefinitions
+    floatingZone: Option<ZoneId>
+    leapSecondPolicy: LeapSecondPolicy
+    knownLeapSeconds: List<LocalDateTime>
+  }
+  type ResolutionOrigin = ExplicitDateTime | GeneratedRecurrence
+  type ResolvedInstant {
+    utc: LocalDateTime
+    offset: Offset
+  }
+  type TimeResolution = ResolvedTime(ResolvedInstant) | SkippedNonexistentTime | ResolutionRejected(Rejection)
+  type DurationAddition = AddedDuration(DateTime) | AdditionRejected(Rejection)
+  type TimeOrdering = Earlier | SameTime | Later
+  type ComparisonOutcome = ComparedTimes(TimeOrdering) | ComparisonRejected(Rejection)
+  type ExpansionLimits {
+    candidateCount: PositiveCount
+    instanceCount: PositiveCount
+  }
+  type SemanticExpansionRequest {
+    master: CalendarComponent
+    overrides: List<CalendarComponent>
+    calendar: Calendar
+    window: RecurrenceWindow
+    context: TimeContext
+    limits: ExpansionLimits
+  }
+
+  decision SemanticAndWireRepresentation {
+    choose """Keep the immutable parsed wire document next to the semantic projection. Canonical serialization is semantically equivalent; byte-preserving export returns the original document separately."""
+    because """Typed defaults and component records do not retain every recognized parameter, omission, grouping or original spelling. Raw input remains necessary for complete interchange preservation."""
+    avoid """Do not promise a byte-identical round trip through typed convenience records or silently discard property parameters."""
+  }
+  decision UndefinedRecurrencePolicy {
+    choose """Preserve syntactically valid raw documents containing undefined recurrence, report it explicitly, and reject semantic decoding and expansion of that recurrence."""
+    because """RFC5545 leaves mismatched DTSTART/RRULE and multiple RRULE recurrence sets undefined; a deterministic application must not invent an occurrence set."""
+    avoid """Do not select one duplicate RRULE, repair DTSTART or return an empty successful expansion."""
+  }
+  decision ResourcePropertyCardinality {
+    choose """Accept repeated RESOURCES using the component grammars, preserve all occurrences, and report the conflicting single-occurrence prose as a warning."""
+    because """This makes the supplied RFC discrepancy visible while avoiding loss of structurally permitted data."""
+    avoid """Do not merge differently parameterized resource lines or arbitrarily drop all but the first."""
+  }
+
+  constraint """Diagnostics: byteOffset is zero-based in the original input; line and byteColumn are one-based physical coordinates; SourceRange is half-open. componentPath indexes children from zero within calendarIndex. Folded property ranges include their physical continuations. Report all semantic issues in document order, then IssueCode declaration order for issues at the same position. Synthetic values may lack source, but always retain a logical location when available. ErrorIssue prevents a successful operation; warnings and information do not."""
+  constraint """Parsing is strict about CRLF, UTF-8, content-line grammar and matching delimiters; it never silently repairs LF-only input, malformed quoting, illegal controls or invalid escapes. An unfolded line exceeding 75 octets is only a warning because folding is SHOULD. ParseLimits are caller-supplied operational bounds, not RFC validity limits. Exceeding any bound returns ResourceLimit and no partial successful document. Parsing returns the first lexical error; semantic validation reports every independently discoverable issue."""
+  constraint """Unknown properties, parameters, components and value types are preserved and generate information, not errors solely because unknown. Unknown ACTION alarms remain ignored extension alarms. Unsupported VERSION or CALSCALE rejects semantic decoding without discarding parsed bytes. Violated MUST/MUST NOT rules are errors except explicitly mandated reader fallback, such as ignored time BY parts on DATE recurrence. Violated SHOULD rules are warnings; undefined recurrence additionally sets recurrenceDefined=false and blocks semantic decoding/expansion."""
+  constraint """GregorianDate permits the four-digit lexical year range. Date validation computes month length before constructing a DecodedDate. UTC basic values end in Z; local values never do. DateTime decoding uses the optional TZID parameter only for local input. A UTC value with TZID or a DATE with TZID is rejected. A supplied leap-second table is immutable evaluation input, never an implicit network dependency; the fallback policy maps second 60 to 59 and reports a warning."""
+
+  surface ContentLines exposes requestReply {
+    operation parseLine(unfolded: String) -> PropertyOutcome {
+      pure
+    }
+    operation decodeText(encoded: String) -> TextOutcome {
+      pure
+    }
+    operation encodeText(text: String) -> TextEncodingOutcome {
+      pure
+    }
+    operation decodeBoolean(encoded: String) -> BooleanOutcome {
+      pure
+    }
+    operation encodeBoolean(value: Boolean) -> String {
+      pure
+      ensures result == ifElse(value, "TRUE", "FALSE")
+    }
+    operation decodeDate(encoded: String) -> DateOutcome {
+      pure
+    }
+    operation decodeDateTime(encoded: String, zoneId: Option<ZoneId>) -> DateTimeOutcome {
+      pure
+    }
+    operation decodeDuration(encoded: String) -> DurationOutcome {
+      pure
+    }
+    operation decodeOffset(encoded: String) -> OffsetOutcome {
+      pure
+    }
+  }
+  constraint """ContentLines.parseLine receives exactly one unfolded line without terminal CRLF, finds the first colon outside parameter quotes and splits parameter commas only outside quotes. Empty parameter text is permitted by generic grammar; property-specific validation applies later. No backslash quote escaping exists for parameters. Preserve value casing and whitespace; do not trim TEXT, UID, URI or quoted parameter data."""
+  constraint """ContentLines.decodeText scans once, accepting only escaped backslash, semicolon, comma and n/N; it rejects dangling backslash and unknown escapes. encodeText escapes backslash before adding separator/newline escapes, emits lowercase n for semantic newline, leaves colon/double quote unescaped and rejects unsupported control characters at export. Comma-list splitting happens before TEXT decoding and recognizes escaped commas; structured semicolon fields follow the same rule."""
+  constraint """ContentLines.decodeBoolean accepts exactly TRUE or FALSE case-insensitively, with no leading/trailing whitespace or numeric aliases. decodeDate requires exactly eight ASCII digits and CalendarRules.validDate. decodeDateTime requires eight date digits, T and six time digits, with optional terminal Z, and validates field ranges. decodeDuration enforces the RFC grammar without mixing week/day forms; decoded zero magnitude is allowed for signed triggers but not PositiveDuration. decodeOffset accepts only signed HHMM or HHMMSS, rejects negative zero, out-of-range fields and second 60, and returns signed total seconds."""
+
+  surface Documents exposes requestReply {
+    operation parse(input: Bytes, limits: ParseLimits) -> ParseOutcome {
+      pure
+    }
+    operation validate(document: ParsedCalendarDocument) -> CalendarValidation {
+      pure
+    }
+    operation decode(document: ParsedCalendarDocument) -> DecodeOutcome {
+      pure
+    }
+    operation serialize(stream: CalendarStream) -> ExportOutcome {
+      pure
+    }
+    operation encode(calendars: Calendars) -> WireOutcome {
+      pure
+    }
+    operation exportCanonical(document: DecodedCalendarDocument) -> ExportOutcome {
+      pure
+    }
+    operation exportOriginal(document: ParsedCalendarDocument) -> Bytes {
+      pure
+      ensures result == document.originalBytes
+    }
+    operation hasErrors(validation: CalendarValidation) -> Boolean {
+      pure
+      ensures result == any(issue in validation.issues where issue.severity == ErrorIssue)
+    }
+  }
+  constraint """Documents.validate sets structurallyValid iff no structural/value/reference ErrorIssue exists; recurrenceDefined is independent and false for undefined recurrence. decode returns DecodeRejected if structural validity or defined recurrence fails. Rejection issues include the blocking reasons. ParsedDocument retains lexical success even when semantic validation fails. Successful parse/decode/encode/export never implies execution of scheduling, alarms or URI retrieval."""
+  constraint """Property mapping: VCALENDAR PRODID/version/method map to Calendar.productId/version/method and omitted CALSCALE means Gregorian. UID/DTSTAMP/SEQUENCE/RECURRENCE-ID/CREATED/LAST-MODIFIED map to ComponentIdentity where allowed. DTSTART plus optional DTEND/DURATION select EventTime; DTSTART/DUE or DTSTART/DURATION select TodoTime. Event/Todo DESCRIPTION is optional single text, Journal DESCRIPTION is a list. SUMMARY/CLASS/COMMENT/CONTACT/CATEGORIES/ATTACH/URL/RELATED-TO/REQUEST-STATUS map to DescriptiveProperties only in permitted components. LOCATION/GEO/PRIORITY/STATUS/TRANSP/RESOURCES map to their concrete fields. COMPLETED/PERCENT-COMPLETE belong only to Todo."""
+  constraint """Property mapping: RRULE becomes RecurrenceSet.rule with exactly one boundary; RDATE selects AddedDays/AddedTimes/AddedPeriods using VALUE; EXDATE selects ExcludedDays/ExcludedTimes. RECURRENCE-ID stores originalStart and RANGE. FREEBUSY maps each line to BusyPeriods with default BUSY and homogeneous UTC periods. VTIMEZONE TZID/LAST-MODIFIED/TZURL map to CalendarTimeZone; STANDARD/DAYLIGHT DTSTART/TZOFFSETFROM/TZOFFSETTO/RRULE/RDATE/TZNAME/COMMENT map to ZoneObservance. VALARM ACTION selects Audio/Display/Email, TRIGGER selects relative/absolute, and paired REPEAT/DURATION map to AlarmRepetition."""
+  constraint """Parameter mapping: ALTREP/LANGUAGE map to TextProperty where permitted; FMTTYPE maps to attachment mediaType. ATTENDEE and ORGANIZER parameters map to their named typed fields, retaining unknown values in extension variants with RFC fallback applied when evaluating behavior. Known parameters not represented by those fields, including parameters on UID/DTSTAMP/SEQUENCE and bare EMAIL recipients, remain in DecodedCalendarDocument.wire. Unknown VALUE data is opaque, never TEXT-decoded. Recognized standard names cannot bypass validation by entering extension collections."""
+  constraint """Canonical export preserves calendar/component/property order and repeated-property grouping from an unmodified decoded wire document, normalizes standard names and enumerated tokens to uppercase, and retains case-sensitive values and parameter payloads. Encode from typed calendars emits calendar properties PRODID, VERSION, CALSCALE:GREGORIAN, optional METHOD, then components in supplied order; known component properties use the order of their RFC component grammar, followed by extensions and allowed children. Resolve UTC/DATE/TZID forms and explicit alternate VALUE parameters; output RRULE parts in RFC3.3.10 grammar order with FREQ first. Invalid semantic input returns ExportRejected/EncodeRejected rather than repaired output."""
+  constraint """Canonical serialization emits UTF-8, CRLF including the final delimiter, no BOM, and folds at the greatest complete UTF-8 character boundary fitting 75 octets per physical line; continuation lines begin SPACE counted within that limit. Omit optional default parameters, retaining all nondefault and unknown parameters. Quote restricted parameter values; do not apply TEXT escaping to URIs or parameter data. Inline attachments always use VALUE=BINARY and ENCODING=BASE64. No UID/SUMMARY truncation, property deduplication or external fetching occurs. exportOriginal returns exactly originalBytes and provides no conforming-export guarantee for semantically invalid input."""
+
+  surface TimeRules exposes requestReply {
+    operation resolve(value: DateTime, origin: ResolutionOrigin, context: TimeContext) -> TimeResolution {
+      pure
+    }
+    operation compare(left: DateTime, right: DateTime, context: TimeContext) -> ComparisonOutcome {
+      pure
+    }
+    operation addDuration(start: DateTime, duration: SignedDuration, context: TimeContext) -> DurationAddition {
+      pure
+    }
+  }
+  constraint """TimeRules.resolve resolves UTC without a zone, zone time only from the matching calendar definition, and floating time only from an explicit floatingZone in context. Missing or duplicate zones reject; no operating-system zone or TZURL retrieval is implicit. Expand observance onsets from DTSTART/RRULE/RDATE using offsetFrom; each UTC transition installs offsetTo. Before the earliest onset use that onset's offsetFrom. Conflicting simultaneous transitions with different offsets reject. Ambiguous wall time picks the earliest UTC instant. Explicit nonexistent wall time uses the pre-gap offset; generated nonexistent wall time returns SkippedNonexistentTime."""
+  constraint """TimeRules.compare compares two floating times lexicographically without needing a zone; fixed UTC/zoned values compare resolved UTC instants. Mixed floating/fixed values require floatingZone. Missing evaluation context returns ComparisonRejected rather than assumed UTC. addDuration preserves start representation, adds signed weeks/days in its calendar zone before elapsed hours/minutes/seconds, and ignores leap seconds in duration arithmetic. Overflow outside representable four-digit years rejects; zero trigger duration leaves start unchanged. Exact DTEND/DUE differences are elapsed time, while DURATION days/weeks remain nominal."""
+
+  surface RecurrenceEvaluation exposes requestReply {
+    operation expand(request: SemanticExpansionRequest) -> ExpansionOutcome {
+      pure
+    }
+    operation selectPositions(candidateIndices: List<PositiveCount>, positions: List<SetPosition>) -> List<PositiveCount> {
+      pure
+      requires candidateIndices == distinct(candidateIndices)
+      requires candidateIndices == sortBy(index for index in candidateIndices)
+      requires all(index in candidateIndices where index <= count(candidateIndices))
+      ensures result == filter(index in candidateIndices where contains(positions, index) or contains(positions, index - count(candidateIndices) - 1))
+    }
+  }
+  constraint """RecurrenceEvaluation.expand validates master, its DTSTART/rule agreement, compatible UNTIL and overrides before expansion. Request master must be Event/Todo/Journal; overrides have the same component kind and UID, a unique original RECURRENCE-ID and compatible original start type. Multiple revisions of the same instance are rejected as AmbiguousOverride; revision arbitration belongs to scheduling/storage, not RFC5545 expansion. Calendar/context zones must agree. Windows are strictly increasing half-open bounds, interpreted in the same comparison frame as occurrence starts."""
+  constraint """Expansion generates frequency intervals anchored at DTSTART with WKST, applies BY parts in the declared RFC order, sorts/deduplicates candidates within each interval and applies BYSETPOS once to the whole interval before window filtering. Positive positions count from one; negative positions count from the end; out-of-range positions contribute nothing. Skip invalid dates and generated gaps without consuming COUNT. COUNT limits RRULE instances before EXDATE removal and does not count extra RDATE instances; UNTIL is inclusive. DTSTART counts first even when excluded. Window filtering never resets COUNT or BYSETPOS."""
+  constraint """Merge DTSTART/RRULE/RDATE by original occurrence identity, let PERIOD RDATE duration override master duration, then apply EXDATE; conflicting duplicate PERIOD durations reject as UndefinedRecurrence. Preserve originalStart on moved instances. Exact individual overrides take precedence over THISANDFUTURE changes. Otherwise apply the latest applicable range override by original ID, shifting start by its original-to-new difference and replacing duration; retain master duration when an override does not change it. Distinct original identities remain distinct even if moved to equal starts. Cancellation overrides are retained as cancelled instances; busy-time consumers exclude them. Finally filter by effective start in the requested window and order by effective start then originalStart."""
+  constraint """Expansion must inspect original occurrences whose moved starts enter the requested window, even when their original starts lie outside it. candidateCount bounds all inspected candidates including discarded ones; instanceCount bounds the full result. Exceeding a bound returns ExpansionRejected(ResourceLimit), never successful truncation. A recurrence that has not exhausted COUNT/UNTIL/window within these bounds is incomplete and cannot return success. Floating and DATE instances retain wall/date identities; conversion for comparisons uses only the explicit context."""
+}

@@ -1,0 +1,379 @@
+// Semantic models for RFC 5545. Raw ContentLine/Component models retain wire data.
+fragment ICalendar.Calendaring {
+  value Year = Int { range 0..9999 }
+  value DayOfMonth = Int { range 1..31 }
+  value OffsetSecond = Int { range 0..59 }
+  value OffsetSeconds = Int { range -86399..86399 }
+  value ZoneId = String { length 1..2147483647 }
+  value LanguageTag = String { length 1..2147483647 }
+  value EmailAddress = String {
+    format Uri
+    where startsWith(lowercase(value), "mailto:")
+  }
+  value CalendarVersion = String { where value == "2.0" }
+  value NonemptyCalendarComponents = List<CalendarComponent> { length 1..2147483647 }
+  value NonemptyObservances = List<ZoneObservance> { length 1..2147483647 }
+  value EmailRecipients = List<EmailAddress> { length 1..2147483647 }
+
+  // Dates are structured and calendar validity is a separate pure contract.
+  type GregorianDate {
+    year: Year 
+    month: Month 
+    day: DayOfMonth
+  }
+  type WallTime {
+    hour: Hour 
+    minute: Minute 
+    second: Second
+  }
+  type LocalDateTime {
+    date: GregorianDate 
+    time: WallTime
+  }
+  type ReferencedDateTime {
+    local: LocalDateTime 
+    zoneId: ZoneId
+  }
+  type DateTime = FloatingTime(LocalDateTime) | UtcTime(LocalDateTime) | ZoneTime(ReferencedDateTime)
+  type DateOrDateTime = CalendarDay(GregorianDate) | CalendarInstant(DateTime)
+  type Offset {
+    seconds: OffsetSeconds
+  }
+  type AccurateDuration {
+    hours: NonnegativeCount 
+    minutes: NonnegativeCount 
+    seconds: NonnegativeCount
+  }
+  type DayDuration {
+    days: NonnegativeCount 
+    time: AccurateDuration
+  }
+  type DurationMagnitude = Weeks(NonnegativeCount) | DaysAndTime(DayDuration) | TimeOnly(AccurateDuration)
+  type DurationSign = Forward | Backward
+  type SignedDuration {
+    sign: DurationSign 
+    magnitude: DurationMagnitude
+  }
+  type DayOrWeekDuration = WholeDays(PositiveCount) | WholeWeeks(PositiveCount)
+  // Positive duration validity excludes an all-zero magnitude.
+  type PositiveDuration {
+    magnitude: DurationMagnitude
+  }
+  type DateTimePeriod {
+    start: DateTime 
+    end: DateTime
+  }
+  type LastingPeriod {
+    start: DateTime 
+    duration: PositiveDuration
+  }
+  type CalendarPeriod = EndingPeriod(DateTimePeriod) | Lasting(LastingPeriod)
+  type UtcPeriodEnd = UtcEnd(LocalDateTime) | UtcDuration(PositiveDuration)
+  type UtcPeriod {
+    start: LocalDateTime 
+    end: UtcPeriodEnd
+  }
+
+  // Exactly one recurrence termination form; COUNT and UNTIL cannot coexist.
+  type RecurrenceBoundary = Unbounded | OccurrenceCount(PositiveCount) | InclusiveUntil(CalendarDate)
+  type RecurrenceDates = AddedDays(List<GregorianDate>) | AddedTimes(List<DateTime>) | AddedPeriods(List<CalendarPeriod>)
+  type ExceptionDates = ExcludedDays(List<GregorianDate>) | ExcludedTimes(List<DateTime>)
+  type RecurrenceRange = ThisInstance | ThisAndFuture
+  type RecurrenceIdentity {
+    originalStart: DateOrDateTime 
+    range: RecurrenceRange
+  }
+  type RecurrenceSet {
+    rule: Option<RecurrenceRule>
+    additions: List<RecurrenceDates>
+    exclusions: List<ExceptionDates>
+  }
+  type ComponentIdentity {
+    uid: CalendarUid
+    stamp: LocalDateTime
+    sequence: NonnegativeCount
+    recurrenceId: Option<RecurrenceIdentity>
+    created: Option<LocalDateTime>
+    lastModified: Option<LocalDateTime>
+  }
+  type TextProperty {
+    text: String
+    alternate: Option<CalendarUri>
+    language: Option<LanguageTag>
+    extensions: List<Parameter>
+  }
+  type InlineAttachment {
+    content: Bytes 
+    mediaType: Option<String> 
+    extensions: List<Parameter>
+  }
+  type UriAttachment {
+    uri: CalendarUri 
+    mediaType: Option<String> 
+    extensions: List<Parameter>
+  }
+  type Attachment = ExternalAttachment(UriAttachment) | BinaryAttachment(InlineAttachment)
+  type Organizer {
+    address: CalendarUri
+    commonName: Option<String>
+    directory: Option<CalendarUri>
+    sentBy: Option<EmailAddress>
+    language: Option<LanguageTag>
+    extensions: List<Parameter>
+  }
+  type AttendeeDetails {
+    address: CalendarUri
+    commonName: Option<String>
+    userType: UserType
+    role: ParticipationRole
+    replyRequested: Boolean
+    memberships: List<CalendarUri>
+    delegatedTo: List<CalendarUri>
+    delegatedFrom: List<CalendarUri>
+    sentBy: Option<EmailAddress>
+    directory: Option<CalendarUri>
+    language: Option<LanguageTag>
+    extensions: List<Parameter>
+  }
+  type EventParticipation = EventNeedsAction | EventAccepted | EventDeclined | EventTentative | EventDelegated | EventOtherParticipation(Token)
+  type TodoParticipation = TodoNeedsAction | TodoAccepted | TodoDeclined | TodoTentative | TodoDelegated | TodoCompleted | TodoInProcess | TodoOtherParticipation(Token)
+  type JournalParticipation = JournalNeedsAction | JournalAccepted | JournalDeclined | JournalOtherParticipation(Token)
+  type EventAttendee {
+    details: AttendeeDetails 
+    status: EventParticipation
+  }
+  type TodoAttendee {
+    details: AttendeeDetails 
+    status: TodoParticipation
+  }
+  type JournalAttendee {
+    details: AttendeeDetails 
+    status: JournalParticipation
+  }
+  type RelatedComponent {
+    uid: CalendarUid 
+    relationship: Relationship 
+    extensions: List<Parameter>
+  }
+  type DescriptiveProperties {
+    classification: Classification
+    summary: Option<TextProperty>
+    comments: List<TextProperty>
+    contacts: List<TextProperty>
+    categories: List<TextProperty>
+    attachments: List<Attachment>
+    url: Option<CalendarUri>
+    related: List<RelatedComponent>
+    requestStatuses: List<RequestStatus>
+    extensions: List<ContentLine>
+  }
+
+  // Variants make incompatible end-property combinations impossible.
+  type AllDayEnd = DefaultOneDay | ExclusiveDayEnd(GregorianDate) | DayLength(DayOrWeekDuration)
+  type TimedEnd = DefaultInstantEnd | ExclusiveTimeEnd(DateTime) | TimedLength(PositiveDuration)
+  type AllDayEventTime {
+    start: GregorianDate 
+    end: AllDayEnd
+  }
+  type TimedEventTime {
+    start: DateTime 
+    end: TimedEnd
+  }
+  // METHOD calendars may omit DTSTART; retain an optional supplied end.
+  type MethodEventTime {
+    end: Option<DateOrDateTime>
+  }
+  type EventTime = AllDayEvent(AllDayEventTime) | TimedEvent(TimedEventTime) | MethodEventWithoutStart(MethodEventTime)
+  type CalendarEvent {
+    identity: ComponentIdentity
+    time: EventTime
+    description: Option<TextProperty>
+    descriptive: DescriptiveProperties
+    organizer: Option<Organizer>
+    attendees: List<EventAttendee>
+    location: Option<TextProperty>
+    position: Option<GeographicPosition>
+    priority: Priority
+    status: Option<EventStatus>
+    transparency: Transparency
+    resources: List<TextProperty>
+    recurrence: RecurrenceSet
+    alarms: List<CalendarAlarm>
+  }
+  type TodoDates {
+    start: Option<DateOrDateTime> 
+    due: Option<DateOrDateTime>
+  }
+  type LastingTodo {
+    start: DateOrDateTime 
+    duration: PositiveDuration
+  }
+  type TodoTime = TodoDateBounds(TodoDates) | TodoDuration(LastingTodo)
+  type CalendarTodo {
+    identity: ComponentIdentity
+    time: TodoTime
+    description: Option<TextProperty>
+    descriptive: DescriptiveProperties
+    organizer: Option<Organizer>
+    attendees: List<TodoAttendee>
+    completed: Option<LocalDateTime>
+    percentComplete: Option<PercentComplete>
+    priority: Priority
+    status: Option<TodoStatus>
+    location: Option<TextProperty>
+    position: Option<GeographicPosition>
+    resources: List<TextProperty>
+    recurrence: RecurrenceSet
+    alarms: List<CalendarAlarm>
+  }
+  type CalendarJournal {
+    identity: ComponentIdentity
+    start: Option<DateOrDateTime>
+    descriptive: DescriptiveProperties
+    descriptions: List<TextProperty>
+    organizer: Option<Organizer>
+    attendees: List<JournalAttendee>
+    status: Option<JournalStatus>
+    recurrence: RecurrenceSet
+  }
+  type BusyPeriods {
+    kind: BusyType 
+    periods: List<UtcPeriod> 
+    extensions: List<Parameter>
+  }
+  type CalendarFreeBusy {
+    uid: CalendarUid
+    stamp: LocalDateTime
+    start: Option<LocalDateTime>
+    end: Option<LocalDateTime>
+    organizer: Option<Organizer>
+    attendees: List<CalendarUri>
+    contact: Option<TextProperty>
+    comments: List<TextProperty>
+    periods: List<BusyPeriods>
+    url: Option<CalendarUri>
+    requestStatuses: List<RequestStatus>
+    extensions: List<ContentLine>
+  }
+  type ObservanceKind = StandardTime | DaylightTime
+  type ZoneObservance {
+    kind: ObservanceKind
+    onset: LocalDateTime
+    offsetFrom: Offset
+    offsetTo: Offset
+    rule: Option<RecurrenceRule>
+    additionalOnsets: List<LocalDateTime>
+    names: List<TextProperty>
+    comments: List<TextProperty>
+    extensions: List<ContentLine>
+  }
+  type CalendarTimeZone {
+    id: ZoneId
+    lastModified: Option<LocalDateTime>
+    url: Option<CalendarUri>
+    observances: NonemptyObservances
+    extensions: List<ContentLine>
+  }
+  type RelativeAlarmTime {
+    offset: SignedDuration 
+    related: TriggerRelationship
+  }
+  type AlarmTime = RelativeAlarm(RelativeAlarmTime) | AbsoluteAlarm(LocalDateTime)
+  type AlarmRepetition {
+    additionalTriggers: NonnegativeCount 
+    delay: PositiveDuration
+  }
+  type AlarmSettings {
+    trigger: AlarmTime 
+    repetition: Option<AlarmRepetition> 
+    extensions: List<ContentLine>
+  }
+  type AudioAlarm {
+    settings: AlarmSettings 
+    sound: Option<Attachment>
+  }
+  type DisplayAlarm {
+    settings: AlarmSettings 
+    description: TextProperty
+  }
+  type EmailAlarm {
+    settings: AlarmSettings
+    subject: TextProperty
+    body: TextProperty
+    recipients: EmailRecipients
+    attachments: List<Attachment>
+  }
+  type UnknownAlarm {
+    action: Token 
+    properties: List<ContentLine>
+  }
+  type CalendarAlarm = SoundAlarm(AudioAlarm) | TextAlarm(DisplayAlarm) | MailAlarm(EmailAlarm) | ExtensionAlarm(UnknownAlarm)
+  type CalendarComponent = EventComponent(CalendarEvent) | TodoComponent(CalendarTodo) | JournalComponent(CalendarJournal) | FreeBusyComponent(CalendarFreeBusy) | TimeZoneComponent(CalendarTimeZone) | ExtensionComponent(Component)
+  type Calendar {
+    productId: String
+    version: CalendarVersion
+    method: Option<Token>
+    components: NonemptyCalendarComponents
+    extensions: List<ContentLine>
+  }
+  value Calendars = List<Calendar> { length 1..2147483647 }
+
+  constraint """Semantic projection resolves RFC defaults into typed fields: classification PUBLIC, priority and sequence zero, transparency OPAQUE, role REQ-PARTICIPANT, user type INDIVIDUAL, RSVP false, recurrence interval one and week start Monday. Calendar scale is Gregorian in this RFC-only model. Raw properties retain omission, ordering and explicit spellings for faithful interchange."""
+  constraint """LocalDateTime is a date/time payload, not inherently UTC. ComponentIdentity.stamp/created/lastModified, CalendarTodo.completed, CalendarFreeBusy.stamp/start/end, CalendarTimeZone.lastModified, UtcPeriod values and AbsoluteAlarm payloads represent UTC. ZoneObservance.onset/additionalOnsets are local without TZID. Second 60 requires a real positive leap second."""
+  constraint """MethodEventWithoutStart is permitted only when Calendar.method is present. Its supplied end remains typed; no implicit duration is invented without a start. AllDayEvent uses DATE ends or whole-day/week duration. TimedEvent and TodoDateBounds require strictly increasing explicit bounds, equal DATE versus DATE-TIME value types and corresponding floating-time forms. TodoDuration with a DATE start requires whole days or weeks."""
+  constraint """CalendarEvent, CalendarTodo and CalendarJournal are top-level components only. Only events and to-dos own CalendarAlarm values. CalendarFreeBusy has no recurrence fields, and CalendarTimeZone contains only typed observances. ExtensionComponent preserves unknown input; known component names MUST use their concrete semantic variants after validation."""
+  constraint """DescriptiveProperties fields are reused only where allowed: CalendarJournal permits repeated descriptions, CalendarFreeBusy permits one contact, and observances permit names/comments only. TextProperty.alternate is not allowed for CATEGORIES or TZNAME. Standard properties cannot be hidden in extension lists to bypass cardinality, placement or value validation."""
+  constraint """RecurrenceSet.rule represents the defined single-rule case. Raw calendars with multiple RRULE properties retain all lines but do not project to a defined recurrence. RecurrenceDates and ExceptionDates ensure homogeneous values within each property; lists must be nonempty when emitting a property. DTSTART is required whenever RRULE exists."""
+  constraint """AlarmSettings.repetition groups REPEAT and DURATION so neither appears alone. Zero additional triggers is permitted; a repeat delay is strictly positive. AudioAlarm.sound is at most one attachment and must denote sound. EmailAlarm recipients are mailto URIs without attendee scheduling parameters. AbsoluteAlarm is UTC and cannot carry RELATED or TZID."""
+
+  surface CalendarRules exposes requestReply {
+    operation isLeapYear(year: Year) -> Boolean {
+      pure
+      ensures result == (year % 400 == 0 or (year % 4 == 0 and year % 100 != 0))
+    }
+    operation daysInMonth(year: Year, month: Month) -> Int {
+      pure
+      ensures result == ifElse(month == 2, ifElse(CalendarRules.isLeapYear(year), 29, 28), ifElse(month in [4, 6, 9, 11], 30, 31))
+    }
+    operation validDate(date: GregorianDate) -> Boolean {
+      pure
+      ensures result == (date.day <= CalendarRules.daysInMonth(date.year, date.month))
+    }
+    operation positiveAccurateDuration(duration: AccurateDuration) -> Boolean {
+      pure
+      ensures result == (duration.hours > 0 or duration.minutes > 0 or duration.seconds > 0)
+    }
+    operation validRuleParts(rule: RecurrenceRule, dateOnly: Boolean) -> Boolean {
+      pure
+      ensures result == (
+        (not dateOnly or (count(rule.bySecond) == 0 and count(rule.byMinute) == 0 and count(rule.byHour) == 0))
+        and (rule.frequency != Weekly or count(rule.byMonthDay) == 0)
+        and (not (rule.frequency in [Daily, Weekly, Monthly]) or count(rule.byYearDay) == 0)
+        and (rule.frequency == Yearly or count(rule.byWeekNumber) == 0)
+        and (count(rule.bySetPosition) == 0 or count(rule.bySecond) + count(rule.byMinute) + count(rule.byHour) + count(rule.byDay) + count(rule.byMonthDay) + count(rule.byYearDay) + count(rule.byWeekNumber) + count(rule.byMonth) > 0)
+        and all(day in rule.byDay where day.ordinal == None() or ((rule.frequency == Monthly or rule.frequency == Yearly) and (rule.frequency != Yearly or count(rule.byWeekNumber) == 0)))
+      )
+    }
+    operation blocksBusySearch(event: CalendarEvent) -> Boolean {
+      pure
+      ensures result == (event.transparency == Opaque)
+    }
+    operation additionalAlarmTriggers(repetition: AlarmRepetition) -> NonnegativeCount {
+      pure
+      ensures result == repetition.additionalTriggers
+    }
+  }
+  surface SemanticInterchange exposes requestReply {
+    operation decode(document: ParsedCalendarDocument) -> DecodeOutcome {
+        pure
+      }
+    operation encode(calendars: Calendars) -> WireOutcome {
+        pure
+      }
+    operation validateCalendar(calendar: Calendar) -> ValidationReport {
+        pure
+      }
+  }
+  constraint """SemanticInterchange.decode follows Documents.decode, returning explicit rejection for invalid input and preserving unsupported extensions through the wire sidecar. It validates cross-property conditions before selecting semantic variants. SemanticInterchange.encode uses canonical default spellings, exactly one required property per typed field, and explicit VALUE parameters for alternate types. Validation includes calendar-wide METHOD conditions and unique/resolvable zone references; scalar ranges alone do not establish full RFC validity."""
+  constraint """CalendarRules.validRuleParts checks the modeled BY-part legality only. It does not establish DTSTART synchronization, UNTIL compatibility, local-time existence or leap-second validity. Raw DATE recurrences containing time BY parts must ignore those received parts before constructing a conforming semantic rule."""
+}
