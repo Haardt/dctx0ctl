@@ -769,6 +769,23 @@ mod inventory_tests {
         assert_ne!(inputs, Capture::inventory(&root.join("app")).unwrap());
         fs::remove_dir_all(root).unwrap();
     }
+    #[test]
+    fn self_verification_capture_uses_its_own_ignore_root() {
+        let root =
+            std::env::temp_dir().join(format!("dctx0-self-inventory-{}", std::process::id()));
+        let app = root.join("target/self-verification/capture");
+        let receipt = app.join(crate::self_verification::CLI_BUILD_RECEIPT);
+        fs::create_dir_all(receipt.parent().unwrap()).unwrap();
+        fs::write(root.join(".gitignore"), "/target/\n").unwrap();
+        fs::write(app.join(".gitignore"), "/unbound.rs\n").unwrap();
+        fs::write(app.join("adapter.rs"), "fn main() {}").unwrap();
+        fs::write(app.join("unbound.rs"), "fn main() {}").unwrap();
+        assert!(Capture::inventory(&app).unwrap().is_empty());
+        fs::write(receipt, "{}").unwrap();
+        let inputs = Capture::inventory(&app).unwrap();
+        assert_eq!(inputs.keys().collect::<Vec<_>>(), vec!["adapter.rs"]);
+        fs::remove_dir_all(root).unwrap();
+    }
     #[cfg(unix)]
     #[test]
     fn distinct_native_paths_cannot_collide_in_verification_provenance() {

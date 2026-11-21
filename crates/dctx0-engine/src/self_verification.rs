@@ -31,6 +31,7 @@ pub struct SelfVerificationReport {
     pub review_obligations: Vec<VerificationIssue>,
     pub runtime_measurements: Vec<dctx0_target_sdk::WorkerReply>,
 }
+pub(crate) const CLI_BUILD_RECEIPT: &str = ".dctx0/testing/rust/cli-build-receipt.json";
 const ROOTS: &[&str] = &[
     "Cargo.toml",
     "Cargo.lock",
@@ -224,7 +225,7 @@ pub async fn verify_self(
     )?;
     let cli_hash = receipt.binary_hash.clone();
     fs::write(
-        destination.join(".dctx0/testing/rust/cli-build-receipt.json"),
+        destination.join(CLI_BUILD_RECEIPT),
         serde_json::to_vec_pretty(&receipt)?,
     )?;
     fs::write(

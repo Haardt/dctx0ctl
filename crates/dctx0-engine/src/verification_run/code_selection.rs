@@ -14,7 +14,11 @@ impl CodeSelection {
     pub fn new(root: &Path) -> Result<Self> {
         Ok(Self {
             root: fs::canonicalize(root)?,
-            inherit_parent_rules: true,
+            // A self-verification capture already has its own source inventory.
+            // Its build receipt survives follow-up CLI calls in that capture.
+            inherit_parent_rules: !root
+                .join(crate::self_verification::CLI_BUILD_RECEIPT)
+                .is_file(),
             directories: BTreeMap::new(),
         })
     }

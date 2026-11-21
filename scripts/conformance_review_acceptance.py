@@ -104,7 +104,13 @@ def main():
             # Existing authored fixture inspections already cover these implementation
             # tasks. Explicitly import them, rather than inventing new approvals.
             attestations = []
-            for member in plan['members']:
+            # Apply the same dependency order as the attestation importer before
+            # splitting the requests, so prerequisites can cross batch boundaries.
+            ordered_members = sorted(
+                plan['members'],
+                key=lambda member: (member['candidate']['wave'], member['candidate']['key'], member['task_id']),
+            )
+            for member in ordered_members:
                 task = member['task_id']
                 if member['candidate']['kind'] == 'review' or task in native['adopted_tasks']:
                     continue
