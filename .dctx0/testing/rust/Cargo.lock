@@ -63,6 +63,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "1.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bb31b46c14244e20ee9984b11bf5c992b91fb6939fea616e3512c8baecdbe5f"
+dependencies = [
+ "memchr",
+ "serde_core",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -118,6 +128,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-deque"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dd111b7b7f7d55b72c0a6ae361660ee5853c9af73f70c3c2ef6858b950e2e51"
+dependencies = [
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -135,7 +164,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-changes"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-core",
  "dctx0-graph",
@@ -146,14 +175,14 @@ dependencies = [
 
 [[package]]
 name = "dctx0-core"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "dctx0-engine"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "base64",
  "dctx0-changes",
@@ -168,6 +197,8 @@ dependencies = [
  "dctx0-verification",
  "flate2",
  "fs2",
+ "ignore",
+ "quick-xml",
  "rustix",
  "serde",
  "serde_json",
@@ -181,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-graph"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-core",
  "petgraph",
@@ -190,13 +221,14 @@ dependencies = [
 
 [[package]]
 name = "dctx0-interpreter"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "chrono",
  "dctx0-core",
  "num-bigint",
  "num-rational",
  "num-traits",
+ "regex",
  "serde",
  "serde_json",
  "url",
@@ -204,7 +236,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-language"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-core",
  "serde",
@@ -228,7 +260,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-store"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-changes",
  "dctx0-core",
@@ -248,7 +280,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-target-rust"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-core",
  "dctx0-target-sdk",
@@ -259,7 +291,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-target-sdk"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-core",
  "serde",
@@ -269,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-tasks"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-changes",
  "dctx0-core",
@@ -281,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-test-analysis"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -291,7 +323,7 @@ dependencies = [
 
 [[package]]
 name = "dctx0-verification"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "dctx0-core",
  "dctx0-interpreter",
@@ -299,6 +331,7 @@ dependencies = [
  "num-traits",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -422,6 +455,19 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "globset"
+version = "0.4.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52dfc19153a48bde0cbd630453615c8151bce3a5adfac7a0aebfbf0a1e1f57e3"
+dependencies = [
+ "aho-corasick",
+ "bstr",
+ "log",
+ "regex-automata",
+ "regex-syntax",
 ]
 
 [[package]]
@@ -560,6 +606,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ignore"
+version = "0.4.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3d782a365a015e0f5c04902246139249abf769125006fbe7649e2ee88169b4a"
+dependencies = [
+ "crossbeam-deque",
+ "globset",
+ "log",
+ "memchr",
+ "regex-automata",
+ "same-file",
+ "walkdir",
+ "winapi-util",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -613,6 +675,12 @@ name = "litemap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
+
+[[package]]
+name = "log"
+version = "0.4.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "memchr"
@@ -754,6 +822,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.39.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdcc8dd4e2f670d309a5f0e83fe36dfdc05af317008fea29144da1a2ac858e5e"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -834,6 +911,15 @@ name = "rustversion"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
+
+[[package]]
+name = "same-file"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
+dependencies = [
+ "winapi-util",
+]
 
 [[package]]
 name = "serde"
@@ -1128,6 +1214,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "walkdir"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29790946404f91d9c5d06f9874efddea1dc06c5efe94541a7d6863108e3a5e4b"
+dependencies = [
+ "same-file",
+ "winapi-util",
+]
+
+[[package]]
 name = "wasi"
 version = "0.11.1+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1193,6 +1289,15 @@ name = "winapi-i686-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-util"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
+dependencies = [
+ "windows-sys",
+]
 
 [[package]]
 name = "winapi-x86_64-pc-windows-gnu"
