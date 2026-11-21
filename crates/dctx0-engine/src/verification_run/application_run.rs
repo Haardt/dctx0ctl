@@ -3,6 +3,7 @@
 mod publication;
 mod replay;
 use super::*;
+#[cfg(unix)]
 use crate::application_testing_service;
 use dctx0_verification::application_session::ApplicationAssessmentReport;
 

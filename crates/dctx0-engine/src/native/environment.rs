@@ -47,7 +47,7 @@ impl NativeEnvironment {
         let mut entries = inherit
             .iter()
             .filter_map(|name| std::env::var_os(name).map(|value| (name.into(), value)))
-            .collect::<BTreeMap<_, _>>();
+            .collect::<BTreeMap<OsString, OsString>>();
         for (name, value) in values {
             #[cfg(windows)]
             entries.retain(|key, _| !key.to_string_lossy().eq_ignore_ascii_case(name));
