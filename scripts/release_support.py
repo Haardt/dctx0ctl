@@ -63,13 +63,14 @@ def windows_peak(pid):
         kernel.CloseHandle(handle)
 
 
-def measured(command, cwd, timeout=300, env=None, sample_direct_rss=False):
+def measured(command, cwd, timeout=300, env=None, sample_direct_rss=False, stderr=None):
     started = time.perf_counter()
     usage = None
     rss = None
     direct_rss = None
     with tempfile.TemporaryFile() as output:
-        child = subprocess.Popen(command, cwd=cwd, stdout=output, stderr=output,
+        child = subprocess.Popen(command, cwd=cwd, stdout=output,
+                                 stderr=output if stderr is None else stderr,
                                  env=env, start_new_session=os.name != 'nt',
                                  creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0)
         try:

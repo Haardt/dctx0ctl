@@ -5,6 +5,7 @@ Run on each host; this does not simulate another OS. Never promotes a baseline.
 """
 import history_retention
 import argparse
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -54,16 +55,27 @@ def main():
               'seed': 42, 'generated_cases': 100, 'features': 'all-features', 'checks': [], 'measurements': {}}
     environment = {**os.environ, 'DCTX0_TEST_PYTHON': sys.executable, 'DCTX0_MEMORY_GUARD': '0', 'DCTX0_COMPLETE_MEMORY_GUARDED': '1'}
 
-    def run(label, command, timeout=1800, allowed=(0,)):
+    def run(label, command, timeout=1800, allowed=(0,), *, parse_json=False):
         print(f'Native acceptance: {label}', flush=True)
-        sample, text = measured(list(map(str, command)), ROOT, timeout=timeout, env=environment)
+        stderr_path = output / f'{label}.stderr.log'
+        stderr_log = stderr_path.open('wb') if parse_json else nullcontext()
+        with stderr_log as stderr:
+            sample, text = measured(list(map(str, command)), ROOT, timeout=timeout,
+                                    env=environment, stderr=stderr)
         record['measurements'][label] = sample
         (output / f'{label}.log').write_text(text, encoding='utf-8')
         record['checks'].append({'label': label, 'exit_code': sample['exit_code'], 'expected_exit_codes': allowed})
         print(f'Native acceptance: {label}: exit {sample["exit_code"]}, {sample["elapsed_ms"]:.1f} ms, peak RSS {sample["peak_rss_bytes"]}', flush=True)
         if sample['exit_code'] not in allowed:
-            raise RuntimeError(f'{label}: exit {sample["exit_code"]}; {text[-5000:]}')
-        return text
+            diagnostic = stderr_path.read_text(encoding='utf-8', errors='replace') if parse_json else text
+            raise RuntimeError(f'{label}: exit {sample["exit_code"]}; {diagnostic[-5000:]}')
+        if not parse_json:
+            return text
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as error:
+            diagnostic = stderr_path.read_text(encoding='utf-8', errors='replace')
+            raise RuntimeError(f'{label}: invalid JSON: {error}; {diagnostic[-5000:]}') from error
 
     failure = None
     try:
@@ -83,7 +95,7 @@ def main():
         if not args.transport_only:
             run('cinema-rust-production', ['cargo', 'test', '--locked', '--all-features', '--manifest-path', ROOT / 'examples/cinema-rust/Cargo.toml'])
             run('cinema-reviews', [sys.executable, ROOT / 'scripts/conformance_review_acceptance.py', '--binary', binary, '--report', output / 'cinema-reviews.json'])
-            with tempfile.TemporaryDirectory(prefix='cinema-ts-', dir=output) as scratch:
+            with tempfile.TemporaryDirectory(prefix='cinema-ts-') as scratch:
                 app = Path(scratch) / 'application with spaces'
                 shutil.copytree(ROOT / 'examples/cinema', app, ignore=shutil.ignore_patterns('.dctx0ctl', '.bin', 'cinema.sqlite3*'))
                 spec = app / 'dctx0'
@@ -92,12 +104,12 @@ def main():
                 original = source.read_bytes()
                 assert original.count(b'if (count > highest)') == 1
                 source.write_bytes(original.replace(b'if (count > highest)', b'if (count >= highest)'))
-                broken = json.loads(run('cinema-ts-mutation', [binary, 'verify', 'run', spec, '--project', app, '--subject', 'HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner', '--no-adopt', '--reuse', 'off', '--json', '--full'], allowed=(1,)))
+                broken = run('cinema-ts-mutation', [binary, 'verify', 'run', spec, '--project', app, '--subject', 'HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner', '--no-adopt', '--reuse', 'off', '--json', '--full'], allowed=(1,), parse_json=True)
                 case = next(case for case in broken['evidence']['run']['cases'] if case['result']['status'] == 'FAIL')
                 replay = [binary, 'verify', 'replay', spec, broken['evidence']['id'], '--case', case['id'], '--project', app, '--json', '--full']
-                assert json.loads(run('cinema-ts-broken-replay', replay, allowed=(1,)))['case_result']['status'] == 'FAIL'
+                assert run('cinema-ts-broken-replay', replay, allowed=(1,), parse_json=True)['case_result']['status'] == 'FAIL'
                 source.write_bytes(original)
-                repaired = json.loads(run('cinema-ts-repaired-replay', replay))
+                repaired = run('cinema-ts-repaired-replay', replay, parse_json=True)
                 assert repaired['case_result']['status'] == 'PASS' and repaired['changes']
                 assert not repaired['evidence']['adopted_tasks']
             for target in ('go', 'rust'):
@@ -116,7 +128,7 @@ def main():
         # Release build/execution measurements are mandatory, including after a
         # failed functional check. A failure cannot produce a usable baseline.
         try:
-            with tempfile.TemporaryDirectory(prefix='measurement-', dir=output) as scratch:
+            with tempfile.TemporaryDirectory(prefix='measurement-') as scratch:
                 app = Path(scratch) / 'application with spaces'
                 shutil.copytree(ROOT / 'fixtures/conformance/adaptive-typescript/direct', app, ignore=shutil.ignore_patterns('node_modules', '.bin'))
                 spec = app / 'spec'
