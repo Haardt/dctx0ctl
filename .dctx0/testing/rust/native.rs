@@ -104,6 +104,7 @@ impl Actual {
                     adopted_tasks: vec![],
                     adoption_issues: vec![],
                     adoption_proposal: None,
+                    incremental: None,
                 };
                 summary(&report)
             }
