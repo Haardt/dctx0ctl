@@ -333,7 +333,7 @@ fn shipped_testing_libraries_publish_offline_and_preserve_authored_or_edited_fil
     let root =
         std::env::temp_dir().join(format!("dctx0-library-publication-{}", std::process::id()));
     fs::create_dir_all(&root).unwrap();
-    for target in ["go", "typescript"] {
+    for (target, version) in [("go", "0.3.0"), ("typescript", "0.2.0")] {
         let app = root.join(target);
         fs::create_dir_all(app.join(".dctx0/application-tests")).unwrap();
         let authored = app.join(".dctx0/application-tests/authored.test.txt");
@@ -355,7 +355,7 @@ fn shipped_testing_libraries_publish_offline_and_preserve_authored_or_edited_fil
         let pin = app.join(".dctx0/application-tests/library-pin.json");
         let before = fs::read(&pin).unwrap();
         let value: serde_json::Value = serde_json::from_slice(&before).unwrap();
-        assert_eq!(value["version"], "0.2.0");
+        assert_eq!(value["version"], version);
         assert_eq!(value["protocol_version"], 2);
         assert!(publish().status.success());
         assert_eq!(fs::read(&pin).unwrap(), before);

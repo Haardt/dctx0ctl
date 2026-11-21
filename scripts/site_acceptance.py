@@ -19,6 +19,7 @@ import time
 from release_support import measured, locked
 ROOT=Path(__file__).resolve().parents[1]
 HISTORY=ROOT/'benchmarks/history/site'
+LOGS=ROOT/'target/site/logs'
 
 def inputs():
     from validate import validation_sources,digest
@@ -31,11 +32,13 @@ def main():
     args=parser.parse_args()
     if args.samples<1 or args.iterations<1:parser.error('Positive samples and iterations required')
     report={'schema_version':1,'started_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'passed':False,'complete':False,'source_hash':inputs(),'revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),'platform':platform.platform(),'hardware':{'cpu_count':os.cpu_count(),'machine':platform.machine()},'baseline_status':'unassessed: no accepted site workload baseline','samples':args.samples,'iterations':args.iterations,'measurements':{},'checks':[],'workload':'isolated unchanged Cinema spec; explicit test history; release CLI and embedded UI','cache_conditions':'one warm-up before release phase samples; existing Cargo/Bun caches; fresh isolated SQLite history'}
-    def run(label,command,allowed=(0,),timeout=1200):
-        sample,output=measured(list(map(str,command)),ROOT,timeout=timeout,env={**os.environ,"CARGO_TARGET_DIR":str(ROOT/"target/site/build")})
+    def run(label,command,allowed=(0,),timeout=1200,*,stderr=None):
+        sample,output=measured(list(map(str,command)),ROOT,timeout=timeout,env={**os.environ,"CARGO_TARGET_DIR":str(ROOT/"target/site/build")},stderr=stderr)
         report['measurements'].setdefault(label,[]).append(sample)
-        logs=ROOT/'target/site/logs';logs.mkdir(parents=True,exist_ok=True);(logs/(label+'.log')).write_text(output)
-        if sample['exit_code'] not in allowed:raise RuntimeError(label+': '+output[-5000:])
+        (LOGS/(label+'.log')).write_text(output)
+        if sample['exit_code'] not in allowed:
+            diagnostic = output if stderr is None else Path(stderr.name).read_text(encoding='utf-8',errors='replace')
+            raise RuntimeError(f'{label}: exit {sample["exit_code"]}; {diagnostic[-5000:]}')
         return output
     report['toolchain']={name:subprocess.check_output(command,cwd=ROOT,text=True).strip() for name,command in {'rustc':['rustc','--version'],'cargo':['cargo','--version'],'bun':['bun','--version']}.items()}
     report['hardware']['cpu_model']=next((line.split(':',1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('model name')),None) if sys.platform=='linux' else None
@@ -43,6 +46,7 @@ def main():
     report['build_target']='target/site/build (isolated from workspace feature jobs)'
     child=None
     try:
+        LOGS.mkdir(parents=True,exist_ok=True)
         run('ui-typecheck',['bun','run','--cwd','ui/site','check'])
         run('ui-unit',['bun','test','--cwd','ui/site','src/model.test.ts'])
         run('ui-reproducibility',['bun','run','--cwd','ui/site','verify-assets'])
@@ -51,21 +55,35 @@ def main():
         run('rust-site-http-errors',['cargo','test','-p','dctx0-cli','--bin','dctx0','site::','--all-features','--locked'])
         run('release-build',['cargo','build','--release','-p','dctx0-cli','--all-features','--locked'])
         binary=ROOT/'target/site/build/release/dctx0'
-        with tempfile.TemporaryDirectory(prefix='acceptance-',dir=ROOT/'target/site') as tmp:
+        with tempfile.TemporaryDirectory(prefix='dctx0-site-acceptance-') as tmp:
             tmp=Path(tmp);app=tmp/'cinema';shutil.copytree(ROOT/'examples/cinema',app,ignore=shutil.ignore_patterns('node_modules','.dctx0ctl','target','.bin','cinema.sqlite3*'))
             shutil.copytree(ROOT/'examples/cinema/node_modules',app/'node_modules')
             spec=app/'dctx0';out=tmp/'export'
-            def cli(label,*command,allowed=(0,)):return run(label,[binary,'--json',*command,*(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])],allowed=allowed)
-            cli('isolated-check','check',spec);plan=json.loads(cli('isolated-plan','tasks','plan',spec))['body']['data'];
+            def cli(label,*command,allowed=(0,),parse_json=False):
+                stderr_path = LOGS / f'{label}.stderr.log'
+                full = ['--full'] if command[:2] in (('verify','run'),('verify','replay')) else []
+                with stderr_path.open('wb') as stderr:
+                    output = run(label,[binary,'--json',*command,*full],allowed=allowed,stderr=stderr)
+                if not parse_json:
+                    return output
+                try:
+                    return json.loads(output)
+                except json.JSONDecodeError as error:
+                    diagnostic = stderr_path.read_text(encoding='utf-8',errors='replace')
+                    raise RuntimeError(f'{label}: invalid JSON: {error}; {diagnostic[-5000:]}') from error
+            cli('isolated-check','check',spec);plan=cli('isolated-plan','tasks','plan',spec,parse_json=True)['body']['data']
             # Actual bounded native contract run, not synthesized browser evidence.
-            native=json.loads(cli('native-cinema-contract','verify','run', '--reuse', 'off',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(0,1))); assert native['evidence']['run']['cases']
+            native=cli('native-cinema-contract','verify','run', '--reuse', 'off',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(0,1),parse_json=True)
+            cases=native['evidence']['run']['cases']
+            assert cases and all(case['result']['status']=='PASS' for case in cases)
             # Real application mutation produces stored FAIL; repairing it allows replay.
             source=app/'src/domain/release-year.ts';original=source.read_text();assert 'input < 1888 || input > 2100' in original
             source.write_text(original.replace('input < 1888 || input > 2100','input < 1889 || input > 2100'))
-            failed=json.loads(cli('native-cinema-mutation','verify','run', '--reuse', 'off',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(1,)))
+            failed=cli('native-cinema-mutation','verify','run', '--reuse', 'off',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(1,),parse_json=True)
             failed_case=next(case for case in failed['evidence']['run']['cases'] if case['result']['status']=='FAIL')
             source.write_text(original)
-            cli('native-cinema-replay','verify','replay',spec,failed['evidence']['id'],'--case',failed_case['id'],'--project',app,allowed=(0,1))
+            repaired=cli('native-cinema-replay','verify','replay',spec,failed['evidence']['id'],'--case',failed_case['id'],'--project',app,parse_json=True)
+            assert repaired['case_result']['status']=='PASS' and repaired['changes']
             report['checks'].append('actual bounded Cinema native PASS, production mutation FAIL, repaired replay; provenance limits retained')
             out.mkdir();(out/'unmanaged.txt').write_text('keep')
             database=spec/'.dctx0ctl/state.sqlite3'
@@ -75,7 +93,7 @@ def main():
             cli('export-warmup','site','export',spec,'--output',out)
             first=(out/'index.html').read_bytes()
             for i in range(args.samples):
-                raw=json.loads(cli('snapshot-projection','bench',spec,'site-snapshot',args.iterations));report['measurements']['snapshot-projection'][-1]['rust_phase']=raw
+                raw=cli('snapshot-projection','bench',spec,'site-snapshot',args.iterations,parse_json=True);report['measurements']['snapshot-projection'][-1]['rust_phase']=raw
                 cli('offline-export','site','export',spec,'--output',out)
             assert first==(out/'index.html').read_bytes();assert (out/'unmanaged.txt').read_text()=='keep';assert fingerprint()==before
             report['checks'].append('deterministic export preserves unmanaged files and published database')

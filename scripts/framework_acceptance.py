@@ -18,6 +18,7 @@ import tempfile
 
 from memory_guard import guard_script
 from release_support import locked, measured
+from validate import functional_cache_root
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORY = ROOT / 'benchmarks/history/frameworks'
@@ -35,20 +36,27 @@ def input_hash():
     return digest.hexdigest()
 
 
-def run(command, cwd, record, label, allowed=(0,), timeout=900):
-    sample, output = measured(list(map(str,command)),cwd=cwd,timeout=timeout,env={**os.environ,'CARGO_BUILD_JOBS':'2','GOFLAGS':'-p=2','DCTX0_MEMORY_GUARD':'0'})
-    record['measurements'].setdefault(label,[]).append(sample)
+def run(command, cwd, record, label, allowed=(0,), timeout=900, *, stderr=None):
     log = ROOT/'target/frameworks/logs'/f'{label}.log'
-    log.parent.mkdir(parents=True,exist_ok=True); log.write_text(output)
+    log.parent.mkdir(parents=True,exist_ok=True)
+    sample, output = measured(list(map(str,command)),cwd=cwd,timeout=timeout,env={**os.environ,'CARGO_BUILD_JOBS':'2','GOFLAGS':'-p=2','DCTX0_MEMORY_GUARD':'0'},stderr=stderr)
+    record['measurements'].setdefault(label,[]).append(sample)
+    log.write_text(output)
     if sample['exit_code'] not in allowed:
-        raise RuntimeError(f'{label} failed ({sample["exit_code"]}): {output[-5000:]}')
+        diagnostic = output if stderr is None else Path(stderr.name).read_text(encoding='utf-8', errors='replace')
+        raise RuntimeError(f'{label} failed ({sample["exit_code"]}): {diagnostic[-5000:]}')
     return output
 
 
 def cli(binary, project, record, label, *command, allowed=(0,)):
-    output=run([binary,'--json',*command,*(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])],ROOT,record,label,allowed=allowed)
+    stderr_path = ROOT / 'target/frameworks/logs' / f'{label}.stderr.log'
+    stderr_path.parent.mkdir(parents=True, exist_ok=True)
+    with stderr_path.open('wb') as stderr:
+        output=run([binary,'--json',*command,*(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])],ROOT,record,label,allowed=allowed,stderr=stderr)
     try: return json.loads(output)
-    except json.JSONDecodeError as error: raise RuntimeError(f'{label}: invalid CLI JSON: {output[-2000:]}') from error
+    except json.JSONDecodeError as error:
+        diagnostic = stderr_path.read_text(encoding='utf-8', errors='replace')
+        raise RuntimeError(f'{label}: invalid CLI JSON: {error}; {diagnostic[-5000:]}') from error
 
 
 def project_copy(destination, language, framework):
@@ -160,9 +168,8 @@ def main():
     parser.add_argument('--skip-performance',action='store_true',help='functional preparation only; result remains incomplete until measurements run')
     parser.add_argument('--performance-only',action='store_true',help='finish a successful functional run with the exact same inputs and binary')
     args=parser.parse_args()
-    scratch = ROOT / 'target/frameworks/tmp'
-    scratch.mkdir(parents=True,exist_ok=True)
-    # Keep captured application/dependency builds on disk, not a RAM-backed /tmp.
+    # Keep application fixtures outside the checkout's ignore rules and on disk.
+    scratch = functional_cache_root()
     os.environ['TMPDIR'] = str(scratch)
     tempfile.tempdir = str(scratch)
     if args.samples<1:parser.error('At least one sample is required')
