@@ -23,6 +23,8 @@ pub struct ApplicationTestingBundle {
     pub plan: ApplicationTestPlan,
     pub model: ApplicationTestingModel,
     pub spec_source_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decoder_review_hash: Option<String>,
     pub boundary: ApplicationValueBoundary,
     #[serde(default)]
     pub case_seconds: u64,
@@ -68,6 +70,7 @@ pub struct ApplicationTestingPreparation<'a> {
     pub boundary: ApplicationValueBoundary,
     pub form: TestForm,
     pub group_seconds: Option<u64>,
+    pub stateless_decoders: BTreeSet<String>,
     pub subjects: BTreeSet<String>,
 }
 
@@ -102,9 +105,15 @@ impl Project {
             boundary,
             form,
             group_seconds,
+            stateless_decoders,
             subjects,
         } = options;
         let (group, test, boundary, form) = (*group, *test, *boundary, *form);
+        if !stateless_decoders.is_empty() && boundary != ApplicationValueBoundary::JsonDecoder {
+            return Err(Error::Invalid(
+                "Stateless decoders require the JSON decoder boundary".into(),
+            ));
+        }
         let (root, config) = self.verification_configuration(Some(application))?;
         let (directory, output) = verification_setup::safe_file(&root, relative_plan)?;
         let check = self.check()?;
@@ -142,6 +151,7 @@ impl Project {
                 cases: manifest.required_cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: resources("legacy".into()),
         };
         let classified = application_test_plan(
@@ -208,6 +218,7 @@ impl Project {
                 cases: cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: stateless_decoders.clone(),
             resources: GroupResources {
                 timeout_seconds: group_seconds.unwrap_or_else(|| {
                     config
@@ -250,6 +261,14 @@ impl Project {
                 operations: snapshot.ir.operations,
             },
             spec_source_hash: snapshot.source_hash,
+            decoder_review_hash: (!stateless_decoders.is_empty())
+                .then(|| {
+                    verification_run::capture::Capture::reviewed_go_inputs(
+                        &root,
+                        config.capture_budgets(),
+                    )
+                })
+                .transpose()?,
             boundary,
             lifecycle_inputs: lifecycle_inputs(&root, &config.adapter)?,
             evidence_bytes: config
@@ -327,6 +346,21 @@ impl Project {
             ));
         }
         bundle.plan.validate().map_err(invalid)?;
+        let reviewed = bundle
+            .plan
+            .configuration
+            .groups
+            .iter()
+            .any(|g| !g.stateless_decoders.is_empty());
+        if reviewed
+            && bundle.decoder_review_hash.as_deref()
+                != Some(&verification_run::capture::Capture::reviewed_go_inputs(
+                    &root,
+                    config.capture_budgets(),
+                )?)
+        {
+            return Err(Error::Invalid("DECODER_REVIEW_STALE: Go inputs changed or review pin is missing; review and prepare a new application-test plan".into()));
+        }
         let fixtures = serde_json::from_slice(&fs::read(root.join(&config.fixtures))?)?;
         let current = self.verification_plan(
             VerificationSelection {

@@ -87,6 +87,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -100,10 +101,10 @@ fn hybrid_cli_runs_both_backends_and_preserves_existing_native_reports() {
     let f = hybrid_fixture(
         "workspace W { value A = Int { range 1..2 } value B = Int { range 10..11 } }",
     );
-    let invoke = |name: &str, json: bool| {
+    let invoke = |name: &str, json: bool, reuse: &str| {
         let mut command = Command::new(env!("CARGO_BIN_EXE_dctx0"));
         command
-            .args(["verify", "application-tests", "hybrid"])
+            .args(["verify", "application-tests", "hybrid", "--reuse", reuse])
             .arg(f.root.join("spec"))
             .arg("--project")
             .arg(&f.app)
@@ -124,7 +125,7 @@ fn hybrid_cli_runs_both_backends_and_preserves_existing_native_reports() {
         command.output().unwrap()
     };
     let report_path = ".dctx0ctl/application-tests/cli-native.json";
-    let first = invoke(report_path, true);
+    let first = invoke(report_path, true, "off");
     assert!(
         first.status.success(),
         "{}",
@@ -202,10 +203,14 @@ fn hybrid_cli_runs_both_backends_and_preserves_existing_native_reports() {
         before_events
     );
     let bytes = fs::read(f.app.join(report_path)).unwrap();
-    let duplicate = invoke(report_path, false);
+    let duplicate = invoke(report_path, false, "off");
     assert!(!duplicate.status.success());
     assert_eq!(bytes, fs::read(f.app.join(report_path)).unwrap());
-    let second = invoke(".dctx0ctl/application-tests/cli-native-text.json", false);
+    let second = invoke(
+        ".dctx0ctl/application-tests/cli-native-text.json",
+        false,
+        "off",
+    );
     assert!(
         second.status.success(),
         "{}",
@@ -217,14 +222,22 @@ fn hybrid_cli_runs_both_backends_and_preserves_existing_native_reports() {
         r#"{"schema_version":1,"deterministic_units":["contract:W.A"]}"#,
     )
     .unwrap();
-    let basis = invoke(".dctx0ctl/application-tests/cli-reuse-basis.json", false);
+    let basis = invoke(
+        ".dctx0ctl/application-tests/cli-reuse-basis.json",
+        false,
+        "off",
+    );
     assert!(
         basis.status.success(),
         "{}",
         String::from_utf8_lossy(&basis.stderr)
     );
     assert!(String::from_utf8_lossy(&basis.stdout).contains("Fresh hybrid assessment: Pass"));
-    let reused = invoke(".dctx0ctl/application-tests/cli-reused-text.json", false);
+    let reused = invoke(
+        ".dctx0ctl/application-tests/cli-reused-text.json",
+        false,
+        "auto",
+    );
     assert!(
         reused.status.success(),
         "{}",
@@ -314,7 +327,13 @@ fn hybrid_complete_cli_requires_current_authored_notes_and_delivers_both_backend
     let invoke = |name: &str, json: bool, plan_hash: Option<&str>| {
         let mut command = Command::new(env!("CARGO_BIN_EXE_dctx0"));
         command
-            .args(["verify", "application-tests", "hybrid-complete"])
+            .args([
+                "verify",
+                "application-tests",
+                "hybrid-complete",
+                "--reuse",
+                "off",
+            ])
             .arg(f.root.join("spec"))
             .arg("--project")
             .arg(&f.app)

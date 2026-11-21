@@ -385,7 +385,7 @@ fn bun_catalog(stdout: &str, root: &str, entrypoint: &str) -> Result<()> {
     if catalog.schema_version != 1
         || catalog.collector_version != "dctx0-bun-registration-1"
         || catalog.library_version
-            != dctx0_target_sdk::application_protocol::GO_APPLICATION_LIBRARY_VERSION
+            != dctx0_target_sdk::application_protocol::TYPESCRIPT_APPLICATION_LIBRARY_VERSION
         || !catalog.complete
         || catalog.tests.len() != 1
         || catalog.limitations.is_empty()
@@ -549,6 +549,13 @@ impl Project {
             ));
         }
         let capture = Capture::application_tests(&root, config.capture_budgets())?;
+        if let Some(review) = &bundle.decoder_review_hash
+            && Capture::go_review_hash(&capture.root, &capture.materialized)? != *review
+        {
+            return Err(Error::Invalid(
+                "DECODER_REVIEW_STALE: captured Go inputs differ from the reviewed plan".into(),
+            ));
+        }
         let artifacts = capture.root.join(".dctx0ctl/application-tests");
         fs::create_dir_all(&artifacts)?;
         let (_, captured_plan) = crate::verification_setup::safe_file(&capture.root, plan)?;
@@ -1277,7 +1284,7 @@ mod tests {
         fs::write(root.join("fixtures.json"), r#"{"examples":{}}"#).unwrap();
         fs::write(root.join(".dctx0/testing/verification.json"),serde_json::json!({"schema_version":1,"target":"typescript","runtime":"bun","adapter":"adapter.ts","fixtures":"fixtures.json","scope":{"subjects":["W.Year"],"tasks":[]},"budgets":VerificationBudgets::default()}).to_string()).unwrap();
         let project = Project::new(&root, None).unwrap();
-        let mut bundle=project.prepare_application_tests(&root,&crate::ApplicationTestingPreparation{plan:"plan.json",group:"native",test:"Year",form:TestForm::Decoder,group_seconds:Some(3),boundary:dctx0_verification::application_session::ApplicationValueBoundary::ValueConstructor,subjects:Default::default()}).unwrap();
+        let mut bundle=project.prepare_application_tests(&root,&crate::ApplicationTestingPreparation{plan:"plan.json",group:"native",test:"Year",form:TestForm::Decoder,group_seconds:Some(3),stateless_decoders:Default::default(),boundary:dctx0_verification::application_session::ApplicationValueBoundary::ValueConstructor,subjects:Default::default()}).unwrap();
         let (_, _, ir) = project
             .read_application_testing_bundle(&root, "plan.json")
             .unwrap();

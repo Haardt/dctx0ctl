@@ -11,27 +11,24 @@ pub(super) struct DecoderCase {
 }
 
 pub(super) fn case(plan: &ProgramPlan, id: &str) -> Option<DecoderCase> {
-    for contract in &plan.contracts {
-        for (kind, corpus, rejection) in [
-            ("value", &contract.corpus, false),
-            ("rejection", &contract.rejection_corpus, true),
-        ] {
-            let prefix = format!("{}:{kind}:", contract.subject);
-            if let Some(index) = id
-                .strip_prefix(&prefix)
-                .and_then(|s| s.parse::<usize>().ok())
-                && let Some(input) = corpus.values.get(index)
-            {
-                return Some(DecoderCase {
-                    subject: contract.subject.clone(),
-                    ty: contract.ty.clone(),
-                    input: input.clone(),
-                    rejection,
-                });
-            }
-        }
-    }
-    None
+    let (case, index) = id.rsplit_once(':')?;
+    let (subject, kind) = case.rsplit_once(':')?;
+    let index = index.parse::<usize>().ok()?;
+    let contract = plan
+        .contracts
+        .iter()
+        .find(|contract| contract.subject == subject)?;
+    let (corpus, rejection) = match kind {
+        "value" => (&contract.corpus, false),
+        "rejection" => (&contract.rejection_corpus, true),
+        _ => return None,
+    };
+    Some(DecoderCase {
+        subject: subject.into(),
+        ty: contract.ty.clone(),
+        input: corpus.values.get(index)?.clone(),
+        rejection,
+    })
 }
 
 pub(super) fn assess(

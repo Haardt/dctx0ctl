@@ -35,6 +35,7 @@ fn fixture() -> (WorkspaceIr, ApplicationTestPlan) {
                 cases: cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: GroupResources {
                 namespace: "native".into(),
                 timeout_seconds: 60,
@@ -985,6 +986,7 @@ fn generated_preparation_passes_actual_ids_through_nested_native_calls() {
                 cases: cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: GroupResources {
                 namespace: "native".into(),
                 timeout_seconds: 60,
@@ -1071,4 +1073,98 @@ fn generated_preparation_passes_actual_ids_through_nested_native_calls() {
         report.cases[0].arguments,
         vec![vec![VerificationValue::String("client-9".into())]]
     );
+}
+
+#[test]
+fn decoder_packets_assess_each_case_and_reject_out_of_order_submissions() {
+    let (ir, mut plan) = fixture();
+    let test = "TestYear";
+    let mut unbound = ApplicationSession::new(&ir, &plan, "native").unwrap();
+    assert!(matches!(
+        unbound.handle(ApplicationRequest::RegisterDecoder { test: test.into() }),
+        ApplicationReply::DecoderRegistered { batch: false, .. }
+    ));
+    assert!(matches!(
+        unbound.handle(ApplicationRequest::NextDecoderBatch {
+            test: test.into(),
+            max_message_bytes: 1_048_576,
+        }),
+        ApplicationReply::Rejected { .. }
+    ));
+
+    plan.configuration.groups[0]
+        .stateless_decoders
+        .insert(test.into());
+    for (reordered, tampered) in [(false, false), (true, false), (false, true)] {
+        let mut session = ApplicationSession::new(&ir, &plan, "native").unwrap();
+        assert!(matches!(
+            session.handle(ApplicationRequest::RegisterDecoder { test: test.into() }),
+            ApplicationReply::DecoderRegistered { batch: true, .. }
+        ));
+        let ApplicationReply::DecoderBatch { cases } =
+            session.handle(ApplicationRequest::NextDecoderBatch {
+                test: test.into(),
+                max_message_bytes: 1_048_576,
+            })
+        else {
+            panic!("expected decoded inputs in a packet");
+        };
+        assert!(cases.len() > 1);
+        let mut cases: Vec<_> = cases
+            .into_iter()
+            .map(|case| {
+                let ApplicationDirective::Decode { raw, .. } = case.directive else {
+                    panic!("expected a raw decoder case")
+                };
+                DecoderBatchObservation {
+                    context: case.context,
+                    observation: Some(ApplicationObservation::Decoded {
+                        outcome: actual_decoder(&raw),
+                        raw,
+                    }),
+                }
+            })
+            .collect();
+        if reordered {
+            cases.swap(0, 1);
+        }
+        if tampered
+            && let Some(ApplicationObservation::Decoded { raw, .. }) = &mut cases[0].observation
+        {
+            raw.push(b' ');
+        }
+        let reply = session.handle(ApplicationRequest::CompleteDecoderBatch {
+            test: test.into(),
+            cases,
+        });
+        if reordered {
+            assert!(matches!(reply, ApplicationReply::Rejected { .. }));
+            let report = session.report();
+            assert_eq!(report.missing_cases, report.required_cases);
+            assert!(
+                report
+                    .cases
+                    .iter()
+                    .all(|case| matches!(case.result, VerificationResult::Unknown { .. }))
+            );
+        } else {
+            let ApplicationReply::DecoderBatchClosed { cases } = reply else {
+                panic!("expected central packet verdicts");
+            };
+            assert_eq!(
+                cases[0].status,
+                if tampered {
+                    ApplicationAssessmentStatus::Fail
+                } else {
+                    ApplicationAssessmentStatus::Pass
+                }
+            );
+            assert!(
+                cases[1..]
+                    .iter()
+                    .all(|case| case.status == ApplicationAssessmentStatus::Pass)
+            );
+            assert_eq!(session.report().cases.len(), cases.len());
+        }
+    }
 }

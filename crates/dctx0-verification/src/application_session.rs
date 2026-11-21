@@ -3,6 +3,7 @@
 //! observed failure by catching an error, retrying or reporting its own PASS.
 mod assertion;
 mod decoder;
+mod decoder_batch;
 mod lifecycle;
 mod model;
 mod operation;
@@ -22,10 +23,11 @@ pub struct ApplicationSession<'a> {
     registrations: BTreeMap<String, &'a TestRegistration>,
     registered: BTreeSet<String>,
     closed_tests: BTreeSet<String>,
-    reserved: BTreeSet<String>,
+    case_cursor: BTreeMap<String, String>,
     active: BTreeMap<u64, ActiveCase<'a>>,
     completed: BTreeMap<String, VerificationCaseRecord>,
     faults: Vec<VerificationIssue>,
+    case_seconds: u64,
     next_context: u64,
     finished: bool,
     lifecycle_inputs: BTreeMap<String, crate::LifecycleCaseInput>,
@@ -40,6 +42,7 @@ struct ActiveCase<'a> {
     scenario: Option<scenario::ScenarioCase<'a>>,
     lifecycle: Option<lifecycle::LifecycleCase>,
     verdict: Option<VerificationResult>,
+    batched: bool,
 }
 
 pub(super) fn issue(code: &str, message: impl Into<String>) -> VerificationIssue {
@@ -114,15 +117,21 @@ impl<'a> ApplicationSession<'a> {
                 .collect(),
             registered: BTreeSet::new(),
             closed_tests: BTreeSet::new(),
-            reserved: BTreeSet::new(),
+            case_cursor: BTreeMap::new(),
             active: BTreeMap::new(),
             completed: BTreeMap::new(),
             faults: vec![],
+            case_seconds: 5,
             next_context: 1,
             finished: false,
             lifecycle_inputs: BTreeMap::new(),
         })
     }
+    pub fn with_case_seconds(mut self, seconds: u64) -> Self {
+        self.case_seconds = seconds;
+        self
+    }
+
     pub fn with_lifecycle_inputs(
         mut self,
         inputs: BTreeMap<String, crate::LifecycleCaseInput>,
@@ -145,7 +154,7 @@ impl<'a> ApplicationSession<'a> {
         for case in cases {
             if case.result != VerificationResult::Pass
                 || !allowed.contains(&case.id)
-                || !self.reserved.insert(case.id.clone())
+                || self.completed.contains_key(&case.id)
             {
                 return Err(vec![issue("APPLICATION_REUSED_CASE_INVALID", case.id)]);
             }
@@ -202,22 +211,47 @@ impl<'a> ApplicationSession<'a> {
                     None => self.fault("APPLICATION_COLLABORATOR_CONTEXT", context.to_string()),
                 }
             }
-            ApplicationRequest::Register { test } => {
-                if !self.registrations.contains_key(&test) || !self.registered.insert(test.clone())
+            ApplicationRequest::Register { test } => self.register(test),
+            ApplicationRequest::RegisterDecoder { test } => {
+                if !self
+                    .registrations
+                    .get(&test)
+                    .is_some_and(|r| r.form == TestForm::Decoder)
                 {
-                    return self.fault("APPLICATION_REGISTRATION", test);
+                    return self.fault("APPLICATION_DECODER_REGISTRATION", test);
                 }
-                ApplicationReply::Registered
+                let batch = self.batch_allowed(&test);
+                match self.register(test) {
+                    ApplicationReply::Registered => ApplicationReply::DecoderRegistered {
+                        batch,
+                        max_message_bytes: self.group.resources.max_message_bytes as usize,
+                        case_timeout_seconds: self.case_seconds,
+                    },
+                    rejected => rejected,
+                }
+            }
+            ApplicationRequest::NextDecoderBatch {
+                test,
+                max_message_bytes,
+            } => self.next_decoder_batch(&test, max_message_bytes),
+            ApplicationRequest::CompleteDecoderBatch { test, cases } => {
+                self.complete_decoder_batch(&test, cases)
             }
             ApplicationRequest::Next { test } => self.next(&test),
             ApplicationRequest::Observe {
                 context,
                 observation,
-            } => self.observe(context, observation),
+            } if self.single_decoder_request_allowed(context) => self.observe(context, observation),
             ApplicationRequest::CloseCase {
                 context,
                 cleanup_error,
-            } => self.close_case(context, cleanup_error),
+            } if self.single_decoder_request_allowed(context) => {
+                self.close_case(context, cleanup_error)
+            }
+            ApplicationRequest::Observe { context, .. }
+            | ApplicationRequest::CloseCase { context, .. } => {
+                self.fault("APPLICATION_DECODER_BATCH_CONTEXT", context.to_string())
+            }
             ApplicationRequest::CloseTest { test } => {
                 if !self.registered.contains(&test)
                     || self.active.values().any(|c| c.test == test)
@@ -240,23 +274,42 @@ impl<'a> ApplicationSession<'a> {
         }
     }
 
+    fn register(&mut self, test: String) -> ApplicationReply {
+        if !self.registrations.contains_key(&test) || !self.registered.insert(test.clone()) {
+            return self.fault("APPLICATION_REGISTRATION", test);
+        }
+        ApplicationReply::Registered
+    }
+
+    fn can_start_case(&self, test: &str) -> bool {
+        self.registered.contains(test)
+            && !self.closed_tests.contains(test)
+            && !self.active.values().any(|case| case.test == test)
+    }
+
     fn next(&mut self, test: &str) -> ApplicationReply {
-        if !self.registered.contains(test)
-            || self.closed_tests.contains(test)
-            || self.active.values().any(|case| case.test == test)
-        {
+        if !self.can_start_case(test) {
             return self.fault("APPLICATION_TEST_ORDER", test);
         }
+        self.issue_case(test)
+    }
+
+    fn issue_case(&mut self, test: &str) -> ApplicationReply {
         let registration = self.registrations[test];
-        let Some(id) = registration
-            .cases
-            .iter()
-            .find(|id| !self.reserved.contains(*id))
+        use std::ops::Bound::{Excluded, Unbounded};
+        let cases = &registration.cases;
+        let lower = self
+            .case_cursor
+            .get(test)
+            .map_or(Unbounded, |id| Excluded(id.as_str()));
+        let Some(id) = cases
+            .range::<str, _>((lower, Unbounded))
+            .find(|id| !self.completed.contains_key(*id))
             .cloned()
         else {
             return ApplicationReply::NoMoreCases;
         };
-        self.reserved.insert(id.clone());
+        self.case_cursor.insert(test.into(), id.clone());
         let context = self.next_context;
         self.next_context += 1;
         let kind = match registration.form {
@@ -286,12 +339,24 @@ impl<'a> ApplicationSession<'a> {
             result: unknown("APPLICATION_CASE_INCOMPLETE", &id),
             elapsed_us: 0,
         };
-        let decoder = decoder::case(&self.plan.program, &id);
-        let mut operation = operation::OperationCase::find(&self.plan.program, &id);
-        let mut assertion = assertion::AssertionCase::find(&self.plan.program, &id);
-        let mut scenario = scenario::ScenarioCase::find(self.ir, &self.plan.program, &id);
-        let mut lifecycle =
-            lifecycle::LifecycleCase::find(&self.plan.program, &self.lifecycle_inputs, &id);
+        let form = registration.form;
+        let decoder = (form == TestForm::Decoder)
+            .then(|| decoder::case(&self.plan.program, &id))
+            .flatten();
+        let mut operation = matches!(form, TestForm::Operation | TestForm::StateChange)
+            .then(|| operation::OperationCase::find(&self.plan.program, &id))
+            .flatten();
+        let mut assertion = (form == TestForm::Assertion)
+            .then(|| assertion::AssertionCase::find(&self.plan.program, &id))
+            .flatten();
+        let mut scenario = (form == TestForm::Scenario)
+            .then(|| scenario::ScenarioCase::find(self.ir, &self.plan.program, &id))
+            .flatten();
+        let mut lifecycle = (form == TestForm::Lifecycle)
+            .then(|| {
+                lifecycle::LifecycleCase::find(&self.plan.program, &self.lifecycle_inputs, &id)
+            })
+            .flatten();
         let (directive, verdict) = if let Some(case) = &decoder {
             record.subject = case.subject.clone();
             record.bindings.insert("value".into(), case.input.clone());
@@ -398,6 +463,7 @@ impl<'a> ApplicationSession<'a> {
                 scenario,
                 lifecycle,
                 verdict,
+                batched: false,
             },
         );
         ApplicationReply::Case {

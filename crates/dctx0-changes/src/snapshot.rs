@@ -67,6 +67,35 @@ fn terms(terms: &[Token]) -> Vec<TermContent<'_>> {
         })
         .collect()
 }
+fn clause_content(node: &SemanticNode) -> Value {
+    canonical(&ClauseContent {
+        kind: node.kind,
+        terms: terms(&node.terms),
+        expressions: &node.expressions,
+    })
+}
+
+fn fact_kind(kind: K) -> bool {
+    matches!(
+        kind,
+        K::Intent | K::Constraint | K::Choose | K::Because | K::Avoid | K::Criterion | K::Narrative
+    )
+}
+
+/// The portion of declaration facts not already explained by individual
+/// constraint nodes. The persisted fingerprint still covers all facts.
+pub fn facts_without_constraints(ir: &WorkspaceIr) -> BTreeMap<&str, Vec<Value>> {
+    let mut owners = BTreeMap::<&str, Vec<Value>>::new();
+    for node in &ir.nodes {
+        if node.kind != K::Constraint && fact_kind(node.kind) {
+            owners
+                .entry(&node.owner)
+                .or_default()
+                .push(semantic_value(clause_content(node)));
+        }
+    }
+    owners
+}
 fn declaration_fingerprints(
     symbol: &Symbol,
     nodes: &[&SemanticNode],
@@ -86,21 +115,8 @@ fn declaration_fingerprints(
         contract.push(canonical(operation));
     }
     for node in nodes {
-        let content = canonical(&ClauseContent {
-            kind: node.kind,
-            terms: terms(&node.terms),
-            expressions: &node.expressions,
-        });
-        if matches!(
-            node.kind,
-            K::Intent
-                | K::Constraint
-                | K::Choose
-                | K::Because
-                | K::Avoid
-                | K::Criterion
-                | K::Narrative
-        ) {
+        let content = clause_content(node);
+        if fact_kind(node.kind) {
             facts.push(semantic_value(content));
         } else if node.id != symbol.id && !matches!(node.kind, K::Field | K::StableId | K::Key) {
             behavior.push(semantic_value(content));

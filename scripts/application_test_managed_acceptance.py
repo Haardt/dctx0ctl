@@ -118,7 +118,7 @@ def main():
                         assert text.count(needle)==1;file.write_text(text.replace(needle,replacement))
                     else:
                         file.write_text(text+('\nfunc (\n' if args.target=='go' else '\nconst __dctx0_invalid_build: =\n'))
-            sample=run('managed-run',[binary,'--json','verify','application-tests','complete',app/'dctx0','--project',app,'--plan',plan,'--group','cinema-native','--recipe',recipe,'--report',receipt],True)
+            sample=run('managed-run',[binary,'--json','verify','application-tests','complete','--reuse','off',app/'dctx0','--project',app,'--plan',plan,'--group','cinema-native','--recipe',recipe,'--report',receipt],True)
             if (app/receipt).exists():
                 evidence=json.loads((app/receipt).read_text());(destination/'managed-evidence.json.gz').write_bytes(gzip.compress(json.dumps(evidence).encode()))
             else:evidence=None

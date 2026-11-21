@@ -50,9 +50,13 @@ impl UnitNativeContext {
         run: &VerificationRun,
         artifacts: &mut Vec<VerificationArtifact>,
     ) -> Result<()> {
-        if run.result != VerificationResult::Pass
+        // Unit completion covers the exact automated cases. Authored reviews
+        // remain open in the original run and cannot grant task delivery.
+        if matches!(run.result, VerificationResult::Fail { .. })
             || !run.provenance.incomplete.is_empty()
-            || !run.open_obligations.is_empty()
+            || dctx0_verification::incremental::reuse_blocking_issues(run)
+                .next()
+                .is_some()
             || run.required_cases != self.planned.unit.cases
             || run.cases.len() != run.required_cases.len()
             || run
@@ -68,7 +72,7 @@ impl UnitNativeContext {
         let completion = UnitNativeCompletionV1 {
             schema_version: 1,
             unit: self.group.id.clone(),
-            fingerprint: unit_planner::evidence_digest(&self.planned)?,
+            fingerprint: self.attempt.fingerprint.clone(),
             generation: self.attempt.generation,
             completed: true,
             cleanup_completed: true,

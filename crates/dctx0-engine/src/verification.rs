@@ -11,6 +11,36 @@ pub struct VerificationSelection {
     /// Explicitly inspect this historical occurrence; never adoption authority.
     pub historical_check: Option<i64>,
 }
+pub(crate) fn read_verification_lifecycle_fixtures(
+    application: &std::path::Path,
+    adapter: &str,
+) -> Result<crate::VerificationLifecycleFixtures> {
+    let adapter = std::path::Path::new(adapter);
+    if adapter.is_absolute()
+        || adapter
+            .components()
+            .any(|part| !matches!(part, std::path::Component::Normal(_)))
+    {
+        return Err(Error::Invalid("Invalid lifecycle adapter path".into()));
+    }
+    let path = application
+        .join(adapter.parent().unwrap_or(std::path::Path::new("")))
+        .join("lifecycles.json");
+    if !path.try_exists()? {
+        return Ok(Default::default());
+    }
+    if !path
+        .canonicalize()?
+        .starts_with(application.canonicalize()?)
+        || fs::metadata(&path)?.len() > 524_288
+    {
+        return Err(Error::Invalid(
+            "Lifecycle inputs escape the application or exceed the size limit".into(),
+        ));
+    }
+    Ok(serde_json::from_slice(&fs::read(path)?)?)
+}
+
 impl Project {
     /// Inspect configured lifecycle inputs without executing an adapter.
     pub fn verification_lifecycle_input_issues(
@@ -22,31 +52,7 @@ impl Project {
         if plan.lifecycles.is_empty() {
             return Ok(vec![]);
         }
-        let adapter = std::path::Path::new(adapter);
-        if adapter.is_absolute()
-            || adapter
-                .components()
-                .any(|part| !matches!(part, std::path::Component::Normal(_)))
-        {
-            return Err(Error::Invalid("Invalid lifecycle adapter path".into()));
-        }
-        let path = application
-            .join(adapter.parent().unwrap_or(std::path::Path::new("")))
-            .join("lifecycles.json");
-        let fixtures: crate::VerificationLifecycleFixtures = if path.try_exists()? {
-            if !path
-                .canonicalize()?
-                .starts_with(application.canonicalize()?)
-                || fs::metadata(&path)?.len() > 524_288
-            {
-                return Err(Error::Invalid(
-                    "Lifecycle inputs escape the application or exceed the size limit".into(),
-                ));
-            }
-            serde_json::from_slice(&fs::read(path)?)?
-        } else {
-            Default::default()
-        };
+        let fixtures = read_verification_lifecycle_fixtures(application, adapter)?;
         let snapshot = self
             .store(AccessMode::ReadOnly)?
             .load(&self.key(), &plan.snapshot)?;

@@ -105,7 +105,16 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
             serde_json::to_vec(&inputs).unwrap(),
         )
         .unwrap();
-        let unavailable = call(&["verify", "run", input, "--no-adopt", "--json", "--full"]);
+        let unavailable = call(&[
+            "verify",
+            "run",
+            "--reuse",
+            "off",
+            input,
+            "--no-adopt",
+            "--json",
+            "--full",
+        ]);
         assert!(!unavailable.status.success());
         let report: dctx0_engine::NativeVerificationReport =
             serde_json::from_slice(&unavailable.stdout).unwrap();
@@ -155,7 +164,16 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         serde_json::to_vec(&fixtures).unwrap(),
     )
     .unwrap();
-    let executed = call(&["verify", "run", input, "--no-adopt", "--json", "--full"]);
+    let executed = call(&[
+        "verify",
+        "run",
+        "--reuse",
+        "off",
+        input,
+        "--no-adopt",
+        "--json",
+        "--full",
+    ]);
     let report: dctx0_engine::NativeVerificationReport =
         serde_json::from_slice(&executed.stdout).unwrap();
     let lifecycle = report
@@ -276,7 +294,16 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
 
     // An independent failing run replaces both retention roots (newest and
     // latest problem); the old replay chain is now eligible for collection.
-    let independent = call(&["verify", "run", input, "--no-adopt", "--json", "--full"]);
+    let independent = call(&[
+        "verify",
+        "run",
+        "--reuse",
+        "off",
+        input,
+        "--no-adopt",
+        "--json",
+        "--full",
+    ]);
     assert!(!independent.status.success());
     let independent: dctx0_engine::NativeVerificationReport =
         serde_json::from_slice(&independent.stdout).unwrap();

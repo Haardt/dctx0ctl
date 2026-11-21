@@ -47,6 +47,10 @@ pub struct ExecutionGroup {
     /// These are identities, never shell commands.
     pub selection: BTreeSet<String>,
     pub area: TestArea,
+    /// Reviewed Go decoder registrations whose decoder and projector have no
+    /// state, resource effects or lifecycle hooks between cases.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub stateless_decoders: BTreeSet<String>,
     pub resources: GroupResources,
 }
 
@@ -143,6 +147,12 @@ impl ApplicationTestConfiguration {
                 || (group.backend == TestBackend::Adapter && group.selection.len() != 1)
             {
                 issues.push(issue("INVALID_GROUP_SELECTION", &group.id));
+            }
+            if !group.stateless_decoders.is_subset(&group.selection)
+                || (!group.stateless_decoders.is_empty()
+                    && (group.target != "go" || group.backend != TestBackend::ApplicationTests))
+            {
+                issues.push(issue("INVALID_STATELESS_DECODERS", &group.id));
             }
             if !name(&group.resources.namespace)
                 || !namespaces.insert(&group.resources.namespace)
@@ -352,7 +362,10 @@ fn validate_registrations(
             .iter()
             .find(|g| g.id == registration.group);
         if !group.is_some_and(|g| {
-            g.backend == TestBackend::ApplicationTests && g.selection.contains(&registration.test)
+            g.backend == TestBackend::ApplicationTests
+                && g.selection.contains(&registration.test)
+                && (!g.stateless_decoders.contains(&registration.test)
+                    || registration.form == TestForm::Decoder)
         }) || !tests.insert((&registration.group, &registration.test))
             || registration.cases.is_empty()
         {

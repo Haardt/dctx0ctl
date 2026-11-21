@@ -241,6 +241,25 @@ impl Store {
     pub fn task_check(&self, project: &str) -> Result<(i64, String)> {
         latest_check(&self.connection, project)
     }
+    /// Read immutable membership for an exact published check, optionally pinned
+    /// to the plan recorded by a verification run.
+    pub fn task_plan_at_check(
+        &self,
+        project: &str,
+        check: i64,
+        pin: Option<i64>,
+    ) -> Result<Option<Plan>> {
+        if schema(&self.connection)? == 1 {
+            return Ok(None);
+        }
+        let data: Option<String> = self.connection.query_row(
+            "SELECT data FROM task_plans WHERE project=?1 AND check_run_id=?2 AND (?3 IS NULL OR id=?3) ORDER BY id DESC LIMIT 1",
+            params![project, check, pin],
+            |row| row.get(0),
+        ).optional()?;
+        data.map(|data| storage::load(&self.connection, &data))
+            .transpose()
+    }
     // Occurrence-specific continuity: deletion ends lineage even on equal hashes.
     pub fn task_continuity(
         &self,

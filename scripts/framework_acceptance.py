@@ -103,7 +103,7 @@ def mutations(binary, language, framework, project, record):
         if original.count(before)!=1: raise RuntimeError(f'{framework} {name}: mutation anchor is not unique')
         try:
             file.write_text(original.replace(before,after))
-            data=cli(binary,project,record,f'{framework}-mutation-{name}','verify','run',spec,'--project',project,'--subject',PREFIX+subject,'--no-adopt',allowed=(0,1))
+            data=cli(binary,project,record,f'{framework}-mutation-{name}','verify','run', '--reuse', 'off',spec,'--project',project,'--subject',PREFIX+subject,'--no-adopt',allowed=(0,1))
             run_data=data['evidence']['run']
             # An unexpected HTTP response is an observed application exception,
             # not automatically a centrally established contract violation.
@@ -208,11 +208,11 @@ def main():
                 for language,framework in [('go','gin'),('rust','axum')]:
                     project=Path(temporary)/framework;project_copy(project,language,framework)
                     cli(binary,project,record,f'{framework}-release-check','check',project/'dctx0')
-                    first=cli(binary,project,record,f'{framework}-first-managed-build','verify','run',project/'dctx0','--project',project,'--no-adopt',allowed=(0,1))
+                    first=cli(binary,project,record,f'{framework}-first-managed-build','verify','run', '--reuse', 'off',project/'dctx0','--project',project,'--no-adopt',allowed=(0,1))
                     record.setdefault('native_plans',{})[framework]=assert_native(first,framework)
                     record.setdefault('native_metrics',{}).setdefault(framework,[]).append(native_details(project,first))
                     for index in range(args.samples):
-                        result=cli(binary,project,record,f'{framework}-warm-native','verify','run',project/'dctx0','--project',project,'--no-adopt',allowed=(0,1))
+                        result=cli(binary,project,record,f'{framework}-warm-native','verify','run', '--reuse', 'off',project/'dctx0','--project',project,'--no-adopt',allowed=(0,1))
                         assert_native(result,framework)
                         record['native_metrics'][framework].append(native_details(project,result))
                     command=['go','test','-C','examples/cinema-go','./ginapi','-count=1'] if language=='go' else ['cargo','test','--release','--manifest-path','examples/cinema-rust/Cargo.toml','--all-features','--test','axum','--offline','--locked']

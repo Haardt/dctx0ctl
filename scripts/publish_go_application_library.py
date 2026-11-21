@@ -23,7 +23,7 @@ def main():
                 raise ValueError('Testing library destination escapes application')
             shutil.copyfile(source, target)
             files[source.name] = hashlib.sha256(source.read_bytes()).hexdigest()
-    (destination.parent / 'library-pin.json').write_text(json.dumps(dict(module='github.com/Haardt/dctx0ctl/applicationtests/go', version='0.2.0', protocol_version=2, sha256=files), indent=2)+'\n')
+    (destination.parent / 'library-pin.json').write_text(json.dumps(dict(module='github.com/Haardt/dctx0ctl/applicationtests/go', version='0.3.0', protocol_version=2, sha256=files), indent=2)+'\n')
 
 if __name__ == '__main__':
     main()

@@ -57,7 +57,11 @@ impl Fixture {
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
-                    mode: Default::default(),
+                    mode: if parent.is_some() {
+                        NativeReuseMode::Auto
+                    } else {
+                        NativeReuseMode::Off
+                    },
                     inputs: ".dctx0/reuse.json".into(),
                     parent,
                 },
@@ -97,7 +101,7 @@ impl Fixture {
             .task_id
     }
 
-    async fn adopt(&self, parent: String) -> NativeVerificationReport {
+    async fn adopt(&self, parent: Option<String>) -> NativeVerificationReport {
         self.project
             .run_verification_incremental_with_adoption(
                 Some(&self.app),
@@ -105,9 +109,13 @@ impl Fixture {
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
-                    mode: Default::default(),
+                    mode: if parent.is_some() {
+                        NativeReuseMode::Auto
+                    } else {
+                        NativeReuseMode::Off
+                    },
                     inputs: ".dctx0/reuse.json".into(),
-                    parent: Some(parent),
+                    parent,
                 },
                 false,
             )
@@ -123,7 +131,7 @@ async fn incremental_native_adopts_current_open_task_without_repeating_productio
     let baseline = f.run(None).await;
     assert!(baseline.adopted_tasks.is_empty());
     let calls = f.calls();
-    let report = f.adopt(baseline.evidence.id).await;
+    let report = f.adopt(Some(baseline.evidence.id)).await;
     assert_eq!(report.evidence.run.result, VerificationResult::Pass);
     assert_eq!(report.incremental.as_ref().unwrap().executed_cases, 0);
     assert_eq!(f.calls(), calls);
@@ -149,7 +157,7 @@ async fn incremental_native_preserves_claim_and_adopts_after_explicit_release() 
         .state
         .unwrap();
     let calls = f.calls();
-    let blocked = f.adopt(baseline.evidence.id).await;
+    let blocked = f.adopt(Some(baseline.evidence.id)).await;
     assert_eq!(blocked.evidence.run.result, VerificationResult::Pass);
     assert!(blocked.adopted_tasks.is_empty());
     let session = f.project.task_session(None, None).unwrap();
@@ -163,7 +171,7 @@ async fn incremental_native_preserves_claim_and_adopts_after_explicit_release() 
             reason: "Ready for guarded automatic delivery".into(),
         })
         .unwrap();
-    let adopted = f.adopt(blocked.evidence.id).await;
+    let adopted = f.adopt(Some(blocked.evidence.id)).await;
     assert_eq!(
         f.calls(),
         calls,
@@ -207,7 +215,7 @@ async fn incremental_native_adds_pass_to_done_task_without_replacing_authored_re
         .unwrap();
     let baseline = f.run(None).await;
     let calls = f.calls();
-    let adopted = f.adopt(baseline.evidence.id).await;
+    let adopted = f.adopt(Some(baseline.evidence.id)).await;
     assert_eq!(f.calls(), calls);
     assert!(adopted.adopted_tasks.contains(&id), "{adopted:#?}");
     let state = &f.project.task_session(None, None).unwrap().states[&id];
@@ -220,13 +228,13 @@ async fn incremental_native_adds_pass_to_done_task_without_replacing_authored_re
 async fn incremental_native_changed_failing_production_cannot_adopt_historical_pass() {
     let f = Fixture::new();
     let id = f.plan_tasks();
-    let baseline = f.run(None).await;
+    f.run(None).await;
     fs::write(
         f.app.join("app.ts"),
         "export function factory(value:unknown){return 9;}",
     )
     .unwrap();
-    let report = f.adopt(baseline.evidence.id).await;
+    let report = f.adopt(None).await;
     assert!(matches!(
         report.evidence.run.result,
         VerificationResult::Fail { .. }
@@ -245,7 +253,7 @@ async fn incremental_native_changed_failing_production_cannot_adopt_historical_p
 async fn incremental_native_reconciled_current_requirements_execute_and_adopt_new_task_only() {
     let f = Fixture::new();
     let old_id = f.plan_tasks();
-    let baseline = f.run(None).await;
+    f.run(None).await;
     fs::write(
         f.root.join("spec/w.dctx0"),
         "workspace W { value A = Int { range 1..3 } }",
@@ -254,7 +262,7 @@ async fn incremental_native_reconciled_current_requirements_execute_and_adopt_ne
     fs::write(f.app.join("app.ts"), "export function factory(value:unknown){if(typeof value!=='number'||!Number.isSafeInteger(value)||value<1||value>3)throw Error('contract');return value;}").unwrap();
     assert!(f.project.check().unwrap().ok);
     f.project.task_plan("latest").unwrap();
-    let report = f.adopt(baseline.evidence.id).await;
+    let report = f.adopt(None).await;
     assert_eq!(report.evidence.run.result, VerificationResult::Pass);
     assert_eq!(report.incremental.as_ref().unwrap().reused_cases, 0);
     assert!(report.incremental.as_ref().unwrap().executed_cases > 0);
@@ -266,7 +274,7 @@ async fn incremental_native_reconciled_current_requirements_execute_and_adopt_ne
     }
 }
 #[tokio::test]
-async fn actual_legacy_contract_cases_are_reused_and_revision_or_source_changes_execute_again() {
+async fn legacy_cases_ignore_revision_metadata_and_fresh_source_mutations_fail() {
     let f = Fixture::new();
     let first = f.run(None).await;
     assert_eq!(
@@ -297,16 +305,17 @@ async fn actual_legacy_contract_cases_are_reused_and_revision_or_source_changes_
     fs::write(f.app.join(".dctx0ctl/revision"), "changed").unwrap();
     let third = f.run(Some(second.evidence.id)).await;
     assert_eq!(third.evidence.run.result, VerificationResult::Pass);
-    assert!(
-        f.calls() > count,
-        "changed fixture revision must execute actual callbacks"
+    assert_eq!(
+        f.calls(),
+        count,
+        "revision metadata does not bind source reuse"
     );
     fs::write(
         f.app.join("app.ts"),
         "export function factory(value:unknown){return 9;}",
     )
     .unwrap();
-    let failed = f.run(Some(third.evidence.id)).await;
+    let failed = f.run(None).await;
     assert!(
         matches!(failed.evidence.run.result, VerificationResult::Fail { .. }),
         "changed production must run and fail, never reuse old PASS"
@@ -314,7 +323,7 @@ async fn actual_legacy_contract_cases_are_reused_and_revision_or_source_changes_
 }
 
 #[tokio::test]
-async fn declared_live_revision_allows_whole_operation_unit_reuse_and_invalidates_on_change() {
+async fn declared_code_input_binds_the_whole_operation_unit() {
     let f = Fixture::new();
     fs::write(f.root.join("spec/w.dctx0"),"workspace W { value A = Int { range 1..2 } surface Api { operation next(a:A) -> Int { pure\nensures result == a + 1 } } }").unwrap();
     assert!(f.project.check().unwrap().ok);
@@ -330,7 +339,8 @@ async fn declared_live_revision_allows_whole_operation_unit_reuse_and_invalidate
     let path = f.app.join(".dctx0/testing/typescript/adapter.ts");
     let adapter=fs::read_to_string(&path).unwrap().replace("import {factory}","import {factory,nextValue}").replace("export const adapter=","import {invokeApplication} from './contract.ts';export const adapter=").replace("subjects:[{subject:'W.A',role:'contract',artifact:'app.ts',entry_point:'factory'}]", "subjects:[{subject:'W.A',role:'contract',artifact:'app.ts',entry_point:'factory'},{subject:'W.Api.next',role:'operation',artifact:'app.ts',entry_point:'nextValue'}]").replace("capabilities:['sessions','values','events']","capabilities:['sessions','values','events','invocation']").replace("async invoke(){throw Error('No operation');}","async invoke(invocation){return invokeApplication(()=>nextValue(Number(invocation.arguments[0].value)),value=>({kind:'integer',value:String(value)}));}");
     fs::write(path, adapter).unwrap();
-    fs::write(f.app.join(".dctx0/reuse.json"),r#"{"schema_version":1,"deterministic_units":["contract:W.A","other-cases"],"revisions":{"database":{"executable":"cat","args":[".dctx0ctl/revision"],"timeout_ms":1000}}}"#).unwrap();
+    fs::write(f.app.join("revision.ts"), "export const revision = 1;").unwrap();
+    fs::write(f.app.join(".dctx0/reuse.json"), r#"{"schema_version":1,"deterministic_units":["contract:W.A","other-cases"],"files":["revision.ts"]}"#).unwrap();
     f.plan_tasks();
     let first = f.run(None).await;
     assert_eq!(
@@ -352,7 +362,7 @@ async fn declared_live_revision_allows_whole_operation_unit_reuse_and_invalidate
     assert_eq!(second.evidence.run.result, VerificationResult::Pass);
     assert_eq!(f.calls(), count);
     assert_eq!(second.incremental.as_ref().unwrap().executed_cases, 0);
-    let third = f.adopt(second.evidence.id).await;
+    let third = f.adopt(Some(second.evidence.id)).await;
     assert_eq!(third.evidence.run.result, VerificationResult::Pass);
     assert_eq!(third.incremental.as_ref().unwrap().executed_cases, 0);
     assert_eq!(f.calls(), count);
@@ -365,8 +375,8 @@ async fn declared_live_revision_allows_whole_operation_unit_reuse_and_invalidate
         .unwrap()
         .task_id;
     assert!(third.adopted_tasks.contains(&operation), "{third:#?}");
-    fs::write(f.app.join(".dctx0ctl/revision"), "new-live-revision").unwrap();
-    let changed = f.run(Some(third.evidence.id)).await;
+    fs::write(f.app.join("revision.ts"), "export const revision = 2;").unwrap();
+    let changed = f.run(None).await;
     assert_eq!(changed.evidence.run.result, VerificationResult::Pass);
     assert!(f.calls() > count);
     assert_eq!(changed.incremental.as_ref().unwrap().reused_cases, 0);
@@ -399,7 +409,7 @@ async fn incremental_execution_retains_preflight_input_drift_guard() {
             &BunHarness,
             &NativeCancellation::default(),
             &NativeReuseOptions {
-                mode: Default::default(),
+                mode: NativeReuseMode::Off,
                 inputs: ".dctx0/reuse.json".into(),
                 parent: None,
             },
@@ -449,4 +459,97 @@ async fn unchanged_native_cases_reuse_without_reconciling_historical_task_occurr
             .any(|i| i.code == "ADOPTION_HISTORICAL_SCOPE")
     );
     assert!(second.adopted_tasks.is_empty());
+}
+
+#[tokio::test]
+async fn continuation_retries_only_the_saved_failed_case_and_combines_diagnostic_history() {
+    let f = Fixture::new();
+    let source = f.app.join("app.ts");
+    let clean = fs::read_to_string(&source).unwrap();
+    let transient = f.app.join(".dctx0ctl/transient");
+    let marker = serde_json::to_string(transient.to_str().unwrap()).unwrap();
+    fs::write(
+        &source,
+        clean
+            .replace("{appendFileSync}", "{appendFileSync,existsSync}")
+            .replace(
+                "return value;",
+                &format!(
+                    "if(value===2 && existsSync({marker})) throw Error('temporary');return value;"
+                ),
+            ),
+    )
+    .unwrap();
+    fs::write(&transient, b"temporary failure").unwrap();
+    let first = f.run(None).await;
+    let first_calls = f.calls();
+    let id = &first.evidence.id;
+    let failed: std::collections::BTreeSet<_> = first
+        .evidence
+        .run
+        .cases
+        .iter()
+        .filter(|case| matches!(case.result, VerificationResult::Fail { .. }))
+        .map(|case| case.id.clone())
+        .collect();
+    assert_eq!(failed.len(), 1);
+    let plan = f
+        .project
+        .verification_continuation_plan(id, &Default::default(), 1)
+        .unwrap();
+    assert_eq!(plan.selected_cases, failed);
+    assert!(
+        f.project
+            .verification_continuation_plan(id, &Default::default(), 0)
+            .unwrap_err()
+            .to_string()
+            .contains("CONTINUATION_LIMIT")
+    );
+    assert!(
+        f.project
+            .verification_continuation_plan(id, &["unknown".into()].into(), 1)
+            .is_err()
+    );
+    let cancel = NativeCancellation::default();
+    let mut tampered = plan.clone();
+    tampered.recorded_pass_cases += 1;
+    assert!(
+        f.project
+            .continue_verification(Some(&f.app), tampered, &BunHarness, &cancel)
+            .await
+            .is_err()
+    );
+
+    let exact = fs::read(&source).unwrap();
+    fs::write(&source, &clean).unwrap();
+    assert!(
+        f.project
+            .continue_verification(Some(&f.app), plan.clone(), &BunHarness, &cancel)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("CONTINUATION_INPUTS_CHANGED")
+    );
+    fs::write(&source, exact).unwrap();
+    fs::remove_file(transient).unwrap();
+    assert_eq!(f.calls(), first_calls);
+
+    let retry = f
+        .project
+        .continue_verification(Some(&f.app), plan, &BunHarness, &cancel)
+        .await
+        .unwrap();
+    assert_eq!(f.calls(), first_calls + 1);
+    assert_eq!(retry.evidence.run.required_cases, failed);
+    assert_eq!(retry.evidence.run.cases[0].result, VerificationResult::Pass);
+    assert!(retry.adopted_tasks.is_empty());
+    let complete = f
+        .project
+        .verification_continuation_plan(&retry.evidence.id, &Default::default(), 0)
+        .unwrap();
+    assert!(complete.selected_cases.is_empty());
+    assert_eq!(complete.recorded_pass_cases, complete.required_cases);
+    f.project
+        .validate_continuation_source_inputs(Some(&f.app), &complete)
+        .unwrap();
 }

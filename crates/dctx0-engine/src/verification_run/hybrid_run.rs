@@ -232,15 +232,10 @@ impl Project {
             return Err(Error::Invalid("Hybrid execution requires one assigned adapter and one application-test group of the configured target".into()));
         }
         let adapter_group = adapter.unwrap().id.clone();
-        let automatic_reuse = NativeReuseOptions::default();
-        super::reuse_preflight::guard(
-            self,
-            &root,
-            &bundle.plan.program,
-            reuse.unwrap_or(&automatic_reuse),
-            cancellation,
-        )
-        .await?;
+        let fresh = NativeReuseOptions::fresh();
+        let reuse = reuse.unwrap_or(&fresh);
+        super::reuse_preflight::guard(self, &root, &bundle.plan.program, reuse, cancellation)
+            .await?;
         let snapshot = self.load(&bundle.plan.program.snapshot)?;
         let (task_pin, pin_issues) =
             pins::capture(self, &root, &config.target, &bundle.plan.program, &snapshot)?;
@@ -329,7 +324,7 @@ impl Project {
                 None,
                 Some((&context.assignment, &context.adapter_group)),
                 Some(&context),
-                reuse,
+                Some(reuse),
                 None,
                 None,
             )

@@ -40,6 +40,133 @@ fn configured_target(project: &Project, application: Option<&Path>) -> Result<St
         .map(|(_, config)| config.target)
         .map_err(crate::error_message)
 }
+fn incremental_markdown(
+    output: &mut dyn Write,
+    report: &dctx0_engine::VerificationIncrementalReport,
+) -> Result<(), String> {
+    use dctx0_changes::ChangeKind;
+    use dctx0_engine::{
+        TaskImpactClassification as Impact, TestGroupChange as Group,
+        TestGroupRunnerStatus as Runner,
+    };
+    fn plan(id: Option<i64>) -> String {
+        id.map_or_else(|| "unavailable".into(), |id| format!("`P{id}`"))
+    }
+    fn cell(value: &str) -> String {
+        value.replace('|', "\\|").replace(['\n', '\r'], " ")
+    }
+    writeln!(
+                    output,
+                    "# Incremental verification comparison\n\nParent: `{}`\nRequired: {}; reused: {}; fresh execution required: {}.\n\nThis comparison grants no test PASS or task delivery.\n\n| Condition | Match |\n| --- | --- |",
+                    report.parent_run, report.required_cases, report.actual_reused_cases, report.rerun_cases
+                )
+                .map_err(crate::error_message)?;
+    for comparison in &report.comparisons {
+        writeln!(
+            output,
+            "| {} | {} |",
+            comparison.component,
+            match comparison.matches {
+                Some(true) => "yes",
+                Some(false) => "no",
+                None => "unknown",
+            }
+        )
+        .map_err(crate::error_message)?;
+    }
+
+    writeln!(
+        output,
+        "\nHistorical check `{}` and task plan {}. Current check `{}` and task plan {}.\n\n## Task impacts\n\n| Task | Membership | Classification | Cause and path |\n| --- | --- | --- | --- |",
+        report.historical_check_occurrence,
+        plan(report.historical_task_plan_id),
+        report.check_occurrence,
+        plan(report.current_task_plan_id),
+    )
+    .map_err(crate::error_message)?;
+    for task in &report.task_impacts {
+        let membership = match (task.historical_member, task.current_member) {
+            (true, true) => "historical and current",
+            (true, false) => "historical",
+            _ => "current",
+        };
+        let classification = match task.classification {
+            Impact::InheritedConstraintOnly => "inherited-constraint-only",
+            Impact::Independent => "independent",
+            Impact::Mixed => "mixed",
+        };
+        for cause in &task.causes {
+            let change = match (&cause.kind, &cause.old, &cause.new) {
+                (ChangeKind::Renamed, Some(old), Some(new)) => format!("renamed `{old}` → `{new}`"),
+                (ChangeKind::Changed, Some(old), _) => format!("changed `{old}`"),
+                (ChangeKind::Removed, Some(old), None) => format!("removed `{old}`"),
+                (ChangeKind::Added, None, Some(new)) => format!("added `{new}`"),
+                _ => String::new(),
+            };
+            let origin = if cause.path.inherited_constraint {
+                "inherited"
+            } else {
+                "independent"
+            };
+            writeln!(
+                output,
+                "| T{} | {} | {} | {} ({}, check {}) · {} |",
+                task.task_id,
+                membership,
+                classification,
+                cell(&change),
+                origin,
+                cause.check_occurrence,
+                cell(&cause.path.path.join(" → ")),
+            )
+            .map_err(crate::error_message)?;
+        }
+    }
+    writeln!(
+        output,
+        "\n## Test groups\n\n| Group | Change | Historical cases | Current cases | Historical PASS | Runner status | Reasons |\n| --- | --- | ---: | ---: | --- | --- | --- |",
+    )
+    .map_err(crate::error_message)?;
+    for group in &report.test_groups {
+        let change = match group.change {
+            Group::New => "new",
+            Group::Changed => "changed",
+            Group::Removed => "removed",
+            Group::Unchanged => "unchanged",
+        };
+        let runner = match group.runner_status {
+            Runner::StaticCompatible => "static-compatible",
+            Runner::BindingCheckRequired => "binding-check-required",
+            Runner::ExecutionRequired => "execution-required",
+            Runner::EvidenceMissing => "evidence-missing",
+            Runner::NotSelected => "not-selected",
+        };
+        let reasons = group
+            .reasons
+            .iter()
+            .map(|reason| format!("`{}` ({})", reason.code, cell(&reason.input)))
+            .collect::<Vec<_>>()
+            .join("<br>");
+        writeln!(
+            output,
+            "| `{}` | {} | {} | {} | {} | {} | {} |",
+            cell(&group.id),
+            change,
+            group.historical_cases,
+            group.current_cases,
+            if group.historical_pass { "yes" } else { "open" },
+            runner,
+            reasons,
+        )
+        .map_err(crate::error_message)?;
+    }
+    for reason in &report.reasons {
+        writeln!(output, "\n- {} · {}", reason.code, reason.message)
+            .map_err(crate::error_message)?;
+    }
+    Ok(())
+}
+
 fn outcome_summary(
     output: &mut dyn Write,
     run: &dctx0_core::VerificationRun,
@@ -519,29 +646,7 @@ fn run_inner(
             if json {
                 crate::render::json(output, &report)?;
             } else {
-                writeln!(
-                    output,
-                    "# Incremental verification comparison\n\nParent: `{}`\nRequired: {}; reused: {}; fresh execution required: {}.\n\nThis comparison grants no test PASS or task delivery.\n\n| Condition | Match |\n| --- | --- |",
-                    report.parent_run, report.required_cases, report.actual_reused_cases, report.rerun_cases
-                )
-                .map_err(crate::error_message)?;
-                for comparison in &report.comparisons {
-                    writeln!(
-                        output,
-                        "| {} | {} |",
-                        comparison.component,
-                        match comparison.matches {
-                            Some(true) => "yes",
-                            Some(false) => "no",
-                            None => "unknown",
-                        }
-                    )
-                    .map_err(crate::error_message)?;
-                }
-                for reason in &report.reasons {
-                    writeln!(output, "\n- {}: {}", reason.code, reason.message)
-                        .map_err(crate::error_message)?;
-                }
+                incremental_markdown(output, &report)?;
             }
             return Ok(true);
         }
@@ -1150,7 +1255,16 @@ fn run_inner(
                     if json {
                         crate::render::bounded_json(output, &report, max_output_bytes)?;
                     } else {
-                        writeln!(output,"Composition: {}\n{} reused; {} fresh cases; {:?} observed worker starts. Task delivery: false",report.composition_id,report.reused_cases,report.executed_cases,report.worker_starts).map_err(crate::error_message)?;
+                        writeln!(
+                            output,
+                            "Composition: {}\n{} reused; {} fresh cases; {:?} observed worker starts.\n{} open obligations. Task delivery: false",
+                            report.composition_id,
+                            report.reused_cases,
+                            report.executed_cases,
+                            report.worker_starts,
+                            report.open_obligations.len(),
+                        )
+                        .map_err(crate::error_message)?;
                     }
                     return Ok(pass);
                 }

@@ -38,6 +38,7 @@ fn fixture() -> (WorkspaceIr, ApplicationTestPlan) {
                 cases: cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: GroupResources {
                 namespace: "native".into(),
                 timeout_seconds: 60,
@@ -767,7 +768,9 @@ fn incremental_lineage_revalidates_parent_receipts_and_rejects_corruption() {
         .unwrap();
     let binding =
         incremental::binding(&plan, root.provenance.clone(), input.reference.hash.clone()).unwrap();
-    let selection = incremental::plan_reuse(&binding, &binding, &root, &units).unwrap();
+    let selection =
+        incremental::plan_reuse_projected(&binding, &binding, &root, &units, &root.provenance)
+            .unwrap();
     assert!(!selection.reused.is_empty());
     let proof = IncrementalProof {
         parent_run: parent.id.clone(),

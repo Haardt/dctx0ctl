@@ -77,7 +77,7 @@ def main():
             plan = invoke('tasks', 'plan', spec)['body']['data']
             # Claiming the first task publishes editable profiles before source binding.
             invoke('profile', target, 'create', '--project', project, '--default')
-            native = invoke('verify', 'run', spec, '--project', project, success=False)
+            native = invoke('verify', 'run', '--reuse', 'off', spec, '--project', project, success=False)
             # Retain the actual failed cases and provenance even if an assertion
             # below rejects this host, before the isolated application is removed.
             args.report.parent.mkdir(parents=True, exist_ok=True)
@@ -161,7 +161,7 @@ def main():
                 state = invoke('tasks', 'record-review', spec, f'T{task}', '--project', project, '--actor', notes['actor'], '--claim', state['claim'], '--version', state['version'], '--file', review_file)['body']['data']['state']
                 state = invoke('tasks', 'complete', spec, f'T{task}', '--project', project, '--actor', notes['actor'], '--claim', state['claim'], '--version', state['version'], '--summary', 'Assigned conformance obligations reviewed with source-bound evidence.')['body']['data']['state']
                 assert state['work'] == 'done' and state['check'] == 'unverified'
-            complete = invoke('verify', 'complete', spec, '--project', project)
+            complete = invoke('verify', 'complete', '--reuse', 'off', spec, '--project', project)
             assert complete['tasks'] == 105 and complete['open_tasks'] == 0
             assert complete['non_pass_tasks'] == len(complete['reviewed_tasks']) == 4
             assert complete['mandatory_cases'] == EXPECTED_NATIVE_CASES and complete['result']['status'] == 'PASS'

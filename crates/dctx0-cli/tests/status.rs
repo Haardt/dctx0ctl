@@ -305,6 +305,8 @@ fn generated_placeholder_is_known_unavailable_while_edited_bindings_stay_unprove
         &[
             "verify",
             "run",
+            "--reuse",
+            "off",
             "spec",
             "--project",
             "app",
@@ -346,7 +348,16 @@ fn delivery_run_refuses_unpinned_scope_before_building_or_starting_adapter() {
     f.configure();
     let bytes = fs::read(f.db()).unwrap();
     let report = f.json(
-        &["verify", "run", "spec", "--project", "app", "--json"],
+        &[
+            "verify",
+            "run",
+            "--reuse",
+            "off",
+            "spec",
+            "--project",
+            "app",
+            "--json",
+        ],
         false,
     );
     assert_eq!(report["executed"], false);

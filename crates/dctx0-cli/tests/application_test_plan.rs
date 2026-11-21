@@ -42,6 +42,7 @@ fn diagnostic_export_validates_ownership_without_changing_history_or_legacy_conf
                 cases: case_manifest(&program).required_cases,
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: GroupResources {
                 namespace: "year".into(),
                 timeout_seconds: 30,

@@ -6,6 +6,7 @@ use serde_json::Value;
 #[derive(Debug, Clone)]
 pub struct LogicalVerificationUnit {
     pub id: String,
+    pub subject: String,
     pub cases: BTreeSet<String>,
     pub requirements: BTreeSet<String>,
     pub description_hash: String,
@@ -43,6 +44,7 @@ fn without_locations(value: Value) -> Value {
 fn add_unit(
     units: &mut Vec<LogicalVerificationUnit>,
     id: String,
+    subject: &str,
     cases: BTreeSet<String>,
     description: &impl Serialize,
     manifest: &VerificationCaseManifest,
@@ -63,6 +65,7 @@ fn add_unit(
         .collect();
     units.push(LogicalVerificationUnit {
         id,
+        subject: subject.into(),
         cases,
         requirements,
         description_hash: evidence_digest(&without_locations(serde_json::to_value(description)?))?,
@@ -87,6 +90,7 @@ pub fn logical_unit_catalog(program: &ProgramPlan) -> Result<Vec<LogicalVerifica
             add_unit(
                 &mut units,
                 format!("contract:{}", contract.subject),
+                &contract.subject,
                 cases,
                 contract,
                 &manifest,
@@ -95,6 +99,7 @@ pub fn logical_unit_catalog(program: &ProgramPlan) -> Result<Vec<LogicalVerifica
                 add_unit(
                     &mut units,
                     format!("identity:{}", contract.subject),
+                    &contract.subject,
                     [format!("{}:identity", contract.subject)].into(),
                     contract,
                     &manifest,
@@ -115,6 +120,7 @@ pub fn logical_unit_catalog(program: &ProgramPlan) -> Result<Vec<LogicalVerifica
             add_unit(
                 &mut units,
                 format!("operation:{}", operation.operation.id),
+                &operation.operation.id,
                 cases,
                 operation,
                 &manifest,
@@ -129,6 +135,7 @@ pub fn logical_unit_catalog(program: &ProgramPlan) -> Result<Vec<LogicalVerifica
             add_unit(
                 &mut units,
                 format!("property:{}", property.subject),
+                &property.subject,
                 cases,
                 property,
                 &manifest,
@@ -138,6 +145,7 @@ pub fn logical_unit_catalog(program: &ProgramPlan) -> Result<Vec<LogicalVerifica
             add_unit(
                 &mut units,
                 format!("scenario:{}", example.subject),
+                &example.subject,
                 [example.subject.clone()].into(),
                 example,
                 &manifest,
@@ -148,6 +156,7 @@ pub fn logical_unit_catalog(program: &ProgramPlan) -> Result<Vec<LogicalVerifica
                 add_unit(
                     &mut units,
                     format!("lifecycle:{}", path.id),
+                    &lifecycle.subject,
                     [path.id.clone()].into(),
                     &(
                         &lifecycle.entity,

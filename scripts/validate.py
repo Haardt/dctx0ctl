@@ -557,7 +557,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--accept-baseline', metavar='RUN', help='latest or a history filename; performs no tests')
     parser.add_argument('--example', choices=('all', 'cinema'), default='all', help='select release measurement scope; cinema defers the two-example benchmark conformance test')
-    parser.add_argument('--coverage', action='store_true', help='enforce temporary 96%% line/function coverage')
+    parser.add_argument('--coverage', action='store_true', help='enforce Rust line and LLVM function coverage gates')
     parser.add_argument('--tutorial', action='store_true', help='validate all 16 TypeScript steps, feature coverage, mutations and replay; measure representative tutorial Rust phases last')
     parser.add_argument('--skip-performance', action='store_true', help='defer release measurements; save check results separately from benchmark history')
     parser.add_argument('--focus', choices=('workspace', 'native-transport', 'native-executor', 'verification', 'editors', 'conformance-reviews', 'workflow-tools', 'bindings', 'experimental-coverage', 'incremental'), default='workspace', help='non-workspace focuses are partial development checks; release measurements still run')
@@ -639,7 +639,7 @@ def main():
             ['cargo', 'test', '-p', 'dctx0-engine', '--lib', 'skills::environment_tests', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-store', '--lib', 'native_complete_baseline_survives', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-store', '--lib', 'retention_body_lookup', '--locked'],
-            ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'incremental_native', '--test', 'incremental_hybrid', '--locked'],
+            ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'incremental_native', '--test', 'incremental_hybrid', '--test', 'decoder_units', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'verification_run', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'hybrid_done', '--locked'],
             ['cargo', 'test', '-p', 'dctx0-cli', '--test', 'verification_incremental', '--test', 'hybrid_run', '--all-features', '--locked'],

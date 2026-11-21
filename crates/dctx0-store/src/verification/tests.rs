@@ -142,7 +142,7 @@ fn incremental_publication_validates_parent_and_copied_cases() {
     run.required_subjects = plan.closure.clone();
     run.provenance
         .implementation
-        .insert("source".into(), "digest".into());
+        .insert("source.ts".into(), "digest".into());
     run.provenance.plan_hash = plan_artifact.reference.hash.clone();
     run.required_cases = dctx0_verification::case_manifest(&plan).required_cases;
     let template = run.cases[0].clone();
@@ -166,7 +166,9 @@ fn incremental_publication_validates_parent_and_copied_cases() {
         artifacts[1].reference.hash.clone(),
     )
     .unwrap();
-    let selection = incremental::plan_reuse(&binding, &binding, &run, &units).unwrap();
+    let selection =
+        incremental::plan_reuse_projected(&binding, &binding, &run, &units, &run.provenance)
+            .unwrap();
     assert!(!selection.reused.is_empty());
     let proof = IncrementalProof {
         parent_run: parent.id.clone(),
@@ -333,7 +335,7 @@ fn incremental_publication_validates_parent_and_copied_cases() {
         "application/vnd.dctx0.application-native-receipt+json",
         serde_json::to_vec(&serde_json::json!({
             "plan_hash":"a", "group":"group", "backend":"application-tests", "target":"typescript",
-            "source_inputs":{"source":source}, "build_inputs":{}, "materialized_inputs":{}, "toolchain_inputs":{},
+            "source_inputs":{"source.ts":source}, "build_inputs":{}, "materialized_inputs":{}, "toolchain_inputs":{},
             "phases":[{"phase":"native-tests","runtime":{"executable_hash":"a".repeat(64)}}],
             "timestamp":timestamp
         })).unwrap(),

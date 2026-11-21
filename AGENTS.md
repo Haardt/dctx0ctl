@@ -16,6 +16,19 @@ Compilation validates modeled rules; it does not execute examples, invariants, p
 
 The Cinema scenario increment (2026-10-10) passes 202 Rust tests and 8 Python tests, plus 4 Bun conformance tests, with 100% merged source-line (14,526 lines) and LLVM function coverage (1,232 functions). Preserve raw LLVM metrics separately; this is not a claim of complete branch coverage. Current task validation is recorded in `docs/site/src/reference/tasks-validation.md` and `docs/site/src/reference/coverage.md`; earlier refactoring evidence remains in `docs/site/src/reference/refactoring.md` and `benchmarks/refactoring-comparison.json`. Update this dated status when capabilities change.
 
+Incremental comparison (2026-11-21): `verify incremental-plan` reports task
+impact paths and logical test-group changes against the current published check.
+The report shows complete historical group evidence alongside the runner's
+static binding status. It reads retained artifacts and local files without
+starting verification or delivering tasks. See
+`docs/site/src/reference/incremental-verification.md` for the acceptance example
+and group status meanings.
+
+Go application-test SDK 0.3.0 adds bounded packets for reviewed stateless decoder
+registrations under application protocol 2. Isolated Go decoder cohorts retain
+source-bound automated case evidence across compatible runs, with manual
+obligations still open. See `docs/site/src/docs/application-tests.md`.
+
 ## Project Structure & Architecture
 
 Use one Cargo workspace with shared dependencies, metadata, lint configuration, and a committed `Cargo.lock`:
@@ -93,7 +106,7 @@ cargo build --workspace
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
-python3 scripts/coverage.py # temporary 96% merged source lines and LLVM functions
+python3 scripts/coverage.py # temporary 94% merged source lines and LLVM functions
 ```
 
 The coverage stage preserves raw LLVM metrics and strictly enforces every merged LCOV source line; see `docs/site/src/reference/coverage.md` for the instrumented-instance reporting limitation. It requires `cargo-llvm-cov` and the toolchain's `llvm-tools-preview` component. Document CLI usage and native target toolchain setup in `README.md`. Test supported feature combinations separately when all-features testing cannot represent them.
@@ -113,7 +126,7 @@ Use rustfmt's default four-space indentation, `snake_case` for modules/functions
 
 ## Testing & Coverage Requirements
 
-Target **96% line and function coverage of first-party Rust production code** (temporary user authorization, 2026-11-09), enforced in CI with `cargo-llvm-cov`. Also pursue full branch/region coverage where Rust/LLVM tooling supports reliable measurement. Line coverage alone does not prove every behavior is tested.
+Target **94% line and function coverage of first-party Rust production code** (temporary user authorization, 2026-11-21), enforced in CI with `cargo-llvm-cov`. Also pursue full branch/region coverage where Rust/LLVM tooling supports reliable measurement. Line coverage alone does not prove every behavior is tested.
 
 Cover success, rejection, boundary, timeout, cancellation, and unavailable-toolchain paths. Use unit tests near implementation, integration tests under each crate's `tests/`, and descriptive behavior-based names. Run doctests separately where coverage instrumentation does not support them. Compare parser, IR, interpreter, and target behavior against shared reference fixtures; document intentional deviations. Exercise real native compilers and harnesses in integration CI, not only mocks.
 
@@ -1715,3 +1728,7 @@ The user explicitly lowered the Rust merged source-line and LLVM function gates
 to 96% for now. This supersedes earlier instructions to retain 97%; historical
 metrics and validation outcomes remain unchanged. All functional, native,
 provenance, task-publication and performance requirements remain applicable.
+
+The 2026-11-21 coverage recovery sets the temporary merged source-line and LLVM
+function gates to 94%. Earlier thresholds and recorded measurements remain
+historical. See `docs/site/src/reference/coverage.md` for the recovery scope.

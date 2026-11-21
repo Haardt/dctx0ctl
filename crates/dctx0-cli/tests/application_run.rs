@@ -48,7 +48,7 @@ fn native_run_preserves_diagnostic_and_claimed_work_then_delivers_the_actual_con
         "go",
     ]);
     invoke(&["profile", "go", "create", "--project", path, "--default"]);
-    fs::write(root.join("go.mod"), "module year\n\ngo 1.25.0\n\nrequire github.com/Haardt/dctx0ctl/applicationtests/go v0.2.0\n\nreplace github.com/Haardt/dctx0ctl/applicationtests/go => ./.dctx0/application-tests/library\n").unwrap();
+    fs::write(root.join("go.mod"), "module year\n\ngo 1.25.0\n\nrequire github.com/Haardt/dctx0ctl/applicationtests/go v0.3.0\n\nreplace github.com/Haardt/dctx0ctl/applicationtests/go => ./.dctx0/application-tests/library\n").unwrap();
     fs::write(
         root.join("year.go"),
         r#"package year
@@ -70,7 +70,7 @@ func TestYear(t *testing.T){
  client,err:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKET"),app.DefaultFrameBytes,5*time.Second)
  if err!=nil{t.Fatal(err)}
  t.Cleanup(func(){defer client.Close();if _,err:=client.Finish();err!=nil{t.Error(err)}})
- client.DecoderTest(t,func(raw []byte,_ app.TypeRef)(any,error){
+ client.StatelessDecoderTest(t,func(raw []byte,_ app.TypeRef)(any,error){
   value,err:=DecodeYear(raw);var rejection *InvalidYear
   if errors.As(err,&rejection){return nil,app.Reject(err.Error())}
   return value,err
@@ -103,8 +103,45 @@ func TestYear(t *testing.T){
         "decoder",
         "--boundary",
         "json-decoder",
+        "--stateless-decoder",
+        "TestYear",
     ]);
     let project = Project::new(&root, None).unwrap();
+    assert!(
+        project
+            .read_application_testing_bundle(&root, "plan.json")
+            .is_ok()
+    );
+    let source = root.join("year.go");
+    let original = fs::read_to_string(&source).unwrap();
+    fs::write(&source, format!("{original}\n// changed since review\n")).unwrap();
+    assert!(
+        project
+            .read_application_testing_bundle(&root, "plan.json")
+            .unwrap_err()
+            .to_string()
+            .contains("DECODER_REVIEW_STALE")
+    );
+    fs::write(source, original).unwrap();
+    let module = root.join("go.mod");
+    let original = fs::read_to_string(&module).unwrap();
+    let absolute = root.join(".dctx0/application-tests/library");
+    fs::write(
+        &module,
+        original.replace(
+            "./.dctx0/application-tests/library",
+            absolute.to_str().unwrap(),
+        ),
+    )
+    .unwrap();
+    assert!(
+        project
+            .read_application_testing_bundle(&root, "plan.json")
+            .unwrap_err()
+            .to_string()
+            .contains("DECODER_REVIEW_EXTERNAL_SOURCE")
+    );
+    fs::write(module, original).unwrap();
     let bundle: Value = serde_json::from_slice(&fs::read(root.join("plan.json")).unwrap()).unwrap();
     project
         .task_plan(bundle["plan"]["program"]["snapshot"].as_str().unwrap())
@@ -117,6 +154,8 @@ func TestYear(t *testing.T){
             "verify",
             "application-tests",
             "run",
+            "--reuse",
+            "off",
             path,
             "--project",
             path,

@@ -127,7 +127,7 @@ impl Project {
             &store,
             &parent.id,
             &parent.run,
-            &program,
+            program,
             &ownership,
         )?;
         Ok(VerificationContinuationPlan {
@@ -173,7 +173,7 @@ impl Project {
         };
         let artifact = store.verification_artifact(&saved.id, &reference.hash)?;
         let captured: BTreeMap<String, String> = serde_json::from_slice(&artifact.contents)?;
-        if Capture::inventory_with_budget(&root, config.capture_budgets())? != captured {
+        if Capture::proof_inventory(&root, config.capture_budgets(), &saved.run)? != captured {
             return Err(Error::Invalid("CONTINUATION_INPUTS_CHANGED: zero-pending history does not validate changed sources".into()));
         }
         let snapshot = store.load(&self.key(), &saved.run.provenance.snapshot)?;
@@ -257,7 +257,9 @@ impl Project {
         let inventory = store.verification_artifact(&parent.id, &inventory.hash)?;
         let original_inputs: BTreeMap<String, String> =
             serde_json::from_slice(&inventory.contents)?;
-        if Capture::inventory_with_budget(&root, config.capture_budgets())? != original_inputs {
+        if Capture::proof_inventory(&root, config.capture_budgets(), &parent.run)?
+            != original_inputs
+        {
             return Err(Error::Invalid(
                 "CONTINUATION_INPUTS_CHANGED: original inputs changed; no pending cases started"
                     .into(),

@@ -8,7 +8,7 @@ mod adoption_preview;
 pub use adoption_preview::{AdoptionPreviewTask, VerificationAdoptionPreview};
 mod attestations;
 mod build;
-mod capture;
+pub(crate) mod capture;
 mod code_selection;
 mod composition_attestations;
 pub use composition_attestations::CompositionTaskAttestation;
@@ -24,7 +24,11 @@ mod reuse_preflight;
 pub use reconciliation::{NativeTaskReconciliation, ReconciliationCheck};
 mod unit_plan;
 mod units;
-pub use incremental::{IncrementalComparison, VerificationIncrementalReport};
+pub use incremental::{
+    IncrementalComparison, IncrementalTaskCause, IncrementalTaskImpact, IncrementalTestGroup,
+    TaskImpactClassification, TestGroupChange, TestGroupRunnerStatus,
+    VerificationIncrementalReport,
+};
 pub use reuse_execution::{NativeReuseMode, NativeReuseOptions, NativeReuseSummary};
 pub use units::{DecoderUnitConfiguration, DecoderUnitGroup, UnitVerificationReport};
 mod pins;
@@ -503,9 +507,9 @@ impl Project {
         let supervision = limits.supervision_capabilities();
         let historical = selection.historical_check.is_some() || pinned.is_some();
         let no_adopt = no_adopt || historical;
-        let automatic_options = NativeReuseOptions::default();
-        let reuse_options = reuse_options
-            .or_else(|| (transient.is_none() && !historical).then_some(&automatic_options));
+        let fresh = NativeReuseOptions::fresh();
+        let reuse_options =
+            reuse_options.or_else(|| (transient.is_none() && !historical).then_some(&fresh));
         let (application, config) = self.verification_configuration(application)?;
         let mut limits = limits;
         limits.environment = config.environment.clone().unwrap_or_default();
@@ -538,8 +542,16 @@ impl Project {
         {
             reuse_preflight::guard(self, &application, &plan, options, cancellation).await?;
         }
-        let mut capture = Capture::new_with_budget(&application, config.capture_budgets())?;
-        let captured_inputs = capture.files.clone();
+        let mut capture = if unit_context.is_some() {
+            Capture::unit_recipe(&application, config.capture_budgets())?
+        } else {
+            Capture::new_with_budget(&application, config.capture_budgets())?
+        };
+        let captured_inputs = if hybrid.is_some() {
+            capture.files.clone()
+        } else {
+            capture.materialized.clone()
+        };
         if let Some(bytes) = projection_bytes
             && fs::read(capture.root.join(&config.fixtures))? != bytes
         {
@@ -587,7 +599,7 @@ impl Project {
             if plan.snapshot != expected.snapshot
                 || plan.check_occurrence != expected.check_occurrence
                 || digest(&serde_json::to_vec(&plan)?) != expected.plan_hash
-                || digest(&serde_json::to_vec(&captured_inputs)?) != expected.inputs_hash
+                || digest(&serde_json::to_vec(&capture.files)?) != expected.inputs_hash
             {
                 return Err(Error::Invalid("PREFLIGHT_INPUTS_CHANGED: source inventory, configuration or published plan changed; repeat preflight before native execution".into()));
             }
@@ -696,7 +708,7 @@ impl Project {
             })
             .map_err(|e| Error::Invalid(e.to_string()))?;
         let mut observer_sources = Vec::new();
-        for path in capture.files.keys() {
+        for path in capture.materialized.keys() {
             let language = match Path::new(path)
                 .extension()
                 .and_then(|extension| extension.to_str())
@@ -746,6 +758,12 @@ impl Project {
             "application/vnd.dctx0.captured-input-inventory+json",
             serde_json::to_vec(&captured_inputs)?,
         ));
+        if hybrid.is_none() {
+            artifacts.push(VerificationArtifact::new(
+                capture::MATERIALIZED_INPUTS,
+                serde_json::to_vec(&serde_json::json!({"schema_version":1}))?,
+            ));
+        }
         artifacts.push(VerificationArtifact::new(
             "application/vnd.dctx0.assessment-version+json",
             serde_json::to_vec(&serde_json::json!({"schema_version":1,"version":dctx0_verification::ASSESSMENT_VERSION}))?,
@@ -781,6 +799,9 @@ impl Project {
             capture
                 .files
                 .remove(&directory.join(path).to_string_lossy().into_owned());
+            capture
+                .materialized
+                .remove(&directory.join(path).to_string_lossy().into_owned());
             artifacts.push(VerificationArtifact::new(
                 if artifact.path == "module-observer.json" {
                     "application/vnd.dctx0.module-observer-manifest+json"
@@ -802,6 +823,9 @@ impl Project {
         fs::write(capture.root.join(directory).join("model.json"), &model)?;
         capture
             .files
+            .remove(&directory.join("model.json").to_string_lossy().into_owned());
+        capture
+            .materialized
             .remove(&directory.join("model.json").to_string_lossy().into_owned());
         artifacts.push(VerificationArtifact::new(
             "application/vnd.dctx0.model+json",
@@ -967,7 +991,7 @@ impl Project {
             }
         }
         let execution_inputs =
-            Capture::inventory_with_budget(&capture.root, config.capture_budgets())?;
+            Capture::materialized_inventory(&capture.root, config.capture_budgets())?;
         let started_at_unix_ns = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| Error::Invalid(e.to_string()))?
@@ -991,12 +1015,15 @@ impl Project {
                     .map(|(p, h)| (p.clone(), h.clone()))
                     .collect()
             },
-            dependencies: capture
-                .files
-                .iter()
-                .filter(|(p, _)| p.starts_with("node_modules/"))
-                .map(|(p, h)| (p.clone(), h.clone()))
-                .collect(),
+            dependencies: (if hybrid.is_some() {
+                &capture.materialized
+            } else {
+                &captured_inputs
+            })
+            .iter()
+            .filter(|(p, _)| p.starts_with("node_modules/") || !capture.files.contains_key(*p))
+            .map(|(p, h)| (p.clone(), h.clone()))
+            .collect(),
             adapter_hash: capture.files.get(&config.adapter).cloned().ok_or_else(|| {
                 Error::Invalid(
                     "Configured adapter is excluded by code selection or .gitignore".into(),
@@ -1012,7 +1039,7 @@ impl Project {
             target: bundle.target.clone(),
             runtime_version: String::new(),
             build_configuration: capture
-                .files
+                .materialized
                 .iter()
                 .filter(|(path, _)| {
                     matches!(
@@ -1210,7 +1237,7 @@ impl Project {
                     VerificationResult::Pass
                 }
             });
-        match Capture::inventory_with_budget(&capture.root, config.capture_budgets()) {
+        match Capture::bound_inventory(&capture.root, config.capture_budgets(), &execution_inputs) {
             Ok(current) if current == execution_inputs => {}
             Ok(_) => run.provenance.incomplete.push(issue(
                 "CAPTURED_INPUTS_CHANGED",
@@ -1240,7 +1267,12 @@ impl Project {
         } else {
             None
         };
-        match Capture::inventory_with_budget(&application, config.capture_budgets()) {
+        let current_application_inputs = if hybrid.is_some() {
+            Capture::inventory_with_budget(&application, config.capture_budgets())
+        } else {
+            Capture::bound_inventory(&application, config.capture_budgets(), &captured_inputs)
+        };
+        match current_application_inputs {
             Ok(current) if current == captured_inputs => {}
             Ok(_) => run.provenance.incomplete.push(issue(
                 "APPLICATION_INPUTS_CHANGED",

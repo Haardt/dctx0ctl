@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 )
@@ -80,16 +79,23 @@ func discovery(directory string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	names := []string{}
+	var inputs strings.Builder
 	for _, entry := range entries {
-		// Include ignored/build-tagged files as discovery inputs too. External
-		// embeds are rejected below until their directory/glob closure is bound.
-		if !entry.IsDir() && strings.Contains("|.go|.s|.S|.syso|.h|.c|.cc|.cpp|.m|.f|.F|.f90|.swig|.swigcxx|", "|"+filepath.Ext(entry.Name())+"|") {
-			names = append(names, entry.Name())
+		name := entry.Name()
+		switch filepath.Ext(name) {
+		case ".go", ".s", ".S", ".syso", ".h", ".c", ".cc", ".cpp", ".m", ".f", ".F", ".f90", ".swig", ".swigcxx":
+			if entry.IsDir() {
+				continue
+			}
+			// An existing excluded file can enter the build without being renamed.
+			sum, err := hash(filepath.Join(directory, name))
+			if err != nil {
+				return "", err
+			}
+			inputs.WriteString(name + "\x00" + sum + "\x00")
 		}
 	}
-	sort.Strings(names)
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(names, "\x00")))), nil
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(inputs.String()))), nil
 }
 
 func moduleScope(directory string) (string, error) {

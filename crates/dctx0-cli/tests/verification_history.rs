@@ -530,7 +530,7 @@ fn storage_commands_build_verified_copies_preserve_task_queries_and_keep_a_backu
     call(vec!["check".into(), spec.clone()]);
     call(vec!["tasks".into(), "plan".into(), spec.clone()]);
     let before = call(vec!["storage".into(), "inspect".into(), spec.clone()]);
-    assert_eq!(before["schema_version"], 7);
+    assert_eq!(before["schema_version"], 8);
     let preview = call(vec![
         "storage".into(),
         "compact".into(),

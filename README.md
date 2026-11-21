@@ -18,6 +18,10 @@ Publish the shipped testing-only library with
 imports and authored tests are not rewritten. The CLI includes the libraries;
 no checkout-specific publisher is required.
 
+Go library 0.3.0 supports packet transport with `Client.StatelessDecoderTest`
+and `prepare --stateless-decoder TEST` for an explicitly reviewed registration.
+See the [application tests workflow](docs/site/src/docs/application-tests.md#batch-reviewed-go-decoders).
+
 For the authored Bun Cinema suite, prepare the current finite plan and complete
 its native and source-bound review obligations:
 

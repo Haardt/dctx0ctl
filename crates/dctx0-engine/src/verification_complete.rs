@@ -453,7 +453,7 @@ impl Project {
             notes_file,
             provider,
             cancellation,
-            &NativeReuseOptions::default(),
+            &NativeReuseOptions::fresh(),
         )
         .await
     }
@@ -544,7 +544,7 @@ impl Project {
             generator,
             cancellation,
             None,
-            &NativeReuseOptions::default(),
+            &NativeReuseOptions::fresh(),
         )
         .await
     }
@@ -569,7 +569,7 @@ impl Project {
             generator,
             cancellation,
             Some(expected_plan_sha256),
-            &NativeReuseOptions::default(),
+            &NativeReuseOptions::fresh(),
         )
         .await
     }
@@ -677,7 +677,7 @@ impl Project {
             generator,
             cancellation,
             max_input_bytes,
-            &NativeReuseOptions::default(),
+            &NativeReuseOptions::fresh(),
         )
         .await
     }

@@ -21,6 +21,9 @@ build time and cleanup. A `:value:` case tests a native factory/validator, so do
 not assume it timed out inside the business operation. Use the recorded input
 and observations to locate expensive adapter work, nested tools or unavailable
 external dependencies before deciding whether a larger limit is appropriate.
+For throughput issues, measure nested process starts and fixture costs before
+adjusting limits. Route production binding, packet transport, and isolated Go
+decoder cohorts to the performance workflow in `$dctx0-implementation`.
 
 Distinguish configured values from limits actually recorded for that execution.
 Explicit API callers and self-verification can supply their own limits. Report

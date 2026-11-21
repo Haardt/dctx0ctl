@@ -40,6 +40,7 @@ impl Fixture {
                     test: "TestYear",
                     form: TestForm::Decoder,
                     group_seconds: Some(3),
+                    stateless_decoders: Default::default(),
                     boundary: ApplicationValueBoundary::ValueConstructor,
                     subjects: Default::default(),
                 },
@@ -228,6 +229,7 @@ fn preparation_and_bundle_reader_reject_invalid_group_resources_and_case_ownersh
                     test,
                     form: TestForm::Decoder,
                     group_seconds: Some(seconds),
+                    stateless_decoders: Default::default(),
                     boundary: ApplicationValueBoundary::ValueConstructor,
                     subjects: Default::default(),
                 },
@@ -437,6 +439,7 @@ fn explicit_plan_budget_guards_preparation_and_read_before_replacing_existing_pl
         test: "TestYear",
         form: TestForm::Decoder,
         group_seconds: Some(3),
+        stateless_decoders: Default::default(),
         boundary: ApplicationValueBoundary::ValueConstructor,
         subjects: Default::default(),
     };

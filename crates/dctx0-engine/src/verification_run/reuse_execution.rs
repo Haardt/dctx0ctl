@@ -32,6 +32,14 @@ pub struct NativeReuseOptions {
     pub inputs: String,
     pub parent: Option<String>,
 }
+impl NativeReuseOptions {
+    pub(crate) fn fresh() -> Self {
+        Self {
+            mode: NativeReuseMode::Off,
+            ..Self::default()
+        }
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NativeReuseSummary {
     pub parent_run: Option<String>,

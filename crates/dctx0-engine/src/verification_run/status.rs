@@ -164,6 +164,18 @@ pub(super) fn sources_current(
     let Some(application) = application else {
         return Ok(None);
     };
+    if context
+        .artifacts
+        .iter()
+        .any(|a| a.media_type == capture::MATERIALIZED_INPUTS)
+    {
+        let config: VerificationConfiguration = serde_json::from_slice(&fs::read(
+            application.join(".dctx0/testing/verification.json"),
+        )?)?;
+        return Ok(Some(
+            Capture::bound_inventory(application, config.capture_budgets(), &expected)? == expected,
+        ));
+    }
     Ok(Some(
         &Capture::code_inventory(application, &expected)? == inputs,
     ))
@@ -413,6 +425,7 @@ impl Project {
                 .collect::<BTreeMap<_, _>>();
             let mut freshness = BTreeMap::new();
             let mut inspected_artifacts = BTreeMap::new();
+            let mut inspected_profiles = BTreeMap::new();
             let mut agent = super::status_agent::AgentFreshness::new(
                 self,
                 &store,
@@ -455,6 +468,7 @@ impl Project {
                     runs.get(&reference.report_hash)
                 };
                 let Some(id) = id else { continue };
+                let mut profile_current = Some(true);
                 if !inspected
                     && !store.verification_task_linked(
                         &key,
@@ -524,6 +538,27 @@ impl Project {
                     {
                         continue;
                     }
+                    let target = &context.provenance.target;
+                    let profiles = inspected_profiles.entry(target.clone()).or_insert_with(|| {
+                        config.as_ref().and_then(|(root, _)| {
+                            self.profiles(Some(root), Some(target)).ok().flatten()
+                        })
+                    });
+                    profile_current = profiles.as_ref().zip(snapshot.as_ref()).and_then(
+                        |(profiles, snapshot)| {
+                            let selection = dctx0_tasks::select_profiles(
+                                snapshot,
+                                &member.candidate,
+                                &profiles.manifest,
+                                &profiles.documents,
+                            );
+                            selection.require_complete().ok()?;
+                            Some(
+                                batch.task_pin.profile_bundles.get(&reference.task_id)
+                                    == Some(&selection.bundle.hash),
+                            )
+                        },
+                    );
                 }
                 if !freshness.contains_key(id) {
                     freshness.insert(
@@ -548,20 +583,20 @@ impl Project {
                 {
                     continue;
                 }
-                match binding.current {
-                    Some(true) => {
+                match (binding.current, profile_current) {
+                    (Some(true), Some(true)) => {
                         report.tasks.evidence_current += 1;
                         if inspected {
                             report.tasks.inspected_current += 1;
                         }
                     }
-                    Some(false) => {
+                    (Some(false), _) | (_, Some(false)) => {
                         report.tasks.evidence_stale += 1;
                         if inspected {
                             report.tasks.inspected_stale += 1;
                         }
                     }
-                    None => {}
+                    _ => {}
                 }
             }
             report.tasks.evidence_unknown = report

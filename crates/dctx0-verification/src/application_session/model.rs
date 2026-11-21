@@ -21,6 +21,17 @@ pub enum ApplicationRequest {
     Register {
         test: String,
     },
+    RegisterDecoder {
+        test: String,
+    },
+    NextDecoderBatch {
+        test: String,
+        max_message_bytes: usize,
+    },
+    CompleteDecoderBatch {
+        test: String,
+        cases: Vec<DecoderBatchObservation>,
+    },
     Next {
         test: String,
     },
@@ -46,6 +57,17 @@ pub enum ApplicationReply {
         observation: Observation,
     },
     Registered,
+    DecoderRegistered {
+        batch: bool,
+        max_message_bytes: usize,
+        case_timeout_seconds: u64,
+    },
+    DecoderBatch {
+        cases: Vec<DecoderBatchCase>,
+    },
+    DecoderBatchClosed {
+        cases: Vec<DecoderBatchVerdict>,
+    },
     Case {
         context: u64,
         id: String,
@@ -70,6 +92,29 @@ pub enum ApplicationReply {
     Rejected {
         issue: VerificationIssue,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecoderBatchCase {
+    pub context: u64,
+    pub id: String,
+    pub directive: ApplicationDirective,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecoderBatchObservation {
+    pub context: u64,
+    /// An already assessed directive needs no native observation.
+    pub observation: Option<ApplicationObservation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DecoderBatchVerdict {
+    pub context: u64,
+    pub status: ApplicationAssessmentStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

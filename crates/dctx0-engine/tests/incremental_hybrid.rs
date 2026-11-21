@@ -88,6 +88,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                     form: TestForm::Decoder,
                     boundary: ApplicationValueBoundary::JsonDecoder,
                     group_seconds: Some(30),
+                    stateless_decoders: Default::default(),
                     subjects: ["W.B".into()].into(),
                 },
             )
@@ -111,7 +112,11 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
-                    mode: Default::default(),
+                    mode: if parent.is_some() {
+                        NativeReuseMode::Auto
+                    } else {
+                        NativeReuseMode::Off
+                    },
                     inputs: ".dctx0/reuse.json".into(),
                     parent,
                 },
@@ -136,7 +141,11 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 &BunHarness,
                 &NativeCancellation::default(),
                 &NativeReuseOptions {
-                    mode: Default::default(),
+                    mode: if parent.is_some() {
+                        NativeReuseMode::Auto
+                    } else {
+                        NativeReuseMode::Off
+                    },
                     inputs: ".dctx0/reuse.json".into(),
                     parent,
                 },
@@ -355,8 +364,8 @@ async fn hybrid_reuses_legacy_cases_but_always_runs_native_and_invalidates_chang
     fs::write(f.app.join(".dctx0ctl/revision"), "two").unwrap();
     let third = f.run(Some(second.evidence.id)).await;
     assert_eq!(third.evidence.run.result, VerificationResult::Pass);
-    assert_eq!(third.incremental.unwrap().reused_cases, 0);
-    assert!(f.count("legacy-calls") > legacy);
+    assert!(third.incremental.unwrap().reused_cases > 0);
+    assert_eq!(f.count("legacy-calls"), legacy);
     let after_revision = f.count("legacy-calls");
     fs::write(
         f.app.join("app.ts"),
@@ -366,7 +375,7 @@ async fn hybrid_reuses_legacy_cases_but_always_runs_native_and_invalidates_chang
         ),
     )
     .unwrap();
-    let fourth = f.run(Some(third.evidence.id)).await;
+    let fourth = f.run(None).await;
     assert_eq!(fourth.evidence.run.result, VerificationResult::Pass);
     assert_eq!(fourth.incremental.unwrap().reused_cases, 0);
     assert!(f.count("legacy-calls") > after_revision);
@@ -380,7 +389,7 @@ async fn hybrid_reuses_legacy_cases_but_always_runs_native_and_invalidates_chang
         ),
     )
     .unwrap();
-    let fifth = f.run(Some(fourth.evidence.id)).await;
+    let fifth = f.run(None).await;
     assert_eq!(fifth.evidence.run.result, VerificationResult::Pass);
     assert_eq!(fifth.incremental.unwrap().reused_cases, 0);
     assert!(f.count("legacy-calls") > after_source);

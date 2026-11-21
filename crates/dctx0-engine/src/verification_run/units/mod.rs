@@ -18,6 +18,10 @@ pub struct DecoderUnitGroup {
 #[serde(deny_unknown_fields)]
 pub struct DecoderUnitConfiguration {
     pub schema_version: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<ConfiguredVerificationScope>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub environment: Option<crate::NativeEnvironment>,
     pub groups: Vec<DecoderUnitGroup>,
 }
 
@@ -29,6 +33,7 @@ pub struct UnitVerificationReport {
     pub composition: EvidenceCompositionV1,
     pub reused_cases: usize,
     pub executed_cases: usize,
+    pub open_obligations: Vec<VerificationIssue>,
     pub native_runs: Vec<String>,
     pub production_calls: BTreeMap<String, usize>,
     pub worker_starts: Option<usize>,
@@ -43,6 +48,40 @@ struct PreparedUnit {
     recipe: materialize::UnitRecipe,
 }
 
+pub(super) fn configuration(
+    project: &Project,
+    application: &Path,
+    path: &str,
+) -> Result<(PathBuf, VerificationConfiguration, DecoderUnitConfiguration)> {
+    let (root, mut config) = project.verification_configuration(Some(application))?;
+    let (_, path) = crate::verification_setup::safe_file(&root, path)?;
+    let groups: DecoderUnitConfiguration = crate::read_review_input(
+        &path,
+        crate::DEFAULT_REVIEW_INPUT_BYTES,
+        "Decoder unit configuration",
+    )?;
+    if groups.schema_version != 1 || groups.groups.is_empty() || groups.groups.len() > 128 {
+        return Err(Error::Invalid("Invalid decoder unit configuration".into()));
+    }
+    if let Some(scope) = &groups.scope {
+        config.scope = scope.clone();
+    }
+    if let Some(environment) = &groups.environment {
+        config.environment = Some(environment.clone());
+    }
+    if config.target != "go"
+        || !matches!(
+            config.environment,
+            Some(crate::NativeEnvironment::Controlled { .. })
+        )
+    {
+        return Err(Error::Invalid(
+            "Decoder units require Go and an explicit controlled environment".into(),
+        ));
+    }
+    Ok((root, config, groups))
+}
+
 impl Project {
     /// This first connection emits technical compositions only. Task delivery
     /// remains a separate guarded operation, never an imported native PASS.
@@ -54,27 +93,13 @@ impl Project {
         options: &NativeReuseOptions,
         cancellation: &NativeCancellation,
     ) -> Result<UnitVerificationReport> {
-        let (root, config) = self.verification_configuration(Some(application))?;
-        if config.target != "go" || config.environment.is_none() || !options.inputs.is_empty() {
-            return Err(Error::Invalid("Decoder units require Go, an explicit controlled environment and no legacy reuse declaration".into()));
-        }
-        if !matches!(
-            config.environment,
-            Some(crate::NativeEnvironment::Controlled { .. })
-        ) {
+        if !options.inputs.is_empty() {
             return Err(Error::Invalid(
-                "Decoder units require an explicitly controlled environment".into(),
+                "Decoder units use their own dependencies in place of legacy reuse declarations"
+                    .into(),
             ));
         }
-        let (_, path) = crate::verification_setup::safe_file(&root, configuration)?;
-        let groups: DecoderUnitConfiguration = crate::read_review_input(
-            &path,
-            crate::DEFAULT_REVIEW_INPUT_BYTES,
-            "Decoder unit configuration",
-        )?;
-        if groups.schema_version != 1 || groups.groups.is_empty() || groups.groups.len() > 128 {
-            return Err(Error::Invalid("Invalid decoder unit configuration".into()));
-        }
+        let (root, config, groups) = self::configuration(self, application, configuration)?;
         let fixtures: ProjectionFixtures = crate::read_review_input(
             &crate::verification_setup::safe_file(&root, &config.fixtures)?.1,
             crate::DEFAULT_REVIEW_INPUT_BYTES,
@@ -89,7 +114,8 @@ impl Project {
             &fixtures,
             config.budgets.clone(),
         )?;
-        let required = dctx0_verification::case_manifest(&program).required_cases;
+        let manifest = dctx0_verification::case_manifest(&program);
+        let required = manifest.required_cases;
         let store = self.store(AccessMode::ReadWrite)?;
         let mut prepared = Vec::new();
         let mut candidates = Vec::new();
@@ -310,6 +336,7 @@ impl Project {
             composition,
             reused_cases: reused.len(),
             executed_cases,
+            open_obligations: manifest.open_obligations,
             native_runs,
             production_calls,
             worker_starts,

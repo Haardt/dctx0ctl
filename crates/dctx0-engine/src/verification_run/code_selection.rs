@@ -6,6 +6,7 @@ use std::sync::Arc;
 /// Resolve repository and nested .gitignore rules, including deleted source paths.
 pub(super) struct CodeSelection {
     root: PathBuf,
+    inherit_parent_rules: bool,
     directories: BTreeMap<PathBuf, Option<Vec<Arc<Gitignore>>>>,
 }
 
@@ -13,7 +14,16 @@ impl CodeSelection {
     pub fn new(root: &Path) -> Result<Self> {
         Ok(Self {
             root: fs::canonicalize(root)?,
+            inherit_parent_rules: true,
             directories: BTreeMap::new(),
+        })
+    }
+
+    /// Managed recipes have a private source root inside an ignored work directory.
+    pub(super) fn managed(root: &Path) -> Result<Self> {
+        Ok(Self {
+            inherit_parent_rules: false,
+            ..Self::new(root)?
         })
     }
 
@@ -21,7 +31,9 @@ impl CodeSelection {
         if let Some(rules) = self.directories.get(directory) {
             return Ok(rules.clone());
         }
-        let parent = if directory.join(".git").exists() {
+        let parent = if (!self.inherit_parent_rules && directory == self.root)
+            || directory.join(".git").exists()
+        {
             Some(Vec::new())
         } else if let Some(parent) = directory.parent() {
             self.rules(parent)?

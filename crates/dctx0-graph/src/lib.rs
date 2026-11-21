@@ -39,6 +39,14 @@ pub struct Impact {
     pub reasons: Vec<EdgeKind>,
 }
 
+/// A path from a task requirement to a changed semantic node.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RequirementPath {
+    pub path: Vec<String>,
+    pub edges: Vec<EdgeKind>,
+    pub inherited_constraint: bool,
+}
+
 pub fn build(ir: &WorkspaceIr) -> SemanticGraph {
     let nodes = ir
         .nodes
@@ -186,6 +194,73 @@ pub struct GraphIndex<'a> {
     outgoing: BTreeMap<&'a str, Vec<&'a GraphEdge>>,
 }
 impl GraphIndex<'_> {
+    /// Find independent and inherited paths separately. An ancestor is
+    /// visited only to find governing requirements, never its other children
+    /// or dependencies.
+    pub fn requirement_paths(
+        &self,
+        roots: &BTreeSet<String>,
+    ) -> BTreeMap<String, Vec<RequirementPath>> {
+        let mut paths = BTreeMap::<String, Vec<RequirementPath>>::new();
+        let mut visited = BTreeSet::new();
+        let mut queue: VecDeque<_> = roots
+            .iter()
+            .filter(|id| self.graph.nodes.contains_key(*id))
+            .map(|id| (id.clone(), false, false, vec![id.clone()], vec![]))
+            .collect();
+        while let Some((id, ancestor, inherited, path, edges)) = queue.pop_front() {
+            if !visited.insert((id.clone(), ancestor, inherited)) {
+                continue;
+            }
+            if !ancestor {
+                paths.entry(id.clone()).or_default().push(RequirementPath {
+                    path: path.clone(),
+                    edges: edges.clone(),
+                    inherited_constraint: inherited,
+                });
+            }
+            let mut enqueue = |next: &str, kind, ancestor, inherited| {
+                if self.graph.nodes.contains_key(next) && !path.iter().any(|id| id == next) {
+                    let mut path = path.clone();
+                    path.push(next.to_owned());
+                    let mut edges = edges.clone();
+                    edges.push(kind);
+                    queue.push_back((next.to_owned(), ancestor, inherited, path, edges));
+                }
+            };
+            if !ancestor {
+                for edge in self.outgoing.get(id.as_str()).into_iter().flatten() {
+                    if matches!(edge.kind, EdgeKind::Dependency(_)) {
+                        enqueue(&edge.to, edge.kind, false, inherited);
+                    }
+                }
+            }
+            for edge in self.incoming.get(id.as_str()).into_iter().flatten() {
+                match edge.kind {
+                    EdgeKind::Contains
+                        if ancestor || self.graph.nodes[&id].kind != K::Constraint =>
+                    {
+                        enqueue(&edge.from, edge.kind, true, inherited);
+                    }
+                    EdgeKind::Governs
+                        if !ancestor
+                            || governing_requirement(self.graph.nodes[&edge.from].kind) =>
+                    {
+                        let constraint = self.graph.nodes[&edge.from].kind == K::Constraint;
+                        enqueue(
+                            &edge.from,
+                            edge.kind,
+                            false,
+                            inherited || ancestor && constraint,
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        }
+        paths
+    }
+
     /// Verification identity follows references and applicable governing facts,
     /// never a container's unrelated children. Ancestors contribute governing
     /// facts only; they are not themselves added as broad dependencies.
@@ -210,16 +285,12 @@ impl GraphIndex<'_> {
                 for edge in self.incoming.get(owner.as_str()).into_iter().flatten() {
                     match edge.kind {
                         EdgeKind::Governs => {
-                            if self.graph.nodes.get(&edge.from).is_some_and(|node| {
-                                matches!(
-                                    node.kind,
-                                    K::Intent
-                                        | K::Constraint
-                                        | K::Decision
-                                        | K::Policy
-                                        | K::Invariant
-                                )
-                            }) {
+                            if self
+                                .graph
+                                .nodes
+                                .get(&edge.from)
+                                .is_some_and(|node| governing_requirement(node.kind))
+                            {
                                 queue.push_back(edge.from.clone());
                             }
                         }
@@ -276,4 +347,11 @@ impl GraphIndex<'_> {
         results.sort_by(|a, b| a.subject.cmp(&b.subject));
         results
     }
+}
+
+fn governing_requirement(kind: K) -> bool {
+    matches!(
+        kind,
+        K::Intent | K::Constraint | K::Decision | K::Policy | K::Invariant
+    )
 }

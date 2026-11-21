@@ -126,7 +126,7 @@ pub(super) fn discovery_hash(key: &str) -> Result<String> {
         return Ok(digest(&bytes));
     }
     let directory = key;
-    let mut names = fs::read_dir(directory)?
+    let mut inputs = fs::read_dir(directory)?
         .map(|entry| {
             let entry = entry?;
             if entry.file_type()?.is_dir()
@@ -151,23 +151,30 @@ pub(super) fn discovery_hash(key: &str) -> Result<String> {
             {
                 return Ok(None);
             }
-            entry
+            let name = entry
                 .file_name()
                 .into_string()
-                .map(Some)
-                .map_err(|_| std::io::Error::other("Non-UTF8 Go package entry"))
+                .map_err(|_| std::io::Error::other("Non-UTF8 Go package entry"))?;
+            Ok(Some((name, entry.path())))
         })
         .collect::<std::io::Result<Vec<_>>>()?
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
-    names.sort();
+    inputs.sort_by(|left, right| left.0.cmp(&right.0));
     if !Path::new(directory).is_absolute() {
         return Err(Error::Invalid(
             "Go discovery needs an absolute directory".into(),
         ));
     }
-    Ok(digest(names.join("\0").as_bytes()))
+    let mut bytes = Vec::new();
+    for (name, path) in inputs {
+        bytes.extend_from_slice(name.as_bytes());
+        bytes.push(0);
+        bytes.extend_from_slice(file_hash(&path)?.as_bytes());
+        bytes.push(0);
+    }
+    Ok(digest(&bytes))
 }
 
 #[cfg(test)]

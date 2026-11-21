@@ -38,6 +38,7 @@ fn group(id: &str, cases: BTreeSet<String>) -> ExecutionGroup {
             cases,
             ..Default::default()
         },
+        stateless_decoders: Default::default(),
         resources: GroupResources {
             namespace: id.into(),
             timeout_seconds: 30,

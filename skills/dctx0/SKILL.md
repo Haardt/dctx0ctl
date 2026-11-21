@@ -55,6 +55,9 @@ New Go and TypeScript/Bun connections use `verify application-tests`: publish
 the testing library, author native tests calling real production, prepare from
 the current spec, then execute with a captured native recipe. Read the
 implementation skill's application-test reference for the actual connection.
+For slow verification, use `$dctx0-implementation` to measure process starts,
+fixtures and channel overhead. Judge improvements against the same case and
+evidence scope.
 Existing adapters keep `verify run` / `verify complete`. Mixed projects use
 `application-tests hybrid` / `hybrid-complete` with explicit case assignment.
 There is no universal CLI `--legacy` flag; inspect project wrapper help.

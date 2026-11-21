@@ -77,14 +77,19 @@ func decodeStrict(data []byte, destination any) error {
 	return nil
 }
 
+var errRequestTooLarge = errors.New("application assessment request exceeds its budget")
+
 func (client *Client) exchange(request any) (reply, error) {
+	return client.exchangeWithin(request, client.limit)
+}
+
+func (client *Client) exchangeWithin(request any, limit int) (reply, error) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 	if client.nextID > maxRequestID {
 		return reply{}, errors.New("assessment correlation IDs exhausted")
 	}
 	id := client.nextID
-	client.nextID++
 	payload, err := json.Marshal(request)
 	if err != nil {
 		return reply{}, err
@@ -94,9 +99,10 @@ func (client *Client) exchange(request any) (reply, error) {
 		return reply{}, err
 	}
 	data = append(data, '\n')
-	if len(data) > client.limit {
-		return reply{}, errors.New("application assessment request exceeds its budget")
+	if len(data) > limit {
+		return reply{}, errRequestTooLarge
 	}
+	client.nextID++
 	if err = client.connection.SetDeadline(time.Now().Add(client.timeout)); err != nil {
 		return reply{}, err
 	}

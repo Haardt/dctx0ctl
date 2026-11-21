@@ -35,6 +35,7 @@ pub(crate) fn benchmark(
                     cases: dctx0_verification::case_manifest(&plan).required_cases,
                     requirements: Default::default(),
                 },
+                stateless_decoders: Default::default(),
                 resources: GroupResources {
                     namespace: "reference".into(),
                     timeout_seconds: 60,

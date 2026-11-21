@@ -1,8 +1,12 @@
-Temporary coverage gate (2026-11-09): the user explicitly authorized **96% merged
-Rust source lines and 96% LLVM functions** for the current release work. Both the
-local validator and release workflow enforce these values. Historical measurements
-and failed validations retain their original thresholds and outcomes; this change
-does not certify the current tree or relax functional/native acceptance checks.
+The temporary gate is **94% merged Rust source lines and 94% LLVM functions**
+as of 2026-11-21. The recovery repaired native bootstrap and reuse fixtures and
+added real Go decoder-cohort and continuation coverage. All 905 tests in the
+instrumented workspace run passed. The run measured 58,645 of 61,585 merged
+lines (95.23%) and 4,691 of 4,963 LLVM functions (94.52%). The previous 96%
+gate would require 477 more covered lines and 74 more functions across
+independent CLI, storage, and publication workflows. The local validator and
+release workflow use the same two thresholds. Functional and native acceptance
+checks still require successful outcomes.
 
 
 # Experimental execution corpus (2026-10-28)

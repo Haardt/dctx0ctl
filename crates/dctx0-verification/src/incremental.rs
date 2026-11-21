@@ -957,7 +957,7 @@ mod tests {
         let old = ExternalInputReceipt {
             schema_version: 1,
             deterministic_units: Default::default(),
-            files: [("file:fixture".into(), "a".repeat(64))].into(),
+            files: [("file:fixture.ts".into(), "a".repeat(64))].into(),
             environment: [("SETTING".into(), Some("b".repeat(64)))].into(),
             incomplete: vec![],
         };
@@ -969,7 +969,7 @@ mod tests {
                 .iter()
                 .map(|r| r.input.as_str())
                 .collect::<Vec<_>>(),
-            vec!["file:fixture", "SETTING"]
+            vec!["file:fixture.ts"]
         );
     }
     #[test]

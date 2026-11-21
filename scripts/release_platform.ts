@@ -175,14 +175,14 @@ return {async invoke(call){const v=call.arguments[0];return {kind:'returned',val
     const initialized=await command(binary,['verify','init',specs,'--project',app,'--target','typescript','--subject','Adaptive.Counter.next','--json']);
     assert.equal(initialized.code,0,initialized.stderr);
     const invoke=async(args:string[],success=true)=>{const result=await command(binary,[...args,'--json','--full']);if(success)assert.equal(result.code,0,result.stderr+'\n'+result.stdout.slice(0,1000));return JSON.parse(result.stdout);};
-    const run=await invoke(['verify','run',specs,'--project',app,'--no-adopt']);
+    const run=await invoke(['verify','run',specs,'--project',app,'--no-adopt','--reuse','off']);
     assert.equal(run.evidence.run.result.status,'PASS');
     assert(run.evidence.run.cases.length>0);
     assert.equal(run.evidence.run.cases.length,run.evidence.run.required_cases.length);
     assert.deepEqual(run.evidence.run.provenance.incomplete,[]);
     const source=join(app,'src/counter.ts');const original=readFileSync(source,'utf8');
     writeFileSync(source,original.replace('return value + 1;','return value + 2;'));
-    const broken=await invoke(['verify','run',specs,'--project',app,'--no-adopt'],false);
+    const broken=await invoke(['verify','run',specs,'--project',app,'--no-adopt','--reuse','off'],false);
     assert.equal(broken.evidence.run.result.status,'FAIL');
     const failed=broken.evidence.run.cases.find((c:any)=>c.result.status==='FAIL');assert(failed);
     const args=['verify','replay',specs,broken.evidence.id,'--case',failed.id,'--project',app];
@@ -191,7 +191,7 @@ return {async invoke(call){const v=call.arguments[0];return {kind:'returned',val
     const repaired=await invoke(args);assert.equal(repaired.case_result.status,'PASS');assert(repaired.changes.length>0);
     assert.equal(repaired.evidence.adopted_tasks.length,0);
     writeFileSync(source,'export function broken( {');
-    const invalid=await invoke(['verify','run',specs,'--project',app,'--no-adopt'],false);
+    const invalid=await invoke(['verify','run',specs,'--project',app,'--no-adopt','--reuse','off'],false);
     assert.notEqual(invalid.evidence.run.result.status,'PASS');assert.equal(invalid.adopted_tasks.length,0);
 
   });

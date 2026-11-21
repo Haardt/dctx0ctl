@@ -63,14 +63,6 @@ pub(super) async fn guard(
                 saved.run.provenance.clone(),
                 digest(&serde_json::to_vec(&old_receipt)?),
             )?;
-            let inventory = Capture::proof_inventory(
-                application,
-                project
-                    .verification_configuration(Some(application))?
-                    .1
-                    .capture_budgets(),
-                &saved.run,
-            )?;
             // Execution replaces generated harness files before deriving its
             // implementation map. Compare the original full discovery receipt
             // first; projecting a raw inventory into that map would falsely
@@ -82,8 +74,15 @@ pub(super) async fn guard(
                 .find(|a| a.media_type == "application/vnd.dctx0.captured-input-inventory+json")
             {
                 let artifact = store.verification_artifact(id, &reference.hash)?;
-                Capture::code_inventory(application, &serde_json::from_slice(&artifact.contents)?)?
-                    == inventory
+                Capture::reuse_inventory_matches(
+                    application,
+                    project
+                        .verification_configuration(Some(application))?
+                        .1
+                        .capture_budgets(),
+                    &saved.run,
+                    &serde_json::from_slice(&artifact.contents)?,
+                )?
             } else {
                 false
             };

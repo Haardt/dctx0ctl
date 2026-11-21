@@ -5,7 +5,7 @@ package applicationtests
 import "encoding/json"
 
 const ProtocolVersion uint32 = 2
-const LibraryVersion = "0.2.0"
+const LibraryVersion = "0.3.0"
 const DefaultFrameBytes = 1_048_576
 const maxFrameBytes = 67_108_864
 const maxRequestID uint64 = 9_007_199_254_740_991
@@ -57,17 +57,32 @@ type directive struct {
 	Result     *Verdict    `json:"result,omitempty"`
 }
 
+type decoderCase struct {
+	Context   uint64     `json:"context"`
+	ID        string     `json:"id"`
+	Directive *directive `json:"directive"`
+}
+
+type decoderCaseVerdict struct {
+	Context uint64 `json:"context"`
+	Status  string `json:"status"`
+}
+
 type reply struct {
-	Kind        string       `json:"kind"`
-	Mocks       []string     `json:"mocks,omitempty"`
-	Observation *Observation `json:"observation,omitempty"`
-	Context     uint64       `json:"context,omitempty"`
-	ID          string       `json:"id,omitempty"`
-	Form        string       `json:"form,omitempty"`
-	Directive   *directive   `json:"directive,omitempty"`
-	Result      *Verdict     `json:"result,omitempty"`
-	Summary     *Summary     `json:"summary,omitempty"`
-	Issue       *Issue       `json:"issue,omitempty"`
+	CaseTimeoutSeconds int64           `json:"case_timeout_seconds,omitempty"`
+	Batch              bool            `json:"batch,omitempty"`
+	FrameLimit         int             `json:"max_message_bytes,omitempty"`
+	Cases              json.RawMessage `json:"cases,omitempty"`
+	Kind               string          `json:"kind"`
+	Mocks              []string        `json:"mocks,omitempty"`
+	Observation        *Observation    `json:"observation,omitempty"`
+	Context            uint64          `json:"context,omitempty"`
+	ID                 string          `json:"id,omitempty"`
+	Form               string          `json:"form,omitempty"`
+	Directive          *directive      `json:"directive,omitempty"`
+	Result             *Verdict        `json:"result,omitempty"`
+	Summary            *Summary        `json:"summary,omitempty"`
+	Issue              *Issue          `json:"issue,omitempty"`
 }
 
 type frame struct {

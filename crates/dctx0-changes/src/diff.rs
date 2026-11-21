@@ -15,16 +15,32 @@ pub fn diff(before: Option<&Snapshot>, after: &Snapshot, mappings: &[RenameMappi
         .iter()
         .map(|m| (m.old.clone(), m.new.clone()))
         .collect::<BTreeMap<_, _>>();
+    let mut changes = compare_fingerprints(old, &after.fingerprints, |id| {
+        Some(renames.get(id).unwrap_or(id))
+    });
+    annotate_impacts(&mut changes, before, after);
+    Changes {
+        before: Some(before.id.clone()),
+        after: after.id.clone(),
+        source_changed: before.source_hash != after.source_hash,
+        changes,
+    }
+}
+
+/// Compare the two sets of fingerprints using the caller's occurrence-specific
+/// lineage. An absent counterpart is a removal, even if a name was later reused.
+pub fn compare_fingerprints<'a>(
+    old: &'a BTreeMap<String, crate::Fingerprints>,
+    new: &BTreeMap<String, crate::Fingerprints>,
+    counterpart: impl Fn(&'a String) -> Option<&'a String>,
+) -> Vec<Change> {
     let mut matched = BTreeSet::new();
     let mut changes = Vec::new();
     for (id, previous) in old {
-        let new_id = renames.get(id).unwrap_or(id);
-        let current = after.fingerprints.get(new_id);
-        if current.is_some() {
-            matched.insert(new_id.clone());
-        }
+        let found = counterpart(id).and_then(|id| new.get_key_value(id));
         let mut facets = Vec::new();
-        if let Some(current) = current {
+        if let Some((new_id, current)) = found {
+            matched.insert(new_id);
             if previous.contract != current.contract {
                 facets.push(ChangeFacet::Contract);
             }
@@ -43,10 +59,10 @@ pub fn diff(before: Option<&Snapshot>, after: &Snapshot, mappings: &[RenameMappi
         }
         changes.push(Change {
             old: Some(id.clone()),
-            new: current.map(|_| new_id.clone()),
-            kind: if current.is_none() {
+            new: found.map(|(id, _)| id.clone()),
+            kind: if found.is_none() {
                 ChangeKind::Removed
-            } else if id != new_id {
+            } else if found.is_some_and(|(new, _)| id != new) {
                 ChangeKind::Renamed
             } else {
                 ChangeKind::Changed
@@ -55,7 +71,7 @@ pub fn diff(before: Option<&Snapshot>, after: &Snapshot, mappings: &[RenameMappi
             impacts: Vec::new(),
         });
     }
-    for id in after.fingerprints.keys() {
+    for id in new.keys() {
         if !matched.contains(id) {
             changes.push(Change {
                 old: None,
@@ -66,14 +82,8 @@ pub fn diff(before: Option<&Snapshot>, after: &Snapshot, mappings: &[RenameMappi
             });
         }
     }
-    annotate_impacts(&mut changes, before, after);
     changes.sort_by(|a, b| (&a.old, &a.new).cmp(&(&b.old, &b.new)));
-    Changes {
-        before: Some(before.id.clone()),
-        after: after.id.clone(),
-        source_changed: before.source_hash != after.source_hash,
-        changes,
-    }
+    changes
 }
 
 /// Build traversal indexes only when a delta exists, then reuse across changes.

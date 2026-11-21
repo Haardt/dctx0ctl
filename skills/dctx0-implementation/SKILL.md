@@ -1,6 +1,6 @@
 ---
 name: dctx0-implementation
-description: Build dctx0 application-test connections to real production code, retain legacy adapters in mixed projects, and repair requirements using current native evidence.
+description: Build dctx0 application-test connections to real production code, retain legacy adapters in mixed projects, diagnose slow verification, and repair requirements using current native evidence.
 ---
 
 # dctx0 implementation
@@ -13,6 +13,10 @@ For new Go or TypeScript/Bun connections, read
 [application tests](references/application-tests.md): native test ownership,
 direct calls, fixtures, observers, recipes and hybrid execution. Keep existing
 adapter scopes compatible; migration is explicit and can be partial.
+For slow verification, follow the
+[performance workflow](references/application-tests.md#diagnose-slow-verification).
+Measure process starts and fixture costs before choosing between direct Go test
+binding, packet transport, or dependency-bound reuse.
 Read [legacy adapters](references/implementation.md) when maintaining the
 existing worker interface or its representation codecs.
 For project configuration and resource-limit diagnosis, use `$dctx0-config` when

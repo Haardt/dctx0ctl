@@ -26,7 +26,8 @@ pub fn application_test_library() -> ApplicationTestLibrary {
     ];
     ApplicationTestLibrary {
         target: "typescript".into(),
-        version: "0.2.0".into(),
+        version: dctx0_target_sdk::application_protocol::TYPESCRIPT_APPLICATION_LIBRARY_VERSION
+            .into(),
         protocol_version: dctx0_target_sdk::application_protocol::APPLICATION_PROTOCOL_VERSION,
         artifacts: sources
             .into_iter()

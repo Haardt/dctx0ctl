@@ -29,6 +29,8 @@ fn complete_delegates_to_available_memory_supervision_and_propagates_its_exit_st
             .args([
                 "verify",
                 "complete",
+                "--reuse",
+                "off",
                 "missing-spec-for-supervision",
                 "--project",
                 "missing-app-for-supervision",
@@ -58,6 +60,8 @@ fn complete_delegates_to_available_memory_supervision_and_propagates_its_exit_st
         .args([
             "verify",
             "complete",
+            "--reuse",
+            "off",
             "missing-spec-for-supervision",
             "--project",
             "missing-app-for-supervision",
@@ -173,7 +177,7 @@ export const adapter={async describe(){return {protocol_version:1,subjects:[{sub
         fs::write(&file, bytes).unwrap();
         let mut command = Command::new(env!("CARGO_BIN_EXE_dctx0"));
         command
-            .args(["verify", "complete"])
+            .args(["verify", "complete", "--reuse", "off"])
             .arg(&self.spec)
             .arg("--project")
             .arg(&self.app)
@@ -499,6 +503,8 @@ async fn agent_task_reviews_close_obligations_without_notes_or_test_pass_and_rej
             .args([
                 "verify",
                 "complete",
+                "--reuse",
+                "off",
                 fixture.spec.to_str().unwrap(),
                 "--project",
                 fixture.app.to_str().unwrap(),

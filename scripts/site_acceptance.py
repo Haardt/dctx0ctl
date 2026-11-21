@@ -58,11 +58,11 @@ def main():
             def cli(label,*command,allowed=(0,)):return run(label,[binary,'--json',*command,*(['--full'] if command[:2] in (('verify','run'),('verify','replay')) else [])],allowed=allowed)
             cli('isolated-check','check',spec);plan=json.loads(cli('isolated-plan','tasks','plan',spec))['body']['data'];
             # Actual bounded native contract run, not synthesized browser evidence.
-            native=json.loads(cli('native-cinema-contract','verify','run',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(0,1))); assert native['evidence']['run']['cases']
+            native=json.loads(cli('native-cinema-contract','verify','run', '--reuse', 'off',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(0,1))); assert native['evidence']['run']['cases']
             # Real application mutation produces stored FAIL; repairing it allows replay.
             source=app/'src/domain/release-year.ts';original=source.read_text();assert 'input < 1888 || input > 2100' in original
             source.write_text(original.replace('input < 1888 || input > 2100','input < 1889 || input > 2100'))
-            failed=json.loads(cli('native-cinema-mutation','verify','run',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(1,)))
+            failed=json.loads(cli('native-cinema-mutation','verify','run', '--reuse', 'off',spec,'--project',app,'--subject','HomeCinema.MovieNight.ReleaseYear','--no-adopt',allowed=(1,)))
             failed_case=next(case for case in failed['evidence']['run']['cases'] if case['result']['status']=='FAIL')
             source.write_text(original)
             cli('native-cinema-replay','verify','replay',spec,failed['evidence']['id'],'--case',failed_case['id'],'--project',app,allowed=(0,1))

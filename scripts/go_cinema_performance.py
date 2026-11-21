@@ -72,7 +72,7 @@ def main():
             run('planning', 'verify', 'plan', project / 'dctx0', '--project', project)
             run('harness-setup', 'verify', 'init', project / 'dctx0', '--project', project, '--target', 'go')
             for cache in ('first-project-build', 'warm-build'):
-                native = run(cache, 'verify', 'run', project / 'dctx0', '--project', project, '--no-adopt')
+                native = run(cache, 'verify', 'run', '--reuse', 'off', project / 'dctx0', '--project', project, '--no-adopt')
                 result = native['evidence']['run']
                 assert_native_cinema(result)
                 details = artifacts(project, native['evidence']['id'])
@@ -91,7 +91,7 @@ def main():
             if review_sample['exit_code']:
                 raise RuntimeError(review_log)
             report['samples']['source-bound-review-and-delivery'] = review_sample
-            completed = run('complete-and-adoption', 'verify', 'complete', project / 'dctx0', '--project', project)
+            completed = run('complete-and-adoption', 'verify', 'complete', '--reuse', 'off', project / 'dctx0', '--project', project)
             if completed['result']['status'] != 'PASS' or completed['open_tasks'] or completed['non_pass_tasks'] != 4 or len(completed['reviewed_tasks']) != 4:
                 raise RuntimeError('Measured complete acceptance failed')
             report['samples']['complete-and-adoption']['native_adopted_tasks'] = len(completed['adopted_tasks'])
@@ -100,7 +100,7 @@ def main():
             original = implementation.read_text()
             assert original.count('poll["status"] = "Closed"') == 1
             implementation.write_text(original.replace('poll["status"] = "Closed"', 'poll["status"] = "Open"'))
-            broken = run('counterexample-and-shrink', 'verify', 'run', project / 'dctx0', '--project', project,
+            broken = run('counterexample-and-shrink', 'verify', 'run', '--reuse', 'off', project / 'dctx0', '--project', project,
                          '--subject', 'HomeCinema.MovieNight.ScreeningPollLifecycle', '--no-adopt')
             failures = [case for case in broken['evidence']['run']['cases'] if case['result']['status'] == 'FAIL']
             if not failures:

@@ -183,6 +183,7 @@ async fn hybrid_complete_refuses_swapped_pinned_plan_before_publication_or_execu
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -242,6 +243,7 @@ async fn hybrid_complete_requires_reconciled_plan_without_publishing_it() {
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -294,6 +296,7 @@ async fn hybrid_complete_rejects_old_task_check_without_reconciliation() {
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -376,6 +379,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -564,6 +568,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -1024,8 +1029,23 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
     let status = f.project.status(Some(&f.app), None).unwrap();
     assert_eq!(status.tasks.inspected_current, inspected_count);
     assert_eq!(status.tasks.inspected_stale, 0);
+    let reconciled = f
+        .project
+        .reconcile_native_tasks(&f.app, &report.native_run, &[])
+        .unwrap();
+    assert_eq!(reconciled.native_cases_executed, 0);
+    assert_eq!(reconciled.published_checks, 0);
+    assert_eq!(reconciled.done_pass, reconciled.tasks);
     let original_source = fs::read(f.app.join("app.ts")).unwrap();
     fs::write(f.app.join("app.ts"), "export const changed = true;\n").unwrap();
+    assert!(
+        f.project
+            .reconcile_native_tasks(&f.app, &report.native_run, &[])
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Native code changed")
+    );
     let stale = f.project.status(Some(&f.app), None).unwrap();
     assert_eq!(stale.tasks.inspected_current, 0);
     assert_eq!(stale.tasks.inspected_stale, inspected_count);
@@ -1075,6 +1095,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -1107,7 +1128,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
         }
     };
     let first = run(NativeReuseOptions {
-        mode: Default::default(),
+        mode: NativeReuseMode::Off,
         inputs: "reuse.json".into(),
         parent: None,
     })
@@ -1161,6 +1182,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -1192,6 +1214,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(31),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -1204,7 +1227,7 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     .await
     .unwrap();
     assert_eq!(changed_group.result, VerificationResult::Pass);
-    assert_eq!(changed_group.incremental.unwrap().reused_cases, 0);
+    assert!(changed_group.incremental.unwrap().reused_cases > 0);
     f.project
         .prepare_application_tests(
             &f.app,
@@ -1215,10 +1238,29 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
         .unwrap();
+    let recipe = dir.join("recipe.json");
+    let original_recipe = fs::read(&recipe).unwrap();
+    let mut revised: serde_json::Value = serde_json::from_slice(&original_recipe).unwrap();
+    revised["run"]["arguments"]
+        .as_array_mut()
+        .unwrap()
+        .push("--timeout=30000".into());
+    fs::write(&recipe, serde_json::to_vec(&revised).unwrap()).unwrap();
+    let changed_recipe = run(NativeReuseOptions {
+        mode: Default::default(),
+        inputs: "reuse.json".into(),
+        parent: Some(parent.clone()),
+    })
+    .await
+    .unwrap();
+    assert_eq!(changed_recipe.result, VerificationResult::Pass);
+    assert!(changed_recipe.incremental.unwrap().reused_cases > 0);
+    fs::write(&recipe, original_recipe).unwrap();
     // Deliberately undeclared external state simulates a native assertion
     // changing independently of central inputs; it must never be hidden.
     fs::write(f.root.join("fail-native"), "fail").unwrap();
@@ -1297,9 +1339,9 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     fs::remove_file(f.root.join("fail-native")).unwrap();
     fs::write(f.app.join("app.ts"), "export function decode(raw){const v=JSON.parse(new TextDecoder().decode(raw));if(!Number.isSafeInteger(v)||v<10||v>11)throw new TypeError('invalid');return v;} // changed source").unwrap();
     let third = run(NativeReuseOptions {
-        mode: Default::default(),
+        mode: NativeReuseMode::Off,
         inputs: "reuse.json".into(),
-        parent: Some(parent.clone()),
+        parent: None,
     })
     .await
     .unwrap();
@@ -1315,24 +1357,6 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
             .any(|a| a.media_type == dctx0_verification::incremental::INCREMENTAL_PROOF_MEDIA_TYPE)
     );
     fs::write(f.app.join("app.ts"), "export function decode(raw){const v=JSON.parse(new TextDecoder().decode(raw));if(!Number.isSafeInteger(v)||v<10||v>11)throw new TypeError('invalid');return v;}").unwrap();
-    let recipe = dir.join("recipe.json");
-    let original_recipe = fs::read(&recipe).unwrap();
-    let mut revised: serde_json::Value = serde_json::from_slice(&original_recipe).unwrap();
-    revised["run"]["arguments"]
-        .as_array_mut()
-        .unwrap()
-        .push("--timeout=30000".into());
-    fs::write(&recipe, serde_json::to_vec(&revised).unwrap()).unwrap();
-    let changed_recipe = run(NativeReuseOptions {
-        mode: Default::default(),
-        inputs: "reuse.json".into(),
-        parent: Some(parent.clone()),
-    })
-    .await
-    .unwrap();
-    assert_eq!(changed_recipe.result, VerificationResult::Pass);
-    assert_eq!(changed_recipe.incremental.unwrap().reused_cases, 0);
-    fs::write(&recipe, original_recipe).unwrap();
     let library = dir.join("library/index.ts");
     let original_library = fs::read_to_string(&library).unwrap();
     fs::write(
@@ -1341,9 +1365,9 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
     )
     .unwrap();
     let changed_library = run(NativeReuseOptions {
-        mode: Default::default(),
+        mode: NativeReuseMode::Off,
         inputs: "reuse.json".into(),
-        parent: Some(parent.clone()),
+        parent: None,
     })
     .await
     .unwrap();
@@ -1383,6 +1407,15 @@ test('Native',async()=>{const c=await AssessmentClient.connect(process.env.DCTX0
             result: authored.clone(),
         })
         .unwrap();
+    let fresh = run(NativeReuseOptions {
+        mode: NativeReuseMode::Off,
+        inputs: "reuse.json".into(),
+        parent: None,
+    })
+    .await
+    .unwrap();
+    assert_eq!(fresh.result, VerificationResult::Pass);
+    let parent = fresh.evidence.unwrap().id;
     let adopted = f
         .project
         .verify_application_tests_incremental_with_adoption(
@@ -1445,6 +1478,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(120),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -1470,7 +1504,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
         }
     };
     let first = run(NativeReuseOptions {
-        mode: Default::default(),
+        mode: NativeReuseMode::Off,
         inputs: "reuse.json".into(),
         parent: None,
     })
@@ -1535,6 +1569,7 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(120),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -1557,9 +1592,9 @@ func TestNative(t *testing.T) { c,e:=app.Dial(os.Getenv("DCTX0_APPLICATION_SOCKE
     )
     .unwrap();
     let changed = run(NativeReuseOptions {
-        mode: Default::default(),
+        mode: NativeReuseMode::Off,
         inputs: "reuse.json".into(),
-        parent: Some(parent),
+        parent: None,
     })
     .await
     .unwrap();

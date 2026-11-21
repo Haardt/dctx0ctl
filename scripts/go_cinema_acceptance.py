@@ -34,7 +34,7 @@ def copy_application(destination):
 
 
 def native(binary, project, subject):
-    return invoke(binary, project, 'verify', 'run', str(project / 'dctx0'), '--project', str(project), '--subject', PREFIX + subject, '--no-adopt')
+    return invoke(binary, project, 'verify', 'run', '--reuse', 'off', str(project / 'dctx0'), '--project', str(project), '--subject', PREFIX + subject, '--no-adopt')
 
 
 def main():
@@ -49,7 +49,7 @@ def main():
         project = base / 'baseline'
         copy_application(project)
         subprocess.run([sys.executable, str(ROOT / 'scripts/conformance_review_acceptance.py'), '--binary', str(binary), '--target', 'go', '--project', str(project), '--report', str(base / 'reviews.json')], check=True)
-        complete = invoke(binary, project, 'verify', 'complete' , str(project / 'dctx0'), '--project', str(project), expect=0)
+        complete = invoke(binary, project, 'verify', 'complete' , '--reuse', 'off', str(project / 'dctx0'), '--project', str(project), expect=0)
         assert complete['result']['status'] == 'PASS'
         assert complete['mandatory_cases'] == EXPECTED_NATIVE_CASES and complete['tasks'] == 105
         assert complete['open_tasks'] == 0

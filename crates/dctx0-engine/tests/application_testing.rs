@@ -41,6 +41,7 @@ impl Fixture {
                     test: "TestYear",
                     form: TestForm::Decoder,
                     group_seconds: None,
+                    stateless_decoders: Default::default(),
                     boundary: ApplicationValueBoundary::ValueConstructor,
                     subjects: Default::default(),
                 },
@@ -115,6 +116,7 @@ fn exported_bundle_revalidates_inputs_models_sources_versions_and_portable_paths
                     test: "TestYear",
                     form: TestForm::Decoder,
                     group_seconds: None,
+                    stateless_decoders: Default::default(),
                     boundary: ApplicationValueBoundary::JsonDecoder,
                     subjects: Default::default()
                 }
@@ -530,6 +532,7 @@ fn application_preparation_and_bundle_bounds_reject_invalid_specs_empty_scopes_a
         test: "TestYear",
         form: TestForm::Decoder,
         group_seconds: None,
+        stateless_decoders: Default::default(),
         boundary: ApplicationValueBoundary::ValueConstructor,
         subjects: Default::default(),
     };

@@ -4,7 +4,8 @@ use crate::{Error, MAX_MESSAGE_BYTES, MAX_REQUEST_ID};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub const APPLICATION_PROTOCOL_VERSION: u32 = 2;
-pub const GO_APPLICATION_LIBRARY_VERSION: &str = "0.2.0";
+pub const GO_APPLICATION_LIBRARY_VERSION: &str = "0.3.0";
+pub const TYPESCRIPT_APPLICATION_LIBRARY_VERSION: &str = "0.2.0";
 
 /// A target-owned, testing-only library embedded in the shipped CLI. Publishing
 /// these artifacts neither edits production dependencies nor authorizes tests.

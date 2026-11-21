@@ -92,8 +92,8 @@ impl Project {
         no_adopt: bool,
         options: Option<&super::super::reuse_execution::NativeReuseOptions>,
     ) -> Result<ApplicationNativeReport> {
-        let automatic_options = NativeReuseOptions::default();
-        let options = options.or(Some(&automatic_options));
+        let fresh = NativeReuseOptions::fresh();
+        let options = options.or(Some(&fresh));
         let (root, bundle, _) = self.read_application_testing_bundle(application, plan)?;
         let (_, config) = self.verification_configuration(Some(&root))?;
         let program = &bundle.plan.program;

@@ -3,8 +3,8 @@
 Go and TypeScript/Bun application tests call production directly while Rust owns
 the specification, mandatory cases, deterministic inputs and assessment. The
 existing adapter path remains supported; choosing a backend does not change the
-required case IDs or budgets. Application protocol 2 and library 0.2.0 are
-separate from the historical worker protocol and SDK.
+required case IDs. Application protocol 2, Go library 0.3.0 and Bun library
+0.2.0 are versioned independently of the worker SDK.
 
 The workflow below describes guarded task delivery and complete acceptance.
 Its integration and final repository validation are in progress; these
@@ -65,6 +65,40 @@ This executes only that group's centrally assigned cases, retaining their pinned
 inputs and budgets. It never adopts tasks or certifies the complete cohort; the
 report retains `HYBRID_COHORT_REQUIRED`. The complete mixed execution still needs
 all assigned groups. Cancellation retains managed process cleanup.
+
+## Batch reviewed Go decoders
+
+Use `Client.StatelessDecoderTest` for a Go registration when review of the
+production decoder and projector establishes that they depend only on their
+arguments and immutable data. They must have no I/O, mutable shared state or
+per-case fixture and cleanup. For the suite form, pass the exact subtest
+identity during preparation, for example
+`--stateless-decoder TestPreparedPlansSuite/decoder`. Pass the flag once per
+reviewed registration. The CLI saves the selection in the plan, checks that
+each selected test owns only Go JSON decoder cases and enables packets when
+the native test requests them. The plan pins the reviewed Go sources and
+build manifests. Use relocatable local replacements within the reviewed
+project. Prepare again after reviewing changes to those inputs.
+`DecoderTest` and filtered subtest runs use the single-case transport.
+
+Each packet carries up to 16 inputs. The Go test sends back the actual bytes
+after decoding and the projected production outcome for each case. Rust
+assesses each case individually using the same rules and retains the full
+diagnostic report. Each Go subtest reports its central verdict under the original
+case ID. The SDK enforces the case deadline while each callback runs. The channel
+enforces the sum of the case deadlines for the packet and the overall group
+deadline. Payload size, individual evidence size, sequence and completion are
+checked. Large inputs and observations can use the single-case transport.
+
+For source-based incremental execution of isolated Go cohorts, bind the
+production decoder functions separately with
+`verify run --unit-groups PATH --no-adopt`. That workflow compares each
+compiler-selected dependency closure with its stored evidence. A cohort file
+can declare its own `scope` and controlled `environment`. Discovery also hashes
+files currently excluded by Go build constraints. Manual
+obligations stay open in the run and report even when every automated case in
+the isolated cohort is reusable. Declare isolated dependency groups separately
+from packet-enabled registrations.
 
 ## Deliver eligible native tasks
 

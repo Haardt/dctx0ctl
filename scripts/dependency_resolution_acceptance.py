@@ -98,7 +98,7 @@ def main():
                 samples = []
                 record['workloads'][kind] = {'raw_samples': samples}
                 for index in range(4):
-                    sample, output = measured([str(binary), 'verify', 'run', str(spec), '--project', str(app), '--no-adopt', '--json', '--full'], ROOT, timeout=300, sample_direct_rss=True)
+                    sample, output = measured([str(binary), 'verify', 'run', '--reuse', 'off', str(spec), '--project', str(app), '--no-adopt', '--json', '--full'], ROOT, timeout=300, sample_direct_rss=True)
                     report = json.loads(output)
                     details = artifacts(spec, report)
                     summary = details[MEDIA + 'dependency-resolution-summary+json']

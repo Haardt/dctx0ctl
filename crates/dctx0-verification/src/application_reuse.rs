@@ -156,16 +156,19 @@ fn project_binding(
             return None;
         }
         let raw_hash = format!("{:x}", Sha256::digest(bundle.raw_bundle.as_bytes()));
+        // Source discovery binds code. The checks above separately bind the
+        // bundle's raw and canonical forms to the executed plan receipt.
+        let outside_inventory = !incremental::is_code_path(&bundle.path)
+            || bundle
+                .path
+                .split('/')
+                .any(|part| matches!(part, ".dctx0ctl" | ".git" | ".runatron" | "target" | ".bin"));
         if let Some(hash) = source_inputs.get(&bundle.path) {
             if hash != &raw_hash {
                 return None;
             }
             source_inputs.remove(&bundle.path);
-        } else if !bundle
-            .path
-            .split('/')
-            .any(|part| matches!(part, ".dctx0ctl" | ".git" | ".runatron" | "target" | ".bin"))
-        {
+        } else if !outside_inventory {
             return None;
         }
         if let Some(hash) = build_inputs.get(&bundle.path) {
@@ -173,11 +176,7 @@ fn project_binding(
                 return None;
             }
             build_inputs.remove(&bundle.path);
-        } else if !bundle
-            .path
-            .split('/')
-            .any(|part| matches!(part, ".dctx0ctl" | ".git" | ".runatron" | "target" | ".bin"))
-        {
+        } else if !outside_inventory {
             return None;
         }
         if let Some(hash) = materialized_inputs.get(&bundle.path) {

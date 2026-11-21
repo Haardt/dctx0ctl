@@ -36,6 +36,16 @@ class IncrementalBenchmarkTests(unittest.TestCase):
             with self.subTest(output=output), self.assertRaises(ValueError):
                 bench.guard_metrics(output)
 
+    def test_unsampled_build_reports_reaped_peak_with_its_own_scope(self):
+        line = 'Memory guard: elapsed_ms=12.50; peak_process_tree_rss_bytes=0; method=sampled'
+        usage = {'peak_rss_bytes': 12345, 'memory_scope': 'wait4 child peak RSS'}
+        self.assertEqual(bench.guard_metrics(line, usage), {
+            'elapsed_ms': 12.5,
+            'peak_rss_bytes': 12345,
+            'memory_scope': 'wait4 child peak RSS',
+            'collective_rss_status': 'unavailable: process exited between samples',
+        })
+
 
 if __name__ == '__main__':
     unittest.main()

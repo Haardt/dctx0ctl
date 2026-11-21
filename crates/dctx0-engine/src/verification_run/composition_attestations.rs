@@ -52,10 +52,7 @@ pub(super) fn current_task_binding(
     root: &Path,
     report: &ComposedTaskReport,
 ) -> Result<ComposedBinding> {
-    let (root, config) = project.verification_configuration(Some(root))?;
-    if config.target != "go" {
-        return Err(Error::Invalid("Unsupported composition target".into()));
-    }
+    let (root, config, _) = units::configuration(project, root, &report.unit_configuration)?;
     let input_hashes = publication_inputs(&root, &config, &report.unit_configuration)?;
     let fixtures: ProjectionFixtures = crate::read_review_input(
         &crate::verification_setup::safe_file(&root, &config.fixtures)?.1,
@@ -126,26 +123,7 @@ impl Project {
         generator: &dyn HarnessGenerator,
         id: &str,
     ) -> Result<(ProgramPlan, Vec<UnitEvidenceBindingV1>)> {
-        let (root, config) = self.verification_configuration(Some(application))?;
-        if config.target != "go"
-            || !matches!(
-                config.environment,
-                Some(crate::NativeEnvironment::Controlled { .. })
-            )
-        {
-            return Err(Error::Invalid(
-                "Composition task delivery requires the supported controlled Go unit connection"
-                    .into(),
-            ));
-        }
-        let groups: DecoderUnitConfiguration = crate::read_review_input(
-            &crate::verification_setup::safe_file(&root, configuration)?.1,
-            crate::DEFAULT_REVIEW_INPUT_BYTES,
-            "Decoder unit configuration",
-        )?;
-        if groups.schema_version != 1 || groups.groups.is_empty() || groups.groups.len() > 128 {
-            return Err(Error::Invalid("Invalid decoder unit configuration".into()));
-        }
+        let (root, config, groups) = units::configuration(self, application, configuration)?;
         let fixtures: ProjectionFixtures = crate::read_review_input(
             &crate::verification_setup::safe_file(&root, &config.fixtures)?.1,
             crate::DEFAULT_REVIEW_INPUT_BYTES,

@@ -18,7 +18,6 @@ pub fn valid_completion(binding: &UnitEvidenceBindingV1, proof: &UnitCompletionP
         && proof.case_bodies.keys().cloned().collect::<BTreeSet<_>>() == binding.unit.cases
         && proof.case_bodies.values().all(|hash| valid_digest(hash))
         && !proof.artifacts.is_empty()
-        && proof.artifacts.contains(&proof.fingerprint)
         && proof.artifacts.iter().all(|hash| valid_digest(hash))
 }
 
@@ -67,22 +66,24 @@ pub fn validate_native_unit(
             return Err("NATIVE_UNIT_ARTIFACT_INVALID".into());
         }
     }
-    let binding_reference = original
-        .artifacts
-        .iter()
-        .find(|reference| {
-            reference.media_type == UNIT_BINDING_MEDIA_TYPE
-                && reference.hash == proof.fingerprint
-                && proof.artifacts.contains(&reference.hash)
-        })
+    let mut binding_references = original.artifacts.iter().filter(|reference| {
+        reference.media_type == UNIT_BINDING_MEDIA_TYPE && proof.artifacts.contains(&reference.hash)
+    });
+    let binding_reference = binding_references
+        .next()
         .ok_or("NATIVE_UNIT_BINDING_ARTIFACT_MISSING")?;
+    if binding_references.next().is_some() {
+        return Err("NATIVE_UNIT_BINDING_ARTIFACT_CHANGED".into());
+    }
     let captured_binding: UnitEvidenceBindingV1 = serde_json::from_slice(
         artifacts
             .get(&binding_reference.hash)
             .ok_or("NATIVE_UNIT_BINDING_ARTIFACT_MISSING")?,
     )
     .map_err(|error| error.to_string())?;
-    if captured_binding != binding {
+    if !valid_unit_binding(&captured_binding)
+        || code_binding(&captured_binding) != code_binding(&binding)
+    {
         return Err("NATIVE_UNIT_BINDING_ARTIFACT_CHANGED".into());
     }
     let expected = UnitNativeCompletionV1 {

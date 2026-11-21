@@ -31,11 +31,15 @@ def main():
     parser.add_argument('--binary', type=Path, default=ROOT / 'target/debug/dctx0')
     parser.add_argument('--report', type=Path, default=ROOT / 'target/go-application-tests/result.json')
     parser.add_argument('--form', choices=('decoder', 'operation', 'state-change', 'assertion', 'all', 'scenario', 'lifecycle'), default='all')
+    parser.add_argument('--decoder-transport', choices=('single', 'packet'),
+                        help='Compare current SDK transports for the standalone Go decoder test')
     parser.add_argument('--subject')
     parser.add_argument('--test-name')
-    parser.add_argument('--probe', choices=('tie-break','missing-write','wrong-key','cleanup','wrong-return','operation-input-swap','unexpected-collaborator'))
+    parser.add_argument('--probe', choices=('decoder-verdict','tie-break','missing-write','wrong-key','cleanup','wrong-return','operation-input-swap','unexpected-collaborator'))
     parser.add_argument('--require-reference-match', action='store_true', help='Require compatibility with the frozen historical finite plan')
     args = parser.parse_args()
+    if args.decoder_transport and args.form != 'decoder':
+        parser.error('--decoder-transport requires --form decoder')
     test_name = args.test_name or {'all':'TestCinemaSuite','scenario':'TestCinemaScenarios','lifecycle':'TestCinemaLifecycles','assertion': 'TestCinemaWinnerAssertions', 'decoder': 'TestCinemaRuntimeContracts', 'operation': 'TestCinemaWinner', 'state-change': 'TestCinemaFilmSave'}[args.form]
     subject = args.subject or {'all':None,'scenario':None,'lifecycle':None,'assertion': None, 'decoder': None, 'operation': 'HomeCinema.MovieNight.ScreeningPlanning.VotingRules.candidateOrderWinner', 'state-change': 'HomeCinema.MovieNight.Catalog.FilmCatalogStore.save'}[args.form]
     binary = args.binary.resolve()
@@ -63,12 +67,19 @@ def main():
             if any(path.is_symlink() for path in source.rglob('*')):
                 raise RuntimeError('Application pilot source contains symlinks; captured source closure is not supported by this preview')
             copy_application(project)
+            if args.decoder_transport:
+                run('publish-sdk', [binary, 'verify', 'application-tests', 'library', '--target', 'go', '--project', project])
+                path = project / 'contracttests/runtime_contracts_test.go'
+                path.write_text(path.read_text().replace('client.DecoderTest(t,', 'client.StatelessDecoderTest(t,'))
+                report['decoder_transport'] = args.decoder_transport
             production_hashes = {str(path.relative_to(project)): hashlib.sha256(path.read_bytes()).hexdigest() for path in project.rglob('*') if path.is_file() and (path.suffix == '.go' or path.name in ('go.mod', 'go.sum', 'library-pin.json'))}
             report['application_inputs'] = production_hashes
             pin = json.loads((project / '.dctx0/application-tests/library-pin.json').read_text())
-            assert pin['version'] == '0.2.0' and pin['protocol_version'] == 2
+            assert pin['version'] in (('0.3.0',) if args.decoder_transport else ('0.2.0', '0.3.0'))
+            assert pin['protocol_version'] == 2
             assert all(hashlib.sha256((project / '.dctx0/application-tests/library' / name).read_bytes()).hexdigest() == value for name, value in pin['sha256'].items()), 'Library copy differs from its pin'
             mutations = {
+                'decoder-verdict': ('contracttests/runtime_contracts_test.go', 'actual, err := domain.DecodeJSON(raw)', 'if len(raw) > 0 { raw[0] ^= 1 }; actual, err := domain.DecodeJSON(raw)'),
                 'operation-input-swap': ('contracttests/operations_test.go', 'actual, err := codec.encode(item, operation.Parameters[i].Type)', 'if i == 0 { item = []any{} }; actual, err := codec.encode(item, operation.Parameters[i].Type)'),
                 'tie-break': ('domain/contracts.go', 'if count > best {', 'if count >= best {'),
                 'missing-write': ('persistence/store.go', 'ON CONFLICT(id) DO UPDATE SET document=excluded.document', 'ON CONFLICT(id) DO NOTHING'),
@@ -88,7 +99,8 @@ def main():
                 report['probe'] = dict(name=args.probe, file=relative, source_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
             plan = '.dctx0/application-tests/plan.json'
             evidence = '.dctx0/application-tests/report.json'
-            run('prepare', [binary, 'verify', 'application-tests', 'prepare', project / 'dctx0', '--project', project, '--plan', plan, '--group', 'cinema-go', '--test-name', test_name, '--form', args.form, '--group-seconds', '300', *(['--subject', subject] if subject else [])])
+            prepare = [binary, 'verify', 'application-tests', 'prepare', project / 'dctx0', '--project', project, '--plan', plan, '--group', 'cinema-go', '--test-name', test_name, '--form', args.form, '--group-seconds', '300', *(['--subject', subject] if subject else [])]
+            run('prepare', prepare)
             bundle = json.loads((project / plan).read_text())
             report['effective_plan_hash'] = effective_plan_hash(bundle, args.form)
             old = json.load(gzip.open(BEFORE / 'finite-plan.json.gz'))
@@ -97,6 +109,9 @@ def main():
             if args.require_reference_match and not initial_comparison['compatible']:
                 raise RuntimeError('Current plan is incompatible with the required historical reference')
             run('generate-facade', [sys.executable, project / 'scripts/generate_application_facade.py', '--project', project, '--bundle', project / plan])
+            if args.decoder_transport == 'packet':
+                run('prepare-decoder-review', [*prepare, '--stateless-decoder', test_name])
+                bundle = json.loads((project / plan).read_text())
             test_binary = Path(temp) / 'contracts.test'
             run('build-native', ['go', 'test', '-C', project, '-c', '-buildvcs=false', '-coverpkg=github.com/Haardt/dctx0ctl/applicationtests/go', '-covermode=atomic', '-o', test_binary, './contracttests'])
             catalog = run('native-catalog', [test_binary, '-test.list=.']).splitlines()
@@ -155,6 +170,11 @@ def main():
             if args.probe:
                 assert assessment['result']['status'] == expected_status and report['steps']['native-tests']['exit_code'] != 0, 'Mutation was not detected'
                 assert any(event['Action'] == 'fail' and event.get('Test') == test_name for event in events), 'Native parent did not retain failure'
+                if args.probe == 'decoder-verdict':
+                    failed_tests = {case_tests[case['id']] + '/case_' + hashlib.sha256(case['id'].encode()).hexdigest()
+                                    for case in assessment['cases'] if case['result']['status'] == 'FAIL'}
+                    native_failures = {event['Test'] for event in events if event['Action'] == 'fail' and 'Test' in event}
+                    assert failed_tests and failed_tests <= native_failures and failed_tests.isdisjoint(actual), 'Central FAIL did not reach the native case subtest'
                 report['probe']['detected'] = True
                 report['status'] = 'pass'
                 return

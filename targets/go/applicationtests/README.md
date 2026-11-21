@@ -1,16 +1,22 @@
-# Go application tests (0.2.0)
+# Go application tests (0.3.0)
 
 Testing-only module, application protocol 2. The historical adapter SDK and
 WorkerRequest remain separate and supported. Production does not import this
 module. Publish the pinned local copy for Cinema with:
 
 ```
-python3 scripts/publish_go_application_library.py --project examples/cinema-go
+dctx0 verify application-tests library --project examples/cinema-go --target go
 ```
 
 `Client.DecoderTest` passes raw bytes unchanged to the production decoder before
 running a separate result projector. Integer/decimal wire digits remain text.
 Decoder callbacks mark actual production parse/contract rejections with `Reject(reason)`. Other returned errors and panics are technical exceptions; projector errors remain binding errors. This prevents an I/O error from satisfying a rejection case.
+`Client.StatelessDecoderTest` enables packets for matching registrations named
+by `verify application-tests prepare --stateless-decoder TEST`. Review both the
+decoder and projector for state or side effects before binding the native test
+identity. Rust still owns each individual verdict. See the linked workflow for
+transport limits and incremental verification of isolated decoder cohorts.
+
 `OperationTest`, `StateChangeTest` and `AssertionTest` own registration, central
 case iteration and finalization. An explicit fixture factory provides one local
 production closure, necessary setup/oracle continuations, actual state projection

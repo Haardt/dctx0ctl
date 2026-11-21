@@ -25,8 +25,9 @@ need a real adapter. Configure the intended full scope and budgets explicitly.
    (or `--target typescript`). Owned library files and authored tests are separate;
    publication preserves existing tests and refuses edited owned files.
    Files land in `.dctx0/application-tests/library` with `library-pin.json`.
-   Go uses `github.com/Haardt/dctx0ctl/applicationtests/go v0.2.0` with a local
-   `replace ... => ./.dctx0/application-tests/library`; Bun can import the local
+   Go uses `github.com/Haardt/dctx0ctl/applicationtests/go` at the version
+   published by the CLI, with a local `replace ... => ./.dctx0/application-tests/library`.
+   Bun can import the local
    library directly from authored test files. Configure testing dependencies and frozen
    dependencies explicitly. Production never imports this testing package.
 2. Author a native root test and typed fixtures. Go uses `testing.T` and
@@ -109,8 +110,8 @@ dctx0 verify application-tests run SPEC --project APP \
   --report .dctx0ctl/application-tests/UNIQUE.json --no-adopt
 ```
 
-For a mixed cohort substitute `hybrid` for `run`. Without reuse flags it executes
-both assigned backends freshly. `adapter-group` diagnoses one assigned adapter group only and
+For a mixed cohort substitute `hybrid` for `run`. Use `--reuse off` for a fresh
+comparison of both assigned backends. `adapter-group` diagnoses one assigned adapter group only and
 cannot certify the complete cohort. The current managed hybrid supports one
 adapter and one application-test group of the same target. Do not silently
 switch the whole project to legacy or narrow the scope to get a green result.
@@ -120,6 +121,77 @@ without that flag once the actual task/profile prerequisites are ready.
 `complete` / `hybrid-complete` additionally require current source-bound authored
 inspections; hybrid-complete requires `--notes PATH` and has no `--no-adopt`.
 Do not generate review approval to bypass missing execution.
+
+## Diagnose slow verification
+
+1. Reproduce an explicitly selected group with the same case IDs, inputs, seed,
+   toolchain, and cache conditions before and after the change. Use
+   `--no-adopt --reuse off` for the fresh comparison. Measure elapsed time and
+   peak process-tree RSS. Record build, test and evaluator time separately, plus
+   worker and nested process starts, fixture startup/cleanup, and production
+   calls. For example, the Runatron Runner Management sample of 1,908 cases in
+   about 81 seconds measures native test time for that group.
+2. Follow the call path from the harness to production. If a decoder starts Bun
+   for each input, first check whether a real Go production decoder can be
+   called through `Client.DecoderTest` in one native test process. Keep that
+   change scoped to cases the Go decoder actually owns. Preserve stateful
+   operation, persistence and lifecycle tests with their required fixtures,
+   observations and cleanup. If fixture startup dominates, refine fixture
+   acquisition while preserving isolation and reset semantics. If channel
+   exchanges dominate after removing nested process starts, use packets for
+   reviewed stateless registrations. Tune deadlines only against measured
+   case, build or fixture costs.
+3. Compare mandatory case IDs and inputs, the central per-case verdicts,
+   native subtest results, finalization and missing cases. Include a known
+   rejection or a targeted mutation to verify that failures still reach the
+   owning case. Keep manual obligations visible and report fresh execution
+   and historical reuse separately.
+
+### Packet transport for reviewed Go decoders
+
+Use Go application-test library 0.3.0 (application protocol 2) or verify that the
+installed version supports `Client.StatelessDecoderTest`. Review the actual
+production decoder and projector, including reachable dependencies. Use packets
+when the callbacks depend only on input and immutable data, with no shared
+mutable state, I/O, or per-case fixture lifecycle. Publish the testing library,
+call `Client.StatelessDecoderTest`, and pass `--stateless-decoder TEST` to
+`verify application-tests prepare` for each exact registration. Use the subtest
+name for a suite, such as `TestPreparedPlansSuite/decoder`. Publish or generate
+the local test sources before preparation so the plan pins the reviewed Go
+inputs. Review source or dependency changes and prepare a fresh plan.
+
+Packets carry up to 16 cases. Rust assesses each observation individually and
+Go reports the central verdict on the original subtest. The SDK enforces each
+case deadline while the channel bounds the packet and group. Large payloads
+and filtered subtest runs can use the single-case transport. Use
+`DecoderTest` for other decoders.
+
+### Reuse isolated Go decoder cohorts
+
+For eligible direct Go decoders, put explicit `schema_version: 1` bindings in an
+application-relative unit-groups JSON file. Each `groups` entry has an `id`,
+`subjects`, and `decoders`. Bind every required contract in that group's type
+closure exactly once with `subject`, `import_path`, and `function`. The compiler
+checks a direct `func([]byte) (T, error)` binding. Groups must cover the selected
+finite scope exactly. The file can supply its own `scope` and controlled
+`environment`. Use `GOENV=off`, `GOWORK=off`, `GOTOOLCHAIN=local`, and
+`CGO_ENABLED=0` with the intended Go compiler resolvable on `PATH`.
+
+```sh
+dctx0 verify run SPEC --project APP --unit-groups PATH --no-adopt --reuse off --json
+dctx0 verify run SPEC --project APP --unit-groups PATH --no-adopt --reuse require --json
+```
+
+The first command records fresh, source-bound evidence. For follow-up runs,
+check `reused_cases`, `executed_cases`, `worker_starts`, and `open_obligations`.
+`--reuse require` requires compatible reuse and can still execute changed
+groups alongside reused ones. A fully warm run has zero fresh cases and zero
+worker starts. Invalidation follows compiler-selected packages and their
+discovery inputs, including sources excluded by build tags. A shared package
+can invalidate multiple groups. Count only verified reuse and keep manual
+obligations open. Packet transport and isolated cohorts have separate
+declarations. Runatron's `packages/runner/.dctx0/testing/decoder-units.json`
+shows the latter for Counter and RuntimePolicy.
 
 ## Read results and maintain compatibility
 

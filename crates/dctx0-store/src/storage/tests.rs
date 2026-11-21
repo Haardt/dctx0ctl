@@ -89,7 +89,7 @@ fn installation_rejects_a_replaced_source_inode_while_waiting_for_readers() {
             .storage_inspect()
             .unwrap()
             .schema_version,
-        7
+        8
     );
     std::fs::remove_dir_all(dir).unwrap();
 }
@@ -398,7 +398,7 @@ fn migration_preserves_every_task_pin_and_isolated_queries_skip_large_details() 
     let original_json = serde_json::to_value(&original).unwrap();
     let before = old.storage_inspect().unwrap();
     assert_eq!(before.schema_version, 6);
-    assert_eq!(old.storage_compact_copy(&dest).unwrap().schema_version, 7);
+    assert_eq!(old.storage_compact_copy(&dest).unwrap().schema_version, 8);
     assert!(old.storage_compact_copy(&dest).is_err());
     assert!(old.storage_verify_copy(&dest).unwrap().integrity_ok);
     // Resume a fully converted but not yet accepted staging database.
@@ -407,7 +407,7 @@ fn migration_preserves_every_task_pin_and_isolated_queries_skip_large_details() 
         .execute("UPDATE storage_conversion SET status='incomplete'", [])
         .unwrap();
     drop(staging);
-    assert_eq!(old.storage_compact_copy(&dest).unwrap().schema_version, 7);
+    assert_eq!(old.storage_compact_copy(&dest).unwrap().schema_version, 8);
     let compact = Store::open(&dest, AccessMode::ReadOnly).unwrap();
     assert_eq!(compact.latest("p").unwrap(), Some(snapshot.clone()));
     assert_eq!(

@@ -23,7 +23,7 @@ pub(super) fn inspect(
 ) -> Result<Vec<VerificationIssue>> {
     let mut sources = vec![];
     let mut outside_language_scope = Vec::new();
-    for path in capture.files.keys() {
+    for path in capture.materialized.keys() {
         let language = match Path::new(path).extension().and_then(|value| value.to_str()) {
             Some("ts" | "js" | "mjs" | "cjs") => InspectionLanguage::TypeScript,
             Some("tsx" | "jsx") => InspectionLanguage::Tsx,
@@ -139,7 +139,7 @@ pub(super) fn inspect(
                 format!("{} imports testing artifact {path}", reference.source),
             ));
         }
-        if !capture.files.contains_key(&path) && !generated.contains(&path) {
+        if !capture.materialized.contains_key(&path) && !generated.contains(&path) {
             issues.push(issue(
                 "DEPENDENCY_NOT_CAPTURED",
                 format!("{} imports {specifier}", reference.source),

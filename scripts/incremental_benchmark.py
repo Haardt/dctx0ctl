@@ -19,17 +19,19 @@ MEMORY_SCOPE = ('Linux sampled process-tree RSS sum, 50 ms, including test runne
 WORKLOADS = (
     ('legacy-native', 'incremental_native', None),
     ('hybrid-native', 'incremental_hybrid', None),
+    ('isolated-go-decoder-cohorts', 'decoder_units', None),
     ('application-native', 'hybrid_done', 'application_incremental'),
     ('cli', 'verification_incremental', None),
     ('verification-core', 'dctx0_verification', 'incremental'),
 )
 BUILDS = (
-    ('engine', ['cargo', 'test', '--release', '--locked', '--all-features', '-p', 'dctx0-engine', '--test', 'incremental_native', '--test', 'incremental_hybrid', '--test', 'hybrid_done', '--no-run', '--message-format=json']),
+    ('engine', ['cargo', 'test', '--release', '--locked', '--all-features', '-p', 'dctx0-engine', '--test', 'incremental_native', '--test', 'incremental_hybrid', '--test', 'hybrid_done', '--test', 'decoder_units', '--no-run', '--message-format=json']),
     ('cli', ['cargo', 'test', '--release', '--locked', '--all-features', '-p', 'dctx0-cli', '--test', 'verification_incremental', '--no-run', '--message-format=json']),
     ('core', ['cargo', 'test', '--release', '--locked', '--all-features', '-p', 'dctx0-verification', '--lib', '--no-run', '--message-format=json']),
 )
 INPUTS = ('crates/dctx0-engine/tests/incremental_native.rs',
           'crates/dctx0-engine/tests/incremental_hybrid.rs',
+          'crates/dctx0-engine/tests/decoder_units.rs',
           'crates/dctx0-engine/tests/hybrid_done.rs',
           'crates/dctx0-cli/tests/verification_incremental.rs',
           'crates/dctx0-verification/src/incremental.rs')
@@ -62,12 +64,21 @@ def test_command(executable, test_filter):
     return [str(executable), *([test_filter] if test_filter else []), '--test-threads=1']
 
 
-def guard_metrics(output):
+def guard_metrics(output, build_usage=None):
     matches = re.findall(r'Memory guard: elapsed_ms=([0-9.]+); peak_process_tree_rss_bytes=([0-9]+);', output)
     if len(matches) != 1:
         raise ValueError('Missing or ambiguous process-tree memory measurement')
     elapsed, rss = float(matches[0][0]), int(matches[0][1])
-    if elapsed <= 0 or rss <= 0:
+    if elapsed <= 0:
+        raise ValueError('Invalid process-tree timing or RSS')
+    if rss == 0:
+        # A cache-hit build can finish between process-tree samples. Its
+        # wait4 high-water mark has a separate scope and is never used for tests.
+        if build_usage and (build_usage['peak_rss_bytes'] or 0) > 0:
+            return {'elapsed_ms': elapsed,
+                    'peak_rss_bytes': build_usage['peak_rss_bytes'],
+                    'memory_scope': build_usage['memory_scope'],
+                    'collective_rss_status': 'unavailable: process exited between samples'}
         raise ValueError('Invalid process-tree timing or RSS')
     return {'elapsed_ms': elapsed, 'peak_rss_bytes': rss}
 
@@ -79,13 +90,14 @@ def run(root, directory, name, command, timeout, require_tests=False):
     (directory / f'{name}.log').write_text(output)
     if result['exit_code'] != 0:
         raise RuntimeError(f'{name} failed with exit code {result["exit_code"]}; see {directory / (name + ".log")}')
-    sample = guard_metrics(output)
+    sample = guard_metrics(output, None if require_tests else result)
     if require_tests:
         match = re.search(r'test result: ok\. ([0-9]+) passed;', output)
         if not match or int(match.group(1)) == 0:
             raise ValueError(f'{name} executed no successful tests')
         sample['passed_tests'] = int(match.group(1))
-    sample.update(exit_code=0, memory_scope=MEMORY_SCOPE)
+    sample['exit_code'] = 0
+    sample.setdefault('memory_scope', MEMORY_SCOPE)
     (directory / f'{name}.json').write_text(json.dumps(sample, indent=2) + '\n')
     return sample, output
 
@@ -120,7 +132,7 @@ def benchmark(root, args, source_hash):
             sample, output = run(root, directory, f'build-{name}', command, 1800)
             record['builds'][name] = sample
             # Cargo may report unrelated artifacts, so require only this command's named targets.
-            wanted = {'engine': {'incremental_native', 'incremental_hybrid', 'hybrid_done'},
+            wanted = {'engine': {'incremental_native', 'incremental_hybrid', 'hybrid_done', 'decoder_units'},
                       'cli': {'verification_incremental'}, 'core': {'dctx0_verification'}}[name]
             executables.update(artifacts(output, wanted))
         if executables.keys() != expected:

@@ -99,6 +99,9 @@ impl Project {
             .iter()
             .map(|registration| registration.test.clone())
             .collect();
+        native
+            .stateless_decoders
+            .retain(|test| native.selection.contains(test));
         native.area = TestArea {
             cases: selected.clone(),
             ..Default::default()
@@ -121,6 +124,7 @@ impl Project {
                     cases: remainder,
                     ..Default::default()
                 },
+                stateless_decoders: Default::default(),
                 resources: GroupResources {
                     namespace: "replay-remainder".into(),
                     timeout_seconds: 120,

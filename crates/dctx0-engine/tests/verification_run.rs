@@ -63,11 +63,168 @@ const VALUE_ADAPTER: &str = r#"import {factory} from '../../../app.ts';
 export const adapter={async describe(){return {protocol_version:1,subjects:[{subject:'W.A',role:'contract',artifact:'app.ts',entry_point:'factory'}],artifacts:['app.ts'],capabilities:['sessions','values','events'],representations:{Int:'safe integer'}};},async begin(){return {async invoke(){throw Error('No operation');},async validate(subject,value){let result;try{result=factory(value.kind==='integer'||value.kind==='float'?Number(value.value):value.kind==='unit'?undefined:value.value);}catch(error){return {kind:'rejected',reason:String(error)};}return {kind:'accepted',value:{kind:'integer',value:String(result)}};},async close(){}};}};"#;
 
 #[tokio::test]
+async fn ignored_runtime_inputs_remain_bound_for_native_reviews_and_freshness() {
+    let f = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
+    fs::write(f.app.join(".gitignore"), "node_modules/\ncodec.ts\n").unwrap();
+    fs::create_dir_all(f.app.join("node_modules/limits")).unwrap();
+    fs::write(
+        f.app.join("node_modules/limits/package.json"),
+        r#"{"name":"limits","version":"1.0.0","type":"module","exports":"./index.js"}"#,
+    )
+    .unwrap();
+    fs::write(
+        f.app.join("node_modules/limits/index.js"),
+        "export const max = 2;",
+    )
+    .unwrap();
+    let codec = "import {max} from 'limits'; export function decode(v:number){if(!Number.isInteger(v)||v<1||v>max)throw TypeError('invalid');return v;}";
+    fs::write(f.app.join("codec.ts"), codec).unwrap();
+    fs::write(
+        f.app.join("app.ts"),
+        "export {decode as factory} from './codec';",
+    )
+    .unwrap();
+    f.adapter(VALUE_ADAPTER);
+    create_profiles(
+        &f.app,
+        &dctx0_target_typescript::Provider,
+        true,
+        false,
+        false,
+    )
+    .unwrap();
+    f.project.task_plan("latest").unwrap();
+    let preflight = f
+        .project
+        .verification_preflight(
+            Some(&f.app),
+            Default::default(),
+            VerificationIntent::Diagnostic,
+            None,
+        )
+        .unwrap();
+    let run = f
+        .project
+        .run_verification_incremental_preflighted(
+            Some(&f.app),
+            Default::default(),
+            &BunHarness,
+            &NativeCancellation::default(),
+            &NativeReuseOptions {
+                mode: NativeReuseMode::Off,
+                ..Default::default()
+            },
+            preflight,
+        )
+        .await
+        .unwrap();
+    assert_eq!(run.evidence.run.result, VerificationResult::Pass);
+    assert!(
+        run.evidence.run.provenance.incomplete.is_empty(),
+        "{:?}",
+        run.evidence.run.provenance.incomplete
+    );
+    for path in [
+        "codec.ts",
+        "node_modules/limits/index.js",
+        "node_modules/limits/package.json",
+    ] {
+        assert!(
+            !run.evidence
+                .run
+                .provenance
+                .implementation
+                .contains_key(path)
+        );
+        assert!(run.evidence.run.provenance.dependencies.contains_key(path));
+    }
+    assert_eq!(
+        f.project
+            .status(Some(&f.app), None)
+            .unwrap()
+            .latest_run
+            .unwrap()
+            .sources_current,
+        Some(true)
+    );
+    f.project
+        .publish_program_inspections(Some(&f.app), &run.evidence.id, &[])
+        .unwrap();
+    let continuation = f
+        .project
+        .verification_continuation_plan(&run.evidence.id, &Default::default(), 100)
+        .unwrap();
+    f.project
+        .validate_continuation_source_inputs(Some(&f.app), &continuation)
+        .unwrap();
+    fs::write(
+        f.app.join("codec.ts"),
+        "export function decode(v:number){return v;}",
+    )
+    .unwrap();
+    assert_eq!(
+        f.project
+            .status(Some(&f.app), None)
+            .unwrap()
+            .latest_run
+            .unwrap()
+            .sources_current,
+        Some(false)
+    );
+    assert!(
+        f.project
+            .publish_program_inspections(Some(&f.app), &run.evidence.id, &[])
+            .unwrap_err()
+            .to_string()
+            .contains("changed since execution")
+    );
+    assert!(
+        f.project
+            .validate_continuation_source_inputs(Some(&f.app), &continuation)
+            .is_err()
+    );
+    fs::write(f.app.join("codec.ts"), codec).unwrap();
+    fs::write(
+        f.app.join("node_modules/limits/package.json"),
+        r#"{"name":"limits","version":"2.0.0","type":"module","exports":"./index.js"}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        f.project
+            .status(Some(&f.app), None)
+            .unwrap()
+            .latest_run
+            .unwrap()
+            .sources_current,
+        Some(false)
+    );
+    assert!(
+        f.project
+            .publish_program_inspections(Some(&f.app), &run.evidence.id, &[])
+            .is_err()
+    );
+}
+
+#[tokio::test]
 async fn incremental_comparison_tracks_saved_plan_and_sources_without_authorizing_reuse() {
     let fixture = Fixture::new("workspace W { value A = Int { range 1..2 } }", "W.A");
     fixture.adapter(VALUE_ADAPTER);
     fs::write(fixture.app.join("app.ts"), "export function factory(value:number){if(!Number.isInteger(value)||value<1||value>2)throw TypeError('invalid');return value;}").unwrap();
-    let saved = fixture.run(true).await.evidence;
+    let saved = fixture
+        .project
+        .run_verification_incremental(
+            Some(&fixture.app),
+            Default::default(),
+            &BunHarness,
+            &NativeCancellation::default(),
+            &NativeReuseOptions {
+                mode: NativeReuseMode::Off,
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap()
+        .evidence;
     let compare = || {
         fixture
             .project
@@ -1637,7 +1794,20 @@ async fn task_selected_runs_pin_requirements_profiles_and_build_inputs_without_c
     );
     assert_eq!(
         pinned.evidence.run.provenance.build_configuration["package.json"],
-        pinned.evidence.run.provenance.implementation["package.json"]
+        dctx0_store::VerificationArtifact::new(
+            "application/octet-stream",
+            fs::read(f.app.join("package.json")).unwrap(),
+        )
+        .reference
+        .hash,
+    );
+    assert!(
+        !pinned
+            .evidence
+            .run
+            .provenance
+            .implementation
+            .contains_key("package.json")
     );
     assert!(pinned.adopted_tasks.is_empty());
     let after = f.project.task_session(None, None).unwrap();
@@ -1909,15 +2079,7 @@ async fn incompatible_harnesses_escaping_artifacts_and_missing_runtimes_never_ex
         .await
         .unwrap();
     assert!(report.evidence.run.cases.is_empty());
-    assert!(
-        report
-            .evidence
-            .run
-            .provenance
-            .incomplete
-            .iter()
-            .any(|issue| { issue.code == "CONFIGURED_RUNTIME_UNAVAILABLE" })
-    );
+    assert!(report.evidence.run.provenance.runtime_version.is_empty());
     assert!(
         report
             .evidence
@@ -4486,6 +4648,7 @@ async fn assigned_adapter_group_executes_only_its_unchanged_cases_and_never_adop
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::ValueConstructor,
                 group_seconds: None,
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )
@@ -4632,6 +4795,7 @@ test('NativeB',async()=>{const client=await AssessmentClient.connect(process.env
                 form: TestForm::Decoder,
                 boundary: ApplicationValueBoundary::JsonDecoder,
                 group_seconds: Some(30),
+                stateless_decoders: Default::default(),
                 subjects: ["W.B".into()].into(),
             },
         )

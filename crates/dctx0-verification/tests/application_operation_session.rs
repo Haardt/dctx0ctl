@@ -53,6 +53,7 @@ fn fixture(
             cases: manifest.required_cases.clone(),
             ..Default::default()
         },
+        stateless_decoders: Default::default(),
         resources: resources("legacy"),
     };
     let classified = application_test_plan(
@@ -76,6 +77,7 @@ fn fixture(
                 cases: cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: resources("native"),
         },
         ExecutionGroup {
@@ -359,6 +361,7 @@ fn assertion_calls_are_ordered_repeated_native_invocations_with_actual_contract_
                 cases: cases.clone(),
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: GroupResources {
                 namespace: "native".into(),
                 timeout_seconds: 60,
@@ -375,6 +378,7 @@ fn assertion_calls_are_ordered_repeated_native_invocations_with_actual_contract_
             cases: all_cases.difference(&cases).cloned().collect(),
             ..Default::default()
         },
+        stateless_decoders: Default::default(),
         resources: GroupResources {
             namespace: "legacy".into(),
             timeout_seconds: 60,

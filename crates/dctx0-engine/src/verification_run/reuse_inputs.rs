@@ -21,26 +21,21 @@ struct Declaration {
 pub(super) async fn capture(
     application: &Path,
     inputs: &str,
-    cancellation: &NativeCancellation,
+    _cancellation: &NativeCancellation,
 ) -> Result<ExternalInputReceipt> {
-    capture_mode(application, inputs, cancellation, true).await
+    capture_local(application, inputs)
 }
 
 /// Static preflight uses the same code selection and never launches providers.
 pub(super) async fn capture_static(
     application: &Path,
     inputs: &str,
-    cancellation: &NativeCancellation,
+    _cancellation: &NativeCancellation,
 ) -> Result<ExternalInputReceipt> {
-    capture_mode(application, inputs, cancellation, false).await
+    capture_local(application, inputs)
 }
 
-async fn capture_mode(
-    application: &Path,
-    inputs: &str,
-    cancellation: &NativeCancellation,
-    live: bool,
-) -> Result<ExternalInputReceipt> {
+pub(super) fn capture_local(application: &Path, inputs: &str) -> Result<ExternalInputReceipt> {
     let bytes = if inputs.is_empty() {
         br#"{"schema_version":1,"deterministic_units":[]}"#.to_vec()
     } else {
@@ -62,7 +57,6 @@ async fn capture_mode(
     }
     // Code-only policy: runtime binaries, revisions and inherited environment
     // remain execution metadata, not change-detection inputs.
-    let _ = (cancellation, live);
     let mut files = BTreeMap::new();
     let mut incomplete = Vec::new();
     let mut selection = super::code_selection::CodeSelection::new(application)?;

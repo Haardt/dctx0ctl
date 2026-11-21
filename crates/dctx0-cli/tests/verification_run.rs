@@ -35,7 +35,14 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
             String::from_utf8_lossy(&init.stderr)
         );
         for json in [true, false] {
-            let mut args = vec!["verify", "run", specs.to_str().unwrap(), "--no-adopt"];
+            let mut args = vec![
+                "verify",
+                "run",
+                "--reuse",
+                "off",
+                specs.to_str().unwrap(),
+                "--no-adopt",
+            ];
             if json {
                 args.extend(["--json", "--full"]);
             }
@@ -84,6 +91,8 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
                 let compact = call(&[
                     "verify",
                     "run",
+                    "--reuse",
+                    "off",
                     specs.to_str().unwrap(),
                     "--no-adopt",
                     "--json",
@@ -119,7 +128,7 @@ fn run_stores_unknown_scaffold_evidence_and_show_reads_it_without_a_new_check() 
     #[cfg(not(feature = "typescript"))]
     {
         assert!(!init.status.success());
-        let run = call(&["verify", "run", specs.to_str().unwrap()]);
+        let run = call(&["verify", "run", "--reuse", "off", specs.to_str().unwrap()]);
         assert!(!run.status.success());
         #[cfg(not(any(feature = "go", feature = "rust")))]
         assert!(String::from_utf8_lossy(&run.stderr).contains("No executable TypeScript"));

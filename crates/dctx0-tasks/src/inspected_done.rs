@@ -57,6 +57,10 @@ impl InspectedDoneBatch {
         !self.tasks.is_empty()
             && !self.sources.is_empty()
             && self
+                .tasks
+                .keys()
+                .all(|id| self.task_pin.requirements.contains_key(id))
+            && self
                 .sources
                 .iter()
                 .all(|(path, hash)| !hash.is_empty() && captured_sources.get(path) == Some(hash))

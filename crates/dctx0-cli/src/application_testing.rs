@@ -158,6 +158,9 @@ enum Action {
         /// Whole native group budget; does not alter corpus or interpreter budgets.
         #[arg(long,value_parser=clap::value_parser!(u64).range(1..=86_400))]
         group_seconds: Option<u64>,
+        /// Exact Go registration whose decoder and projector were reviewed as stateless.
+        #[arg(long)]
+        stateless_decoder: Vec<String>,
         #[arg(long)]
         subject: Vec<String>,
         #[arg(long, value_enum, default_value = "json-decoder")]
@@ -578,6 +581,7 @@ pub(crate) fn run(
             test_name,
             form,
             group_seconds,
+            stateless_decoder,
             subject,
             boundary,
         } => {
@@ -620,6 +624,7 @@ pub(crate) fn run(
                     },
                     subjects: subject.into_iter().collect(),
                     group_seconds,
+                    stateless_decoders: stateless_decoder.into_iter().collect(),
                 },
             )
             .map_err(crate::error_message)?;

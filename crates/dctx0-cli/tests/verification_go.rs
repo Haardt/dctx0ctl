@@ -70,6 +70,8 @@ func(actualSession)Invoke(invocation Invocation)(Observation,error){var digits s
     let result = cli(&[
         "verify",
         "run",
+        "--reuse",
+        "off",
         spec.to_str().unwrap(),
         "--project",
         root.to_str().unwrap(),

@@ -5,11 +5,21 @@ use dctx0_core::WorkspaceIr;
 use dctx0_target_sdk::application_protocol::{self, AssessmentFrame};
 use dctx0_verification::application_session::ApplicationAssessmentReport;
 #[cfg(unix)]
-use dctx0_verification::application_session::{ApplicationRequest, ApplicationSession};
+use dctx0_verification::application_session::{
+    ApplicationReply, ApplicationRequest, ApplicationSession,
+};
 #[cfg(unix)]
 use std::time::Duration;
 #[cfg(unix)]
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+#[cfg(unix)]
+#[derive(serde::Serialize)]
+struct DecoderEvidenceFrame<'a> {
+    kind: &'static str,
+    context: u64,
+    observation: &'a dctx0_verification::application_session::ApplicationObservation,
+}
 
 #[cfg(unix)]
 async fn line(reader: &mut (impl AsyncBufRead + Unpin), limit: usize) -> std::io::Result<Vec<u8>> {
@@ -78,6 +88,7 @@ pub(crate) async fn serve_cancellable_with_reuse(
     let mut session =
         ApplicationSession::new_with_boundary(ir, &bundle.plan, group, bundle.boundary)
             .map_err(|issues| Error::Invalid(format!("Invalid assessment group: {issues:?}")))?
+            .with_case_seconds(bundle.case_seconds)
             .with_lifecycle_inputs(bundle.lifecycle_inputs.clone())
             .with_reused_cases(reused)
             .map_err(|issues| Error::Invalid(format!("Invalid reused cases: {issues:?}")))?;
@@ -129,38 +140,64 @@ pub(crate) async fn serve_cancellable_with_reuse(
                 ));
             }
             previous = request.id;
-            let context = match &request.payload {
-                ApplicationRequest::Observe { context, .. }
-                | ApplicationRequest::Collaborator { context, .. } => Some(*context),
-                _ => None,
-            };
-            if let Some(context) = context
-                && let Some(size) = retained.get_mut(&context)
-            {
-                *size = size.saturating_add(bytes.len());
-                if *size > bundle.evidence_bytes {
-                    return Err(Error::Invalid(format!(
-                        "Application case {context} evidence budget exceeded"
-                    )));
+            let mut account = |context, bytes| {
+                if let Some(size) = retained.get_mut(&context) {
+                    *size = size.saturating_add(bytes);
+                    if *size > bundle.evidence_bytes {
+                        return Err(Error::Invalid(format!(
+                            "Application case {context} evidence budget exceeded"
+                        )));
+                    }
                 }
+                Ok(())
+            };
+            match &request.payload {
+                ApplicationRequest::Observe { context, .. }
+                | ApplicationRequest::Collaborator { context, .. } => {
+                    account(*context, bytes.len())?
+                }
+                ApplicationRequest::CompleteDecoderBatch { cases, .. } => {
+                    for case in cases {
+                        if let Some(observation) = &case.observation {
+                            let frame = AssessmentFrame::new(
+                                request.id,
+                                DecoderEvidenceFrame {
+                                    kind: "observe",
+                                    context: case.context,
+                                    observation,
+                                },
+                            );
+                            account(case.context, serde_json::to_vec(&frame)?.len() + 1)?;
+                        }
+                    }
+                }
+                _ => {}
             }
             let reply = session.handle(request.payload);
-            match &reply {
-                dctx0_verification::application_session::ApplicationReply::Case {
-                    context, ..
-                } => {
-                    retained.insert(*context, 0);
-                    deadlines.insert(
-                        *context,
-                        tokio::time::Instant::now() + Duration::from_secs(bundle.case_seconds),
-                    );
-                }
-                dctx0_verification::application_session::ApplicationReply::CaseClosed {
+            let mut start = |context, seconds| {
+                retained.insert(context, 0);
+                deadlines.insert(
                     context,
-                    ..
-                } => {
+                    tokio::time::Instant::now() + Duration::from_secs(seconds),
+                );
+            };
+            match &reply {
+                ApplicationReply::Case { context, .. } => start(*context, bundle.case_seconds),
+                ApplicationReply::DecoderBatch { cases } => {
+                    let seconds = bundle.case_seconds.saturating_mul(cases.len() as u64);
+                    for case in cases {
+                        start(case.context, seconds);
+                    }
+                }
+                ApplicationReply::CaseClosed { context, .. } => {
                     deadlines.remove(context);
                     retained.remove(context);
+                }
+                ApplicationReply::DecoderBatchClosed { cases } => {
+                    for case in cases {
+                        deadlines.remove(&case.context);
+                        retained.remove(&case.context);
+                    }
                 }
                 _ => {}
             }

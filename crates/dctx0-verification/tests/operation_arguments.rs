@@ -155,6 +155,7 @@ fn application_test_export_preserves_setup_templates_bindings_and_runtime_resolu
                 cases: case_manifest(&program).required_cases,
                 ..Default::default()
             },
+            stateless_decoders: Default::default(),
             resources: GroupResources {
                 namespace: "legacy".into(),
                 timeout_seconds: 60,

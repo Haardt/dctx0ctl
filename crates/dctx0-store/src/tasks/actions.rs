@@ -1077,7 +1077,7 @@ impl Store {
             };
             let started = apply_action(
                 &tx,
-                &current,
+                current,
                 Action::Start {
                     task: id,
                     actor: actor.into(),

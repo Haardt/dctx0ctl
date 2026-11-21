@@ -69,8 +69,9 @@ unbound observations; they do not search backwards for a green result. An
 explicit `--reuse-from RUN_ID` restricts the basis. `--reuse=off` forces fresh
 selected cases and conflicts with `--reuse-from`. `--reuse=require` refuses
 production case execution when an existing basis supplies no compatible unit.
-A missing basis still permits establishing a fresh one. `--no-adopt` independently
-prevents task delivery.
+A cold or wholly incompatible scope needs `--reuse=off` to establish a fresh
+basis. `--no-adopt` independently prevents task delivery. The non-incremental
+Rust execution entry points request fresh cases explicitly.
 
 Every managed run captures available receipts even without a reuse flag. The
 standard additional declaration is `.dctx0/testing/reuse-inputs.json`;
@@ -250,9 +251,38 @@ pruned, imported, incomplete or failing ancestors cannot authorize delivery.
 Native assertions and the application-test group still run; reuse does not turn
 an unexecuted or failed native assertion into PASS. `--no-adopt` prevents delivery.
 
-`dctx0 verify incremental-plan SPEC RUN_ID --project APP --json` is a separate
-read-only comparison. It does not run tests, publish a check, change task state or
-establish PASS. Its comparison alone does not authorize reuse.
+`dctx0 verify incremental-plan SPEC RUN_ID --project APP` compares the saved
+run's check with the current published check. Use `--json` for `task_impacts`
+and `test_groups`, or narrow the scope with `--subject` or `--task`.
+The report shows both check occurrences and any matching task plan IDs. It
+uses the run's task plan pin when present. If a plan has yet to be published
+for the current check, the comparison still shows affected historical IDs.
+
+In the CLI acceptance example, changing a rule in domain `W.D` and removing
+another reaches `W.D.One` through those inherited constraints. Its task is
+`inherited-constraint-only`. The contract for `W.D.Two` also changes, so its task
+is `mixed` and the report includes both inherited and independent paths. The
+case IDs for `W.D.Two` stay the same while the values under test change.
+
+Each group row shows the historical and current case counts, whether its cases
+or semantic requirements changed, and whether the saved run contains complete
+native PASS evidence for that group. For example, `contract:W.E.Independent`
+is `unchanged` and retains its historical PASS. It also shows
+`execution-required` with `SHARED_ADAPTER_PROGRAM_CHANGED` because the runner
+binds the whole adapter program. A later conflicting observation under the
+same runner binding can also require execution.
+
+| Runner status | Meaning |
+| --- | --- |
+| `static-compatible` | The saved evidence and locally checked inputs match the runner's static comparison. |
+| `binding-check-required` | The runner needs a binding this report could not establish from local inputs and saved artifacts. |
+| `execution-required` | The group is new or changed, or the runner has a known reason to execute it again. |
+| `evidence-missing` | The group is unchanged and the saved run lacks complete native PASS evidence for it. |
+| `not-selected` | The historical group has no current cases in this comparison. |
+
+The comparison reads saved artifacts and local files. Test execution, toolchain
+calls, external revision queries, reuse decisions and task delivery remain with
+the runner. A pruned run reports `DETAILS_PRUNED`.
 
 ## Validation and remaining work
 
