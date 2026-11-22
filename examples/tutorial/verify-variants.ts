@@ -75,7 +75,7 @@ for (const name of variants) {
     assert.equal(counts.LF, counts.LH, name + ': uncovered lines');
     assert.equal(counts.FNF, counts.FNH, name + ': uncovered functions');
   }
-  const complete = JSON.parse(await execute([binary, 'verify', 'complete', 'dctx0', '--project', '.', '--json'], project));
+  const complete = JSON.parse(await execute([binary, 'verify', 'complete', 'dctx0', '--project', '.', '--reuse', 'off', '--json'], project));
   assert.equal(complete.result.status, 'PASS');assert.equal(complete.open_tasks, 0);assert.equal(complete.non_pass_tasks, 0);
   const plan = JSON.parse(await execute([binary, 'verify', 'plan', 'dctx0', '--subject', 'Tutorial.Board', '--json'], project));
   // Publication occurrence is independent history, not executable meaning.
@@ -96,7 +96,7 @@ for (const report of reports) {
     await Bun.write(file, source.replace('return value + 1n;', 'return value + 2n;'));
     await execute(['bun', 'install', '--frozen-lockfile'], project);
     await execute([binary, 'check', 'dctx0'], project);
-    const saved = JSON.parse(await execute([binary, 'verify', 'run', 'dctx0', '--project', '.', '--subject', 'Tutorial.Board.Actions.increment', '--no-adopt', '--json','--full'], project, [0, 1]));
+    const saved = JSON.parse(await execute([binary, 'verify', 'run', 'dctx0', '--project', '.', '--subject', 'Tutorial.Board.Actions.increment', '--no-adopt', '--reuse', 'off', '--json','--full'], project, [0, 1]));
     const run = saved.evidence.run;
     assert.equal(run.result.status, 'FAIL', 'Real production mutation must fail through HTTP');
     const failure = run.cases.find((entry: any) => entry.result.status === 'FAIL');
@@ -109,7 +109,7 @@ for (const report of reports) {
 if (!skipPerformance) {
 for (const report of reports) {
   const project = join(root, 'examples/tutorial-variants', report.name);
-  const measurement = await measured([binary, 'verify', 'run', 'dctx0', '--project', '.', '--no-adopt', '--json','--full'], project);
+  const measurement = await measured([binary, 'verify', 'run', 'dctx0', '--project', '.', '--no-adopt', '--reuse', 'off', '--json','--full'], project);
   const saved = JSON.parse(measurement.output);
   const run = saved.evidence.run;
   assert.equal(run.result.status, 'PASS');

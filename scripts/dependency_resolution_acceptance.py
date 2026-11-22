@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 
 from release_support import locked, measured
-from validate import atomic, digest, validation_sources
+from validate import atomic, digest, functional_cache_root, validation_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORY = ROOT / 'benchmarks/history/dependency-resolution'
@@ -90,15 +90,17 @@ def main():
     failure = None
     try:
         # Owned scratch stays on disk; no production fixture/history is modified.
-        scratch_root = ROOT / 'target/dependency-resolution'
-        scratch_root.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=scratch_root) as temporary:
+        with tempfile.TemporaryDirectory(prefix='dctx0-dependencies-', dir=functional_cache_root()) as temporary:
             for kind in ('chain', 'repeated', 'budget-stop'):
                 app, spec = prepare(binary, Path(temporary), kind)
                 samples = []
                 record['workloads'][kind] = {'raw_samples': samples}
                 for index in range(4):
-                    sample, output = measured([str(binary), 'verify', 'run', '--reuse', 'off', str(spec), '--project', str(app), '--no-adopt', '--json', '--full'], ROOT, timeout=300, sample_direct_rss=True)
+                    with tempfile.TemporaryFile() as stderr:
+                        sample, output = measured([str(binary), 'verify', 'run', '--reuse', 'off', str(spec), '--project', str(app), '--no-adopt', '--json', '--full'], ROOT, timeout=300, sample_direct_rss=True, stderr=stderr)
+                        if not output.strip():
+                            stderr.seek(0)
+                            raise RuntimeError(f'{kind}: no verification report (exit {sample["exit_code"]}); {stderr.read().decode(errors="replace")[-4000:]}')
                     report = json.loads(output)
                     details = artifacts(spec, report)
                     summary = details[MEDIA + 'dependency-resolution-summary+json']

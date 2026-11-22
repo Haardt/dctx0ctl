@@ -54,6 +54,7 @@ def main():
             raise RuntimeError(f'{label} returned {sample["exit_code"]}; see {output}')
         return text
 
+    scratch = tempfile.TemporaryDirectory(prefix='dctx0-generator-')
     try:
         if not args.skip_build:
             run('release-build', ['cargo', 'build', '--release', '-p', 'dctx0-cli', '--all-features', '--locked'])
@@ -67,7 +68,7 @@ def main():
         if not args.scaffolds_only:
             run('generator-cli', ['cargo','test','-p','dctx0-cli','--test','generators','--all-features','--locked'])
         for target in ('go', 'typescript', 'rust'):
-            app = output / f'{target} application with spaces'
+            app = Path(scratch.name) / f'{target} application with spaces'
             spec = app / 'spec'
             spec.mkdir(parents=True)
             (spec / 'w.dctx0').write_text('workspace W { value Count = Int { range 1..2 } surface Api { operation next(input:Count) -> Int {\n pure\n ensures result == input + 1\n } } }\n')
@@ -166,6 +167,7 @@ def main():
     except Exception as error:
         report['error'] = str(error)
     finally:
+        scratch.cleanup()
         history = ROOT / 'benchmarks/history/generators'
         history.mkdir(parents=True, exist_ok=True)
         with locked(history / '.lock'):

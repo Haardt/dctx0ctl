@@ -16,6 +16,11 @@ export function rawLabel(value: unknown): string {
   if (typeof value !== 'string') throw new TypeError('Expected a text label');
   return value;
 }
+export function hexToken(value: unknown): string {
+  const text = rawLabel(value);
+  if (text.length === 0 || /[^0-9a-f]/.test(text)) throw new TypeError('Expected nonempty lowercase hexadecimal text');
+  return text;
+}
 export function title(value: unknown): string {
   const text = rawLabel(value);
   if (text.length < 1 || text.length > 16 || text.trim().length === 0) throw new TypeError('Title needs 1..16 characters and visible text');

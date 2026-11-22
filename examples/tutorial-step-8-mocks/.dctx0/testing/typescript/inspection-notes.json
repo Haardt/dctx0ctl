@@ -297,7 +297,10 @@
       "limitations": [
         "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
       ],
-      "review": null
+      "review": {
+        "approved": true,
+        "findings": []
+      }
     },
     "Tutorial.Board.Catalog#constraint:1": {
       "report": "Reviewed Catalog constructor and find body: the service receives TaskReader and invokes its lookup method. It neither constructs Board nor reaches private storage. The concrete BoardReader lives alongside the service but receives its Board independently; the file import is not a claim that the Catalog class depends directly on storage. The independent replacement test injects a different ordinary reader and exercises the unchanged Catalog. Fresh Step 8 inspection: Catalog now awaits the normal reader result, retaining the same constructor dependency and boundary. Tests exercise both a real synchronous BoardReader and an asynchronous replacement, including identity-preserving rejection propagation. Mock scenarios select only the declared example sessions; the bridge obtains replies through context.collaborator and records actual invocations. It never supplies domain answers. Other generated operations and direct port conformance keep the real reader. The explicit scenario inputs match the independently observed initial test state, so the existing state contract is retained.",

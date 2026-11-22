@@ -47,7 +47,7 @@ for(const mutation of mutations){
   const original=await readFile(file,'utf8');assert.ok(original.includes(mutation.from),'Mutation no longer matches '+mutation.name);
   await writeFile(file,original.replace(mutation.from,mutation.to));
   await command(['check','dctx0','--json'],project);
-  const native=(await command(['verify','run','dctx0','--project','.','--subject',mutation.subject,'--no-adopt','--json','--full'],project,[0,1])).evidence;
+  const native=(await command(['verify','run','dctx0','--project','.','--subject',mutation.subject,'--no-adopt','--reuse','off','--json','--full'],project,[0,1])).evidence;
   const failing=native.run.cases.filter((entry:any)=>entry.result.status==='FAIL');
   assert.ok(failing.length,'Mutation was not detected by a real failed case: '+mutation.name);
   const item:any={step:mutation.step,name:mutation.name,subject:mutation.subject,result:'detected',native_run:native.id,cases:native.run.cases.length,counterexample:failing[0]};
@@ -72,7 +72,7 @@ for(const rejection of ['request-changes','high-finding','missing-review','stale
   if(rejection==='missing-review')delete notes.subjects['Tutorial.Board.BoundaryReview'];
   if(rejection==='stale-source')await writeFile(join(project,'src/board.ts'),await readFile(join(project,'src/board.ts'),'utf8')+'\n// Changed after inspection\n');
   await writeFile(path,JSON.stringify(notes,null,2)+'\n');
-  const report=await command(['verify','complete','dctx0','--project','.','--json'],project,[1]);
+  const report=await command(['verify','complete','dctx0','--project','.','--reuse','off','--json'],project,[1]);
   assert.ok(report.error,'Rejected completion must report its specific reason');
   assert.match(report.error,rejection==='stale-source'?/New source inspection required: src\/board.ts/:/Effective assessment incomplete/,'An unrelated technical error is not policy acceptance');
   const run=report.error.match(/inspect run ([a-f0-9]{64})/)?.[1];

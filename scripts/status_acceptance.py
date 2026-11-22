@@ -51,6 +51,7 @@ def main():
             raise RuntimeError(f'{label} returned {sample["exit_code"]}; see {output}')
         return sample, text
 
+    scratch = tempfile.TemporaryDirectory(prefix='dctx0-status-')
     try:
         if not args.skip_tests:
             run('engine-regressions', ['cargo', 'test', '-p', 'dctx0-engine', '--test', 'verification_preflight', '--test', 'agent_freshness', '--locked'])
@@ -61,7 +62,7 @@ def main():
         binary = args.binary.resolve()
         report['binary_hash'] = hashlib.sha256(binary.read_bytes()).hexdigest()
         for example, target in [('cinema', 'typescript'), ('cinema-go', 'go')]:
-            app = output / example
+            app = Path(scratch.name) / example
             spec = app / 'dctx0'
             shutil.copytree(ROOT / 'examples' / example / 'dctx0', spec, ignore=shutil.ignore_patterns('.dctx0ctl'))
             run(example + '-check', [binary, 'check', spec, '--json'])
@@ -115,6 +116,7 @@ def main():
     except Exception as error:
         report['error'] = str(error)
     finally:
+        scratch.cleanup()
         history = ROOT / 'benchmarks/history/status'
         history.mkdir(parents=True, exist_ok=True)
         with locked(history / '.lock'):

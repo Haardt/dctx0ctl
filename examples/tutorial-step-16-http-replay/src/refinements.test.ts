@@ -1,5 +1,11 @@
 import { test, expect } from 'bun:test';
-import { rawLabel, title, displayTitle, echo, email, identifier, taskId, link, day, instant, shortList } from './board.ts';
+import { rawLabel, title, displayTitle, echo, email, identifier, taskId, link, day, instant, shortList, hexToken } from './board.ts';
+
+test('hex tokens preserve lowercase digits and reject other text', () => {
+  expect(hexToken('0')).toBe('0');
+  expect(hexToken('09afe')).toBe('09afe');
+  for (const value of ['', 'AB', '0x12', 'ab\n', 'ab ', 12]) expect(() => hexToken(value)).toThrow(TypeError);
+});
 
 test('text aliases enforce UTF-16 length and nonempty trimmed input', () => {
   for (const value of ['a', '😀', 'x'.repeat(16), '\u0085']) {

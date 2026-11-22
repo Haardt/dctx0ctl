@@ -18,12 +18,12 @@ import {resultValue} from './collection-codec.ts';
 import * as expressions from '../../../src/expressions.ts';
 import * as data from '../../../src/data.ts';
 import {decode, encode} from './data-codec.ts';
-import { count, increment, echo, rawLabel, title, displayTitle, email, identifier, taskId, link, day, instant, shortList } from '../../../src/board.ts';
+import { count, increment, echo, rawLabel, title, displayTitle, email, identifier, taskId, link, day, instant, shortList, hexToken } from '../../../src/board.ts';
 import type { ProjectAdapter, Value } from './contract.ts';
 const prefix = 'Tutorial.Board.';
 const entityFactories={Task:entities.task,Note:entities.note,TaskSummary:entities.taskSummary};
 const dataFactories = {Integer:data.integer, Flag:data.flag, Measure:data.measure, Estimate:data.estimate, ExactAmount:data.exactAmount, Attachment:data.attachment, NoValue:data.noValue, MaybeTitle:data.maybeTitle, CompatOption:data.maybeTitle, PresentTitle:data.presentTitle, Absent:data.absent, Attempt:data.attempt, Status:data.status, Choice:data.choice, Details:data.details};
-const textFactories = { RawLabel: rawLabel, Title: title, DisplayTitle: displayTitle, Email: email, Identifier: identifier, TaskId: taskId, Link: link, Day: day, Instant: instant, Moment: instant, CopyTitle: title };
+const textFactories = { RawLabel: rawLabel, Title: title, DisplayTitle: displayTitle, Email: email, Identifier: identifier, TaskId: taskId, Link: link, Day: day, Instant: instant, Moment: instant, CopyTitle: title, HexToken: hexToken };
 function text(input: Value): string { if (input.kind !== 'string') throw new TypeError('Expected text wire value'); return input.value; }
 function integer(value: Value | undefined): bigint {
   if (!value || value.kind !== 'integer' || !/^[+-]?\d+$/.test(value.value)) {

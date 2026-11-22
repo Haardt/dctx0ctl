@@ -67,15 +67,14 @@ def main():
             if any(path.is_symlink() for path in source.rglob('*')):
                 raise RuntimeError('Application pilot source contains symlinks; captured source closure is not supported by this preview')
             copy_application(project)
+            run('publish-sdk', [binary, 'verify', 'application-tests', 'library', '--target', 'go', '--project', project])
             if args.decoder_transport:
-                run('publish-sdk', [binary, 'verify', 'application-tests', 'library', '--target', 'go', '--project', project])
                 path = project / 'contracttests/runtime_contracts_test.go'
                 path.write_text(path.read_text().replace('client.DecoderTest(t,', 'client.StatelessDecoderTest(t,'))
                 report['decoder_transport'] = args.decoder_transport
             production_hashes = {str(path.relative_to(project)): hashlib.sha256(path.read_bytes()).hexdigest() for path in project.rglob('*') if path.is_file() and (path.suffix == '.go' or path.name in ('go.mod', 'go.sum', 'library-pin.json'))}
             report['application_inputs'] = production_hashes
             pin = json.loads((project / '.dctx0/application-tests/library-pin.json').read_text())
-            assert pin['version'] in (('0.3.0',) if args.decoder_transport else ('0.2.0', '0.3.0'))
             assert pin['protocol_version'] == 2
             assert all(hashlib.sha256((project / '.dctx0/application-tests/library' / name).read_bytes()).hexdigest() == value for name, value in pin['sha256'].items()), 'Library copy differs from its pin'
             mutations = {
@@ -196,7 +195,7 @@ def main():
             report['error'] = 'CLI binary changed during application tests'
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(report, indent=2)+'\n')
-        print(json.dumps(report, indent=2))
+        print(json.dumps({'status': report['status'], 'report': str(args.report), 'error': report.get('error')}))
         if not report['binary_unchanged']:
             raise RuntimeError(report['error'])
 

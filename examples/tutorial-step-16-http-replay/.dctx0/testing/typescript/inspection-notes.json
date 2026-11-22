@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "actor": "tutorial-reference-reviewer",
-  "scope": "Tutorial.Board Step 16: unchanged source hashes retain the Step 15 authored inspections. Renewed substantive inspection covers the actual HTTP client/handler, external correlation bridge, existing-task example, HTML page, local startup, explicit package/config changes and four composed Spec files. Native outcomes and browser acceptance remain distinct evidence. Renewed UI write-surface inspection: actual full-entity list, POST insertion and PATCH replacement use existing Board methods. Administrative access is explicitly modeled; Catalog summaries remain unchanged. Creation and Done controls use these actual HTTP operations. Renewed Spec inspection for explicit modeled call/event traces and state predicates: clauses express existing behavior; actual consumer, observer and storage implementations are retained. Native assertions remain centrally evaluated and final current-source execution is required.",
+  "scope": "Tutorial.Board Step 16: unchanged source hashes retain the Step 15 authored inspections. Renewed substantive inspection covers the actual HTTP client/handler, external correlation bridge, existing-task example, HTML page, local startup, explicit package/config changes and four composed Spec files. Native outcomes and browser acceptance remain distinct evidence. Renewed UI write-surface inspection: actual full-entity list, POST insertion and PATCH replacement use existing Board methods. Administrative access is explicitly modeled; Catalog summaries remain unchanged. Creation and Done controls use these actual HTTP operations. Renewed Spec inspection for explicit modeled call/event traces and state predicates: clauses express existing behavior; actual consumer, observer and storage implementations are retained. The Tasks text-prefix operation retains its behavior with an anchored matchesText postcondition. The added HexToken contract delegates to the real lowercase hexadecimal factory, which is covered by independent boundary tests. Native assertions remain centrally evaluated and final current-source execution is required.",
   "reviewed_hashes": {
     "package.json": "58132f42f2b4b176212c24d59da9b76ecc036f1b23e1235fa918977bef93da19",
     "bun.lock": "5379a6a17b3d60e186bc70a7b0469167638005d4b6b198791e7f4145349a4ff1",
     "tsconfig.json": "196e632dc8e8c5e9c7326dec47f305b24347a10f1d2cba1db3d5a40f5b335757",
     ".dctx0/testing/verification.json": "0dbcf2f1a0fd74752211017267f3a40458b6bdcd302f27ab346b7c852f709309",
-    ".dctx0/testing/typescript/adapter.ts": "d2ec06ac25604c44929cdd1e0f5d5f6420acdd8a17759ec6bcc904b34aade67f",
+    ".dctx0/testing/typescript/adapter.ts": "c9cdcec4935e9602ce690e34198a94d443b38e1cf64d613c47c6a9b4ffb50e03",
     ".dctx0/testing/typescript/collection-codec.ts": "3d51f323949998e0f73b4a46a54efe51641005ddd5742593ab15e3b6230cd9d2",
     ".dctx0/testing/typescript/collection-signatures.json": "e1ab6caf17e0db731606c6fb09e83949002211045ada035c754be5c7d81f6727",
     ".dctx0/testing/typescript/data-codec.ts": "f668f3a0c00ed07b1f2b864c32b9272b859879fdacdc2adcfd99ea2688fa9a1f",
@@ -20,7 +20,7 @@
     ".dctx0/testing/typescript/resource-observer.test.ts": "64d5ba06dc2c21be5020b62ad5184a4e4d885b6dddf3a940d64253e272aa5c2b",
     ".dctx0/testing/typescript/resource-observer.ts": "50edf2e132b6b5de2fe373b752d23c3a0fd69663c96f104e3cb26abc12baaf66",
     "src/board.test.ts": "f0b810c0a3b23fc2c3692abdd6a97ee49a402baec5dcfc182b69db643a4bf14b",
-    "src/board.ts": "05611a5fc516c277b235ced37c1d855c8a2c7f54a34d6a2b25c87740a47d320d",
+    "src/board.ts": "83d516354f49af8e898ee9bcbc544b1a00145fc797c90c2dcb684d4486d83b8f",
     "src/catalog.test.ts": "6c686af55cfdea015cebfd1332baa51ce2ba4fe7b1c280d8c9230b2b34e910f4",
     "src/catalog.ts": "1560d772581736593b1b4ea13c5c8d51db3f299e9ce6cfe7ebb43af08e9736b1",
     "src/collections.test.ts": "1f8bcaf72fca2c51d02712ab71ad2ac700fc9bafdd566459ca83837ee4867dcf",
@@ -42,11 +42,11 @@
     "src/external.test.ts": "19e610494e657e4b7bdfe0cbde3d9de26dee9cc90137d51cbf71a8c243746500",
     "src/external.ts": "998cd3bb226750c160ba97a524c56906663ea94f55150216b7e66929462f1c15",
     "src/lifecycle.test.ts": "822ef6d20436c9c1db9b3fe08b75a5c992950dfabc7dbd05325ef94c3b64dfa4",
-    "src/refinements.test.ts": "6394164bbcce350a3626cda1ed74f61c1b57831bf4d814159d355fb31c9ddd05",
+    "src/refinements.test.ts": "0c625df5d91e88079405a3f63a7ad274f81e01310c62865f8454493d24b2f6a2",
     "src/state.test.ts": "66d24d0784de5bda2c17d841bf5268718b3539864831fad8b16b4118b278526e",
     "dctx0/copy.dctx0": "8d057da278cb08c2702631769d01509665d00f5efb0547b9120c425cfedead3a",
     "dctx0/verification.dctx0": "36bf9062447ede11e128d94b3277e2039ce3324cffce41ac6fc45ace6900256a",
-    "dctx0/workspace.dctx0": "deec1fcc112de9b2b9426ff1e7e03f39f3fe92ebfb197c1f477edee8199c34f5",
+    "dctx0/workspace.dctx0": "cdda40ed20a1fba1b1eee4aa0eb9b34bb4b21f9ab9283fd6441555085277975a",
     "src/http.ts": "0594b06c350623b3ae5f00b62593ddd2b4d89cd03947fba6f9dcb318d4c00ee7",
     "src/http.test.ts": "a90a9d22bfe88b2e2ad564014aa7912bde93204cc80863413bdbfe5c6d0f0b39",
     "src/ui.ts": "ff3428f1d38d4e66a4ff958467ce52cdf7695834acd430e871bf7f7d559ba064",
@@ -55,6 +55,11 @@
     "server.test.ts": "1c84942131856a5bd3e3b99f78f1b504fd89e92406abeefd22ed2d271b5a81fc"
   },
   "subjects": {
+    "Tutorial.Board.HexToken": {
+      "report": "The native adapter calls hexToken with the actual decoded value. The production factory preserves nonempty lowercase ASCII hexadecimal text. The independent tests cover uppercase, empty text, a prefix, whitespace and non-text inputs.",
+      "limitations": ["The contract covers the text representation and does not establish a digest length or cryptographic property."],
+      "review": null
+    },
     "Tutorial.Board.Count": {
       "report": "The unchanged bigint Count factory accepts exactly 0..3. Original boundary and increment tests still pass. The reviewed adapter forwards decoded native values to actual production factories, including wrong types; it supplies no expected answers.",
       "limitations": [
@@ -319,7 +324,10 @@
       "limitations": [
         "Authored architecture judgement applies to these concrete reviewed classes and source hashes. Native cases prove the declared finite plan; no complete semantic call graph or all-input architecture proof is claimed."
       ],
-      "review": null
+      "review": {
+        "approved": true,
+        "findings": []
+      }
     },
     "Tutorial.Board.Catalog#constraint:1": {
       "report": "Reviewed Catalog constructor and find body: the service receives TaskReader and invokes its lookup method. It neither constructs Board nor reaches private storage. The concrete BoardReader lives alongside the service but receives its Board independently; the file import is not a claim that the Catalog class depends directly on storage. The independent replacement test injects a different ordinary reader and exercises the unchanged Catalog. Fresh Step 8 inspection: Catalog now awaits the normal reader result, retaining the same constructor dependency and boundary. Tests exercise both a real synchronous BoardReader and an asynchronous replacement, including identity-preserving rejection propagation. Mock scenarios select only the declared example sessions; the bridge obtains replies through context.collaborator and records actual invocations. It never supplies domain answers. Other generated operations and direct port conformance keep the real reader. The explicit scenario inputs match the independently observed initial test state, so the existing state contract is retained. Fresh Step 9 inspection: the requireTask addition uses the same ordinary Reader interface. Its new publisher callback is independently provided; it does not introduce concrete storage dependencies. Returned values remain TaskSummary boundaries. Domain failures and event payloads are constructed by production factories. Fresh Step 10 inspection: production Catalog/BoardReader logic is unchanged. Testing-only runtime array proxies observe actual storage reads within the invoked operation, and corresponding read permissions are declared. No access is invented from a static method name or expected result. Fresh Step 11 inspection: TaskWriter is an explicit port in the owning Catalog module and is tested directly against ordinary Board methods. Catalog consumer code still depends only on TaskReader and its publisher; no concrete storage dependency was introduced into the service.",

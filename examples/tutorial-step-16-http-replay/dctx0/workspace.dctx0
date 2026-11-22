@@ -30,6 +30,7 @@ workspace Tutorial {
     value Estimate = Duration { range 0..3600 }
     value ExactAmount = Decimal
     value Attachment = Bytes
+    value HexToken = String { format Hex }
     value NoValue = Unit
     value MaybeTitle = Option<Title>
     value CompatOption = Dctx0Option<Title>
@@ -356,7 +357,7 @@ workspace Tutorial {
       }
       operation starts(text: String) -> Boolean {
         pure
-        ensures result == startsWith(text, "Task")
+        ensures result == matchesText(text, "^Task")
       }
       operation ends(text: String) -> Boolean {
         pure
