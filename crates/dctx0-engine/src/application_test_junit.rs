@@ -4,7 +4,7 @@ use quick_xml::{
     Reader,
     events::{BytesStart, Event},
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const LIMIT: usize = 1_048_576;
 
@@ -66,7 +66,8 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
     reader.config_mut().check_comments = true;
     let mut stack: Vec<&str> = vec![];
     let (mut roots, mut suites, mut cases) = (0, 0, 0);
-    let (mut properties, mut ci_properties) = (0, 0);
+    let mut has_properties = false;
+    let mut metadata = BTreeSet::new();
     let mut first = true;
     loop {
         let event = reader
@@ -84,17 +85,12 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
                         "testsuite"
                     }
                     (["testsuites", "testsuite"], b"properties")
-                        if properties == 0 && cases == 0 =>
+                        if !has_properties && cases == 0 =>
                     {
-                        properties += 1;
+                        has_properties = true;
                         "properties"
                     }
-                    (["testsuites", "testsuite", "properties"], b"property")
-                        if ci_properties == 0 =>
-                    {
-                        ci_properties += 1;
-                        "property"
-                    }
+                    (["testsuites", "testsuite", "properties"], b"property") => "property",
                     (["testsuites", "testsuite"], b"testcase") if cases == 0 => {
                         cases += 1;
                         "testcase"
@@ -127,12 +123,14 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
                             );
                         }
                     }
-                    // Bun adds this informational property on GitHub Actions.
+                    // Bun's environment metadata is independent of the test verdict.
                     "property" => {
-                        if values.get("name").map(String::as_str) != Some("ci")
+                        let property = values.get("name").map(String::as_str).unwrap_or_default();
+                        if !matches!(property, "ci" | "commit" | "hostname")
                             || values.get("value").is_none_or(String::is_empty)
+                            || !metadata.insert(property.to_owned())
                         {
-                            return Err("Unsupported JUnit CI property".into());
+                            return Err("Unsupported or duplicate JUnit metadata property".into());
                         }
                     }
                     "testsuites" | "testsuite" => counts(&values)?,
@@ -177,7 +175,10 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
         }
         first = false;
     }
-    if !stack.is_empty() || (roots, suites, cases) != (1, 1, 1) || properties != ci_properties {
+    if !stack.is_empty()
+        || (roots, suites, cases) != (1, 1, 1)
+        || (has_properties && metadata.is_empty())
+    {
         return Err("JUnit parent execution is incomplete".into());
     }
     Ok(())
@@ -211,16 +212,26 @@ mod tests {
         );
     }
     #[test]
-    fn accepts_only_buns_ci_metadata_alongside_the_single_native_parent() {
+    fn accepts_only_buns_environment_metadata_alongside_the_single_native_parent() {
         let ci =
             r#"<property name="ci" value="https://github.com/Haardt/dctx0ctl/actions/runs/123" />"#;
+        let commit =
+            r#"<property name="commit" value="a00f47eac1833f5abfb50ec5c5d5fd5b21e78fc2" />"#;
+        let hostname = r#"<property name="hostname" value="runner" />"#;
         let with_properties = |contents: &str| {
             VALID.replace(
                 "<testcase",
                 &format!("<properties>{contents}</properties><testcase"),
             )
         };
-        assert!(assess(with_properties(ci).as_bytes(), "CinemaSuite").is_ok());
+        assert!(
+            assess(
+                with_properties(&format!("{ci}{commit}{hostname}")).as_bytes(),
+                "CinemaSuite"
+            )
+            .is_ok()
+        );
+        assert!(assess(with_properties(commit).as_bytes(), "CinemaSuite").is_ok());
         for invalid in [
             String::new(),
             format!("{ci}{ci}"),
