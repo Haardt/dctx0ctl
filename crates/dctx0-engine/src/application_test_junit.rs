@@ -66,6 +66,7 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
     reader.config_mut().check_comments = true;
     let mut stack: Vec<&str> = vec![];
     let (mut roots, mut suites, mut cases) = (0, 0, 0);
+    let (mut properties, mut ci_properties) = (0, 0);
     let mut first = true;
     loop {
         let event = reader
@@ -82,16 +83,29 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
                         suites += 1;
                         "testsuite"
                     }
+                    (["testsuites", "testsuite"], b"properties")
+                        if properties == 0 && cases == 0 =>
+                    {
+                        properties += 1;
+                        "properties"
+                    }
+                    (["testsuites", "testsuite", "properties"], b"property")
+                        if ci_properties == 0 =>
+                    {
+                        ci_properties += 1;
+                        "property"
+                    }
                     (["testsuites", "testsuite"], b"testcase") if cases == 0 => {
                         cases += 1;
                         "testcase"
                     }
                     _ => return Err("Unexpected, duplicate or failed JUnit element".into()),
                 };
-                let allowed = if name == "testcase" {
-                    &["name", "classname", "time", "file", "line", "assertions"][..]
-                } else {
-                    &[
+                let allowed: &[&str] = match name {
+                    "testcase" => &["name", "classname", "time", "file", "line", "assertions"],
+                    "properties" => &[],
+                    "property" => &["name", "value"],
+                    _ => &[
                         "name",
                         "tests",
                         "failures",
@@ -101,17 +115,28 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
                         "assertions",
                         "file",
                         "hostname",
-                    ][..]
+                    ],
                 };
                 let values = attributes(start, &reader, allowed)?;
-                if name == "testcase" {
-                    if values.get("name").map(String::as_str) != Some(root_test) {
-                        return Err(
-                            "JUnit parent identity differs from the required native test".into(),
-                        );
+                match name {
+                    "testcase" => {
+                        if values.get("name").map(String::as_str) != Some(root_test) {
+                            return Err(
+                                "JUnit parent identity differs from the required native test"
+                                    .into(),
+                            );
+                        }
                     }
-                } else {
-                    counts(&values)?;
+                    // Bun adds this informational property on GitHub Actions.
+                    "property" => {
+                        if values.get("name").map(String::as_str) != Some("ci")
+                            || values.get("value").is_none_or(String::is_empty)
+                        {
+                            return Err("Unsupported JUnit CI property".into());
+                        }
+                    }
+                    "testsuites" | "testsuite" => counts(&values)?,
+                    _ => {}
                 }
                 if matches!(event, Event::Start(_)) {
                     stack.push(name);
@@ -152,7 +177,7 @@ pub(crate) fn assess(bytes: &[u8], root_test: &str) -> Result<(), String> {
         }
         first = false;
     }
-    if !stack.is_empty() || (roots, suites, cases) != (1, 1, 1) {
+    if !stack.is_empty() || (roots, suites, cases) != (1, 1, 1) || properties != ci_properties {
         return Err("JUnit parent execution is incomplete".into());
     }
     Ok(())
@@ -183,6 +208,36 @@ mod tests {
                 "CinemaSuite"
             )
             .is_ok()
+        );
+    }
+    #[test]
+    fn accepts_only_buns_ci_metadata_alongside_the_single_native_parent() {
+        let ci =
+            r#"<property name="ci" value="https://github.com/Haardt/dctx0ctl/actions/runs/123" />"#;
+        let with_properties = |contents: &str| {
+            VALID.replace(
+                "<testcase",
+                &format!("<properties>{contents}</properties><testcase"),
+            )
+        };
+        assert!(assess(with_properties(ci).as_bytes(), "CinemaSuite").is_ok());
+        for invalid in [
+            String::new(),
+            format!("{ci}{ci}"),
+            ci.replace("name=\"ci\"", "name=\"other\""),
+            ci.replace("value=", "url="),
+            format!("{ci}<failure/>"),
+        ] {
+            assert!(assess(with_properties(&invalid).as_bytes(), "CinemaSuite").is_err());
+        }
+        assert!(
+            assess(
+                with_properties(ci)
+                    .replace("name=\"CinemaSuite\"", "name=\"Other\"")
+                    .as_bytes(),
+                "CinemaSuite"
+            )
+            .is_err()
         );
     }
     #[test]
