@@ -316,10 +316,7 @@ impl<'a> AgentFreshness<'a> {
             &binding.profiles.documents,
         );
         selected.require_complete().ok()?;
-        if selected.bundle.hash != report.profile_bundle_hash {
-            return Some(false);
-        }
-        Some(true)
+        Some(selected.bundle.hash == report.profile_bundle_hash)
     }
 }
 fn bound(

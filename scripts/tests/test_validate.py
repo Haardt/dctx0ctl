@@ -75,6 +75,13 @@ class PerformanceTests(unittest.TestCase):
         self.temporary.cleanup()
         self.environment.stop()
 
+    def short_cache(self):
+        base = Path.home() / '.cache'
+        base.mkdir(parents=True, exist_ok=True)
+        directory = tempfile.TemporaryDirectory(prefix='t-', dir=base)
+        self.addCleanup(directory.cleanup)
+        return Path(directory.name).resolve()
+
     def test_explicit_history_hold_keeps_failed_and_successful_runs_and_never_updates_baseline(self):
         history = self.store / 'history'
         history.mkdir(parents=True)
@@ -103,7 +110,7 @@ class PerformanceTests(unittest.TestCase):
 
     def test_held_functional_cache_is_private_short_unique_and_keeps_inherited_provenance(self):
         root = Path(self.temporary.name)
-        base = root / 'v'
+        base = self.short_cache()
         artifacts = root / ('long-artifact-root-' * 6)
         artifacts.mkdir()
         old = artifacts / 'older-report.json'
@@ -130,6 +137,7 @@ class PerformanceTests(unittest.TestCase):
 
     def test_held_main_isolates_long_artifacts_and_inherits_short_cache(self):
         root = Path(self.temporary.name)
+        base = self.short_cache()
         project = root / ('long-artifact-parent-' * 5)
         project.mkdir()
         old = project / 'old-evidence.json'
@@ -140,7 +148,7 @@ class PerformanceTests(unittest.TestCase):
                 environments.append(kwargs['env'].copy())
             return argparse.Namespace(stdout='', returncode=0)
         argv = ['validate.py', '--focus', 'verification', '--preserve-history', '--skip-performance']
-        with patch.dict(validate.os.environ, {'DCTX0_VALIDATION_TEMP_ROOT': str(root/'v')}), \
+        with patch.dict(validate.os.environ, {'DCTX0_VALIDATION_TEMP_ROOT': str(base)}), \
              patch.object(validate, 'ROOT', project), patch.object(validate.sys, 'argv', argv), \
              patch.object(validate.subprocess, 'run', side_effect=run), \
              patch.object(validate, 'validation_sources', return_value=[]), \
@@ -160,7 +168,7 @@ class PerformanceTests(unittest.TestCase):
         for environment in environments:
             self.assertEqual(environment['DCTX0_PRESERVE_BENCHMARK_HISTORY'], '1')
             self.assertTrue(Path(environment['DCTX0_VALIDATION_ARTIFACT_ROOT']).is_relative_to(project))
-            self.assertTrue(Path(environment['TMPDIR']).is_relative_to(root/'v'))
+            self.assertTrue(Path(environment['TMPDIR']).is_relative_to(base))
         self.assertNotEqual(environments[0]['DCTX0_VALIDATION_ARTIFACT_ROOT'], environments[first_count]['DCTX0_VALIDATION_ARTIFACT_ROOT'])
         self.assertNotEqual(environments[0]['TMPDIR'], environments[first_count]['TMPDIR'])
 
@@ -170,7 +178,7 @@ class PerformanceTests(unittest.TestCase):
         artifacts.mkdir()
         previous = artifacts / 'old-report.json'
         previous.write_bytes(b'unchanged')
-        environment = {**os.environ, 'DCTX0_VALIDATION_TEMP_ROOT': str(root/'v'),
+        environment = {**os.environ, 'DCTX0_VALIDATION_TEMP_ROOT': str(self.short_cache()),
                        'DCTX0_VALIDATION_ARTIFACT_ROOT': str(artifacts),
                        'DCTX0_PRESERVE_BENCHMARK_HISTORY': '1',
                        'PYTHONPATH': str(Path(__file__).resolve().parents[1])}
@@ -337,11 +345,7 @@ class PerformanceTests(unittest.TestCase):
 
     def test_functional_checks_use_owned_disk_temporary_space_without_changing_release_environment(self):
         environments = []
-        short_base = Path.home() / '.cache'
-        short_base.mkdir(parents=True, exist_ok=True)
-        short_cache = tempfile.TemporaryDirectory(prefix='t-', dir=short_base)
-        self.addCleanup(short_cache.cleanup)
-        cache = Path(short_cache.name)
+        cache = self.short_cache()
         def run(command, **kwargs):
             environment = kwargs.get('env')
             if environment is not None:
